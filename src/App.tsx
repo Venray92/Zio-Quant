@@ -96,30 +96,37 @@ function MainApp() {
         const mapped = apiItems.map(item => {
           const ticker = item.Ticker || item.ticker || 'UNKNOWN';
           const existingStock = INITIAL_STOCKS.find(s => s.symbol === ticker);
+          
+          const actionStr = String(item.Action || item.action || '').toUpperCase();
+          const scoreVal = item.Score ?? item.score ?? 0;
+          
+          const isBuySignal = actionStr.includes("BELI") || actionStr.includes("BUY") || scoreVal > 0;
+          const isSellSignal = actionStr.includes("JUAL") || actionStr.includes("SELL") || scoreVal < 0;
+
           return {
             symbol: ticker,
             name: existingStock ? existingStock.name : `${ticker} Indonesia Tbk.`,
-            price: item.Harga || item.price || existingStock?.price || 1000,
-            change: existingStock ? existingStock.change : 15,
-            changePercent: existingStock ? existingStock.changePercent : 1.5,
+            price: Number(item.Harga || item.price || existingStock?.price || 1000),
+            change: existingStock ? existingStock.change : 0,
+            changePercent: existingStock ? existingStock.changePercent : 0,
             sector: existingStock ? existingStock.sector : 'Screener',
             board: existingStock ? existingStock.board : 'Papan Utama',
-            volume: existingStock ? existingStock.volume : '10M',
-            high: item.Harga || item.price || existingStock?.high || 1000,
-            low: item.Harga || item.price || existingStock?.low || 1000,
-            open: item.Harga || item.price || existingStock?.open || 1000,
-            previousClose: item.Harga || item.price || existingStock?.previousClose || 1000,
+            volume: existingStock ? existingStock.volume : '1M',
+            high: Number(item.Harga || item.price || existingStock?.high || 1000),
+            low: Number(item.Harga || item.price || existingStock?.low || 1000),
+            open: Number(item.Harga || item.price || existingStock?.open || 1000),
+            previousClose: Number(item.Harga || item.price || existingStock?.previousClose || 1000),
             tvSymbol: `IDX:${ticker}`,
             apiData: item,
             statusReason: item["Detail Signal"] || item.detail_signal || existingStock?.statusReason || 'Signal Active',
-            specialNotation: item.Action?.includes("BELI") ? "BARU GC" : (item.Action?.includes("JUAL") ? "PAS DC" : existingStock?.specialNotation),
+            specialNotation: isBuySignal ? "BARU GC" : (isSellSignal ? "PAS DC" : existingStock?.specialNotation),
             isLQ45: existingStock ? existingStock.isLQ45 : false,
-            stochK: item["Stoch %K"] !== undefined ? item["Stoch %K"] : 25,
-            stochD: item["Stoch %D"] !== undefined ? item["Stoch %D"] : 20,
-            psarBullish: item["Detail Signal"] ? !item["Detail Signal"].includes("Bearish") : true,
-            stochCrossDays: item.Action?.includes("BELI") ? 0 : undefined,
-            isDeadCross: item.Action?.includes("JUAL") ? true : false,
-            deadCrossDays: item.Action?.includes("JUAL") ? 0 : undefined,
+            stochK: item["Stoch %K"] ?? item.stoch_k ?? 25,
+            stochD: item["Stoch %D"] ?? item.stoch_d ?? 20,
+            psarBullish: item["Detail Signal"] ? !item["Detail Signal"].toLowerCase().includes("bearish") : true,
+            stochCrossDays: isBuySignal ? 0 : undefined,
+            isDeadCross: isSellSignal,
+            deadCrossDays: isSellSignal ? 0 : undefined,
           } as Stock;
         });
         
@@ -153,23 +160,25 @@ function MainApp() {
         const mapped = apiItems.map(item => {
           const ticker = item.Ticker || item.ticker || 'UNKNOWN';
           const existingStock = INITIAL_STOCKS.find(s => s.symbol === ticker);
+          const actionStr = String(item.Action || item.action || '').toUpperCase();
+
           return {
             symbol: ticker,
             name: existingStock ? existingStock.name : `${ticker} Indonesia Tbk.`,
-            price: item.Harga || item.price || existingStock?.price || 1000,
-            change: existingStock ? existingStock.change : 10,
-            changePercent: existingStock ? existingStock.changePercent : 1.0,
+            price: Number(item.Harga || item.price || existingStock?.price || 1000),
+            change: existingStock ? existingStock.change : 0,
+            changePercent: existingStock ? existingStock.changePercent : 0,
             sector: existingStock ? existingStock.sector : 'Screener',
             board: existingStock ? existingStock.board : 'Papan Utama',
-            volume: existingStock ? existingStock.volume : '5M',
-            high: item.Harga || item.price || existingStock?.high || 1000,
-            low: item.Harga || item.price || existingStock?.low || 1000,
-            open: item.Harga || item.price || existingStock?.open || 1000,
-            previousClose: item.Harga || item.price || existingStock?.previousClose || 1000,
+            volume: existingStock ? existingStock.volume : '1M',
+            high: Number(item.Harga || item.price || existingStock?.high || 1000),
+            low: Number(item.Harga || item.price || existingStock?.low || 1000),
+            open: Number(item.Harga || item.price || existingStock?.open || 1000),
+            previousClose: Number(item.Harga || item.price || existingStock?.previousClose || 1000),
             tvSymbol: `IDX:${ticker}`,
             apiData: item,
             statusReason: item["Detail Signal"] || item.detail_signal || existingStock?.statusReason || 'RSI Pattern',
-            specialNotation: item.Action?.includes("BELI") ? "RSI" : (item.Action?.includes("JUAL") ? "SELL" : existingStock?.specialNotation),
+            specialNotation: actionStr.includes("BELI") ? "RSI" : (actionStr.includes("JUAL") ? "SELL" : existingStock?.specialNotation),
             isLQ45: existingStock ? existingStock.isLQ45 : false,
           } as Stock;
         });

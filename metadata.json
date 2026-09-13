@@ -1,0 +1,6 @@
+{
+  "name": "Stock Trading Dashboard",
+  "description": "Stock trading and technical analysis dashboard inspired by Stockbit, featuring TradingView charts with full technical indicators, watchlist, order execution, and market data.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

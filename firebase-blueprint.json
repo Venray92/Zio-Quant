@@ -1,0 +1,27 @@
+{
+  "projectInfo": {
+    "name": "Zio Screaner",
+    "description": "Stock trading and technical analysis dashboard"
+  },
+  "collections": [
+    {
+      "name": "users",
+      "description": "User profiles and settings.",
+      "schema": {
+        "email": {
+          "type": "string",
+          "description": "User's email address"
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "Account creation time"
+        }
+      },
+      "securityRules": {
+        "read": "request.auth != null && request.auth.uid == resource.id",
+        "create": "request.auth != null && request.auth.uid == documentId",
+        "update": "request.auth != null && request.auth.uid == resource.id"
+      }
+    }
+  ]
+}

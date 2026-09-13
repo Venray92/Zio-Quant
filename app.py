@@ -120,7 +120,8 @@ def get_mock_stocks():
 stocks_data = get_mock_stocks()
 
 # Init State
-if "selected_screener" not in st_session := st.session_state:
+# KODE BARU (SUDAH DIPERBAIKI):
+if "selected_screener" not in st.session_state:
     st.session_state.selected_screener = "1. Stoch - Psar"
 if "active_stock" not in st.session_state:
     st.session_state.active_stock = stocks_data[0]

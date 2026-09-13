@@ -9,8 +9,6 @@ import {
   ChevronLeft, 
   ChevronRight,
   X,
-  CheckCircle2,
-  AlertTriangle,
   History
 } from 'lucide-react';
 import { Stock } from '../types';
@@ -50,30 +48,25 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [newSymbolInput, setNewSymbolInput] = useState('');
   
-  // Filter mode when Screener "1. Stoch - Psar" is active
-  // 'all_signals': Golden Cross (0-2h) + Pas Dead Cross (0h)
-  // 'gc_only': Baru Golden Cross (0h) s/d kelewat maksimal 2 hari saja (0, 1, 2)
-  // 'dc_only': Tepat Pas Dead Cross hari ini (0h, tidak boleh lebih / kurang)
-  // 'all': Semua Universe
   type ScreenerFilterMode = 'all_signals' | 'gc_only' | 'dc_only' | 'all';
   const [screenerFilter, setScreenerFilter] = useState<ScreenerFilterMode>('all_signals');
 
   const gcStocks = useMemo(() => {
     if (selectedScreener === '1. Stoch - Psar') {
-      return stocks.filter(s => s.apiData && (s.apiData.Action?.includes('BELI') || s.apiData.score! > 0));
+      return stocks.filter(s => s.apiData && (s.apiData.Action?.includes('BELI') || (s.apiData.Score ?? s.apiData.score ?? 0) > 0));
     }
     return getGoldenCrossScreenedStocks();
   }, [stocks, selectedScreener]);
 
   const dcStocks = useMemo(() => {
     if (selectedScreener === '1. Stoch - Psar') {
-      return stocks.filter(s => s.apiData && (s.apiData.Action?.includes('JUAL') || s.apiData.score! < 0));
+      return stocks.filter(s => s.apiData && (s.apiData.Action?.includes('JUAL') || (s.apiData.Score ?? s.apiData.score ?? 0) < 0));
     }
     return getPasDeadCrossStocks();
   }, [stocks, selectedScreener]);
+
   const allSignalStocks = useMemo(() => [...gcStocks, ...dcStocks], [gcStocks, dcStocks]);
 
-  // Decide display stock list:
   const baseStocks = useMemo(() => {
     if (selectedScreener === '1. Stoch - Psar') {
       if (screenerFilter === 'gc_only') {
@@ -126,13 +119,10 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
     );
   }
 
-  const screenedCount = stocks.filter(s => s.symbol !== 'IHSG').length;
-
   return (
     <div className={`w-[245px] sm:w-[260px] border-r flex flex-col h-full flex-shrink-0 select-none relative transition-colors duration-200 ${
       isLight ? 'bg-white border-[#e2e8f0] text-[#0f172a]' : 'bg-[#11161d] border-[#1a212b] text-[#e1e7ec]'
     }`}>
-      {/* Collapse button on right border */}
       <button
         onClick={onToggleOpen}
         className={`absolute -right-3 top-1/2 -translate-y-1/2 z-30 w-3 h-10 border rounded-r flex items-center justify-center shadow-md transition-colors ${
@@ -145,13 +135,11 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
         <ChevronLeft className="w-2.5 h-2.5" />
       </button>
 
-      {/* Top Controls Header */}
+      {/* Header Tabs */}
       <div className={`p-2 border-b flex items-center justify-between gap-1.5 ${
         isLight ? 'border-[#e2e8f0] bg-[#f8fafc]' : 'border-[#1c2430] bg-[#11161d]'
       }`}>
-        {/* Dynamic Tab Pills: Active Screener (Screening default) & History Tab (replacing W.L) */}
         <div className="flex items-center space-x-1.5 overflow-x-hidden flex-1 min-w-0">
-          {/* Active Tab: Displays what was clicked in Choose Screaner, or 'Screening' if unselected */}
           <div
             className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all border shadow-sm flex items-center space-x-1 truncate flex-shrink-0 ${
               isLight
@@ -166,7 +154,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
             <span className="truncate max-w-[120px]">{selectedScreener || 'Screening'}</span>
           </div>
 
-          {/* History Tab: Replaces W.L. Shows previous screener (max 1 history). Clicking swaps it! */}
           {previousScreener && (
             <button
               onClick={() => onSelectHistoryScreener?.(previousScreener)}
@@ -175,7 +162,7 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                   ? 'bg-[#f1f5f9] border-[#cbd5e1] text-[#475569] hover:text-[#0f172a] hover:border-[#3b82f6]'
                   : 'bg-[#141c26] border-[#273546] hover:border-[#3b82f6] text-[#8ea5be] hover:text-white'
               }`}
-              title={`Riwayat Sebelumnya: ${previousScreener} (Klik untuk berpindah ke screener ini)`}
+              title={`Riwayat Sebelumnya: ${previousScreener}`}
             >
               <History className="w-3 h-3 text-[#3b82f6] group-hover:rotate-[-45deg] transition-transform flex-shrink-0" />
               <span className="truncate">{previousScreener}</span>
@@ -183,7 +170,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
           )}
         </div>
 
-        {/* Action icons: + and Filter */}
         <div className={`flex items-center space-x-1 flex-shrink-0 ${isLight ? 'text-[#64748b]' : 'text-[#8b98a5]'}`}>
           <button
             onClick={() => setIsAdding(!isAdding)}
@@ -205,14 +191,14 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
         </div>
       </div>
 
-      {/* Quick Search Bar or Add Input */}
+      {/* Search / Add Input */}
       {isAdding ? (
         <form onSubmit={handleAddSubmit} className={`p-2 border-b flex items-center space-x-1.5 ${
           isLight ? 'bg-[#f1f5f9] border-[#e2e8f0]' : 'bg-[#161c24] border-[#1c2430]'
         }`}>
           <input
             type="text"
-            placeholder="Kode Saham (e.g. ANTM, UNTR)..."
+            placeholder="Kode Saham..."
             value={newSymbolInput}
             onChange={(e) => setNewSymbolInput(e.target.value.toUpperCase())}
             autoFocus
@@ -256,7 +242,7 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
         </div>
       )}
 
-      {/* Screener Active Info Banner */}
+      {/* Banner Filter Screener */}
       {selectedScreener === '1. Stoch - Psar' ? (
         <div className={`px-2 py-2 border-b flex flex-col gap-1.5 ${
           isLight ? 'bg-[#ecfdf5] border-[#a7f3d0]' : 'bg-[#0a2318] border-[#00c076]/30'
@@ -275,7 +261,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
             </span>
           </div>
 
-          {/* Filter Mode Sub-Tabs: GC 0-2h vs Pas Dead Cross vs Semua */}
           <div className="grid grid-cols-3 gap-1 pt-0.5">
             <button
               onClick={() => setScreenerFilter('gc_only')}
@@ -286,7 +271,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                     ? 'bg-[#d1fae5] text-[#065f46] hover:bg-[#a7f3d0]'
                     : 'bg-[#14231b] text-[#82b89a] hover:bg-[#1a3325]'
               }`}
-              title="Baru Golden Cross (0h) s/d kelewat maksimal 2 hari saja (0, 1, 2 hari) &amp; PSAR Hijau"
             >
               <span>★ GC 0-2h</span>
               <span className="text-[8.5px] opacity-90 font-mono">({gcStocks.length})</span>
@@ -300,7 +284,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                     ? 'bg-[#fee2e2] text-[#991b1b] hover:bg-[#fecaca]'
                     : 'bg-[#261414] text-[#fca5a5] hover:bg-[#3b1c1c]'
               }`}
-              title="Tepat pas Dead Cross hari ini (0 hari), tidak boleh lebih &amp; tidak boleh kurang"
             >
               <span>⚠ Pas DC</span>
               <span className="text-[8.5px] opacity-90 font-mono">({dcStocks.length})</span>
@@ -314,7 +297,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                     ? 'bg-[#e0e7ff] text-[#3730a3] hover:bg-[#c7d2fe]'
                     : 'bg-[#17202d] text-[#889cb5] hover:bg-[#1f2d40]'
               }`}
-              title="Tampilkan semua sinyal (GC 0-2 hari + Pas Dead Cross)"
             >
               <span>Semua</span>
               <span className="text-[8.5px] opacity-90 font-mono">({allSignalStocks.length})</span>
@@ -357,12 +339,12 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
           <div className={`px-2.5 py-2 border-b text-[11px] leading-tight ${
             isLight ? 'bg-[#f8fafc] border-[#e2e8f0] text-[#475569]' : 'bg-[#121820] border-[#1c2430] text-[#8a99a8]'
           }`}>
-            <span>Gunakan menu <strong className={isLight ? 'text-[#0f172a]' : 'text-white'}>Choose Screner</strong> di atas untuk menampilkan hasil screening saham sesuai kriteria.</span>
+            <span>Gunakan menu <strong className={isLight ? 'text-[#0f172a]' : 'text-white'}>Choose Screener</strong> di atas untuk menampilkan hasil screening.</span>
           </div>
         )
       )}
 
-      {/* Stock List Items */}
+      {/* Stock Item List */}
       <div className={`flex-1 overflow-y-auto divide-y ${
         isLight ? 'divide-[#f1f5f9]' : 'divide-[#18202b]/60'
       }`}>
@@ -375,6 +357,7 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
             const isSelected = activeStock.symbol === stock.symbol;
             const isBullish = stock.change >= 0;
             const isBearish = stock.change < 0;
+            const scoreVal = stock.apiData?.Score ?? stock.apiData?.score;
 
             return (
               <div
@@ -390,7 +373,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                       : 'hover:bg-[#151c26]'
                 }`}
               >
-                {/* Left column: Badge & Symbol Info */}
                 <div className="flex items-center space-x-2 min-w-0">
                   <div
                     className={`w-7 h-7 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-sm ${
@@ -431,7 +413,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                         </span>
                       )}
 
-                      {/* Technical Status Badges */}
                       {stock.deadCrossDays === 0 ? (
                         <span className="bg-[#ef4444] text-white border border-[#fca5a5] text-[8.5px] font-bold px-1 py-0.5 rounded leading-none flex items-center shadow-sm animate-pulse">
                           ⚠ PAS DC
@@ -461,7 +442,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                       {stock.name}
                     </span>
 
-                    {/* Stochastic & PSAR Values Indicator */}
                     {stock.stochK !== undefined && stock.stochD !== undefined && (
                       <div className="flex items-center space-x-1 mt-0.5 text-[9px] font-mono leading-none">
                         <span className={stock.stochK > stock.stochD ? (isLight ? 'text-[#16a34a] font-bold' : 'text-[#34d399] font-bold') : 'text-[#ef4444]'}>
@@ -482,7 +462,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                   </div>
                 </div>
 
-                {/* Right column: Price & Change */}
                 <div className="flex flex-col items-end flex-shrink-0">
                   <span className={`font-bold text-[13px] ${isLight ? 'text-[#0f172a]' : 'text-[#f0f4f8]'}`}>
                     {stock.symbol === 'IHSG'
@@ -503,7 +482,7 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                     {stock.apiData ? (
                       <span className="font-bold">
                         <span className="mr-1 text-[9px] opacity-70">
-                          {stock.apiData.Score !== undefined ? `Sc:${stock.apiData.Score}` : (stock.apiData.age !== undefined ? `${stock.apiData.age}b` : '')}
+                          {scoreVal !== undefined ? `Sc:${scoreVal}` : (stock.apiData.age !== undefined ? `${stock.apiData.age}b` : '')}
                         </span>
                         {stock.change > 0 ? '+' : ''}
                         {stock.changePercent.toFixed(2)}%
@@ -522,7 +501,6 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
         )}
       </div>
 
-      {/* Bottom Mini Status */}
       <div className={`p-2 border-t flex items-center justify-between text-[11px] ${
         isLight ? 'bg-[#f8fafc] border-[#e2e8f0] text-[#64748b]' : 'bg-[#0c1015] border-[#1c2430] text-[#6b7b8c]'
       }`}>

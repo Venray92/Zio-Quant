@@ -52,7 +52,7 @@ function MainApp() {
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('Chart');
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>('Screener');
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(true);
-  const [chartTheme, setChartTheme] = useState<'dark' | 'cream'>('cream'); // Cream as shown in screenshot
+  const [chartTheme, setChartTheme] = useState<'dark' | 'cream'>('cream');
   const [appTheme, setAppTheme] = useState<'dark' | 'light'>('dark');
 
   // Modal overlays
@@ -74,6 +74,8 @@ function MainApp() {
   const [alertSet, setAlertSet] = useState<Set<string>>(new Set(['IHSG']));
 
   const applyScreenerStockList = async (screener: string | null) => {
+    const ihsgStock = INITIAL_STOCKS.find(s => s.symbol === 'IHSG') || INITIAL_STOCKS[0];
+
     if (screener === '1. Stoch - Psar') {
       try {
         const apiUrl = localStorage.getItem('ZIO_API_URL') || 'https://hunter-snazzy-sandpaper.ngrok-free.dev';
@@ -92,45 +94,48 @@ function MainApp() {
         if (apiItems.length === 0 && Array.isArray(jsonData)) apiItems = jsonData.map((i: any) => ({...i, sourceScreener: 'stoch-psar'}));
         
         const mapped = apiItems.map(item => {
-          const existingStock = INITIAL_STOCKS.find(s => s.symbol === (item.Ticker || item.ticker));
+          const ticker = item.Ticker || item.ticker || 'UNKNOWN';
+          const existingStock = INITIAL_STOCKS.find(s => s.symbol === ticker);
           return {
-            ...(existingStock || {}),
-            symbol: item.Ticker || item.ticker || 'UNKNOWN',
-            name: existingStock ? existingStock.name : (item.Ticker || item.ticker || 'UNKNOWN'),
-            price: item.Harga || item.price || 0,
-            change: existingStock ? existingStock.change : 0,
-            changePercent: existingStock ? existingStock.changePercent : 0,
+            symbol: ticker,
+            name: existingStock ? existingStock.name : `${ticker} Indonesia Tbk.`,
+            price: item.Harga || item.price || existingStock?.price || 1000,
+            change: existingStock ? existingStock.change : 15,
+            changePercent: existingStock ? existingStock.changePercent : 1.5,
             sector: existingStock ? existingStock.sector : 'Screener',
-            board: existingStock ? existingStock.board : 'Screener',
-            volume: existingStock ? existingStock.volume : '0',
-            high: item.Harga || item.price || 0,
-            low: item.Harga || item.price || 0,
-            open: item.Harga || item.price || 0,
-            previousClose: item.Harga || item.price || 0,
-            tvSymbol: `IDX:${item.Ticker || item.ticker || 'UNKNOWN'}`,
+            board: existingStock ? existingStock.board : 'Papan Utama',
+            volume: existingStock ? existingStock.volume : '10M',
+            high: item.Harga || item.price || existingStock?.high || 1000,
+            low: item.Harga || item.price || existingStock?.low || 1000,
+            open: item.Harga || item.price || existingStock?.open || 1000,
+            previousClose: item.Harga || item.price || existingStock?.previousClose || 1000,
+            tvSymbol: `IDX:${ticker}`,
             apiData: item,
-            statusReason: item["Detail Signal"] || item.detail_signal || existingStock?.statusReason,
+            statusReason: item["Detail Signal"] || item.detail_signal || existingStock?.statusReason || 'Signal Active',
             specialNotation: item.Action?.includes("BELI") ? "BARU GC" : (item.Action?.includes("JUAL") ? "PAS DC" : existingStock?.specialNotation),
             isLQ45: existingStock ? existingStock.isLQ45 : false,
-            stochK: item["Stoch %K"] !== undefined ? item["Stoch %K"] : existingStock?.stochK,
-            stochD: item["Stoch %D"] !== undefined ? item["Stoch %D"] : existingStock?.stochD,
-            psarBullish: item["Detail Signal"] ? !item["Detail Signal"].includes("Bearish") : existingStock?.psarBullish,
-            stochCrossDays: item.Action?.includes("BELI") ? 0 : existingStock?.stochCrossDays,
-            isDeadCross: item.Action?.includes("JUAL") ? true : existingStock?.isDeadCross,
-            deadCrossDays: item.Action?.includes("JUAL") ? 0 : existingStock?.deadCrossDays,
-          };
+            stochK: item["Stoch %K"] !== undefined ? item["Stoch %K"] : 25,
+            stochD: item["Stoch %D"] !== undefined ? item["Stoch %D"] : 20,
+            psarBullish: item["Detail Signal"] ? !item["Detail Signal"].includes("Bearish") : true,
+            stochCrossDays: item.Action?.includes("BELI") ? 0 : undefined,
+            isDeadCross: item.Action?.includes("JUAL") ? true : false,
+            deadCrossDays: item.Action?.includes("JUAL") ? 0 : undefined,
+          } as Stock;
         });
         
-        setStocks([INITIAL_STOCKS[0], ...mapped]);
+        setStocks([ihsgStock, ...mapped]);
         if (mapped.length > 0) {
           setActiveStock(mapped[0]);
           setActiveScreenerData(mapped[0].apiData);
         }
       } catch (err) {
-        console.error("Failed fetching API, fallback to dummy:", err);
+        console.warn("API Gagal/Offline, menggunakan fallback data lokal Stoch-PSAR:", err);
         const screened = getStochPsarScreenedStocks();
-        setStocks([INITIAL_STOCKS[0], ...screened]);
-        if (screened.length > 0) setActiveStock(screened[0]);
+        setStocks([ihsgStock, ...screened]);
+        if (screened.length > 0) {
+          setActiveStock(screened[0]);
+          setActiveScreenerData(screened[0].apiData || null);
+        }
       }
     } else if (screener === '2. RSI + Pattern') {
       try {
@@ -146,43 +151,46 @@ function MainApp() {
         
         const apiItems = Array.isArray(jsonData) ? jsonData.map((i: any) => ({...i, sourceScreener: 'rsi-pattern'})) : [];
         const mapped = apiItems.map(item => {
-          const existingStock = INITIAL_STOCKS.find(s => s.symbol === (item.Ticker || item.ticker));
+          const ticker = item.Ticker || item.ticker || 'UNKNOWN';
+          const existingStock = INITIAL_STOCKS.find(s => s.symbol === ticker);
           return {
-            ...(existingStock || {}),
-            symbol: item.Ticker || item.ticker || 'UNKNOWN',
-            name: existingStock ? existingStock.name : (item.Ticker || item.ticker || 'UNKNOWN'),
-            price: item.Harga || item.price || 0,
-            change: existingStock ? existingStock.change : 0,
-            changePercent: existingStock ? existingStock.changePercent : 0,
+            symbol: ticker,
+            name: existingStock ? existingStock.name : `${ticker} Indonesia Tbk.`,
+            price: item.Harga || item.price || existingStock?.price || 1000,
+            change: existingStock ? existingStock.change : 10,
+            changePercent: existingStock ? existingStock.changePercent : 1.0,
             sector: existingStock ? existingStock.sector : 'Screener',
-            board: existingStock ? existingStock.board : 'Screener',
-            volume: existingStock ? existingStock.volume : '0',
-            high: item.Harga || item.price || 0,
-            low: item.Harga || item.price || 0,
-            open: item.Harga || item.price || 0,
-            previousClose: item.Harga || item.price || 0,
-            tvSymbol: `IDX:${item.Ticker || item.ticker || 'UNKNOWN'}`,
+            board: existingStock ? existingStock.board : 'Papan Utama',
+            volume: existingStock ? existingStock.volume : '5M',
+            high: item.Harga || item.price || existingStock?.high || 1000,
+            low: item.Harga || item.price || existingStock?.low || 1000,
+            open: item.Harga || item.price || existingStock?.open || 1000,
+            previousClose: item.Harga || item.price || existingStock?.previousClose || 1000,
+            tvSymbol: `IDX:${ticker}`,
             apiData: item,
-            statusReason: item["Detail Signal"] || item.detail_signal || existingStock?.statusReason,
+            statusReason: item["Detail Signal"] || item.detail_signal || existingStock?.statusReason || 'RSI Pattern',
             specialNotation: item.Action?.includes("BELI") ? "RSI" : (item.Action?.includes("JUAL") ? "SELL" : existingStock?.specialNotation),
             isLQ45: existingStock ? existingStock.isLQ45 : false,
-          };
+          } as Stock;
         });
 
-        setStocks([INITIAL_STOCKS[0], ...mapped]);
+        setStocks([ihsgStock, ...mapped]);
         if (mapped.length > 0) {
           setActiveStock(mapped[0]);
           setActiveScreenerData(mapped[0].apiData);
         }
       } catch (err) {
-        console.error("Failed fetching API, fallback to dummy:", err);
+        console.warn("API Gagal/Offline, menggunakan fallback data lokal RSI:", err);
         const screened = getRsiPatternScreenedStocks();
-        setStocks([INITIAL_STOCKS[0], ...screened]);
-        if (screened.length > 0) setActiveStock(screened[0]);
+        setStocks([ihsgStock, ...screened]);
+        if (screened.length > 0) {
+          setActiveStock(screened[0]);
+          setActiveScreenerData(screened[0].apiData || null);
+        }
       }
     } else {
       setStocks(INITIAL_STOCKS);
-      setActiveStock(INITIAL_STOCKS[0]);
+      setActiveStock(ihsgStock);
       setActiveScreenerData(null);
     }
   };
@@ -194,7 +202,7 @@ function MainApp() {
       }
       setSelectedScreener(null);
       setStocks(INITIAL_STOCKS);
-      setActiveStock(INITIAL_STOCKS[0]);
+      setActiveStock(INITIAL_STOCKS.find((s) => s.symbol === 'IHSG') || INITIAL_STOCKS[0]);
       setActiveScreenerData(null);
       return;
     }
@@ -203,20 +211,17 @@ function MainApp() {
       return;
     }
 
-    // Move current screener to history (max 1 history)
     if (selectedScreener) {
       setPreviousScreener(selectedScreener);
     }
     setSelectedScreener(screener);
     
-    // Auto-switch to Chart and Watchlist for traditional viewing
     setActiveMainTab('Chart');
     setActiveSidebarTab('Watchlist');
     
     applyScreenerStockList(screener);
   };
 
-  // Swap history screener with active screener
   const handleSelectHistoryScreener = (historyScreener: string) => {
     const current = selectedScreener;
     setPreviousScreener(current);
@@ -224,7 +229,6 @@ function MainApp() {
     applyScreenerStockList(historyScreener);
   };
 
-  // Home / Reload: resets everything back to initial state
   const handleReloadHome = () => {
     setSelectedScreener(null);
     setPreviousScreener(null);
@@ -303,7 +307,6 @@ function MainApp() {
     };
     setOrders(prev => [newOrder, ...prev]);
 
-    // If BUY, update portfolio
     if (orderData.type === 'BUY') {
       setPortfolio(prev => {
         const existingIdx = prev.findIndex(p => p.symbol === orderData.symbol);
@@ -421,16 +424,16 @@ function MainApp() {
                   const stockData = stocks.find(s => s.symbol === symbol) || {
                     symbol,
                     name: symbol,
-                    price: apiData.price,
+                    price: apiData.price || 1000,
                     change: INITIAL_STOCKS.find(s => s.symbol === (apiData.Ticker || apiData.ticker))?.change || 0,
                     changePercent: INITIAL_STOCKS.find(s => s.symbol === (apiData.Ticker || apiData.ticker))?.changePercent || 0,
                     sector: 'Unknown',
                     board: 'Unknown',
                     volume: '0',
-                    high: apiData.price,
-                    low: apiData.price,
-                    open: apiData.price,
-                    previousClose: apiData.price,
+                    high: apiData.price || 1000,
+                    low: apiData.price || 1000,
+                    open: apiData.price || 1000,
+                    previousClose: apiData.price || 1000,
                     tvSymbol: `IDX:${symbol}`
                   };
                   setActiveStock(stockData as Stock);
@@ -479,7 +482,7 @@ function MainApp() {
         onSubmitOrder={handleSubmitOrder}
       />
 
-      {/* 1. Markets Modal (Non-full screen, overlay with close button) */}
+      {/* Modals */}
       <MarketModal
         isOpen={isMarketModalOpen}
         onClose={() => {
@@ -489,7 +492,6 @@ function MainApp() {
         onSelectStock={handleSelectStockBySymbol}
       />
 
-      {/* 2. Stream Modal (Non-full screen, predictions, polling, chat) */}
       <StreamModal
         isOpen={isStreamModalOpen}
         onClose={() => {
@@ -500,7 +502,6 @@ function MainApp() {
         onSelectStock={handleSelectStockBySymbol}
       />
 
-      {/* 3. Support Modal (Non-full screen, Helpdesk & FAQ) */}
       <SupportModal
         isOpen={isSupportModalOpen}
         onClose={() => {
@@ -509,7 +510,6 @@ function MainApp() {
         }}
       />
 
-      {/* 4. Settings Modal (Light / Dark Background switch with sun/moon icon) */}
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => {
@@ -532,4 +532,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

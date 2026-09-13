@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Zap, ChevronDown, Check, SlidersHorizontal, Activity } from 'lucide-react';
-
+import { ChevronDown, Check, SlidersHorizontal, Activity } from 'lucide-react';
 import { Logo } from './Logo';
 
 interface HeaderProps {
@@ -60,14 +59,16 @@ export const Header: React.FC<HeaderProps> = ({
   const isLight = theme === 'light';
 
   return (
-    <header className={`h-11 border-b px-3.5 flex items-center justify-between select-none z-30 transition-colors duration-200 ${
-      isLight ? 'bg-white border-[#e2e8f0] text-[#0f172a]' : 'bg-[#0e1217] border-[#1d242e] text-[#e1e7ec]'
-    }`}>
-      {/* Left: Brand with Lightning Icon + Zio - Screaner (Acts as Reload / Home) */}
+    <header
+      className={`h-11 border-b px-3.5 flex items-center justify-between select-none z-30 transition-colors duration-200 ${
+        isLight ? 'bg-white border-[#e2e8f0] text-[#0f172a]' : 'bg-[#0e1217] border-[#1d242e] text-[#e1e7ec]'
+      }`}
+    >
+      {/* Left: Brand with Lightning Icon + Title */}
       <div className="flex items-center space-x-2.5">
         <button
           onClick={onReloadHome}
-          className="flex-shrink-0 transition-all hover:scale-105 active:scale-95 group cursor-pointer"
+          className="flex-shrink-0 transition-all hover:scale-105 active:scale-95 cursor-pointer"
           title="Reload / Home (Klik untuk reset kembali ke awal)"
           aria-label="Reload Home"
         >
@@ -84,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
 
-      {/* Right End: 'Choose Screner' Dropdown */}
+      {/* Right End: Dynamic 'Choose Screener' Dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -93,15 +94,21 @@ export const Header: React.FC<HeaderProps> = ({
               ? isLight
                 ? 'bg-[#e2e8f0] border-[#00c076] text-[#0f172a] ring-1 ring-[#00c076]/40'
                 : 'bg-[#18202c] border-[#00c076] text-white ring-1 ring-[#00c076]/40'
+              : currentScreener
+              ? isLight
+                ? 'bg-[#e6f4ea] border-[#00c076] text-[#00875a]'
+                : 'bg-[#0e271c] border-[#00c076] text-[#00c076]'
               : isLight
-                ? 'bg-[#f8fafc] border-[#cbd5e1] text-[#334155] hover:text-[#0f172a] hover:bg-[#f1f5f9] hover:border-[#94a3b8]'
-                : 'bg-[#12161e] border-[#222b37] text-[#cbd5e1] hover:text-white hover:bg-[#19212c] hover:border-[#2f3b4c]'
+                ? 'bg-[#f8fafc] border-[#cbd5e1] text-[#334155] hover:text-[#0f172a] hover:bg-[#f1f5f9]'
+                : 'bg-[#12161e] border-[#222b37] text-[#cbd5e1] hover:text-white hover:bg-[#19212c]'
           }`}
           aria-haspopup="true"
           aria-expanded={isOpen}
         >
           <SlidersHorizontal className="w-3.5 h-3.5 text-[#00c076]" />
-          <span className="tracking-wide">Choose Screner</span>
+          <span className="tracking-wide">
+            {currentScreener ? currentScreener : 'Choose Screener'}
+          </span>
           <ChevronDown
             className={`w-3.5 h-3.5 transition-transform duration-200 ${
               isOpen ? 'rotate-180 text-[#00c076]' : isLight ? 'text-[#64748b]' : 'text-[#8b98a5]'
@@ -111,12 +118,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <div className={`absolute right-0 top-full mt-1.5 w-64 border rounded-lg shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150 ${
-            isLight ? 'bg-white border-[#cbd5e1] text-[#0f172a]' : 'bg-[#11161e] border-[#232c3a] text-white'
-          }`}>
-            <div className={`px-3 py-1.5 border-b flex items-center justify-between text-[10px] font-bold tracking-wider uppercase ${
-              isLight ? 'border-[#e2e8f0] text-[#64748b]' : 'border-[#1c2430] text-[#64748b]'
-            }`}>
+          <div
+            className={`absolute right-0 top-full mt-1.5 w-64 border rounded-lg shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150 ${
+              isLight ? 'bg-white border-[#cbd5e1] text-[#0f172a]' : 'bg-[#11161e] border-[#232c3a] text-white'
+            }`}
+          >
+            <div
+              className={`px-3 py-1.5 border-b flex items-center justify-between text-[10px] font-bold tracking-wider uppercase ${
+                isLight ? 'border-[#e2e8f0] text-[#64748b]' : 'border-[#1c2430] text-[#64748b]'
+              }`}
+            >
               <span>Preset Screener</span>
               <span className="text-[#00c076]">{screenerOptions.length} Available</span>
             </div>
@@ -140,10 +151,20 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <div className="flex flex-col">
                       <div className="flex items-center space-x-1.5">
-                        <Activity className={`w-3.5 h-3.5 ${isSelected ? 'text-[#00c076]' : isLight ? 'text-[#64748b] group-hover:text-[#00c076]' : 'text-[#8b98a5] group-hover:text-[#00c076]'}`} />
-                        <span className={`text-xs font-bold ${
-                          isSelected ? 'text-[#00c076]' : isLight ? 'text-[#1e293b]' : 'text-[#e2e8f0]'
-                        }`}>
+                        <Activity
+                          className={`w-3.5 h-3.5 ${
+                            isSelected
+                              ? 'text-[#00c076]'
+                              : isLight
+                              ? 'text-[#64748b] group-hover:text-[#00c076]'
+                              : 'text-[#8b98a5] group-hover:text-[#00c076]'
+                          }`}
+                        />
+                        <span
+                          className={`text-xs font-bold ${
+                            isSelected ? 'text-[#00c076]' : isLight ? 'text-[#1e293b]' : 'text-[#e2e8f0]'
+                          }`}
+                        >
                           {opt.label}
                         </span>
                         {isSelected && (
@@ -172,5 +193,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
-

@@ -33,7 +33,7 @@ interface WatchlistPanelProps {
 }
 
 export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
-  stocks,
+  stocks = [],
   activeStock,
   onSelectStock,
   isOpen,
@@ -51,42 +51,63 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
   type ScreenerFilterMode = 'all_signals' | 'gc_only' | 'dc_only' | 'all';
   const [screenerFilter, setScreenerFilter] = useState<ScreenerFilterMode>('all_signals');
 
+  // Gunakan data props stocks jika ada, jika kosong fallback ke STOCKS_UNIVERSE
+  const availableStocks = useMemo(() => {
+    return stocks && stocks.length > 0 ? stocks : STOCKS_UNIVERSE;
+  }, [stocks]);
+
+  // Screening GC (Pemeriksaan Ganda: API Data ATAU Data Lokal)
   const gcStocks = useMemo(() => {
     if (selectedScreener === '1. Stoch - Psar') {
-      return stocks.filter(s => s.apiData && (s.apiData.Action?.includes('BELI') || (s.apiData.Score ?? s.apiData.score ?? 0) > 0));
+      return availableStocks.filter(s => {
+        const hasApiGc = s.apiData && (
+          s.apiData.Action?.toUpperCase().includes('BELI') || 
+          (s.apiData.Score ?? s.apiData.score ?? 0) > 0
+        );
+        const hasLocalGc = s.stochCrossDays !== undefined && s.stochCrossDays <= 2;
+        return hasApiGc || hasLocalGc;
+      });
     }
     return getGoldenCrossScreenedStocks();
-  }, [stocks, selectedScreener]);
+  }, [availableStocks, selectedScreener]);
 
+  // Screening DC (Pemeriksaan Ganda: API Data ATAU Data Lokal)
   const dcStocks = useMemo(() => {
     if (selectedScreener === '1. Stoch - Psar') {
-      return stocks.filter(s => s.apiData && (s.apiData.Action?.includes('JUAL') || (s.apiData.Score ?? s.apiData.score ?? 0) < 0));
+      return availableStocks.filter(s => {
+        const hasApiDc = s.apiData && (
+          s.apiData.Action?.toUpperCase().includes('JUAL') || 
+          (s.apiData.Score ?? s.apiData.score ?? 0) < 0
+        );
+        const hasLocalDc = s.deadCrossDays === 0 || s.isDeadCross;
+        return hasApiDc || hasLocalDc;
+      });
     }
     return getPasDeadCrossStocks();
-  }, [stocks, selectedScreener]);
+  }, [availableStocks, selectedScreener]);
 
-  const allSignalStocks = useMemo(() => [...gcStocks, ...dcStocks], [gcStocks, dcStocks]);
+  const allSignalStocks = useMemo(() => {
+    const combined = [...gcStocks, ...dcStocks];
+    // Filter duplikat berdasarkan symbol
+    return Array.from(new Map(combined.map(item => [item.symbol, item])).values());
+  }, [gcStocks, dcStocks]);
 
   const baseStocks = useMemo(() => {
     if (selectedScreener === '1. Stoch - Psar') {
-      if (screenerFilter === 'gc_only') {
-        return [INITIAL_STOCKS[0], ...gcStocks];
-      }
-      if (screenerFilter === 'dc_only') {
-        return [INITIAL_STOCKS[0], ...dcStocks];
-      }
-      if (screenerFilter === 'all_signals') {
-        return [INITIAL_STOCKS[0], ...allSignalStocks];
-      }
-      return [INITIAL_STOCKS[0], ...STOCKS_UNIVERSE];
+      if (screenerFilter === 'gc_only') return gcStocks;
+      if (screenerFilter === 'dc_only') return dcStocks;
+      if (screenerFilter === 'all_signals') return allSignalStocks;
+      return availableStocks;
     }
-    return stocks;
-  }, [selectedScreener, screenerFilter, gcStocks, dcStocks, allSignalStocks, stocks]);
+    return availableStocks;
+  }, [selectedScreener, screenerFilter, gcStocks, dcStocks, allSignalStocks, availableStocks]);
 
-  const filteredStocks = baseStocks.filter(stock => 
-    stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    stock.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredStocks = useMemo(() => {
+    return baseStocks.filter(stock => 
+      stock.symbol?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stock.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [baseStocks, searchQuery]);
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,12 +167,12 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                 ? 'bg-[#e6f4ea] border-[#00c076] text-[#00875a]'
                 : 'bg-[#0d3324] border-[#00c076] text-[#00c076]'
             }`}
-            title={`Tab Aktif: ${selectedScreener || 'Screening'}`}
+            title={`Tab Aktif: ${selectedScreener || 'Watchlist'}`}
           >
             {selectedScreener && (
               <span className="w-1.5 h-1.5 rounded-full bg-[#00c076] animate-pulse flex-shrink-0" />
             )}
-            <span className="truncate max-w-[120px]">{selectedScreener || 'Screening'}</span>
+            <span className="truncate max-w-[120px]">{selectedScreener || 'Watchlist'}</span>
           </div>
 
           {previousScreener && (
@@ -191,7 +212,7 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
         </div>
       </div>
 
-      {/* Search / Add Input */}
+      {/* Search Input */}
       {isAdding ? (
         <form onSubmit={handleAddSubmit} className={`p-2 border-b flex items-center space-x-1.5 ${
           isLight ? 'bg-[#f1f5f9] border-[#e2e8f0]' : 'bg-[#161c24] border-[#1c2430]'
@@ -243,7 +264,7 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
       )}
 
       {/* Banner Filter Screener */}
-      {selectedScreener === '1. Stoch - Psar' ? (
+      {selectedScreener === '1. Stoch - Psar' && (
         <div className={`px-2 py-2 border-b flex flex-col gap-1.5 ${
           isLight ? 'bg-[#ecfdf5] border-[#a7f3d0]' : 'bg-[#0a2318] border-[#00c076]/30'
         }`}>
@@ -305,43 +326,19 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
 
           <div className="flex items-center justify-between pt-0.5 text-[9.5px]">
             <span className={`truncate ${isLight ? 'text-[#047857]' : 'text-[#8ba298]'}`}>
-              {screenerFilter === 'gc_only' && 'Menampilkan GC baru & max 2 hari lalu'}
-              {screenerFilter === 'dc_only' && 'Menampilkan tepat pas Dead Cross hari ini'}
-              {screenerFilter === 'all_signals' && 'Menampilkan GC (0-2h) & Pas DC (0h)'}
-              {screenerFilter === 'all' && 'Menampilkan seluruh saham Universe'}
+              {screenerFilter === 'gc_only' && 'Menampilkan Golden Cross (0-2h)'}
+              {screenerFilter === 'dc_only' && 'Menampilkan Dead Cross hari ini'}
+              {screenerFilter === 'all_signals' && 'Menampilkan Semua Sinyal'}
+              {screenerFilter === 'all' && 'Menampilkan Seluruh Saham'}
             </span>
             <button
               onClick={() => setScreenerFilter(screenerFilter === 'all' ? 'all_signals' : 'all')}
               className="text-[#2563eb] hover:underline flex-shrink-0 ml-1 font-medium"
             >
-              {screenerFilter === 'all' ? 'Kembali' : 'Cek Universe'}
+              {screenerFilter === 'all' ? 'Saring' : 'Semua Saham'}
             </button>
           </div>
         </div>
-      ) : selectedScreener ? (
-        <div className={`px-2.5 py-2 border-b flex items-center justify-between ${
-          isLight ? 'bg-[#eff6ff] border-[#bfdbfe]' : 'bg-[#0e1726] border-[#2563eb]/30'
-        }`}>
-          <div className={`flex items-center space-x-1.5 text-[11px] font-medium truncate ${
-            isLight ? 'text-[#1d4ed8]' : 'text-[#93c5fd]'
-          }`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-pulse flex-shrink-0" />
-            <span className="truncate font-bold">{selectedScreener}</span>
-          </div>
-          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ml-1 flex-shrink-0 ${
-            isLight ? 'bg-[#dbeafe] text-[#1e40af]' : 'bg-[#1d4ed8]/30 text-[#93c5fd]'
-          }`}>
-            {baseStocks.filter(s => s.symbol !== 'IHSG').length} Saham
-          </span>
-        </div>
-      ) : (
-        filteredStocks.length === 1 && filteredStocks[0].symbol === 'IHSG' && (
-          <div className={`px-2.5 py-2 border-b text-[11px] leading-tight ${
-            isLight ? 'bg-[#f8fafc] border-[#e2e8f0] text-[#475569]' : 'bg-[#121820] border-[#1c2430] text-[#8a99a8]'
-          }`}>
-            <span>Gunakan menu <strong className={isLight ? 'text-[#0f172a]' : 'text-white'}>Choose Screener</strong> di atas untuk menampilkan hasil screening.</span>
-          </div>
-        )
       )}
 
       {/* Stock Item List */}
@@ -349,14 +346,22 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
         isLight ? 'divide-[#f1f5f9]' : 'divide-[#18202b]/60'
       }`}>
         {filteredStocks.length === 0 ? (
-          <div className={`p-4 text-center text-xs ${isLight ? 'text-[#94a3b8]' : 'text-[#627182]'}`}>
-            Tidak ada saham ditemukan
+          <div className={`p-4 text-center text-xs flex flex-col items-center gap-2 ${isLight ? 'text-[#94a3b8]' : 'text-[#627182]'}`}>
+            <span>Tidak ada sinyal saham yang sesuai filter.</span>
+            {selectedScreener && screenerFilter !== 'all' && (
+              <button 
+                onClick={() => setScreenerFilter('all')} 
+                className="text-xs text-[#3b82f6] underline hover:text-[#60a5fa]"
+              >
+                Tampilkan Seluruh Saham Universe
+              </button>
+            )}
           </div>
         ) : (
           filteredStocks.map((stock) => {
-            const isSelected = activeStock.symbol === stock.symbol;
-            const isBullish = stock.change >= 0;
-            const isBearish = stock.change < 0;
+            const isSelected = activeStock?.symbol === stock.symbol;
+            const isBullish = (stock.change ?? 0) >= 0;
+            const isBearish = (stock.change ?? 0) < 0;
             const scoreVal = stock.apiData?.Score ?? stock.apiData?.score;
 
             return (
@@ -403,96 +408,51 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
                       }`}>
                         {stock.symbol}
                       </span>
-                      <RotateCw className="w-2.5 h-2.5 text-[#94a3b8] opacity-0 group-hover:opacity-100 transition-opacity" />
                       
-                      {stock.isLQ45 && (
-                        <span className={`text-[9px] font-semibold px-1 rounded-[2px] leading-none ${
-                          isLight ? 'bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]' : 'bg-[#1e293b] text-[#94a3b8]'
-                        }`}>
-                          LQ45
-                        </span>
-                      )}
-
                       {stock.deadCrossDays === 0 ? (
-                        <span className="bg-[#ef4444] text-white border border-[#fca5a5] text-[8.5px] font-bold px-1 py-0.5 rounded leading-none flex items-center shadow-sm animate-pulse">
-                          ⚠ PAS DC
-                        </span>
-                      ) : stock.isDeadCross && stock.deadCrossDays !== undefined && stock.deadCrossDays > 0 ? (
-                        <span className={`border text-[8px] font-medium px-1 rounded-[2px] leading-none ${
-                          isLight ? 'bg-[#fee2e2] text-[#991b1b] border-[#fca5a5]' : 'bg-[#3b1616] text-[#f87171] border-[#ef4444]/30'
-                        }`}>
-                          DC {stock.deadCrossDays}h
+                        <span className="bg-[#ef4444] text-white text-[8.5px] font-bold px-1 py-0.5 rounded leading-none">
+                          PAS DC
                         </span>
                       ) : stock.stochCrossDays === 0 ? (
-                        <span className="bg-[#1d4ed8] border border-[#60a5fa] text-white text-[8.5px] font-bold px-1 rounded leading-none shadow-sm">
-                          ★ BARU GC
+                        <span className="bg-[#1d4ed8] text-white text-[8.5px] font-bold px-1 rounded leading-none">
+                          BARU GC
                         </span>
                       ) : stock.stochCrossDays !== undefined && stock.stochCrossDays > 0 && stock.stochCrossDays <= 2 ? (
-                        <span className={`border text-[8.5px] font-medium px-1 rounded leading-none ${
-                          isLight ? 'bg-[#dcfce7] text-[#166534] border-[#86efac]' : 'bg-[#0f2e22] text-[#34d399] border-[#10b981]/40'
+                        <span className={`text-[8.5px] font-medium px-1 rounded leading-none ${
+                          isLight ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#0f2e22] text-[#34d399]'
                         }`}>
                           GC +{stock.stochCrossDays}h
                         </span>
                       ) : null}
                     </div>
 
-                    <span className={`text-[11px] truncate max-w-[130px] leading-tight ${
+                    <span className={`text-[11px] truncate max-w-[120px] leading-tight ${
                       isLight ? 'text-[#64748b]' : 'text-[#8292a4]'
                     }`}>
                       {stock.name}
                     </span>
-
-                    {stock.stochK !== undefined && stock.stochD !== undefined && (
-                      <div className="flex items-center space-x-1 mt-0.5 text-[9px] font-mono leading-none">
-                        <span className={stock.stochK > stock.stochD ? (isLight ? 'text-[#16a34a] font-bold' : 'text-[#34d399] font-bold') : 'text-[#ef4444]'}>
-                          K:{stock.stochK}
-                        </span>
-                        <span className="text-[#94a3b8]">/</span>
-                        <span className="text-[#2563eb]">
-                          D:{stock.stochD}
-                        </span>
-                        {stock.psar && (
-                          <span className={`ml-1 font-semibold flex items-center ${stock.psarBullish ? (isLight ? 'text-[#16a34a]' : 'text-[#00c076]') : 'text-[#ef4444]'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full inline-block mr-0.5 ${stock.psarBullish ? 'bg-[#16a34a]' : 'bg-[#ef4444]'}`} />
-                            {stock.psarBullish ? 'HOLD' : 'BUANG'}
-                          </span>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end flex-shrink-0">
                   <span className={`font-bold text-[13px] ${isLight ? 'text-[#0f172a]' : 'text-[#f0f4f8]'}`}>
-                    {stock.symbol === 'IHSG'
-                      ? stock.price.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : stock.price.toLocaleString('id-ID')}
+                    {(stock.price ?? 0).toLocaleString('id-ID')}
                   </span>
                   <div
                     className={`flex items-center text-[11px] font-medium ${
                       isBearish
                         ? 'text-[#eb5757]'
-                        : isBullish && stock.change > 0
+                        : isBullish && (stock.change ?? 0) > 0
                         ? isLight ? 'text-[#16a34a]' : 'text-[#00c076]'
                         : 'text-[#94a3b8]'
                     }`}
                   >
-                    {isBullish && stock.change > 0 && <TrendingUp className="w-2.5 h-2.5 mr-0.5 inline" />}
+                    {isBullish && (stock.change ?? 0) > 0 && <TrendingUp className="w-2.5 h-2.5 mr-0.5 inline" />}
                     {isBearish && <TrendingDown className="w-2.5 h-2.5 mr-0.5 inline" />}
-                    {stock.apiData ? (
-                      <span className="font-bold">
-                        <span className="mr-1 text-[9px] opacity-70">
-                          {scoreVal !== undefined ? `Sc:${scoreVal}` : (stock.apiData.age !== undefined ? `${stock.apiData.age}b` : '')}
-                        </span>
-                        {stock.change > 0 ? '+' : ''}
-                        {stock.changePercent.toFixed(2)}%
-                      </span>
-                    ) : (
-                      <span>
-                        {stock.change > 0 ? '+' : ''}
-                        {stock.changePercent.toFixed(2)}%
-                      </span>
-                    )}
+                    <span>
+                      {(stock.change ?? 0) > 0 ? '+' : ''}
+                      {(stock.changePercent ?? 0).toFixed(2)}%
+                    </span>
                   </div>
                 </div>
               </div>
@@ -504,7 +464,7 @@ export const WatchlistPanel: React.FC<WatchlistPanelProps> = ({
       <div className={`p-2 border-t flex items-center justify-between text-[11px] ${
         isLight ? 'bg-[#f8fafc] border-[#e2e8f0] text-[#64748b]' : 'bg-[#0c1015] border-[#1c2430] text-[#6b7b8c]'
       }`}>
-        <span>Total: {filteredStocks.length}</span>
+        <span>Total: {filteredStocks.length} Saham</span>
         <span className={`font-mono text-[10px] font-bold ${isLight ? 'text-[#16a34a]' : 'text-[#00c076]'}`}>IDX LIVE</span>
       </div>
     </div>

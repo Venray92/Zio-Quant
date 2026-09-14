@@ -2,25 +2,27 @@ import concurrent.futures
 import pandas as pd
 import streamlit as st
 
-# Import modul yang BENAR-BENAR ada di repositori kamu
+# 1. Import modul yang ada di repositori kamu
 from screener_rsi_divergence import (
     TICKERS as RSI_TICKERS,
     detect_rsi_patterns_and_score,
 )
 from screener_stoch_psar import run_stoch_psar_screener
-from trade_planner import render_trade_planner  # Menyesuaikan file trade_planner.py
+from trade_planner import TradePlanner  # Import Class TradePlanner langsung
 
-# Set konfigurasi halaman Streamlit
+# 2. Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="Stock Screener & Trade Planner", page_icon="📈", layout="wide"
+    page_title="ZIO QUANT - Screener & Trade Planner",
+    page_icon="📈",
+    layout="wide",
 )
 
-st.title("📈 Stock Screener & Trade Planner Dashboard")
+st.title("📈 ZIO QUANT Dashboard")
 st.markdown(
-    "Aplikasi screening saham berdasarkan **RSI Divergence**, **Stochastic & Parabolic SAR**, serta kalkulator **Trade Planner**."
+    "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic & Parabolic SAR**, serta kalkulator **Trade Planner**."
 )
 
-# Buat Tab sesuai modul yang kamu miliki
+# 3. Membuat Tab Navigasi
 tab1, tab2, tab3 = st.tabs(
     [
         "🔄 RSI Divergence",
@@ -139,15 +141,79 @@ with tab2:
                 st.error(f"Terjadi kesalahan: {e}")
 
 # ==========================================
-# TAB 3: TRADE PLANNER
+# TAB 3: TRADE PLANNER (Menggunakan Class TradePlanner)
 # ==========================================
 with tab3:
     st.header("Trade Planner Calculator")
-    st.caption("Hitung posisi entry, stop loss, target profit, dan money management.")
-    
-    # Menjalankan fungsi interface dari trade_planner.py
-    try:
-        render_trade_planner()
-    except AttributeError:
-        # Jika trade_planner.py tidak punya fungsi render_trade_planner(), ganti sesuai nama fungsi di dalam file kamu
-        st.info("Silakan sesuaikan pemanggilan fungsi utama dari trade_planner.py di baris ini.")
+    st.caption(
+        "Analisis Swing Point, Support/Resistance Kuat, Arah Tren (Direction), dan Rencana Trading (BOW/BOB)."
+    )
+
+    col_input1, col_input2 = st.columns([2, 1])
+
+    with col_input1:
+        ticker_input = st.text_input(
+            "Masukkan Ticker Saham (Gunakan suffix .JK untuk saham Indonesia)",
+            value="INCO.JK",
+        )
+
+    with col_input2:
+        period_input = st.selectbox(
+            "Pilih Periode Data",
+            options=["3mo", "6mo", "1y", "2y"],
+            index=1,
+        )
+
+    if st.button("Generate Trade Plan", key="btn_planner"):
+        with st.spinner(f"Mengambil data {ticker_input} dan menghitung rencana..."):
+            try:
+                # Inisialisasi dan ambil data menggunakan class TradePlanner
+                planner = TradePlanner(
+                    ticker=ticker_input.upper(), period=period_input
+                )
+                planner.fetch_and_prepare_data()
+
+                # 1. Direction Market
+                st.subheader("📌 Direction Market")
+                df_dir = planner.get_direction()
+                st.dataframe(df_dir, use_container_width=True)
+
+                # Highlight Direction Status
+                direction_val = df_dir["Direction"].iloc[0]
+                if direction_val == "BOB":
+                    st.success("Analisis Arah: **BOB (Breakout Buy)**")
+                else:
+                    st.info("Analisis Arah: **BOW (Buy on Weakness)**")
+
+                # 2. Strategy Trade Plan (BOW & BOB)
+                st.subheader("🎯 Trade Plan Recommendation (BOW & BOB)")
+                df_plan = planner.generate_trade_plan()
+                st.dataframe(df_plan, use_container_width=True)
+
+                # Show Candle Warning
+                warning_msg = df_plan["Warning"].iloc[0]
+                candle_type = df_plan["Status Candle"].iloc[0]
+                st.warning(f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}")
+
+                # 3. Support & Resistance Levels
+                col_sup, col_res = st.columns(2)
+
+                with col_sup:
+                    st.subheader("🛡️ Strong Support Levels")
+                    df_sup = planner.get_strong_support()
+                    st.dataframe(df_sup, use_container_width=True)
+
+                with col_res:
+                    st.subheader("🧱 Strong Resistance Levels")
+                    df_res = planner.get_strong_resistance()
+                    st.dataframe(df_res, use_container_width=True)
+
+                # 4. Swing Points & Metpoint
+                st.subheader("📍 Swing Points & Metpoints")
+                df_swings = planner.get_swing_points()
+                st.dataframe(df_swings, use_container_width=True)
+
+            except Exception as e:
+                st.error(
+                    f"Gagal memproses data untuk ticker **{ticker_input}**. Pastikan kode ticker benar dan jaringan stabil. Detail Error: {e}"
+                )

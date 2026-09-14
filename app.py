@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 
-# 1. Konfigurasi Halaman Wajib Full-Width (Prinsip #3)
+# 1. Konfigurasi Halaman Wajib Full-Width
 st.set_page_config(
     page_title="ZioQuant - IDX Stock Screener",
     page_icon="📈",
@@ -48,8 +48,14 @@ if fetch_btn:
         try:
             # Contoh tarik data menggunakan yfinance
             df = yf.download(ticker_input, period="6mo", interval="1d", progress=False)
+            
+            # Meratakan MultiIndex jika ada (penyesuaian yfinance versi terbaru)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
             if not df.empty:
-                st.success(Berhasil memuat data {ticker_input}!)
+                # FIX STRING SYNTAX ERROR DI SINI:
+                st.success(f"Berhasil memuat data {ticker_input}!")
                 st.subheader("📊 Data Historis Terakhir")
                 st.dataframe(df.tail(10), use_container_width=True)
             else:

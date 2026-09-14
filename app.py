@@ -17,6 +17,10 @@ st.set_page_config(
     layout="wide",
 )
 
+# Inisialisasi session state untuk menyimpan ticker pilihan dari screener
+if "selected_ticker" not in st.session_state:
+    st.session_state["selected_ticker"] = "INCO.JK"
+
 st.title("📈 ZIO QUANT Dashboard")
 st.markdown(
     "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic & Parabolic SAR**, serta kalkulator **Trade Planner**."
@@ -32,12 +36,12 @@ tab1, tab2, tab3 = st.tabs(
 )
 
 # ==========================================
-# TAB 1: RSI DIVERGENCE (Safety Fix Applied)
+# TAB 1: RSI DIVERGENCE
 # ==========================================
 with tab1:
     st.header("Screener RSI Divergence & Patterns")
     st.caption(
-        "Deteksi pola RSI Divergence (Bullish/Bearish) dan scoring kekuatan tren."
+        "Deteksi pola RSI Divergence (Bullish/Bearish) dan scoring kekuatan tren. Klik pada baris saham untuk membukanya di Trade Planner."
     )
 
     if st.button("Jalankan Screener RSI", key="btn_rsi"):
@@ -60,7 +64,6 @@ with tab1:
             if results_rsi:
                 df_rsi = pd.DataFrame(results_rsi)
 
-                # Cek fleksibel untuk kolom Score / score
                 score_col = None
                 for col in ["Score", "score", "total_score", "RSI_Score"]:
                     if col in df_rsi.columns:
@@ -72,32 +75,34 @@ with tab1:
                         by=score_col, ascending=False
                     ).reset_index(drop=True)
 
-                st.success(
-                    f"Screening selesai! Ditemukan {len(df_rsi)} hasil."
-                )
-
-                # Menampilkan DataFrame dengan format yang aman (hanya format kolom yang ada)
-                format_dict = {}
-                if "Price" in df_rsi.columns:
-                    format_dict["Price"] = "{:,.0f}"
-                if "RSI" in df_rsi.columns:
-                    format_dict["RSI"] = "{:,.2f}"
-                if "RSI MA" in df_rsi.columns:
-                    format_dict["RSI MA"] = "{:,.2f}"
-                if score_col:
-                    format_dict[score_col] = "{:.0f}"
-
-                if format_dict:
-                    st.dataframe(
-                        df_rsi.style.format(format_dict),
-                        use_container_width=True,
-                    )
-                else:
-                    st.dataframe(df_rsi, use_container_width=True)
+                st.session_state["df_rsi_data"] = df_rsi
             else:
-                st.warning(
-                    "Tidak ada signal RSI Divergence yang terdeteksi saat ini."
-                )
+                st.session_state["df_rsi_data"] = pd.DataFrame()
+
+    if "df_rsi_data" in st.session_state and not st.session_state["df_rsi_data"].empty:
+        df_rsi = st.session_state["df_rsi_data"]
+        st.success(f"Screening selesai! Ditemukan {len(df_rsi)} hasil.")
+
+        # Menampilkan dataframe yang dapat diklik (Selectable)
+        event_rsi = st.dataframe(
+            df_rsi,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="table_rsi",
+        )
+
+        # Cek apakah ada baris yang diklik
+        if event_rsi.selection and event_rsi.selection["rows"]:
+            selected_idx = event_rsi.selection["rows"][0]
+            # Cari nama kolom Ticker/Saham
+            ticker_col = next((c for c in ["Ticker", "Saham", "Stock", "Symbol"] if c in df_rsi.columns), None)
+            if ticker_col:
+                selected_symbol = str(df_rsi.iloc[selected_idx][ticker_col])
+                if not selected_symbol.endswith(".JK") and not "." in selected_symbol:
+                    selected_symbol += ".JK"
+                st.session_state["selected_ticker"] = selected_symbol
+                st.info(f"💡 Ticker **{selected_symbol}** terpilih! Silakan buka **Tab 🎯 Trade Planner**.")
 
 # ==========================================
 # TAB 2: STOCHASTIC & PARABOLIC SAR
@@ -105,59 +110,68 @@ with tab1:
 with tab2:
     st.header("Screener Stochastic & Parabolic SAR")
     st.caption(
-        "Mencari signal Golden Cross (Oversold) dan Dead Cross (Overbought) yang dikonfirmasi Parabolic SAR."
+        "Mencari signal Golden Cross (Oversold) dan Dead Cross (Overbought) yang dikonfirmasi Parabolic SAR. Klik pada baris saham untuk membukanya di Trade Planner."
     )
 
     if st.button("Jalankan Screener Stoch & PSAR", key="btn_stoch"):
-        with st.spinner(
-            "Menganalisis signal Stochastic & Parabolic SAR..."
-        ):
+        with st.spinner("Menganalisis signal Stochastic & Parabolic SAR..."):
             try:
                 df_gc, df_dc = run_stoch_psar_screener()
-
-                col_gc, col_dc = st.columns(2)
-
-                with col_gc:
-                    st.subheader("🟢 Signal Beli / Watchlist (Golden Cross)")
-                    if not df_gc.empty:
-                        # Format aman untuk Golden Cross
-                        fmt_gc = {
-                            col: "{:,.0f}"
-                            if col in ["Harga", "Score"]
-                            else "{:,.2f}"
-                            for col in df_gc.columns
-                            if col in ["Harga", "Value (M)", "Stoch %K", "Stoch %D", "Score"]
-                        }
-                        st.dataframe(
-                            df_gc.style.format(fmt_gc),
-                            use_container_width=True,
-                        )
-                    else:
-                        st.info("Tidak ada signal Golden Cross.")
-
-                with col_dc:
-                    st.subheader("🔴 Signal Jual / Exit (Dead Cross)")
-                    if not df_dc.empty:
-                        # Format aman untuk Dead Cross
-                        fmt_dc = {
-                            col: "{:,.0f}"
-                            if col in ["Harga", "Score"]
-                            else "{:,.2f}"
-                            for col in df_dc.columns
-                            if col in ["Harga", "Value (M)", "Stoch %K", "Stoch %D", "Score"]
-                        }
-                        st.dataframe(
-                            df_dc.style.format(fmt_dc),
-                            use_container_width=True,
-                        )
-                    else:
-                        st.info("Tidak ada signal Dead Cross.")
-
+                st.session_state["df_gc_data"] = df_gc
+                st.session_state["df_dc_data"] = df_dc
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
 
+    col_gc, col_dc = st.columns(2)
+
+    with col_gc:
+        st.subheader("🟢 Signal Beli / Watchlist (Golden Cross)")
+        if "df_gc_data" in st.session_state and not st.session_state["df_gc_data"].empty:
+            df_gc = st.session_state["df_gc_data"]
+            event_gc = st.dataframe(
+                df_gc,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="table_gc",
+            )
+            if event_gc.selection and event_gc.selection["rows"]:
+                selected_idx = event_gc.selection["rows"][0]
+                ticker_col = next((c for c in ["Ticker", "Saham", "Stock", "Symbol"] if c in df_gc.columns), None)
+                if ticker_col:
+                    selected_symbol = str(df_gc.iloc[selected_idx][ticker_col])
+                    if not selected_symbol.endswith(".JK") and not "." in selected_symbol:
+                        selected_symbol += ".JK"
+                    st.session_state["selected_ticker"] = selected_symbol
+                    st.info(f"💡 Ticker **{selected_symbol}** terpilih! Silakan buka **Tab 🎯 Trade Planner**.")
+        else:
+            st.info("Tidak ada signal Golden Cross / Belum di-scan.")
+
+    with col_dc:
+        st.subheader("🔴 Signal Jual / Exit (Dead Cross)")
+        if "df_dc_data" in st.session_state and not st.session_state["df_dc_data"].empty:
+            df_dc = st.session_state["df_dc_data"]
+            event_dc = st.dataframe(
+                df_dc,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="table_dc",
+            )
+            if event_dc.selection and event_dc.selection["rows"]:
+                selected_idx = event_dc.selection["rows"][0]
+                ticker_col = next((c for c in ["Ticker", "Saham", "Stock", "Symbol"] if c in df_dc.columns), None)
+                if ticker_col:
+                    selected_symbol = str(df_dc.iloc[selected_idx][ticker_col])
+                    if not selected_symbol.endswith(".JK") and not "." in selected_symbol:
+                        selected_symbol += ".JK"
+                    st.session_state["selected_ticker"] = selected_symbol
+                    st.info(f"💡 Ticker **{selected_symbol}** terpilih! Silakan buka **Tab 🎯 Trade Planner**.")
+        else:
+            st.info("Tidak ada signal Dead Cross / Belum di-scan.")
+
 # ==========================================
-# TAB 3: TRADE PLANNER (Menggunakan Class TradePlanner)
+# TAB 3: TRADE PLANNER
 # ==========================================
 with tab3:
     st.header("Trade Planner Calculator")
@@ -170,7 +184,8 @@ with tab3:
     with col_input1:
         ticker_input = st.text_input(
             "Masukkan Ticker Saham (Gunakan suffix .JK untuk saham Indonesia)",
-            value="INCO.JK",
+            value=st.session_state.get("selected_ticker", "INCO.JK"),
+            key="input_ticker_field"
         )
 
     with col_input2:
@@ -183,7 +198,6 @@ with tab3:
     if st.button("Generate Trade Plan", key="btn_planner"):
         with st.spinner(f"Mengambil data {ticker_input} dan menghitung rencana..."):
             try:
-                # Inisialisasi dan ambil data menggunakan class TradePlanner
                 planner = TradePlanner(
                     ticker=ticker_input.upper(), period=period_input
                 )
@@ -194,19 +208,17 @@ with tab3:
                 df_dir = planner.get_direction()
                 st.dataframe(df_dir, use_container_width=True)
 
-                # Highlight Direction Status
                 direction_val = df_dir["Direction"].iloc[0]
                 if direction_val == "BOB":
                     st.success("Analisis Arah: **BOB (Breakout Buy)**")
                 else:
                     st.info("Analisis Arah: **BOW (Buy on Weakness)**")
 
-                # 2. Strategy Trade Plan (BOW & BOB)
+                # 2. Strategy Trade Plan
                 st.subheader("🎯 Trade Plan Recommendation (BOW & BOB)")
                 df_plan = planner.generate_trade_plan()
                 st.dataframe(df_plan, use_container_width=True)
 
-                # Show Candle Warning
                 warning_msg = df_plan["Warning"].iloc[0]
                 candle_type = df_plan["Status Candle"].iloc[0]
                 st.warning(f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}")

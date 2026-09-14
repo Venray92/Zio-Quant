@@ -2,7 +2,9 @@ import concurrent.futures
 import pandas as pd
 import streamlit as st
 
-# 1. Import modul dari repositori
+# 1. Import modul internal & screener masal baru
+from ihsg_tickers import get_all_ihsg_tickers
+from screener import run_full_screener
 from screener_rsi_divergence import (
     TICKERS as RSI_TICKERS,
     detect_rsi_patterns_and_score,
@@ -19,7 +21,7 @@ st.set_page_config(
 
 st.title("📈 ZIO QUANT Dashboard")
 st.markdown(
-    "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic & Parabolic SAR**, serta kalkulator **Trade Planner**."
+    "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic & Parabolic SAR**, **Bulk IHSG Screener**, serta kalkulator **Trade Planner**."
 )
 
 
@@ -79,10 +81,11 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
       st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}: {e}")
 
 
-# 3. Membuat Tab Navigasi
-tab1, tab2, tab3 = st.tabs([
+# 3. Membuat Tab Navigasi (Menambahkan Tab 4 untuk Bulk IHSG Screener)
+tab1, tab2, tab3, tab4 = st.tabs([
     "🔄 RSI Divergence",
     "⚡ Stochastic & Parabolic SAR",
+    "🌐 Bulk Screener IHSG (Full)",
     "🎯 Custom Trade Planner",
 ])
 
@@ -122,16 +125,17 @@ with tab1:
             None,
         )
         if score_col:
-          df_rsi = df_rsi.sort_values(by=score_col, ascending=False).reset_index(
-              drop=True
-          )
+          df_rsi = df_rsi.sort_values(
+              by=score_col, ascending=False
+          ).reset_index(drop=True)
         st.session_state["df_rsi_data"] = df_rsi
       else:
         st.session_state["df_rsi_data"] = pd.DataFrame()
 
-  if "df_rsi_data" in st.session_state and not st.session_state[
-      "df_rsi_data"
-  ].empty:
+  if (
+      "df_rsi_data" in st.session_state
+      and not st.session_state["df_rsi_data"].empty
+  ):
     df_rsi = st.session_state["df_rsi_data"]
     st.success(f"Screening selesai! Ditemukan {len(df_rsi)} hasil.")
 
@@ -248,9 +252,79 @@ with tab2:
     render_inline_trade_planner(selected_stoch_symbol, key_suffix="stoch_tab")
 
 # ==========================================
-# TAB 3: CUSTOM TRADE PLANNER (MANUAL INPUT)
+# TAB 3: BULK SCREENER IHSG (MASAL 800+ SAHAM)
 # ==========================================
 with tab3:
+  st.header("🌐 Screener Massal Seluruh Saham IHSG")
+  st.caption(
+      "Screening seluruh emiten IHSG secara cepat dengan indikator Stochastic &"
+      " RSI."
+  )
+
+  if st.button("🚀 Screening Seluruh Saham IHSG", key="btn_bulk_ihsg"):
+    with st.spinner("Mengambil daftar lengkap ticker saham IHSG..."):
+      all_ihsg_tickers = get_all_ihsg_tickers()
+
+    st.info(f"Total {len(all_ihsg_tickers)} ticker siap di-scan.")
+
+    # Membuat UI Progress Bar (Tahap 3)
+    pbar = st.progress(0)
+    pstatus = st.empty()
+
+    def update_progress_ui(pct, msg):
+      pbar.progress(pct)
+      pstatus.text(msg)
+
+    # Jalankan pengunduhan & kalkulasi masal (Tahap 2)
+    df_bulk = run_full_screener(
+        all_ihsg_tickers, progress_callback=update_progress_ui
+    )
+
+    # Bersihkan Progress Bar setelah selesai
+    pbar.empty()
+    pstatus.empty()
+
+    if not df_bulk.empty:
+      st.session_state["df_bulk_ihsg"] = df_bulk
+      st.success(
+          f"Berhasil me-screen {len(df_bulk)} saham aktif secara bersamaan!"
+      )
+    else:
+      st.error("Gagal mendapatkan data screening masal.")
+
+  if (
+      "df_bulk_ihsg" in st.session_state
+      and not st.session_state["df_bulk_ihsg"].empty
+  ):
+    df_bulk = st.session_state["df_bulk_ihsg"]
+
+    # Filter Pilihan Cepat
+    st.subheader("🎯 Ringkasan Saham Potensial")
+    df_potensial = df_bulk[
+        df_bulk["Sinyal Stochastic"].str.contains("Oversold|Golden Cross")
+    ]
+    st.dataframe(df_potensial, use_container_width=True)
+
+    st.subheader("📋 Hasil Lengkap Seluruh Saham")
+    event_bulk = st.dataframe(
+        df_bulk,
+        use_container_width=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="table_bulk_ihsg",
+    )
+
+    if event_bulk.selection and event_bulk.selection["rows"]:
+      idx = event_bulk.selection["rows"][0]
+      symbol_selected = str(df_bulk.iloc[idx]["Ticker"])
+      if not symbol_selected.endswith(".JK"):
+        symbol_selected += ".JK"
+      render_inline_trade_planner(symbol_selected, key_suffix="bulk_tab")
+
+# ==========================================
+# TAB 4: CUSTOM TRADE PLANNER (MANUAL INPUT)
+# ==========================================
+with tab4:
   st.header("Custom Trade Planner Calculator")
   st.caption("Cari Trade Plan saham pilihan secara manual.")
 

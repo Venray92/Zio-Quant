@@ -17,7 +17,7 @@ class TradePlanner:
     self.strong_support = pd.DataFrame()
     self.strong_resistance = pd.DataFrame()
 
-  # --- HELPER FUNGSIONAL ---
+  # --- ATURAN TICK SIZE IDX ---
   @staticmethod
   def get_tick_size(price):
     if price < 200:
@@ -54,19 +54,22 @@ class TradePlanner:
     tick = cls.get_tick_size(price)
     return round(round(price / tick) * tick, 2)
 
-  # --- MEMUAT & MENYIAPKAN DATA ---
+  # --- FETCH & DATA PREPARATION ---
   def fetch_and_prepare_data(self):
     stock = yf.Ticker(self.ticker)
     df = stock.history(period=self.period, interval="1d").reset_index()
 
     if df.empty:
-      raise ValueError(f"Tidak ada data ditemukan untuk ticker {self.ticker}")
+      raise ValueError(
+          f"Data tidak ditemukan untuk ticker '{self.ticker}'. Pastikan kode"
+          " saham benar (misal: INCO.JK)."
+      )
 
-    # Body Top & Body Bottom
+    # Hitung Body Top & Body Bottom
     df["Body_Top"] = df[["Open", "Close"]].max(axis=1)
     df["Body_Bottom"] = df[["Open", "Close"]].min(axis=1)
 
-    # ATR(14)
+    # Hitung ATR(14)
     df["Prev_Close"] = df["Close"].shift(1)
     df["TR"] = np.maximum(
         df["High"] - df["Low"],
@@ -105,10 +108,10 @@ class TradePlanner:
     )
     self.highs_5 = self.highs_15.head(5)
 
-    # Re-calculate Support & Resistance
+    # Kalkulasi Support & Resistance
     self._calculate_strong_levels()
 
-  # --- FILTER OVERLAPPING ---
+  # --- FILTER OVERLAPPING LEVEL ---
   @staticmethod
   def _filter_overlapping_levels(df_levels, col1, col2, prefix="Resistance"):
     if df_levels.empty:
@@ -132,6 +135,7 @@ class TradePlanner:
         accepted_ranges.append((r_min, r_max))
 
     res_df = pd.DataFrame(accepted_rows)
+
     if not res_df.empty:
       res_df = res_df.head(3).reset_index(drop=True)
       ranks = []
@@ -147,7 +151,7 @@ class TradePlanner:
     return res_df
 
   def _calculate_strong_levels(self):
-    # Resistance calculation
+    # Strong Resistance
     sorted_highs = self.highs_5.sort_values(by="Date", ascending=False)
     res_results = []
     for _, row in sorted_highs.iterrows():
@@ -169,7 +173,7 @@ class TradePlanner:
         raw_res, "Body_Top", "High", prefix="Resistance"
     )
 
-    # Support calculation
+    # Strong Support
     recent_lows = self.lows_15.sort_values(by="Date", ascending=False).head(5)
     sup_results = []
     for _, row in recent_lows.iterrows():
@@ -193,6 +197,9 @@ class TradePlanner:
 
   # --- METHOD PUBLIK UNTUK STREAMLIT ---
   def get_direction(self):
+    if self.highs_5.empty or self.lows_15.empty:
+      return pd.DataFrame()
+
     latest_high_row = self.highs_5.sort_values(
         by="Date", ascending=False
     ).iloc[0]
@@ -222,10 +229,7 @@ class TradePlanner:
 
   def classify_candle(self):
     if len(self.df) < 3:
-      return (
-          "Standard Doji",
-          "ℹ️ Info: Kekuatan seimbang. Wait and see.",
-      )
+      return "Standard Doji", "ℹ️ Info: Kekuatan seimbang. Wait and see."
 
     def get_props(row):
       high, low, open_p, close = (
@@ -264,10 +268,7 @@ class TradePlanner:
         and p1["is_green"]
         and p1["close"] > p2["close"] > p3["close"]
     ):
-      return (
-          "Three White Soldiers",
-          "💡 Sinyal: Momentum naik sangat kuat.",
-      )
+      return "Three White Soldiers", "💡 Sinyal: Momentum naik sangat kuat."
     if (
         p3["is_red"]
         and p3["body_size"] >= 0.4 * p3["total_range"]
@@ -435,6 +436,9 @@ class TradePlanner:
     return pd.DataFrame(plan_data)
 
   def get_swing_points(self):
+    if self.highs_15.empty and self.lows_15.empty:
+      return pd.DataFrame()
+
     swing_points = pd.concat([self.highs_15, self.lows_15]).copy()
     swing_points = swing_points.sort_values(
         by=["Swing_Type", "Date"], ascending=[True, False]
@@ -486,7 +490,7 @@ class TradePlanner:
     return swing_points
 
 
-# --- RUN TEST (UNTUK PENGETESAN LOKAL SCRIPT) ---
+# --- UTILS UNTUK INTEGRASI STREAMLIT SCRIPT ---
 if __name__ == "__main__":
   planner = TradePlanner("INCO.JK", "6mo")
   planner.fetch_and_prepare_data()

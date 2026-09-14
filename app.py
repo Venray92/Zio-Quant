@@ -88,18 +88,20 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ==========================================
-# TAB 1: RSI DIVERGENCE
+# TAB 1: RSI DIVERGENCE & PATTERNS
 # ==========================================
 with tab1:
-  st.header("Screener RSI Divergence & Patterns")
+  st.header("Screener RSI Divergence & Technical Patterns")
   st.caption(
-      "Klik pada salah satu baris saham untuk langsung melihat Trade Planner di"
-      " bawah tabel."
+      "Screening seluruh saham IHSG yang sedang membentuk Divergence atau RSI"
+      " Oversold/Overbought."
   )
 
-  if st.button("Jalankan Screener RSI", key="btn_rsi"):
-    with st.spinner("Mengambil daftar saham IHSG..."):
+  if st.button("Jalankan Screener RSI (Full IHSG)", key="btn_rsi"):
+    with st.spinner("Mengambil daftar lengkap saham IHSG..."):
       all_tickers = get_all_ihsg_tickers()
+
+    st.info(f"Menganalisis {len(all_tickers)} ticker saham IHSG...")
 
     pbar_rsi = st.progress(0)
     pstatus_rsi = st.empty()
@@ -107,8 +109,8 @@ with tab1:
     results_rsi = []
     total_tickers = len(all_tickers)
 
-    # Gunakan max_workers=5 agar Yahoo Finance tidak memblokir IP (Anti Rate-Limit)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    # Menggunakan ThreadPoolExecutor dengan penanganan error yang rapat
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
       future_to_ticker = {
           executor.submit(detect_rsi_patterns_and_score, t): t
           for t in all_tickers
@@ -125,6 +127,7 @@ with tab1:
 
         try:
           res = future.result()
+          # Jika fungsi mereturn dictionary hasil
           if res is not None and isinstance(res, dict):
             results_rsi.append(res)
         except Exception:
@@ -135,6 +138,8 @@ with tab1:
 
     if results_rsi:
       df_rsi = pd.DataFrame(results_rsi)
+
+      # Sortir berdasarkan kolom skor jika ada
       score_col = next(
           (
               c
@@ -147,11 +152,17 @@ with tab1:
         df_rsi = df_rsi.sort_values(
             by=score_col, ascending=False
         ).reset_index(drop=True)
+
       st.session_state["df_rsi_data"] = df_rsi
+      st.success(
+          f"Screening RSI selesai! Ditemukan {len(df_rsi)} saham yang"
+          " memenuhi kriteria."
+      )
     else:
-      st.error(
-          "Gagal memuat data RSI Divergence. Terjadi pembatasan koneksi dari"
-          " Yahoo Finance (Rate Limit). Silakan coba beberapa saat lagi."
+      st.warning(
+          "Tidak ditemukan saham yang saat ini sedang mengalami kondisi RSI"
+          " Divergence ekstrim, atau server Yahoo Finance sedang dibatasi (Rate"
+          " Limit)."
       )
 
   if (
@@ -159,7 +170,6 @@ with tab1:
       and not st.session_state["df_rsi_data"].empty
   ):
     df_rsi = st.session_state["df_rsi_data"]
-    st.success(f"Screening selesai! Ditemukan {len(df_rsi)} hasil.")
 
     event_rsi = st.dataframe(
         df_rsi,

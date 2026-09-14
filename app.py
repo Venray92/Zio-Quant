@@ -3,9 +3,8 @@ import time
 import pandas as pd
 import streamlit as st
 
-# 1. Import modul internal
+# 1. Import modul internal (Bulk screener dihapus)
 from ihsg_tickers import get_all_ihsg_tickers
-from screener import run_full_screener
 from screener_rsi_divergence import detect_rsi_patterns_and_score
 from screener_stoch_psar import run_stoch_psar_screener
 from trade_planner import TradePlanner
@@ -20,8 +19,7 @@ st.set_page_config(
 st.title("📈 ZIO QUANT Dashboard")
 st.markdown(
     "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic &"
-    " Parabolic SAR**, **Bulk IHSG Screener**, serta kalkulator **Trade"
-    " Planner**."
+    " Parabolic SAR**, serta kalkulator **Trade Planner**."
 )
 
 
@@ -33,7 +31,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
   period_selected = st.selectbox(
       "Periode Data Analysis",
       options=["3mo", "6mo", "1y", "2y"],
-      index=1,
+      index=0,  # Default 3mo (index 0)
       key=f"period_{key_suffix}",
   )
 
@@ -81,11 +79,10 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
       st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}: {e}")
 
 
-# 3. Membuat Tab Navigasi
-tab1, tab2, tab3, tab4 = st.tabs([
+# 3. Membuat Tab Navigasi (Sisa 3 Tab)
+tab1, tab2, tab3 = st.tabs([
     "🔄 RSI Divergence",
     "⚡ Stochastic & Parabolic SAR",
-    "🌐 Bulk Screener IHSG (Full)",
     "🎯 Custom Trade Planner",
 ])
 
@@ -113,7 +110,6 @@ with tab1:
     success_count = 0
     failed_count = 0
 
-    # Helper function dengan Retry Mechanism untuk Yahoo Finance
     def fetch_rsi_with_retry(ticker, max_retries=2):
       for attempt in range(max_retries + 1):
         try:
@@ -153,9 +149,7 @@ with tab1:
     pbar_rsi.empty()
     pstatus_rsi.empty()
 
-    # Memisahkan hasil menjadi Bullish dan Bearish
     df_rsi_all = pd.DataFrame(results_rsi) if results_rsi else pd.DataFrame()
-
     df_rsi_bullish = pd.DataFrame()
     df_rsi_bearish = pd.DataFrame()
 
@@ -181,7 +175,6 @@ with tab1:
               by=score_col, ascending=False
           ).reset_index(drop=True)
 
-    # Simpan ke Session State
     st.session_state["rsi_stats"] = {
         "total": total_tickers,
         "success": success_count,
@@ -194,7 +187,6 @@ with tab1:
     st.session_state["df_rsi_bullish"] = df_rsi_bullish
     st.session_state["df_rsi_bearish"] = df_rsi_bearish
 
-  # --- RINGKASAN METRICS TAB 1 ---
   if "rsi_stats" in st.session_state:
     stats = st.session_state["rsi_stats"]
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
@@ -209,7 +201,6 @@ with tab1:
           " Finance."
       )
 
-  # --- TAMPILAN 2 KOLOM (KIRI: BULLISH, KANAN: BEARISH) ---
   col_bull, col_bear = st.columns(2)
   selected_rsi_symbol = None
 
@@ -271,7 +262,6 @@ with tab1:
     else:
       st.info("Tidak ada sinyal Bearish / Belum di-scan.")
 
-  # Render Trade Planner otomatis saat salah satu baris di-klik
   if selected_rsi_symbol:
     if not selected_rsi_symbol.endswith(".JK") and "." not in selected_rsi_symbol:
       selected_rsi_symbol += ".JK"
@@ -306,7 +296,6 @@ with tab2:
       )
 
     try:
-      # Panggil screener
       df_gc, df_dc = run_stoch_psar_screener(
           tickers=all_stoch_tickers,
           progress_callback=update_stoch_progress,
@@ -317,11 +306,9 @@ with tab2:
       st.session_state["df_gc_data"] = df_gc
       st.session_state["df_dc_data"] = df_dc
 
-      # Hitung total temuan
       gc_len = len(df_gc) if df_gc is not None else 0
       dc_len = len(df_dc) if df_dc is not None else 0
 
-      # Catat statistik
       st.session_state["stoch_stats"] = {
           "total": total_stoch_tickers,
           "matched_gc": gc_len,
@@ -335,7 +322,6 @@ with tab2:
       pstatus_stoch.empty()
       st.error(f"Terjadi kesalahan: {e}")
 
-  # --- RINGKASAN METRICS TAB 2 ---
   if "stoch_stats" in st.session_state:
     st_stats = st.session_state["stoch_stats"]
     c_m1, c_m2, c_m3, c_m4 = st.columns(4)
@@ -415,91 +401,36 @@ with tab2:
 
 
 # ==========================================
-# TAB 3: BULK SCREENER IHSG (FULL SAHAM)
+# TAB 3: CUSTOM TRADE PLANNER (MANUAL INPUT)
 # ==========================================
 with tab3:
-  st.header("🌐 Screener Massal Seluruh Saham IHSG")
-  st.caption(
-      "Screening cepat seluruh emiten IHSG menggunakan Multi-Threading Bulk"
-      " Download."
-  )
-
-  if st.button("🚀 Screening Seluruh Saham IHSG", key="btn_bulk_ihsg"):
-    with st.spinner("Mengambil daftar lengkap ticker saham IHSG..."):
-      all_ihsg_tickers = get_all_ihsg_tickers()
-
-    st.info(f"Total {len(all_ihsg_tickers)} ticker siap di-scan.")
-
-    pbar = st.progress(0)
-    pstatus = st.empty()
-
-    def update_progress_ui(pct, msg):
-      pbar.progress(pct)
-      pstatus.text(msg)
-
-    df_bulk = run_full_screener(
-        all_ihsg_tickers, progress_callback=update_progress_ui
-    )
-
-    pbar.empty()
-    pstatus.empty()
-
-    if not df_bulk.empty:
-      st.session_state["df_bulk_ihsg"] = df_bulk
-      st.success(
-          f"Berhasil me-screen {len(df_bulk)} saham aktif secara bersamaan!"
-      )
-    else:
-      st.error("Gagal mendapatkan data screening masal.")
-
-  if (
-      "df_bulk_ihsg" in st.session_state
-      and not st.session_state["df_bulk_ihsg"].empty
-  ):
-    df_bulk = st.session_state["df_bulk_ihsg"]
-
-    st.subheader("🎯 Ringkasan Saham Potensial")
-    df_potensial = df_bulk[
-        df_bulk["Sinyal Stochastic"].str.contains("Oversold|Golden Cross")
-    ]
-    st.dataframe(df_potensial, use_container_width=True)
-
-    st.subheader("📋 Hasil Lengkap Seluruh Saham")
-    event_bulk = st.dataframe(
-        df_bulk,
-        use_container_width=True,
-        on_select="rerun",
-        selection_mode="single-row",
-        key="table_bulk_ihsg",
-    )
-
-    if event_bulk.selection and event_bulk.selection["rows"]:
-      idx = event_bulk.selection["rows"][0]
-      symbol_selected = str(df_bulk.iloc[idx]["Ticker"])
-      if not symbol_selected.endswith(".JK"):
-        symbol_selected += ".JK"
-      render_inline_trade_planner(symbol_selected, key_suffix="bulk_tab")
-
-
-# ==========================================
-# TAB 4: CUSTOM TRADE PLANNER (MANUAL INPUT)
-# ==========================================
-with tab4:
   st.header("Custom Trade Planner Calculator")
   st.caption("Cari Trade Plan saham pilihan secara manual.")
 
   col_input1, col_input2 = st.columns([2, 1])
   with col_input1:
+    # Input ticker dibuat kosong secara default, teks helper memberikan petunjuk format
     ticker_input = st.text_input(
-        "Masukkan Ticker Saham", value="INCO.JK", key="manual_ticker_input"
+        "Masukkan Kode Saham (Contoh: BBCA, ASII, BBRI)",
+        value="",
+        key="manual_ticker_input",
+        placeholder="Ketik kode saham...",
     )
   with col_input2:
     period_input = st.selectbox(
         "Pilih Periode Data",
         options=["3mo", "6mo", "1y", "2y"],
-        index=1,
+        index=0,  # Default 3mo
         key="manual_period_input",
     )
 
   if st.button("Generate Trade Plan", key="btn_planner_manual"):
-    render_inline_trade_planner(ticker_input, key_suffix="manual_tab")
+    if ticker_input.strip() == "":
+      st.warning("⚠️ Mohon masukkan kode saham terlebih dahulu.")
+    else:
+      # Otomatis menambahkan .JK di background jika user belum mengetiknya
+      clean_ticker = ticker_input.strip().upper()
+      if not clean_ticker.endswith(".JK") and "." not in clean_ticker:
+        clean_ticker += ".JK"
+
+      render_inline_trade_planner(clean_ticker, key_suffix="manual_tab")

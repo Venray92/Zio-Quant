@@ -2,73 +2,37 @@ import concurrent.futures
 import pandas as pd
 import streamlit as st
 
-# Import modul screener lokal
-from screener_ema_vol import run_screener as run_ema_vol_screener
+# Import modul yang BENAR-BENAR ada di repositori kamu
 from screener_rsi_divergence import (
     TICKERS as RSI_TICKERS,
     detect_rsi_patterns_and_score,
 )
 from screener_stoch_psar import run_stoch_psar_screener
+from trade_planner import render_trade_planner  # Menyesuaikan file trade_planner.py
 
 # Set konfigurasi halaman Streamlit
 st.set_page_config(
-    page_title="Stock Screener Dashboard", page_icon="📈", layout="wide"
+    page_title="Stock Screener & Trade Planner", page_icon="📈", layout="wide"
 )
 
-st.title("📈 Indonesian Stock Screener Dashboard")
+st.title("📈 Stock Screener & Trade Planner Dashboard")
 st.markdown(
-    "Aplikasi screening saham IHSG berdasarkan kriteria **EMA & Volume**, **RSI Divergence**, dan **Stochastic & Parabolic SAR**."
+    "Aplikasi screening saham berdasarkan **RSI Divergence**, **Stochastic & Parabolic SAR**, serta kalkulator **Trade Planner**."
 )
 
-# Buat Tab untuk masing-masing screener
+# Buat Tab sesuai modul yang kamu miliki
 tab1, tab2, tab3 = st.tabs(
     [
-        "🚀 EMA & Vol Breakout",
         "🔄 RSI Divergence",
         "⚡ Stochastic & Parabolic SAR",
+        "🎯 Trade Planner",
     ]
 )
 
 # ==========================================
-# TAB 1: EMA & VOLUME BREAKOUT
+# TAB 1: RSI DIVERGENCE
 # ==========================================
 with tab1:
-    st.header("Screener EMA & Volume Breakout")
-    st.caption("Mencari saham dengan potensi breakout EMA dan lonjakan volume.")
-
-    if st.button("Jalankan Screener EMA & Vol", key="btn_ema"):
-        with st.spinner("Mengunduh data saham dan menganalisis..."):
-            try:
-                df_ema = run_ema_vol_screener()
-                if not df_ema.empty:
-                    st.success(
-                        f"Screening selesai! Ditemukan {len(df_ema)} saham."
-                    )
-                    st.dataframe(
-                        df_ema.style.format(
-                            {
-                                "Harga": "{:,.0f}",
-                                "EMA 20": "{:,.2f}",
-                                "EMA 50": "{:,.2f}",
-                                "EMA 200": "{:,.2f}",
-                                "RSI 14": "{:,.2f}",
-                                "Vol (xMA20)": "{:,.2f}x",
-                                "Val (M)": "{:,.2f}",
-                            }
-                        ),
-                        use_container_width=True,
-                    )
-                else:
-                    st.warning(
-                        "Tidak ada saham yang memenuhi kriteria saat ini."
-                    )
-            except Exception as e:
-                st.error(f"Terjadi kesalahan: {e}")
-
-# ==========================================
-# TAB 2: RSI DIVERGENCE
-# ==========================================
-with tab2:
     st.header("Screener RSI Divergence & Patterns")
     st.caption(
         "Deteksi pola RSI Divergence (Bullish/Bearish) dan scoring kekuatan tren."
@@ -79,7 +43,6 @@ with tab2:
             f"Menganalisis {len(RSI_TICKERS)} saham menggunakan multi-threading..."
         ):
             results_rsi = []
-            # Mempercepat eksekusi per ticker dengan ThreadPoolExecutor
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=10
             ) as executor:
@@ -119,9 +82,9 @@ with tab2:
                 )
 
 # ==========================================
-# TAB 3: STOCHASTIC & PARABOLIC SAR
+# TAB 2: STOCHASTIC & PARABOLIC SAR
 # ==========================================
-with tab3:
+with tab2:
     st.header("Screener Stochastic & Parabolic SAR")
     st.caption(
         "Mencari signal Golden Cross (Oversold) dan Dead Cross (Overbought) yang dikonfirmasi Parabolic SAR."
@@ -174,3 +137,17 @@ with tab3:
 
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
+
+# ==========================================
+# TAB 3: TRADE PLANNER
+# ==========================================
+with tab3:
+    st.header("Trade Planner Calculator")
+    st.caption("Hitung posisi entry, stop loss, target profit, dan money management.")
+    
+    # Menjalankan fungsi interface dari trade_planner.py
+    try:
+        render_trade_planner()
+    except AttributeError:
+        # Jika trade_planner.py tidak punya fungsi render_trade_planner(), ganti sesuai nama fungsi di dalam file kamu
+        st.info("Silakan sesuaikan pemanggilan fungsi utama dari trade_planner.py di baris ini.")

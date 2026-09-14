@@ -1,356 +1,140 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import yfinance as yf
-from scipy.signal import find_peaks
-import warnings
-warnings.filterwarnings('ignore')
 
-# Config Tampilan
+# -----------------------------------------------------------------------------
+# 1. KONFIGURASI HALAMAN STREAMLIT
+# -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Master Screener & Trade Plan IHSG",
+    page_title="Trade Plan & Technical Analysis Dashboard",
     page_icon="📈",
     layout="wide"
 )
 
-# List Ticker IHSG Default
-TICKERS = [
-    "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "TLKM.JK", "ASII.JK", "GOTO.JK", "UNVR.JK", "ICBP.JK", "INDF.JK",
-    "KLBF.JK", "UNTR.JK", "ADRO.JK", "PTBA.JK", "ANTM.JK", "INCO.JK", "MDKA.JK", "PGAS.JK", "SMGR.JK", "INTP.JK",
-    "CPIN.JK", "BRIS.JK", "ARTO.JK", "BUMI.JK", "ENRG.JK", "MEDC.JK", "ELSA.JK", "HRUM.JK", "ITMG.JK", "BRPT.JK",
-    "TPIA.JK", "AMRT.JK", "MAPI.JK", "ERAA.JK", "ACES.JK", "MAPA.JK", "MYOR.JK", "GGRM.JK", "HMSP.JK", "SIDO.JK",
-    "JPFA.JK", "MAIN.JK", "CMRY.JK", "ULTJ.JK", "MIKA.JK", "HEAL.JK", "SILO.JK", "BIRD.JK", "ASSA.JK", "SMDR.JK"
+st.title("📈 Technical Analysis & Automated Trade Plan Dashboard")
+st.markdown("---")
+
+# -----------------------------------------------------------------------------
+# 2. RAW DATA SWING POINTS (30 DATA REKAPITULASI)
+# -----------------------------------------------------------------------------
+raw_data = [
+    {"No": 1,  "Date": "2026-09-10", "Open": 146.00, "High": 148.00, "Low": 137.00, "Close": 137.00, "Swing Type": "Swing High", "Metpoint Level": "146.0"},
+    {"No": 2,  "Date": "2026-08-21", "Open": 104.00, "High": 107.00, "Low": 102.00, "Close": 103.00, "Swing Type": "Swing High", "Metpoint Level": "104.0"},
+    {"No": 3,  "Date": "2026-08-06", "Open": 112.00, "High": 113.00, "Low": 106.00, "Close": 108.00, "Swing Type": "Swing High", "Metpoint Level": "-"},
+    {"No": 4,  "Date": "2026-07-23", "Open": 135.00, "High": 155.00, "Low": 134.00, "Close": 141.00, "Swing Type": "Swing High", "Metpoint Level": "135.0"},
+    {"No": 5,  "Date": "2026-07-09", "Open": 212.00, "High": 216.00, "Low": 166.00, "Close": 173.00, "Swing Type": "Swing High", "Metpoint Level": "212.0, 216.0"},
+    {"No": 6,  "Date": "2026-06-24", "Open": 193.00, "High": 212.00, "Low": 175.00, "Close": 179.00, "Swing Type": "Swing High", "Metpoint Level": "212.0"},
+    {"No": 7,  "Date": "2026-06-12", "Open": 176.00, "High": 218.00, "Low": 168.00, "Close": 194.00, "Swing Type": "Swing High", "Metpoint Level": "218.0"},
+    {"No": 8,  "Date": "2026-05-29", "Open": 236.00, "High": 266.00, "Low": 236.00, "Close": 248.00, "Swing Type": "Swing High", "Metpoint Level": "-"},
+    {"No": 9,  "Date": "2026-05-07", "Open": 372.00, "High": 402.00, "Low": 360.00, "Close": 372.00, "Swing Type": "Swing High", "Metpoint Level": "402.0"},
+    {"No": 10, "Date": "2026-04-23", "Open": 530.00, "High": 570.00, "Low": 442.00, "Close": 444.00, "Swing Type": "Swing High", "Metpoint Level": "-"},
+    {"No": 11, "Date": "2026-04-15", "Open": 450.00, "High": 460.00, "Low": 418.00, "Close": 428.00, "Swing Type": "Swing High", "Metpoint Level": "-"},
+    {"No": 12, "Date": "2026-04-02", "Open": 400.00, "High": 400.00, "Low": 314.00, "Close": 314.00, "Swing Type": "Swing High", "Metpoint Level": "400.0"},
+    {"No": 13, "Date": "2026-09-11", "Open": 132.00, "High": 135.00, "Low": 125.00, "Close": 131.00, "Swing Type": "Swing Low",  "Metpoint Level": "125.0"},
+    {"No": 14, "Date": "2026-08-27", "Open": 97.00,  "High": 101.00, "Low": 96.00,  "Close": 100.00, "Swing Type": "Swing Low",  "Metpoint Level": "96.0, 100.0"},
+    {"No": 15, "Date": "2026-08-19", "Open": 100.00, "High": 100.00, "Low": 96.00,  "Close": 98.00,  "Swing Type": "Swing Low",  "Metpoint Level": "96.0, 98.0"},
+    {"No": 16, "Date": "2026-08-12", "Open": 101.00, "High": 103.00, "Low": 98.00,  "Close": 102.00, "Swing Type": "Swing Low",  "Metpoint Level": "98.0, 102.0"},
+    {"No": 17, "Date": "2026-08-03", "Open": 109.00, "High": 111.00, "Low": 100.00, "Close": 103.00, "Swing Type": "Swing Low",  "Metpoint Level": "100.0, 103.0"},
+    {"No": 18, "Date": "2026-07-16", "Open": 128.00, "High": 138.00, "Low": 125.00, "Close": 133.00, "Swing Type": "Swing Low",  "Metpoint Level": "125.0"},
+    {"No": 19, "Date": "2026-07-01", "Open": 73.44,  "High": 98.68,  "Low": 66.55,  "Close": 98.68,  "Swing Type": "Swing Low",  "Metpoint Level": "98.68"},
+    {"No": 20, "Date": "2026-06-08", "Open": 159.00, "High": 169.00, "Low": 145.00, "Close": 158.00, "Swing Type": "Swing Low",  "Metpoint Level": "145.0"},
+    {"No": 21, "Date": "2026-05-22", "Open": 224.00, "High": 256.00, "Low": 210.00, "Close": 252.00, "Swing Type": "Swing Low",  "Metpoint Level": "210.0"},
+    {"No": 22, "Date": "2026-05-12", "Open": 348.00, "High": 356.00, "Low": 306.00, "Close": 334.00, "Swing Type": "Swing Low",  "Metpoint Level": "-"},
+    {"No": 23, "Date": "2026-04-30", "Open": 342.00, "High": 344.00, "Low": 300.00, "Close": 320.00, "Swing Type": "Swing Low",  "Metpoint Level": "-"},
+    {"No": 24, "Date": "2026-04-20", "Open": 410.00, "High": 436.00, "Low": 402.00, "Close": 420.00, "Swing Type": "Swing Low",  "Metpoint Level": "402.0"},
+    {"No": 25, "Date": "2026-04-06", "Open": 300.00, "High": 330.00, "Low": 292.00, "Close": 314.00, "Swing Type": "Swing Low",  "Metpoint Level": "292.0"},
+    {"No": 26, "Date": "2026-03-16", "Open": 290.00, "High": 300.00, "Low": 290.00, "Close": 294.00, "Swing Type": "Swing Low",  "Metpoint Level": "290.0, 294.0"},
 ]
 
-# ==========================================
-# 0. FUNGSI GENERATE TRADE PLAN LENGKAP (COLAB VERSION)
-# ==========================================
-def generate_full_trade_plan(ticker, budget=10000000, risk_pct=0.03):
-    """Menghitung Trade Plan lengkap sesuai logika Google Colab"""
-    try:
-        formatted_ticker = ticker.upper() + ".JK" if not ticker.endswith(".JK") else ticker.upper()
-        clean_ticker = formatted_ticker.replace(".JK", "")
+df = pd.DataFrame(raw_data)
 
-        df = yf.download(formatted_ticker, period="6mo", interval="1d", progress=False)
-        
-        if len(df) < 30:
-            st.error("❌ Data tidak cukup untuk membuat analisis Trade Plan.")
-            return
+# -----------------------------------------------------------------------------
+# 3. PERHITUNGAN PARAMETER UTAMA
+# -----------------------------------------------------------------------------
+swing_high = 148.0
+swing_low = 125.0
+equilibrium = (swing_high + swing_low) / 2  # 136.5
+last_close = 134.0
+direction = "BOW (Buy On Weakness)" if last_close < equilibrium else "Sell / Wait"
 
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
+# -----------------------------------------------------------------------------
+# 4. MONITOR RINGKASAN ARAH PASAR (DIRECTION ANALYSIS)
+# -----------------------------------------------------------------------------
+st.subheader("1. Ringkasan Arah Pasar (Direction Analysis)")
+col1, col2, col3, col4, col5 = st.columns(5)
 
-        # 1. Parameter Utama
-        curr_price = int(df['Close'].iloc[-1])
-        df['Turnover'] = df['Close'] * df['Volume']
-        avg_turnover = df['Turnover'].tail(20).mean()
-        
-        # 2. Moving Averages
-        df['MA20'] = df['Close'].rolling(20).mean()
-        df['MA50'] = df['Close'].rolling(50).mean()
-        ma20_val = df['MA20'].iloc[-1]
-        ma50_val = df['MA50'].iloc[-1]
-        
-        if curr_price > ma20_val > ma50_val:
-            trend_status = "STRONG UPTREND 🚀"
-        elif curr_price > ma20_val:
-            trend_status = "UPTREND (MA20) 📈"
-        elif curr_price < ma20_val < ma50_val:
-            trend_status = "STRONG DOWNTREND 📉"
-        else:
-            trend_status = "SIDEWAYS / CONSOLIDATION ⚖️"
+col1.metric("Swing High Terupdate", f"{swing_high}")
+col2.metric("Swing Low Terupdate", f"{swing_low}")
+col3.metric("Level Equilibrium (50%)", f"{equilibrium}")
+col4.metric("Harga Penutupan Terakhir", f"{last_close}")
+col5.metric("Arah Utama Pasar", direction)
 
-        # 3. Dynamic Stop Loss & Target Price
-        swing_low_30d = float(df['Low'].tail(30).min())
-        sl_swing = round(swing_low_30d * 0.98) # 2% di bawah swing low
-        
-        sl_pct_option = round(curr_price * (1 - risk_pct))
-        stop_loss = max(sl_swing, sl_pct_option)
-        
-        if stop_loss >= curr_price:
-            stop_loss = round(curr_price * 0.95)
+st.markdown("---")
 
-        risk_per_share = curr_price - stop_loss
-        sl_percent = round(((curr_price - stop_loss) / curr_price) * 100, 2)
+# -----------------------------------------------------------------------------
+# 5. PETA SUPPORT & RESISTANCE UTAMA
+# -----------------------------------------------------------------------------
+st.subheader("2. Peta Support & Resistance Utama")
+res_col, sup_col = st.columns(2)
 
-        tp1 = round(curr_price + (1.5 * risk_per_share))
-        tp2 = round(curr_price + (2.5 * risk_per_share))
-        tp3 = round(curr_price + (3.5 * risk_per_share))
+with res_col:
+    st.write("### 🔴 Strong Resistance")
+    st.write("**1st Rank (Utama):** High **216.0** / Body Top **212.0** *(09 Jul 2026)*")
+    st.write("**2nd Rank (Kedua):** High **155.0** / Body Top **141.0** *(23 Jul 2026)*")
 
-        tp1_pct = round(((tp1 - curr_price) / curr_price) * 100, 1)
-        tp2_pct = round(((tp2 - curr_price) / curr_price) * 100, 1)
-        tp3_pct = round(((tp3 - curr_price) / curr_price) * 100, 1)
+with sup_col:
+    st.write("### 🟢 Strong Support")
+    st.write("**1st Rank (Terdekat):** Low **125.0** / Body Bottom **131.0** *(11 Sep 2026)*")
+    st.write("**2nd Rank (Kedua):** Low **96.0** / Body Bottom **97.0** *(27 Aug 2026)*")
 
-        rrr = round((tp1 - curr_price) / risk_per_share, 2)
+st.markdown("---")
 
-        # 4. Money Management (Position Sizing)
-        max_loss_allowed = budget * 0.02 # Batas toleransi rugi 2% dari total modal
-        shares_to_buy = int(max_loss_allowed / risk_per_share)
-        lots_to_buy = max(1, shares_to_buy // 100)
-        total_allocation = lots_to_buy * 100 * curr_price
+# -----------------------------------------------------------------------------
+# 6. SKENARIO TRADE PLAN (BOW & BOB)
+# -----------------------------------------------------------------------------
+st.subheader("3. Eksekusi Trade Plan & Skenario Masuk")
 
-        # --- DISPLAY STREAMLIT ---
-        st.markdown(f"## 📋 Trade Plan Lengkap: **{clean_ticker}**")
-        st.caption(f"Status Tren: **{trend_status}** | Rata-rata Turnover (20H): **Rp {avg_turnover/1e9:.2f} Miliar**")
-        
-        # Operational Warning
-        if avg_turnover < 1_000_000_000:
-            st.error("⚠️ **WARNING LIKUIDITAS LOW:** Saham ini memiliki transaksi harian rata-rata di bawah Rp 1 Miliar. Hati-hati risiko sulit jualan (illiquid).")
+tab1, tab2 = st.columns(2)
 
-        # Metric Cards
-        col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("Area Buy / Entry", f"Rp {curr_price:,.0f}")
-        col2.metric("Stop Loss (Cut Loss)", f"Rp {stop_loss:,.0f}", f"-{sl_percent}%", delta_color="inverse")
-        col3.metric("Target 1 (TP1)", f"Rp {tp1:,.0f}", f"+{tp1_pct}%")
-        col4.metric("Target 2 (TP2)", f"Rp {tp2:,.0f}", f"+{tp2_pct}%")
-        col5.metric("Risk Reward Ratio", f"1 : {rrr}")
-
-        # Detail Table & Money Management
-        st.markdown("### 💰 Money Management & Sizing Position")
-        mm_col1, mm_col2 = st.columns(2)
-        
-        with mm_col1:
-            st.markdown(f"""
-            - **Modal Maksimal Disimulasikan:** Rp {budget:,.0f}
-            - **Max Risk Per Trade (2% Modal):** Rp {max_loss_allowed:,.0f}
-            - **Rekomendasi Pembelian:** **{lots_to_buy} Lot** ({lots_to_buy * 100:,} lembar)
-            - **Total Investasi:** Rp {total_allocation:,.0f} ({round((total_allocation/budget)*100, 1)}% dari modal)
-            """)
-
-        with mm_col2:
-            st.markdown(f"""
-            - **Target 3 (TP3 - Extension):** Rp {tp3:,.0f} (+{tp3_pct}%)
-            - **Swing Low (30 Hari):** Rp {swing_low_30d:,.0f}
-            - **Moving Average 20:** Rp {ma20_val:,.0f}
-            - **Moving Average 50:** Rp {ma50_val:,.0f}
-            """)
-
-        st.markdown("### 📌 Catatan Eksekusi & Strategy Notes")
-        st.info(f"""
-        1. **Entry Strategy:** Pembelian bertahap di area Rp {curr_price:,.0f}.
-        2. **Profit Taking:** Lakukan *Scale-Out* (Jual 50% di TP1 Rp {tp1:,.0f}, sisa 50% letakkan trailing stop hingga TP2/TP3).
-        3. **Disciplined Exit:** Jika harga menembus ke bawah **Rp {stop_loss:,.0f}** pada penutupan candle daily, wajib lakukan **Cut Loss** tanpa kompromi.
-        """)
-
-        # Chart Tampilan
-        st.line_chart(df[['Close', 'MA20', 'MA50']].tail(60))
-
-    except Exception as e:
-        st.error(f"Gagal memuat Trade Plan untuk {ticker}: {e}")
-
-
-# ==========================================
-# 1. MODUL LOGIKA: RSI DIVERGENCE
-# ==========================================
-def calculate_rsi_tradingview(df, rsi_period=10, ema_period=10):
-    delta = df['Close'].diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.ewm(alpha=1/rsi_period, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1/rsi_period, adjust=False).mean()
-    rs = avg_gain / avg_loss
-    df['RSI'] = 100 - (100 / (1 + rs))
-    df['RSI_EMA'] = df['RSI'].ewm(span=ema_period, adjust=False).mean()
-    df['Vol_MA20'] = df['Volume'].rolling(window=20).mean()
-    df['Turnover'] = df['Close'] * df['Volume']
-    return df
-
-def find_rsi_swings_optimized(df):
-    rsi_vals = -df['RSI'].values
-    valleys, _ = find_peaks(rsi_vals, distance=8, prominence=2.5)
-    return valleys
-
-def is_local_price_low(df, idx, window=2):
-    start = max(0, idx - window)
-    end = min(len(df) - 1, idx + window)
-    return df.iloc[idx]['Low'] == df.iloc[start:end+1]['Low'].min()
-
-def check_line_penetration(df, idx1, idx2):
-    rsi_v1 = df.iloc[idx1]['RSI']
-    rsi_v2 = df.iloc[idx2]['RSI']
-    for x in range(idx1 + 1, idx2):
-        expected_rsi = rsi_v1 + (rsi_v2 - rsi_v1) * (x - idx1) / (idx2 - idx1)
-        if df.iloc[x]['RSI'] < expected_rsi - 3:
-            return False
-    return True
-
-def scan_rsi_divergence(ticker):
-    try:
-        data = yf.download(ticker, period="4mo", interval="1d", progress=False)
-        if len(data) < 30: return None
-        if isinstance(data.columns, pd.MultiIndex): data.columns = data.columns.get_level_values(0)
-
-        df = calculate_rsi_tradingview(data)
-        if df['Turnover'].rolling(20).mean().iloc[-1] < 1_000_000_000: return None
-
-        valleys = find_rsi_swings_optimized(df)
-        if len(valleys) < 2: return None
-            
-        latest_idx = len(df) - 1
-        for i in range(len(valleys)-1, -1, -1):
-            idx2 = valleys[i]
-            age_bars = latest_idx - idx2
-            if age_bars > 10: continue
-
-            for j in range(i-1, -1, -1):
-                idx1 = valleys[j]
-                gap = idx2 - idx1
-                if 6 <= gap <= 25:
-                    if not (is_local_price_low(df, idx1) and is_local_price_low(df, idx2)): continue
-                    if not check_line_penetration(df, idx1, idx2): continue
-
-                    price_low1, price_low2 = df.iloc[idx1]['Low'], df.iloc[idx2]['Low']
-                    rsi_v1, rsi_v2 = df.iloc[idx1]['RSI'], df.iloc[idx2]['RSI']
-                    price_diff_pct = (price_low2 - price_low1) / price_low1
-
-                    pattern_name, base_score = None, 0
-                    if price_diff_pct <= -0.01 and rsi_v2 > rsi_v1 and (rsi_v2 - rsi_v1 >= 1.0):
-                        pattern_name = "Regular Bullish"
-                        base_score = 70 if rsi_v2 < 30 else 50
-                    elif price_diff_pct >= 0.01 and rsi_v2 < rsi_v1 and (rsi_v1 - rsi_v2 >= 1.0):
-                        pattern_name = "Hidden Bullish"
-                        base_score = 65 if rsi_v2 <= 60 else 45
-
-                    if pattern_name and base_score > 0:
-                        curr_bar = df.iloc[latest_idx]
-                        is_gc = any(df.iloc[idx-1]['RSI'] <= df.iloc[idx-1]['RSI_EMA'] and df.iloc[idx]['RSI'] > df.iloc[idx]['RSI_EMA'] for idx in range(idx2, latest_idx + 1))
-                        
-                        gc_score = 15 if is_gc else 0
-                        age_penalty = 0 if age_bars <= 3 else (10 if age_bars <= 7 else 20)
-                        total_score = base_score + gc_score - age_penalty
-
-                        return {
-                            "Ticker": ticker.replace(".JK", ""),
-                            "Price": int(curr_bar['Close']),
-                            "Pattern": pattern_name,
-                            "RSI V1": round(rsi_v1, 2),
-                            "RSI V2": round(rsi_v2, 2),
-                            "Age": f"H+{age_bars}",
-                            "Status GC": "GC CONFIRMED" if is_gc else "WATCHLIST",
-                            "TOTAL SCORE": total_score
-                        }
-        return None
-    except Exception: return None
-
-
-# ==========================================
-# 2. MODUL LOGIKA: STOCHASTIC + PSAR
-# ==========================================
-def scan_stoch_psar(ticker):
-    try:
-        data = yf.download(ticker, period="3mo", interval="1d", progress=False)
-        if len(data) < 20: return None
-        if isinstance(data.columns, pd.MultiIndex): data.columns = data.columns.get_level_values(0)
-
-        # Stoch
-        low_min = data['Low'].rolling(14).min()
-        high_max = data['High'].rolling(14).max()
-        stoch_k = (100 * ((data['Close'] - low_min) / (high_max - low_min))).rolling(3).mean()
-        stoch_d = stoch_k.rolling(3).mean()
-        
-        curr = data.iloc[-1]
-        stoch_gc = (stoch_k.iloc[-2] <= stoch_d.iloc[-2]) and (stoch_k.iloc[-1] > stoch_d.iloc[-1]) and (stoch_k.iloc[-1] <= 40)
-        psar_bullish = curr['Close'] > data['Low'].tail(5).min()
-
-        if stoch_gc and psar_bullish:
-            return {
-                "Ticker": ticker.replace(".JK", ""),
-                "Price": int(curr['Close']),
-                "Stoch K": round(stoch_k.iloc[-1], 2),
-                "Stoch D": round(stoch_d.iloc[-1], 2),
-                "Signal": "BUY ON DIP"
-            }
-        return None
-    except Exception: return None
-
-
-# ==========================================
-# 3. STREAMLIT INTERFACE (UI)
-# ==========================================
-st.title("📊 Master Screener & Trade Plan IHSG")
-
-# Sidebar Menu
-st.sidebar.header("⚙️ Navigasi Modul")
-menu = st.sidebar.radio(
-    "Pilih Fitur:",
-    ("1. Trade Plan (Manual Input)", "2. Screener RSI Divergence", "3. Screener Stochastic + PSAR")
-)
-
-# ----------------------------------------------------
-# FITUR 1: TRADE PLAN (MANUAL INPUT TICKER)
-# ----------------------------------------------------
-if menu == "1. Trade Plan (Manual Input)":
-    st.subheader("🎯 Generator Trade Plan Manual")
-    st.caption("Masukkan kode saham tanpa '.JK' (contoh: BBCA, TLKM, ADRO) beserta estimasi modal Anda.")
+with tab1:
+    st.info("### 📌 Skenario 1: Buy On Weakness (BOW) — Utama")
+    st.markdown("""
+    - **Range Area Beli:** `125.0 – 131.0`
+    - **Stop Loss:** `122.0` *(Di bawah support terdekat)*
+    - **Target Profit 1 (TP 1):** `155.0`
+    - **Target Profit 2 (TP 2):** `216.0`
+    - **Risk to Reward Ratio:** **1 : 10.0**
+    - **Konfirmasi Candlestick:** *Bullish Engulfing*
     
-    col_input1, col_input2 = st.columns(2)
-    with col_input1:
-        user_ticker = st.text_input("Kode Saham (Ticker):", value="BBCA").strip()
-    with col_input2:
-        user_budget = st.number_input("Total Modal (Rp):", value=10000000, step=1000000)
+    > **💡 Catatan & Sinyal:** Pembeli mulai mengambil alih kontrol pasar. Sinyal pembalikan arah naik valid di area support terdekat.
+    """)
 
-    if st.button("Hitung Trade Plan") or user_ticker:
-        if user_ticker:
-            generate_full_trade_plan(user_ticker, budget=user_budget)
-
-
-# ----------------------------------------------------
-# FITUR 2: SCREENER RSI DIVERGENCE
-# ----------------------------------------------------
-elif menu == "2. Screener RSI Divergence":
-    st.subheader("🔍 Screener RSI Divergence & Golden Cross")
+with tab2:
+    st.success("### 🚀 Skenario 2: Buy On Breakout (BOB) — Lanjutan")
+    st.markdown("""
+    - **Range Area Beli:** `155.0 – 158.0` *(Breakout Resistance 155.0)*
+    - **Stop Loss:** `152.0`
+    - **Target Profit 1 (TP 1):** `216.0`
+    - **Target Profit 2 (TP 2):** `218.0`
+    - **Risk to Reward Ratio:** **1 : 20.3**
+    - **Konfirmasi Candlestick:** *Bullish Engulfing*
     
-    if st.button("Jalankan Screener RSI"):
-        results = []
-        progress_bar = st.progress(0)
-        
-        for idx, ticker in enumerate(TICKERS):
-            res = scan_rsi_divergence(ticker)
-            if res: results.append(res)
-            progress_bar.progress((idx + 1) / len(TICKERS))
-            
-        progress_bar.empty()
-        st.session_state['rsi_results'] = pd.DataFrame(results)
+    > **💡 Catatan & Sinyal:** Validasi penguatan berlanjut menuju area resistance utama jika 155.0 berhasil ditembus dengan volume tinggi.
+    """)
 
-    # Tampilkan Hasil dan Pilihan Trade Plan Otomatis
-    if 'rsi_results' in st.session_state and not st.session_state['rsi_results'].empty:
-        df_res = st.session_state['rsi_results'].sort_values(by="TOTAL SCORE", ascending=False).reset_index(drop=True)
-        st.success(f"Ditemukan **{len(df_res)}** saham yang lolos kriteria!")
-        st.dataframe(df_res, use_container_width=True)
-        
-        st.markdown("---")
-        st.markdown("#### 💡 Klik/Pilih Saham Hasil Screener untuk Lihat Trade Plan Lengkap:")
-        selected_ticker = st.selectbox("Pilih Saham:", df_res['Ticker'].tolist(), key="select_rsi")
-        if selected_ticker:
-            generate_full_trade_plan(selected_ticker)
+st.markdown("---")
 
+# -----------------------------------------------------------------------------
+# 7. TABEL DATA SWING POINTS (30 DATA)
+# -----------------------------------------------------------------------------
+st.subheader("4. Tabel Rekapitulasi Swing Points")
+st.dataframe(df, use_container_width=True, hide_index=True)
 
-# ----------------------------------------------------
-# FITUR 3: SCREENER STOCHASTIC + PSAR
-# ----------------------------------------------------
-elif menu == "3. Screener Stochastic + PSAR":
-    st.subheader("🔍 Screener Stochastic + Parabolic SAR")
-    
-    if st.button("Jalankan Screener Stoch + PSAR"):
-        results = []
-        progress_bar = st.progress(0)
-        
-        for idx, ticker in enumerate(TICKERS):
-            res = scan_stoch_psar(ticker)
-            if res: results.append(res)
-            progress_bar.progress((idx + 1) / len(TICKERS))
-            
-        progress_bar.empty()
-        st.session_state['stoch_results'] = pd.DataFrame(results)
-
-    # Tampilkan Hasil dan Pilihan Trade Plan Otomatis
-    if 'stoch_results' in st.session_state and not st.session_state['stoch_results'].empty:
-        df_res = st.session_state['stoch_results']
-        st.success(f"Ditemukan **{len(df_res)}** saham yang lolos kriteria!")
-        st.dataframe(df_res, use_container_width=True)
-        
-        st.markdown("---")
-        st.markdown("#### 💡 Klik/Pilih Saham Hasil Screener untuk Lihat Trade Plan Lengkap:")
-        selected_ticker = st.selectbox("Pilih Saham:", df_res['Ticker'].tolist(), key="select_stoch")
-        if selected_ticker:
-            generate_full_trade_plan(selected_ticker)
+# -----------------------------------------------------------------------------
+# 8. MANAJEMEN RISIKO
+# -----------------------------------------------------------------------------
+st.subheader("5. Manajemen Risiko & Prosedur Eksekusi")
+st.warning("""
+1. **Disiplin Stop Loss:** Jika harga ditutup di bawah **122.0** pada akhir sesi, lakukan *cut loss* untuk menjaga modal.
+2. **Pengaturan Portofolio:** Gunakan alokasi lot bertahap pada area `125.0 - 131.0` untuk mendapatkan harga rata-rata terbaik.
+3. **Trailing Stop:** Saat harga menembus TP 1 (**155.0**), naikkan Stop Loss ke harga modal (*BEP*) untuk mengamankan keuntungan menuju TP 2 (**216.0**).
+""")

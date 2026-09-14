@@ -101,19 +101,35 @@ with tab1:
         with st.spinner("Mengambil daftar lengkap saham IHSG..."):
             all_tickers = get_all_ihsg_tickers()
 
-        st.info(f"Menganalisis {len(all_tickers)} ticker saham IHSG...")
+        total_tickers = len(all_tickers)
+        st.info(f"Menganalisis {total_tickers} ticker saham IHSG...")
 
         pbar_rsi = st.progress(0)
         pstatus_rsi = st.empty()
 
         results_rsi = []
-        total_tickers = len(all_tickers)
+        success_count = 0
+        failed_count = 0
 
-        # Menggunakan ThreadPoolExecutor dengan penanganan error yang rapat
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # Helper function dengan Retry Mechanism untuk mengatasi Yahoo Finance Rate Limit
+        def fetch_rsi_with_retry(ticker, max_retries=2):
+            import time
+
+            for attempt in range(max_retries + 1):
+                try:
+                    res = detect_rsi_patterns_and_score(ticker)
+                    # Jika berhasil diproses (baik mereturn dict ataupun None karena tidak lolos kriteria)
+                    return True, res
+                except Exception:
+                    if attempt < max_retries:
+                        time.sleep(0.5 * (attempt + 1))  # Delay sejenak sebelum mencoba ulang
+                    else:
+                        return False, None
+
+        # Menggunakan ThreadPoolExecutor dengan max_workers ideal (5-8 agar tidak diblokir YFinance)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             future_to_ticker = {
-                executor.submit(detect_rsi_patterns_and_score, t): t
-                for t in all_tickers
+                executor.submit(fetch_rsi_with_retry, t): t for t in all_tickers
             }
             completed = 0
 
@@ -126,43 +142,60 @@ with tab1:
                 )
 
                 try:
-                    res = future.result()
-                    # Jika fungsi mereturn dictionary hasil
-                    if res is not None and isinstance(res, dict):
-                        results_rsi.append(res)
+                    is_success, res = future.result()
+                    if is_success:
+                        success_count += 1
+                        if res is not None and isinstance(res, dict):
+                            results_rsi.append(res)
+                    else:
+                        failed_count += 1
                 except Exception:
-                    pass
+                    failed_count += 1
 
         pbar_rsi.empty()
         pstatus_rsi.empty()
 
+        # Simpan ke session_state
+        st.session_state["rsi_stats"] = {
+            "total": total_tickers,
+            "success": success_count,
+            "failed": failed_count,
+            "matched": len(results_rsi),
+        }
+
         if results_rsi:
             df_rsi = pd.DataFrame(results_rsi)
 
-            # Sortir berdasarkan kolom skor jika ada
-            score_col = next(
-                (
-                    c
-                    for c in ["Score", "score", "total_score", "RSI_Score"]
-                    if c in df_rsi.columns
-                ),
-                None,
-            )
-            if score_col:
+            # Sortir berdasarkan TOTAL SCORE
+            if "TOTAL SCORE" in df_rsi.columns:
                 df_rsi = df_rsi.sort_values(
-                    by=score_col, ascending=False
+                    by="TOTAL SCORE", ascending=False
                 ).reset_index(drop=True)
 
             st.session_state["df_rsi_data"] = df_rsi
-            st.success(
-                f"Screening RSI selesai! Ditemukan {len(df_rsi)} saham yang"
-                " memenuhi kriteria."
-            )
-        else:
+
+    # --- TAMPILAN RINGKASAN BATCH SCREENING & TABEL HASIL ---
+    if "rsi_stats" in st.session_state:
+        stats = st.session_state["rsi_stats"]
+
+        # Menampilkan Ringkasan Informasi (Card Metrics)
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_m1.metric("Total Ticker Di-scan", f"{stats['total']} Saham")
+        col_m2.metric(
+            "Berhasil Di-fetch YFinance",
+            f"{stats['success']} Saham",
+            delta=f"{(stats['success']/stats['total'])*100:.1f}%",
+        )
+        col_m3.metric(
+            "Gagal / Rate Limited",
+            f"{stats['failed']} Saham",
+            delta_color="inverse",
+        )
+        col_m4.metric("Lolos Kriteria RSI", f"{stats['matched']} Saham")
+
+        if stats["failed"] > 0:
             st.warning(
-                "Tidak ditemukan saham yang saat ini sedang mengalami kondisi RSI"
-                " Divergence ekstrim, atau server Yahoo Finance sedang dibatasi (Rate"
-                " Limit)."
+                f"⚠️ Terdapat **{stats['failed']} saham** gagal didownload dari Yahoo Finance (kemungkinan Rate Limit / koneksi terputus)."
             )
 
     if (

@@ -32,7 +32,7 @@ tab1, tab2, tab3 = st.tabs(
 )
 
 # ==========================================
-# TAB 1: RSI DIVERGENCE
+# TAB 1: RSI DIVERGENCE (Safety Fix Applied)
 # ==========================================
 with tab1:
     st.header("Screener RSI Divergence & Patterns")
@@ -59,25 +59,41 @@ with tab1:
 
             if results_rsi:
                 df_rsi = pd.DataFrame(results_rsi)
-                df_rsi = df_rsi.sort_values(
-                    by="Score", ascending=False
-                ).reset_index(drop=True)
+
+                # Cek fleksibel untuk kolom Score / score
+                score_col = None
+                for col in ["Score", "score", "total_score", "RSI_Score"]:
+                    if col in df_rsi.columns:
+                        score_col = col
+                        break
+
+                if score_col:
+                    df_rsi = df_rsi.sort_values(
+                        by=score_col, ascending=False
+                    ).reset_index(drop=True)
 
                 st.success(
                     f"Screening selesai! Ditemukan {len(df_rsi)} hasil."
                 )
 
-                st.dataframe(
-                    df_rsi.style.format(
-                        {
-                            "Price": "{:,.0f}",
-                            "RSI": "{:,.2f}",
-                            "RSI MA": "{:,.2f}",
-                            "Score": "{:.0f}",
-                        }
-                    ),
-                    use_container_width=True,
-                )
+                # Menampilkan DataFrame dengan format yang aman (hanya format kolom yang ada)
+                format_dict = {}
+                if "Price" in df_rsi.columns:
+                    format_dict["Price"] = "{:,.0f}"
+                if "RSI" in df_rsi.columns:
+                    format_dict["RSI"] = "{:,.2f}"
+                if "RSI MA" in df_rsi.columns:
+                    format_dict["RSI MA"] = "{:,.2f}"
+                if score_col:
+                    format_dict[score_col] = "{:.0f}"
+
+                if format_dict:
+                    st.dataframe(
+                        df_rsi.style.format(format_dict),
+                        use_container_width=True,
+                    )
+                else:
+                    st.dataframe(df_rsi, use_container_width=True)
             else:
                 st.warning(
                     "Tidak ada signal RSI Divergence yang terdeteksi saat ini."
@@ -104,16 +120,16 @@ with tab2:
                 with col_gc:
                     st.subheader("🟢 Signal Beli / Watchlist (Golden Cross)")
                     if not df_gc.empty:
+                        # Format aman untuk Golden Cross
+                        fmt_gc = {
+                            col: "{:,.0f}"
+                            if col in ["Harga", "Score"]
+                            else "{:,.2f}"
+                            for col in df_gc.columns
+                            if col in ["Harga", "Value (M)", "Stoch %K", "Stoch %D", "Score"]
+                        }
                         st.dataframe(
-                            df_gc.style.format(
-                                {
-                                    "Harga": "{:,.0f}",
-                                    "Value (M)": "{:,.2f}",
-                                    "Stoch %K": "{:,.1f}",
-                                    "Stoch %D": "{:,.1f}",
-                                    "Score": "{:.0f}",
-                                }
-                            ),
+                            df_gc.style.format(fmt_gc),
                             use_container_width=True,
                         )
                     else:
@@ -122,16 +138,16 @@ with tab2:
                 with col_dc:
                     st.subheader("🔴 Signal Jual / Exit (Dead Cross)")
                     if not df_dc.empty:
+                        # Format aman untuk Dead Cross
+                        fmt_dc = {
+                            col: "{:,.0f}"
+                            if col in ["Harga", "Score"]
+                            else "{:,.2f}"
+                            for col in df_dc.columns
+                            if col in ["Harga", "Value (M)", "Stoch %K", "Stoch %D", "Score"]
+                        }
                         st.dataframe(
-                            df_dc.style.format(
-                                {
-                                    "Harga": "{:,.0f}",
-                                    "Value (M)": "{:,.2f}",
-                                    "Stoch %K": "{:,.1f}",
-                                    "Stoch %D": "{:,.1f}",
-                                    "Score": "{:.0f}",
-                                }
-                            ),
+                            df_dc.style.format(fmt_dc),
                             use_container_width=True,
                         )
                     else:

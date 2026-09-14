@@ -1,4 +1,5 @@
 import concurrent.futures
+import time
 import pandas as pd
 import streamlit as st
 
@@ -80,58 +81,78 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
 
 # 3. Membuat Tab Navigasi
 tab1, tab2, tab3, tab4 = st.tabs([
-    "🔄 RSI Divergence (Full IHSG)",
+    "🔄 RSI Divergence",
     "⚡ Stochastic & Parabolic SAR",
-    "🌐 Bulk Screener IHSG (Quick)",
+    "🌐 Bulk Screener IHSG (Full)",
     "🎯 Custom Trade Planner",
 ])
 
 # ==========================================
-# TAB 1: RSI DIVERGENCE (SELEURUH SAHAM IHSG)
+# TAB 1: RSI DIVERGENCE
 # ==========================================
 with tab1:
-  st.header("Screener RSI Divergence & Patterns (Seluruh Saham IHSG)")
+  st.header("Screener RSI Divergence & Patterns")
   st.caption(
       "Klik pada salah satu baris saham untuk langsung melihat Trade Planner di"
       " bawah tabel."
   )
 
-  if st.button("Jalankan Screener RSI (Full IHSG)", key="btn_rsi"):
+  if st.button("Jalankan Screener RSI", key="btn_rsi"):
     with st.spinner("Mengambil daftar saham IHSG..."):
       all_tickers = get_all_ihsg_tickers()
 
-    with st.spinner(f"Menganalisis {len(all_tickers)} saham IHSG..."):
-      results_rsi = []
-      # Meningkatkan max_workers ke 20 agar screening 800+ saham jauh lebih cepat
-      with concurrent.futures.ThreadPoolExecutor(
-          max_workers=20
-      ) as executor:
-        futures = [
-            executor.submit(detect_rsi_patterns_and_score, ticker)
-            for ticker in all_tickers
-        ]
-        for future in concurrent.futures.as_completed(futures):
-          res = future.result()
-          if res is not None:
-            results_rsi.append(res)
+    pbar_rsi = st.progress(0)
+    pstatus_rsi = st.empty()
 
-      if results_rsi:
-        df_rsi = pd.DataFrame(results_rsi)
-        score_col = next(
-            (
-                c
-                for c in ["Score", "score", "total_score", "RSI_Score"]
-                if c in df_rsi.columns
-            ),
-            None,
+    results_rsi = []
+    total_tickers = len(all_tickers)
+
+    # Gunakan max_workers=5 agar Yahoo Finance tidak memblokir IP (Anti Rate-Limit)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+      future_to_ticker = {
+          executor.submit(detect_rsi_patterns_and_score, t): t
+          for t in all_tickers
+      }
+      completed = 0
+
+      for future in concurrent.futures.as_completed(future_to_ticker):
+        completed += 1
+        pct = int((completed / total_tickers) * 100)
+        pbar_rsi.progress(pct)
+        pstatus_rsi.text(
+            f"Menganalisis RSI: {completed}/{total_tickers} saham..."
         )
-        if score_col:
-          df_rsi = df_rsi.sort_values(
-              by=score_col, ascending=False
-          ).reset_index(drop=True)
-        st.session_state["df_rsi_data"] = df_rsi
-      else:
-        st.session_state["df_rsi_data"] = pd.DataFrame()
+
+        try:
+          res = future.result()
+          if res is not None and isinstance(res, dict):
+            results_rsi.append(res)
+        except Exception:
+          pass
+
+    pbar_rsi.empty()
+    pstatus_rsi.empty()
+
+    if results_rsi:
+      df_rsi = pd.DataFrame(results_rsi)
+      score_col = next(
+          (
+              c
+              for c in ["Score", "score", "total_score", "RSI_Score"]
+              if c in df_rsi.columns
+          ),
+          None,
+      )
+      if score_col:
+        df_rsi = df_rsi.sort_values(
+            by=score_col, ascending=False
+        ).reset_index(drop=True)
+      st.session_state["df_rsi_data"] = df_rsi
+    else:
+      st.error(
+          "Gagal memuat data RSI Divergence. Terjadi pembatasan koneksi dari"
+          " Yahoo Finance (Rate Limit). Silakan coba beberapa saat lagi."
+      )
 
   if (
       "df_rsi_data" in st.session_state
@@ -253,10 +274,10 @@ with tab2:
     render_inline_trade_planner(selected_stoch_symbol, key_suffix="stoch_tab")
 
 # ==========================================
-# TAB 3: BULK SCREENER IHSG (FAST DOWNLOAD)
+# TAB 3: BULK SCREENER IHSG (FULL SAHAM)
 # ==========================================
 with tab3:
-  st.header("🌐 Quick Screener Seluruh Saham IHSG")
+  st.header("🌐 Screener Massal Seluruh Saham IHSG")
   st.caption(
       "Screening cepat seluruh emiten IHSG menggunakan Multi-Threading Bulk"
       " Download."

@@ -2,13 +2,10 @@ import concurrent.futures
 import pandas as pd
 import streamlit as st
 
-# 1. Import modul internal & screener masal baru
+# 1. Import modul internal
 from ihsg_tickers import get_all_ihsg_tickers
 from screener import run_full_screener
-from screener_rsi_divergence import (
-    TICKERS as RSI_TICKERS,
-    detect_rsi_patterns_and_score,
-)
+from screener_rsi_divergence import detect_rsi_patterns_and_score
 from screener_stoch_psar import run_stoch_psar_screener
 from trade_planner import TradePlanner
 
@@ -81,33 +78,37 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
       st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}: {e}")
 
 
-# 3. Membuat Tab Navigasi (Menambahkan Tab 4 untuk Bulk IHSG Screener)
+# 3. Membuat Tab Navigasi
 tab1, tab2, tab3, tab4 = st.tabs([
-    "🔄 RSI Divergence",
+    "🔄 RSI Divergence (Full IHSG)",
     "⚡ Stochastic & Parabolic SAR",
-    "🌐 Bulk Screener IHSG (Full)",
+    "🌐 Bulk Screener IHSG (Quick)",
     "🎯 Custom Trade Planner",
 ])
 
 # ==========================================
-# TAB 1: RSI DIVERGENCE
+# TAB 1: RSI DIVERGENCE (SELEURUH SAHAM IHSG)
 # ==========================================
 with tab1:
-  st.header("Screener RSI Divergence & Patterns")
+  st.header("Screener RSI Divergence & Patterns (Seluruh Saham IHSG)")
   st.caption(
       "Klik pada salah satu baris saham untuk langsung melihat Trade Planner di"
       " bawah tabel."
   )
 
-  if st.button("Jalankan Screener RSI", key="btn_rsi"):
-    with st.spinner(f"Menganalisis {len(RSI_TICKERS)} saham..."):
+  if st.button("Jalankan Screener RSI (Full IHSG)", key="btn_rsi"):
+    with st.spinner("Mengambil daftar saham IHSG..."):
+      all_tickers = get_all_ihsg_tickers()
+
+    with st.spinner(f"Menganalisis {len(all_tickers)} saham IHSG..."):
       results_rsi = []
+      # Meningkatkan max_workers ke 20 agar screening 800+ saham jauh lebih cepat
       with concurrent.futures.ThreadPoolExecutor(
-          max_workers=10
+          max_workers=20
       ) as executor:
         futures = [
             executor.submit(detect_rsi_patterns_and_score, ticker)
-            for ticker in RSI_TICKERS
+            for ticker in all_tickers
         ]
         for future in concurrent.futures.as_completed(futures):
           res = future.result()
@@ -252,13 +253,13 @@ with tab2:
     render_inline_trade_planner(selected_stoch_symbol, key_suffix="stoch_tab")
 
 # ==========================================
-# TAB 3: BULK SCREENER IHSG (MASAL 800+ SAHAM)
+# TAB 3: BULK SCREENER IHSG (FAST DOWNLOAD)
 # ==========================================
 with tab3:
-  st.header("🌐 Screener Massal Seluruh Saham IHSG")
+  st.header("🌐 Quick Screener Seluruh Saham IHSG")
   st.caption(
-      "Screening seluruh emiten IHSG secara cepat dengan indikator Stochastic &"
-      " RSI."
+      "Screening cepat seluruh emiten IHSG menggunakan Multi-Threading Bulk"
+      " Download."
   )
 
   if st.button("🚀 Screening Seluruh Saham IHSG", key="btn_bulk_ihsg"):
@@ -267,7 +268,7 @@ with tab3:
 
     st.info(f"Total {len(all_ihsg_tickers)} ticker siap di-scan.")
 
-    # Membuat UI Progress Bar (Tahap 3)
+    # UI Progress Bar
     pbar = st.progress(0)
     pstatus = st.empty()
 
@@ -275,12 +276,11 @@ with tab3:
       pbar.progress(pct)
       pstatus.text(msg)
 
-    # Jalankan pengunduhan & kalkulasi masal (Tahap 2)
+    # Executing Screener
     df_bulk = run_full_screener(
         all_ihsg_tickers, progress_callback=update_progress_ui
     )
 
-    # Bersihkan Progress Bar setelah selesai
     pbar.empty()
     pstatus.empty()
 
@@ -298,7 +298,6 @@ with tab3:
   ):
     df_bulk = st.session_state["df_bulk_ihsg"]
 
-    # Filter Pilihan Cepat
     st.subheader("🎯 Ringkasan Saham Potensial")
     df_potensial = df_bulk[
         df_bulk["Sinyal Stochastic"].str.contains("Oversold|Golden Cross")

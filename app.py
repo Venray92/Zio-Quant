@@ -93,8 +93,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     st.header("Screener RSI Divergence & Technical Patterns")
     st.caption(
-        "Screening seluruh saham IHSG yang sedang membentuk Divergence atau RSI"
-        " Oversold/Overbought."
+        "Screening seluruh saham IHSG yang sedang membentuk Divergence atau RSI Oversold/Overbought."
     )
 
     if st.button("Jalankan Screener RSI (Full IHSG)", key="btn_rsi"):
@@ -111,22 +110,18 @@ with tab1:
         success_count = 0
         failed_count = 0
 
-        # Helper function dengan Retry Mechanism untuk mengatasi Yahoo Finance Rate Limit
+        # Helper function dengan Retry Mechanism untuk Yahoo Finance
         def fetch_rsi_with_retry(ticker, max_retries=2):
-            import time
-
             for attempt in range(max_retries + 1):
                 try:
                     res = detect_rsi_patterns_and_score(ticker)
-                    # Jika berhasil diproses (baik mereturn dict ataupun None karena tidak lolos kriteria)
                     return True, res
                 except Exception:
                     if attempt < max_retries:
-                        time.sleep(0.5 * (attempt + 1))  # Delay sejenak sebelum mencoba ulang
+                        time.sleep(0.5 * (attempt + 1))
                     else:
                         return False, None
 
-        # Menggunakan ThreadPoolExecutor dengan max_workers ideal (5-8 agar tidak diblokir YFinance)
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             future_to_ticker = {
                 executor.submit(fetch_rsi_with_retry, t): t for t in all_tickers
@@ -155,7 +150,6 @@ with tab1:
         pbar_rsi.empty()
         pstatus_rsi.empty()
 
-        # Simpan ke session_state
         st.session_state["rsi_stats"] = {
             "total": total_tickers,
             "success": success_count,
@@ -165,45 +159,25 @@ with tab1:
 
         if results_rsi:
             df_rsi = pd.DataFrame(results_rsi)
-
-            # Sortir berdasarkan TOTAL SCORE
-            if "TOTAL SCORE" in df_rsi.columns:
-                df_rsi = df_rsi.sort_values(
-                    by="TOTAL SCORE", ascending=False
-                ).reset_index(drop=True)
-
+            score_col = next((c for c in ["TOTAL SCORE", "Score", "score"] if c in df_rsi.columns), None)
+            if score_col:
+                df_rsi = df_rsi.sort_values(by=score_col, ascending=False).reset_index(drop=True)
             st.session_state["df_rsi_data"] = df_rsi
 
-    # --- TAMPILAN RINGKASAN BATCH SCREENING & TABEL HASIL ---
+    # --- RINGKASAN METRICS TAB 1 ---
     if "rsi_stats" in st.session_state:
         stats = st.session_state["rsi_stats"]
-
-        # Menampilkan Ringkasan Informasi (Card Metrics)
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         col_m1.metric("Total Ticker Di-scan", f"{stats['total']} Saham")
-        col_m2.metric(
-            "Berhasil Di-fetch YFinance",
-            f"{stats['success']} Saham",
-            delta=f"{(stats['success']/stats['total'])*100:.1f}%",
-        )
-        col_m3.metric(
-            "Gagal / Rate Limited",
-            f"{stats['failed']} Saham",
-            delta_color="inverse",
-        )
+        col_m2.metric("Berhasil Di-fetch", f"{stats['success']} Saham", delta=f"{(stats['success']/stats['total'])*100:.1f}%")
+        col_m3.metric("Gagal / Rate Limited", f"{stats['failed']} Saham", delta_color="inverse")
         col_m4.metric("Lolos Kriteria RSI", f"{stats['matched']} Saham")
 
         if stats["failed"] > 0:
-            st.warning(
-                f"⚠️ Terdapat **{stats['failed']} saham** gagal didownload dari Yahoo Finance (kemungkinan Rate Limit / koneksi terputus)."
-            )
+            st.warning(f"⚠️ Terdapat **{stats['failed']} saham** gagal didownload dari Yahoo Finance.")
 
-    if (
-        "df_rsi_data" in st.session_state
-        and not st.session_state["df_rsi_data"].empty
-    ):
+    if "df_rsi_data" in st.session_state and not st.session_state["df_rsi_data"].empty:
         df_rsi = st.session_state["df_rsi_data"]
-
         event_rsi = st.dataframe(
             df_rsi,
             use_container_width=True,
@@ -211,22 +185,15 @@ with tab1:
             selection_mode="single-row",
             key="table_rsi",
         )
-
         if event_rsi.selection and event_rsi.selection["rows"]:
             selected_idx = event_rsi.selection["rows"][0]
-            ticker_col = next(
-                (
-                    c
-                    for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                    if c in df_rsi.columns
-                ),
-                None,
-            )
+            ticker_col = next((c for c in ["Ticker", "Saham", "Stock", "Symbol"] if c in df_rsi.columns), None)
             if ticker_col:
                 symbol = str(df_rsi.iloc[selected_idx][ticker_col])
                 if not symbol.endswith(".JK") and "." not in symbol:
                     symbol += ".JK"
                 render_inline_trade_planner(symbol, key_suffix="rsi_tab")
+
 
 # ==========================================
 # TAB 2: STOCHASTIC & PARABOLIC SAR
@@ -234,15 +201,15 @@ with tab1:
 with tab2:
     st.header("Screener Stochastic & Parabolic SAR")
     st.caption(
-        "Klik pada baris saham di tabel Golden Cross/Dead Cross untuk melihat"
-        " Trade Planner secara otomatis."
+        "Klik pada baris saham di tabel Golden Cross/Dead Cross untuk melihat Trade Planner secara otomatis."
     )
 
     if st.button("Jalankan Screener Stoch & PSAR", key="btn_stoch"):
         with st.spinner("Mengambil daftar lengkap saham IHSG..."):
             all_stoch_tickers = get_all_ihsg_tickers()
 
-        st.info(f"Menganalisis {len(all_stoch_tickers)} ticker saham IHSG...")
+        total_stoch_tickers = len(all_stoch_tickers)
+        st.info(f"Menganalisis {total_stoch_tickers} ticker saham IHSG...")
 
         pbar_stoch = st.progress(0)
         pstatus_stoch = st.empty()
@@ -255,6 +222,7 @@ with tab2:
             )
 
         try:
+            # Panggil screener
             df_gc, df_dc = run_stoch_psar_screener(
                 tickers=all_stoch_tickers,
                 progress_callback=update_stoch_progress,
@@ -264,21 +232,40 @@ with tab2:
 
             st.session_state["df_gc_data"] = df_gc
             st.session_state["df_dc_data"] = df_dc
+
+            # Hitung total temuan
+            gc_len = len(df_gc) if df_gc is not None else 0
+            dc_len = len(df_dc) if df_dc is not None else 0
+
+            # Catat statistik
+            st.session_state["stoch_stats"] = {
+                "total": total_stoch_tickers,
+                "matched_gc": gc_len,
+                "matched_dc": dc_len,
+                "total_signal": gc_len + dc_len,
+            }
+
             st.success("Screening Stochastic & Parabolic SAR Selesai!")
         except Exception as e:
             pbar_stoch.empty()
             pstatus_stoch.empty()
             st.error(f"Terjadi kesalahan: {e}")
 
+    # --- RINGKASAN METRICS TAB 2 ---
+    if "stoch_stats" in st.session_state:
+        st_stats = st.session_state["stoch_stats"]
+        c_m1, c_m2, c_m3, c_m4 = st.columns(4)
+        c_m1.metric("Total Ticker Di-scan", f"{st_stats['total']} Saham")
+        c_m2.metric("Sinyal Beli (Golden Cross)", f"{st_stats['matched_gc']} Saham")
+        c_m3.metric("Sinyal Jual (Dead Cross)", f"{st_stats['matched_dc']} Saham")
+        c_m4.metric("Total Sinyal Terdeteksi", f"{st_stats['total_signal']} Saham")
+
     col_gc, col_dc = st.columns(2)
     selected_stoch_symbol = None
 
     with col_gc:
         st.subheader("🟢 Signal Beli (Golden Cross)")
-        if (
-            "df_gc_data" in st.session_state
-            and not st.session_state["df_gc_data"].empty
-        ):
+        if "df_gc_data" in st.session_state and not st.session_state["df_gc_data"].empty:
             df_gc = st.session_state["df_gc_data"]
             event_gc = st.dataframe(
                 df_gc,
@@ -289,14 +276,7 @@ with tab2:
             )
             if event_gc.selection and event_gc.selection["rows"]:
                 idx = event_gc.selection["rows"][0]
-                ticker_col = next(
-                    (
-                        c
-                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                        if c in df_gc.columns
-                    ),
-                    None,
-                )
+                ticker_col = next((c for c in ["Ticker", "Saham", "Stock", "Symbol"] if c in df_gc.columns), None)
                 if ticker_col:
                     selected_stoch_symbol = str(df_gc.iloc[idx][ticker_col])
         else:
@@ -304,10 +284,7 @@ with tab2:
 
     with col_dc:
         st.subheader("🔴 Signal Jual (Dead Cross)")
-        if (
-            "df_dc_data" in st.session_state
-            and not st.session_state["df_dc_data"].empty
-        ):
+        if "df_dc_data" in st.session_state and not st.session_state["df_dc_data"].empty:
             df_dc = st.session_state["df_dc_data"]
             event_dc = st.dataframe(
                 df_dc,
@@ -318,26 +295,17 @@ with tab2:
             )
             if event_dc.selection and event_dc.selection["rows"]:
                 idx = event_dc.selection["rows"][0]
-                ticker_col = next(
-                    (
-                        c
-                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                        if c in df_dc.columns
-                    ),
-                    None,
-                )
+                ticker_col = next((c for c in ["Ticker", "Saham", "Stock", "Symbol"] if c in df_dc.columns), None)
                 if ticker_col:
                     selected_stoch_symbol = str(df_dc.iloc[idx][ticker_col])
         else:
             st.info("Tidak ada data / Belum di-scan.")
 
     if selected_stoch_symbol:
-        if (
-            not selected_stoch_symbol.endswith(".JK")
-            and "." not in selected_stoch_symbol
-        ):
+        if not selected_stoch_symbol.endswith(".JK") and "." not in selected_stoch_symbol:
             selected_stoch_symbol += ".JK"
         render_inline_trade_planner(selected_stoch_symbol, key_suffix="stoch_tab")
+
 
 # ==========================================
 # TAB 3: BULK SCREENER IHSG (FULL SAHAM)
@@ -345,8 +313,7 @@ with tab2:
 with tab3:
     st.header("🌐 Screener Massal Seluruh Saham IHSG")
     st.caption(
-        "Screening cepat seluruh emiten IHSG menggunakan Multi-Threading Bulk"
-        " Download."
+        "Screening cepat seluruh emiten IHSG menggunakan Multi-Threading Bulk Download."
     )
 
     if st.button("🚀 Screening Seluruh Saham IHSG", key="btn_bulk_ihsg"):
@@ -355,7 +322,6 @@ with tab3:
 
         st.info(f"Total {len(all_ihsg_tickers)} ticker siap di-scan.")
 
-        # UI Progress Bar
         pbar = st.progress(0)
         pstatus = st.empty()
 
@@ -363,7 +329,6 @@ with tab3:
             pbar.progress(pct)
             pstatus.text(msg)
 
-        # Executing Screener
         df_bulk = run_full_screener(
             all_ihsg_tickers, progress_callback=update_progress_ui
         )
@@ -373,16 +338,11 @@ with tab3:
 
         if not df_bulk.empty:
             st.session_state["df_bulk_ihsg"] = df_bulk
-            st.success(
-                f"Berhasil me-screen {len(df_bulk)} saham aktif secara bersamaan!"
-            )
+            st.success(f"Berhasil me-screen {len(df_bulk)} saham aktif secara bersamaan!")
         else:
             st.error("Gagal mendapatkan data screening masal.")
 
-    if (
-        "df_bulk_ihsg" in st.session_state
-        and not st.session_state["df_bulk_ihsg"].empty
-    ):
+    if "df_bulk_ihsg" in st.session_state and not st.session_state["df_bulk_ihsg"].empty:
         df_bulk = st.session_state["df_bulk_ihsg"]
 
         st.subheader("🎯 Ringkasan Saham Potensial")
@@ -406,6 +366,7 @@ with tab3:
             if not symbol_selected.endswith(".JK"):
                 symbol_selected += ".JK"
             render_inline_trade_planner(symbol_selected, key_suffix="bulk_tab")
+
 
 # ==========================================
 # TAB 4: CUSTOM TRADE PLANNER (MANUAL INPUT)

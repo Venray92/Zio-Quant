@@ -23,49 +23,117 @@ TICKERS = [
 ]
 
 # ==========================================
-# 0. FUNGSI GENERATE TRADE PLAN & CHART
+# 0. FUNGSI GENERATE TRADE PLAN LENGKAP (COLAB VERSION)
 # ==========================================
-def generate_trade_plan(ticker):
-    """Menghitung Trade Plan otomatis berdasarkan Swing Low dan High terbaru"""
+def generate_full_trade_plan(ticker, budget=10000000, risk_pct=0.03):
+    """Menghitung Trade Plan lengkap sesuai logika Google Colab"""
     try:
         formatted_ticker = ticker.upper() + ".JK" if not ticker.endswith(".JK") else ticker.upper()
-        data = yf.download(formatted_ticker, period="6mo", interval="1d", progress=False)
+        clean_ticker = formatted_ticker.replace(".JK", "")
+
+        df = yf.download(formatted_ticker, period="6mo", interval="1d", progress=False)
         
-        if len(data) < 30:
-            st.error("Data historis tidak cukup untuk membuat Trade Plan.")
+        if len(df) < 30:
+            st.error("❌ Data tidak cukup untuk membuat analisis Trade Plan.")
             return
 
-        if isinstance(data.columns, pd.MultiIndex):
-            data.columns = data.columns.get_level_values(0)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
 
-        curr_price = float(data['Close'].iloc[-1])
-        low_30d = float(data['Low'].tail(30).min())
-        high_30d = float(data['High'].tail(30).max())
+        # 1. Parameter Utama
+        curr_price = int(df['Close'].iloc[-1])
+        df['Turnover'] = df['Close'] * df['Volume']
+        avg_turnover = df['Turnover'].tail(20).mean()
         
-        # Kalkulasi Trade Plan
-        entry_price = curr_price
-        stop_loss = round(low_30d * 0.98) # 2% di bawah swing low
-        risk = entry_price - stop_loss
+        # 2. Moving Averages
+        df['MA20'] = df['Close'].rolling(20).mean()
+        df['MA50'] = df['Close'].rolling(50).mean()
+        ma20_val = df['MA20'].iloc[-1]
+        ma50_val = df['MA50'].iloc[-1]
         
-        if risk <= 0:
-            risk = entry_price * 0.03 # Default risk 3% jika Swing Low sama/di atas harga saat ini
-            stop_loss = round(entry_price - risk)
+        if curr_price > ma20_val > ma50_val:
+            trend_status = "STRONG UPTREND 🚀"
+        elif curr_price > ma20_val:
+            trend_status = "UPTREND (MA20) 📈"
+        elif curr_price < ma20_val < ma50_val:
+            trend_status = "STRONG DOWNTREND 📉"
+        else:
+            trend_status = "SIDEWAYS / CONSOLIDATION ⚖️"
 
-        tp1 = round(entry_price + (1.5 * risk))
-        tp2 = round(entry_price + (2.5 * risk))
-        rrr = round((tp1 - entry_price) / (entry_price - stop_loss), 2)
-
-        # Tampilan Hasil Trade Plan
-        st.markdown(f"### 📋 Trade Plan: **{formatted_ticker.replace('.JK', '')}**")
+        # 3. Dynamic Stop Loss & Target Price
+        swing_low_30d = float(df['Low'].tail(30).min())
+        sl_swing = round(swing_low_30d * 0.98) # 2% di bawah swing low
         
+        sl_pct_option = round(curr_price * (1 - risk_pct))
+        stop_loss = max(sl_swing, sl_pct_option)
+        
+        if stop_loss >= curr_price:
+            stop_loss = round(curr_price * 0.95)
+
+        risk_per_share = curr_price - stop_loss
+        sl_percent = round(((curr_price - stop_loss) / curr_price) * 100, 2)
+
+        tp1 = round(curr_price + (1.5 * risk_per_share))
+        tp2 = round(curr_price + (2.5 * risk_per_share))
+        tp3 = round(curr_price + (3.5 * risk_per_share))
+
+        tp1_pct = round(((tp1 - curr_price) / curr_price) * 100, 1)
+        tp2_pct = round(((tp2 - curr_price) / curr_price) * 100, 1)
+        tp3_pct = round(((tp3 - curr_price) / curr_price) * 100, 1)
+
+        rrr = round((tp1 - curr_price) / risk_per_share, 2)
+
+        # 4. Money Management (Position Sizing)
+        max_loss_allowed = budget * 0.02 # Batas toleransi rugi 2% dari total modal
+        shares_to_buy = int(max_loss_allowed / risk_per_share)
+        lots_to_buy = max(1, shares_to_buy // 100)
+        total_allocation = lots_to_buy * 100 * curr_price
+
+        # --- DISPLAY STREAMLIT ---
+        st.markdown(f"## 📋 Trade Plan Lengkap: **{clean_ticker}**")
+        st.caption(f"Status Tren: **{trend_status}** | Rata-rata Turnover (20H): **Rp {avg_turnover/1e9:.2f} Miliar**")
+        
+        # Operational Warning
+        if avg_turnover < 1_000_000_000:
+            st.error("⚠️ **WARNING LIKUIDITAS LOW:** Saham ini memiliki transaksi harian rata-rata di bawah Rp 1 Miliar. Hati-hati risiko sulit jualan (illiquid).")
+
+        # Metric Cards
         col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("Current / Entry", f"Rp {entry_price:,.0f}")
-        col2.metric("Stop Loss (SL)", f"Rp {stop_loss:,.0f}", f"-{((entry_price-stop_loss)/entry_price)*100:.1f}%")
-        col3.metric("Target 1 (TP1)", f"Rp {tp1:,.0f}", f"+{((tp1-entry_price)/entry_price)*100:.1f}%")
-        col4.metric("Target 2 (TP2)", f"Rp {tp2:,.0f}", f"+{((tp2-entry_price)/entry_price)*100:.1f}%")
+        col1.metric("Area Buy / Entry", f"Rp {curr_price:,.0f}")
+        col2.metric("Stop Loss (Cut Loss)", f"Rp {stop_loss:,.0f}", f"-{sl_percent}%", delta_color="inverse")
+        col3.metric("Target 1 (TP1)", f"Rp {tp1:,.0f}", f"+{tp1_pct}%")
+        col4.metric("Target 2 (TP2)", f"Rp {tp2:,.0f}", f"+{tp2_pct}%")
         col5.metric("Risk Reward Ratio", f"1 : {rrr}")
 
-        st.line_chart(data['Close'].tail(60))
+        # Detail Table & Money Management
+        st.markdown("### 💰 Money Management & Sizing Position")
+        mm_col1, mm_col2 = st.columns(2)
+        
+        with mm_col1:
+            st.markdown(f"""
+            - **Modal Maksimal Disimulasikan:** Rp {budget:,.0f}
+            - **Max Risk Per Trade (2% Modal):** Rp {max_loss_allowed:,.0f}
+            - **Rekomendasi Pembelian:** **{lots_to_buy} Lot** ({lots_to_buy * 100:,} lembar)
+            - **Total Investasi:** Rp {total_allocation:,.0f} ({round((total_allocation/budget)*100, 1)}% dari modal)
+            """)
+
+        with mm_col2:
+            st.markdown(f"""
+            - **Target 3 (TP3 - Extension):** Rp {tp3:,.0f} (+{tp3_pct}%)
+            - **Swing Low (30 Hari):** Rp {swing_low_30d:,.0f}
+            - **Moving Average 20:** Rp {ma20_val:,.0f}
+            - **Moving Average 50:** Rp {ma50_val:,.0f}
+            """)
+
+        st.markdown("### 📌 Catatan Eksekusi & Strategy Notes")
+        st.info(f"""
+        1. **Entry Strategy:** Pembelian bertahap di area Rp {curr_price:,.0f}.
+        2. **Profit Taking:** Lakukan *Scale-Out* (Jual 50% di TP1 Rp {tp1:,.0f}, sisa 50% letakkan trailing stop hingga TP2/TP3).
+        3. **Disciplined Exit:** Jika harga menembus ke bawah **Rp {stop_loss:,.0f}** pada penutupan candle daily, wajib lakukan **Cut Loss** tanpa kompromi.
+        """)
+
+        # Chart Tampilan
+        st.line_chart(df[['Close', 'MA20', 'MA50']].tail(60))
 
     except Exception as e:
         st.error(f"Gagal memuat Trade Plan untuk {ticker}: {e}")
@@ -180,10 +248,8 @@ def scan_stoch_psar(ticker):
         stoch_k = (100 * ((data['Close'] - low_min) / (high_max - low_min))).rolling(3).mean()
         stoch_d = stoch_k.rolling(3).mean()
         
-        curr, prev = data.iloc[-1], data.iloc[-2]
+        curr = data.iloc[-1]
         stoch_gc = (stoch_k.iloc[-2] <= stoch_d.iloc[-2]) and (stoch_k.iloc[-1] > stoch_d.iloc[-1]) and (stoch_k.iloc[-1] <= 40)
-        
-        # Simple PSAR Check (Close > Low 5 hari terakhir sebagai proxy sederhana)
         psar_bullish = curr['Close'] > data['Low'].tail(5).min()
 
         if stoch_gc and psar_bullish:
@@ -214,21 +280,25 @@ menu = st.sidebar.radio(
 # FITUR 1: TRADE PLAN (MANUAL INPUT TICKER)
 # ----------------------------------------------------
 if menu == "1. Trade Plan (Manual Input)":
-    st.subheader("🎯 Bikin Trade Plan Sendiri")
-    st.caption("Masukkan kode saham tanpa '.JK' (contoh: BBCA, TLKM, ADRO) untuk membuat analisa Trade Plan secara instan.")
+    st.subheader("🎯 Generator Trade Plan Manual")
+    st.caption("Masukkan kode saham tanpa '.JK' (contoh: BBCA, TLKM, ADRO) beserta estimasi modal Anda.")
     
-    user_ticker = st.text_input("Kode Saham (Ticker):", value="BBCA").strip()
-    
+    col_input1, col_input2 = st.columns(2)
+    with col_input1:
+        user_ticker = st.text_input("Kode Saham (Ticker):", value="BBCA").strip()
+    with col_input2:
+        user_budget = st.number_input("Total Modal (Rp):", value=10000000, step=1000000)
+
     if st.button("Hitung Trade Plan") or user_ticker:
         if user_ticker:
-            generate_trade_plan(user_ticker)
+            generate_full_trade_plan(user_ticker, budget=user_budget)
 
 
 # ----------------------------------------------------
 # FITUR 2: SCREENER RSI DIVERGENCE
 # ----------------------------------------------------
 elif menu == "2. Screener RSI Divergence":
-    st.subheader("🔍 Screener RSI Divergence")
+    st.subheader("🔍 Screener RSI Divergence & Golden Cross")
     
     if st.button("Jalankan Screener RSI"):
         results = []
@@ -249,17 +319,17 @@ elif menu == "2. Screener RSI Divergence":
         st.dataframe(df_res, use_container_width=True)
         
         st.markdown("---")
-        st.markdown("#### 💡 Lihat Trade Plan dari Hasil Screener:")
-        selected_ticker = st.selectbox("Pilih Saham Hasil Screener:", df_res['Ticker'].tolist())
+        st.markdown("#### 💡 Klik/Pilih Saham Hasil Screener untuk Lihat Trade Plan Lengkap:")
+        selected_ticker = st.selectbox("Pilih Saham:", df_res['Ticker'].tolist(), key="select_rsi")
         if selected_ticker:
-            generate_trade_plan(selected_ticker)
+            generate_full_trade_plan(selected_ticker)
 
 
 # ----------------------------------------------------
 # FITUR 3: SCREENER STOCHASTIC + PSAR
 # ----------------------------------------------------
 elif menu == "3. Screener Stochastic + PSAR":
-    st.subheader("🔍 Screener Stochastic + PSAR")
+    st.subheader("🔍 Screener Stochastic + Parabolic SAR")
     
     if st.button("Jalankan Screener Stoch + PSAR"):
         results = []
@@ -280,7 +350,7 @@ elif menu == "3. Screener Stochastic + PSAR":
         st.dataframe(df_res, use_container_width=True)
         
         st.markdown("---")
-        st.markdown("#### 💡 Lihat Trade Plan dari Hasil Screener:")
-        selected_ticker = st.selectbox("Pilih Saham Hasil Screener:", df_res['Ticker'].tolist())
+        st.markdown("#### 💡 Klik/Pilih Saham Hasil Screener untuk Lihat Trade Plan Lengkap:")
+        selected_ticker = st.selectbox("Pilih Saham:", df_res['Ticker'].tolist(), key="select_stoch")
         if selected_ticker:
-            generate_trade_plan(selected_ticker)
+            generate_full_trade_plan(selected_ticker)

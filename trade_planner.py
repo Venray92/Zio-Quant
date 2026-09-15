@@ -17,7 +17,6 @@ class TradePlanner:
         self.strong_support = pd.DataFrame()
         self.strong_resistance = pd.DataFrame()
 
-    # --- ATURAN TICK SIZE BEI / IDX ---
     @staticmethod
     def get_tick_size(price: float) -> int:
         if price < 200:
@@ -57,7 +56,6 @@ class TradePlanner:
         tick = cls.get_tick_size(price)
         return round(round(price / tick) * tick, 2)
 
-    # --- FETCH & PREPARE DATA ---
     def fetch_and_prepare_data(self):
         stock = yf.Ticker(self.ticker)
         df = stock.history(period=self.period, interval="1d").reset_index()
@@ -365,7 +363,6 @@ class TradePlanner:
             "BULLISH" if p1["is_green"] else "BEARISH",
         )
 
-    # --- METODE SCORING ENGINE (0 - 100 POINT) ---
     def calculate_score_and_warnings(
         self,
         plan_type,
@@ -397,19 +394,19 @@ class TradePlanner:
 
         # 2. PRICE POSITION / ZONE SCORE (MAX 25)
         if buy_min <= last_close <= buy_max:
-            score_zone = 25  # In Buy Zone Perfect!
+            score_zone = 25
             pos_status = "In Buy Zone"
         elif (
             last_close > buy_max
             and ((last_close - buy_max) / buy_max * 100) <= 2.0
         ):
-            score_zone = 15  # Near Buy Zone
+            score_zone = 15
             pos_status = "Near Zone"
         elif last_close < buy_min:
-            score_zone = 5  # Breakdown Below Area
+            score_zone = 5
             pos_status = "Below Buy Zone"
         else:
-            score_zone = 0  # Already Running
+            score_zone = 0
             pos_status = "Running / Away"
 
         # 3. CANDLESTICK SCORE (MAX 20)
@@ -423,7 +420,7 @@ class TradePlanner:
                 score_candle = 15
         elif candle_bias == "NEUTRAL":
             score_candle = 10
-        else:  # BEARISH
+        else:
             score_candle = 0
 
         # 4. SAFETY & WARNING PENALTIES (MAX 20)
@@ -465,13 +462,10 @@ class TradePlanner:
             penalty += 10
 
         score_safety = max(0, 20 - penalty)
-
-        # TOTAL SCORE (0 - 100)
         total_score = int(
             score_rr + score_zone + score_candle + score_safety
         )
 
-        # DETERMINING GRADE BADGE
         if total_score >= 85:
             grade = "🟢 Grade A+ (Prime)"
         elif total_score >= 70:

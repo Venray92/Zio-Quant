@@ -24,19 +24,21 @@ st.markdown(
 )
 
 
-# Helper untuk membaca file daftar_saham.txt
+# Helper Robust untuk membaca & membersihkan daftar saham dari file TXT
 def load_daftar_saham(filepath="daftar_saham.txt"):
     if not os.path.exists(filepath):
-        st.error(f"⚠️ File `{filepath}` tidak ditemukan.")
         return []
+
+    tickers = []
     try:
-        df = pd.read_csv(filepath)
-        if "Kode" in df.columns:
-            tickers = df["Kode"].dropna().astype(str).str.strip().tolist()
-            return [t + ".JK" if not t.endswith(".JK") else t for t in tickers if t]
-        else:
-            st.error(f"⚠️ Kolom 'Kode' tidak ditemukan dalam `{filepath}`.")
-            return []
+        with open(filepath, "r", encoding="utf-8-sig") as f:
+            for line in f:
+                item = line.strip().upper()
+                if item and item not in ["KODE", "TICKER", "SAHAM"]:
+                    clean_t = item.split(",")[0].replace(".JK", "").strip()
+                    if clean_t:
+                        tickers.append(f"{clean_t}.JK")
+        return sorted(list(set(tickers)))
     except Exception as e:
         st.error(f"Gagal membaca `{filepath}`: {e}")
         return []
@@ -79,20 +81,28 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
 
             warning_msg = df_plan["Warning"].iloc[0]
             candle_type = df_plan["Status Candle"].iloc[0]
-            st.warning(f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}")
+            st.warning(
+                f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}"
+            )
 
             # Support & Resistance Levels
             col_sup, col_res = st.columns(2)
             with col_sup:
                 st.markdown("#### 🛡️ Support Levels")
-                st.dataframe(planner.get_strong_support(), use_container_width=True)
+                st.dataframe(
+                    planner.get_strong_support(), use_container_width=True
+                )
             with col_res:
                 st.markdown("#### 🧱 Resistance Levels")
-                st.dataframe(planner.get_strong_resistance(), use_container_width=True)
+                st.dataframe(
+                    planner.get_strong_resistance(), use_container_width=True
+                )
 
             # Swing Points
             st.markdown("#### 📍 Swing Points & Metpoints")
-            st.dataframe(planner.get_swing_points(), use_container_width=True)
+            st.dataframe(
+                planner.get_swing_points(), use_container_width=True
+            )
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}: {e}")
@@ -140,7 +150,9 @@ with tab1:
                     else:
                         return False, None
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=6
+        ) as executor:
             future_to_ticker = {
                 executor.submit(fetch_rsi_with_retry, t): t for t in all_tickers
             }
@@ -168,8 +180,10 @@ with tab1:
         pbar_rsi.empty()
         pstatus_rsi.empty()
 
-        df_rsi_all = pd.DataFrame(results_rsi) if results_rsi else pd.DataFrame()
-        
+        df_rsi_all = (
+            pd.DataFrame(results_rsi) if results_rsi else pd.DataFrame()
+        )
+
         # Sortir dataframe berdasarkan Score secara descending jika kolom Score ada
         if not df_rsi_all.empty and "Score" in df_rsi_all.columns:
             df_rsi_all = df_rsi_all.sort_values(by="Score", ascending=False)
@@ -179,10 +193,14 @@ with tab1:
 
         if not df_rsi_all.empty and "Pattern" in df_rsi_all.columns:
             df_rsi_bullish = df_rsi_all[
-                df_rsi_all["Pattern"].str.contains("Bullish", case=False, na=False)
+                df_rsi_all["Pattern"].str.contains(
+                    "Bullish", case=False, na=False
+                )
             ]
             df_rsi_bearish = df_rsi_all[
-                df_rsi_all["Pattern"].str.contains("Bearish", case=False, na=False)
+                df_rsi_all["Pattern"].str.contains(
+                    "Bearish", case=False, na=False
+                )
             ]
 
         st.session_state["rsi_stats"] = {
@@ -207,14 +225,13 @@ with tab1:
 
         if stats["failed"] > 0:
             st.warning(
-                f"⚠️ Terdapat **{stats['failed']} saham** gagal didownload dari Yahoo"
-                " Finance."
+                f"⚠️ Terdapat **{stats['failed']} saham** gagal didownload dari"
+                " Yahoo Finance."
             )
 
     col_bull, col_bear = st.columns(2)
     selected_rsi_symbol = None
 
-    # Menambahkan 'Score' pada daftar kolom tampilan
     target_rsi_cols = [
         "Saham",
         "Score",
@@ -235,9 +252,13 @@ with tab1:
         ):
             df_rsi_bullish = st.session_state["df_rsi_bullish"]
 
-            display_cols = [c for c in target_rsi_cols if c in df_rsi_bullish.columns]
+            display_cols = [
+                c for c in target_rsi_cols if c in df_rsi_bullish.columns
+            ]
             df_display_bull = (
-                df_rsi_bullish[display_cols] if display_cols else df_rsi_bullish
+                df_rsi_bullish[display_cols]
+                if display_cols
+                else df_rsi_bullish
             )
 
             event_bull = st.dataframe(
@@ -265,9 +286,13 @@ with tab1:
         ):
             df_rsi_bearish = st.session_state["df_rsi_bearish"]
 
-            display_cols = [c for c in target_rsi_cols if c in df_rsi_bearish.columns]
+            display_cols = [
+                c for c in target_rsi_cols if c in df_rsi_bearish.columns
+            ]
             df_display_bear = (
-                df_rsi_bearish[display_cols] if display_cols else df_rsi_bearish
+                df_rsi_bearish[display_cols]
+                if display_cols
+                else df_rsi_bearish
             )
 
             event_bear = st.dataframe(
@@ -288,7 +313,10 @@ with tab1:
             st.info("Tidak ada sinyal Bearish / Belum di-scan.")
 
     if selected_rsi_symbol:
-        if not selected_rsi_symbol.endswith(".JK") and "." not in selected_rsi_symbol:
+        if (
+            not selected_rsi_symbol.endswith(".JK")
+            and "." not in selected_rsi_symbol
+        ):
             selected_rsi_symbol += ".JK"
         render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
 
@@ -329,9 +357,17 @@ with tab2:
             pstatus_stoch.empty()
 
             # Mengurutkan berdasarkan Score jika kolom Score tersedia
-            if df_gc is not None and not df_gc.empty and "Score" in df_gc.columns:
+            if (
+                df_gc is not None
+                and not df_gc.empty
+                and "Score" in df_gc.columns
+            ):
                 df_gc = df_gc.sort_values(by="Score", ascending=False)
-            if df_dc is not None and not df_dc.empty and "Score" in df_dc.columns:
+            if (
+                df_dc is not None
+                and not df_dc.empty
+                and "Score" in df_dc.columns
+            ):
                 df_dc = df_dc.sort_values(by="Score", ascending=False)
 
             st.session_state["df_gc_data"] = df_gc
@@ -357,89 +393,91 @@ with tab2:
         st_stats = st.session_state["stoch_stats"]
         c_m1, c_m2, c_m3, c_m4 = st.columns(4)
         c_m1.metric("Total Ticker Di-scan", f"{st_stats['total']} Saham")
-        c_m2.metric("Sinyal Beli (Golden Cross)", f"{st_stats['matched_gc']} Saham")
-        c_m3.metric("Sinyal Jual (Dead Cross)", f"{st_stats['matched_dc']} Saham")
-        c_m4.metric("Total Sinyal Terdeteksi", f"{st_stats['total_signal']} Saham")
-
-  # ==========================================
-# TAB 2: STOCHASTIC & PARABOLIC SAR
-# ==========================================
-col_gc, col_dc = st.columns(2)
-selected_stoch_symbol = None
-
-with col_gc:
-    st.subheader("🟢 Signal Beli (Golden Cross)")
-    if (
-        "df_gc_data" in st.session_state
-        and not st.session_state["df_gc_data"].empty
-    ):
-        df_gc = st.session_state["df_gc_data"]
-
-        # Hapus kolom 'Action' jika ada
-        df_gc_display = (
-            df_gc.drop(columns=["Action"], errors="ignore")
-            if "Action" in df_gc.columns
-            else df_gc
+        c_m2.metric(
+            "Sinyal Beli (Golden Cross)", f"{st_stats['matched_gc']} Saham"
+        )
+        c_m3.metric(
+            "Sinyal Jual (Dead Cross)", f"{st_stats['matched_dc']} Saham"
+        )
+        c_m4.metric(
+            "Total Sinyal Terdeteksi", f"{st_stats['total_signal']} Saham"
         )
 
-        event_gc = st.dataframe(
-            df_gc_display,
-            use_container_width=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="table_gc",
-        )
-        if event_gc.selection and event_gc.selection["rows"]:
-            idx = event_gc.selection["rows"][0]
-            ticker_col = next(
-                (
-                    c
-                    for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                    if c in df_gc.columns
-                ),
-                None,
+    # PERBAIKAN: Seluruh blok visualiasi tabel berada dalam 'with tab2:'
+    col_gc, col_dc = st.columns(2)
+    selected_stoch_symbol = None
+
+    with col_gc:
+        st.subheader("🟢 Signal Beli (Golden Cross)")
+        if (
+            "df_gc_data" in st.session_state
+            and not st.session_state["df_gc_data"].empty
+        ):
+            df_gc = st.session_state["df_gc_data"]
+
+            df_gc_display = (
+                df_gc.drop(columns=["Action"], errors="ignore")
+                if "Action" in df_gc.columns
+                else df_gc
             )
-            if ticker_col:
-                selected_stoch_symbol = str(df_gc.iloc[idx][ticker_col])
-    else:
-        st.info("Tidak ada data / Belum di-scan.")
 
-with col_dc:
-    st.subheader("🔴 Signal Jual (Dead Cross)")
-    if (
-        "df_dc_data" in st.session_state
-        and not st.session_state["df_dc_data"].empty
-    ):
-        df_dc = st.session_state["df_dc_data"]
-
-        # Hapus kolom 'Action' jika ada
-        df_dc_display = (
-            df_dc.drop(columns=["Action"], errors="ignore")
-            if "Action" in df_dc.columns
-            else df_dc
-        )
-
-        event_dc = st.dataframe(
-            df_dc_display,
-            use_container_width=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="table_dc",
-        )
-        if event_dc.selection and event_dc.selection["rows"]:
-            idx = event_dc.selection["rows"][0]
-            ticker_col = next(
-                (
-                    c
-                    for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                    if c in df_dc.columns
-                ),
-                None,
+            event_gc = st.dataframe(
+                df_gc_display,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="table_gc",
             )
-            if ticker_col:
-                selected_stoch_symbol = str(df_dc.iloc[idx][ticker_col])
-    else:
-        st.info("Tidak ada data / Belum di-scan.")
+            if event_gc.selection and event_gc.selection["rows"]:
+                idx = event_gc.selection["rows"][0]
+                ticker_col = next(
+                    (
+                        c
+                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
+                        if c in df_gc.columns
+                    ),
+                    None,
+                )
+                if ticker_col:
+                    selected_stoch_symbol = str(df_gc.iloc[idx][ticker_col])
+        else:
+            st.info("Tidak ada data / Belum di-scan.")
+
+    with col_dc:
+        st.subheader("🔴 Signal Jual (Dead Cross)")
+        if (
+            "df_dc_data" in st.session_state
+            and not st.session_state["df_dc_data"].empty
+        ):
+            df_dc = st.session_state["df_dc_data"]
+
+            df_dc_display = (
+                df_dc.drop(columns=["Action"], errors="ignore")
+                if "Action" in df_dc.columns
+                else df_dc
+            )
+
+            event_dc = st.dataframe(
+                df_dc_display,
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="table_dc",
+            )
+            if event_dc.selection and event_dc.selection["rows"]:
+                idx = event_dc.selection["rows"][0]
+                ticker_col = next(
+                    (
+                        c
+                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
+                        if c in df_dc.columns
+                    ),
+                    None,
+                )
+                if ticker_col:
+                    selected_stoch_symbol = str(df_dc.iloc[idx][ticker_col])
+        else:
+            st.info("Tidak ada data / Belum di-scan.")
 
     if selected_stoch_symbol:
         if (
@@ -447,7 +485,10 @@ with col_dc:
             and "." not in selected_stoch_symbol
         ):
             selected_stoch_symbol += ".JK"
-        render_inline_trade_planner(selected_stoch_symbol, key_suffix="stoch_tab")
+        render_inline_trade_planner(
+            selected_stoch_symbol, key_suffix="stoch_tab"
+        )
+
 
 # ==========================================
 # TAB 3: TRADE PLANNER & BATCH SCREENER
@@ -487,7 +528,9 @@ with tab3:
                 clean_ticker = ticker_input.strip().upper()
                 if not clean_ticker.endswith(".JK") and "." not in clean_ticker:
                     clean_ticker += ".JK"
-                render_inline_trade_planner(clean_ticker, key_suffix="manual_tab")
+                render_inline_trade_planner(
+                    clean_ticker, key_suffix="manual_tab"
+                )
 
     else:  # MODE BATCH SCREENER
         st.caption(
@@ -502,30 +545,15 @@ with tab3:
             key="batch_period_select",
         )
 
-        # HELPER ROBUST UNTUK MEMBACA DAFTAR SAHAM
-        def get_clean_tickers_from_file(filepath="daftar_saham.txt"):
-            if not os.path.exists(filepath):
-                return []
-
-            tickers = []
-            with open(filepath, "r", encoding="utf-8-sig") as f:
-                lines = f.readlines()
-                for line in lines:
-                    item = line.strip().upper()
-                    if item and item not in ["KODE", "TICKER", "SAHAM"]:
-                        clean_t = item.split(",")[0].replace(".JK", "").strip()
-                        if clean_t:
-                            tickers.append(f"{clean_t}.JK")
-            return sorted(list(set(tickers)))
-
         if st.button(
             "🚀 Run Batch Screener (daftar_saham.txt)", key="btn_run_batch"
         ):
-            batch_tickers = get_clean_tickers_from_file("daftar_saham.txt")
+            batch_tickers = load_daftar_saham("daftar_saham.txt")
 
             if not batch_tickers:
                 st.error(
-                    "⚠️ File `daftar_saham.txt` tidak ditemukan atau isinya kosong."
+                    "⚠️ File `daftar_saham.txt` tidak ditemukan atau isinya"
+                    " kosong."
                 )
             else:
                 total_batch = len(batch_tickers)
@@ -539,7 +567,9 @@ with tab3:
 
                 def process_batch_item(ticker_sym):
                     try:
-                        p = TradePlanner(ticker=ticker_sym, period=batch_period)
+                        p = TradePlanner(
+                            ticker=ticker_sym, period=batch_period
+                        )
                         p.fetch_and_prepare_data()
 
                         df_tp = p.generate_trade_plan()
@@ -560,10 +590,10 @@ with tab3:
                             else 0
                         )
 
-                        # Ambil Nilai Score dari TradePlanner (default 0 jika tidak ada)
-                        score_val = tp_row.get("Score", tp_row.get("Total Score", 0))
+                        score_val = tp_row.get(
+                            "Score", tp_row.get("Total Score", 0)
+                        )
 
-                        # Hitung posisi terhadap Support & Resistance
                         df_sup = p.get_strong_support()
                         df_res = p.get_strong_resistance()
 
@@ -587,7 +617,10 @@ with tab3:
                         )
 
                         posisi_harga = "Normal / Floating"
-                        if s_level > 0 and abs(close_p - s_level) / s_level <= 0.02:
+                        if (
+                            s_level > 0
+                            and abs(close_p - s_level) / s_level <= 0.02
+                        ):
                             posisi_harga = "🛡️ Dekat Support (<= 2%)"
                         elif r_level > 0 and close_p >= r_level:
                             posisi_harga = "🚀 Breakout Resistance"
@@ -608,19 +641,24 @@ with tab3:
                         return None
 
                 batch_results = []
-                with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=6
+                ) as executor:
                     future_to_ticker = {
-                        executor.submit(process_batch_item, t): t for t in batch_tickers
+                        executor.submit(process_batch_item, t): t
+                        for t in batch_tickers
                     }
                     completed = 0
 
-                    for future in concurrent.futures.as_completed(future_to_ticker):
+                    for future in concurrent.futures.as_completed(
+                        future_to_ticker
+                    ):
                         completed += 1
                         pct = int((completed / total_batch) * 100)
                         pbar_batch.progress(pct)
                         pstatus_batch.text(
-                            f"Memproses Batch Trade Planner: {completed}/{total_batch}"
-                            " saham..."
+                            f"Memproses Batch Trade Planner:"
+                            f" {completed}/{total_batch} saham..."
                         )
 
                         res = future.result()
@@ -632,20 +670,22 @@ with tab3:
 
                 if batch_results:
                     df_batch_all = pd.DataFrame(batch_results)
-                    
-                    # Sortir berdasarkan Score tertinggi
+
                     if "Score" in df_batch_all.columns:
-                        df_batch_all = df_batch_all.sort_values(by="Score", ascending=False)
-                        
+                        df_batch_all = df_batch_all.sort_values(
+                            by="Score", ascending=False
+                        )
+
                     st.session_state["df_batch_screener"] = df_batch_all
                     st.success(
-                        f"Screening selesai! Berhasil memproses {len(df_batch_all)} dari"
-                        f" {total_batch} saham."
+                        f"Screening selesai! Berhasil memproses"
+                        f" {len(df_batch_all)} dari {total_batch} saham."
                     )
                 else:
                     st.error(
-                        "Tidak ada data yang berhasil di-screen. Pastikan koneksi internet"
-                        " lancar atau file `trade_planner.py` berfungsi normal."
+                        "Tidak ada data yang berhasil di-screen. Pastikan"
+                        " koneksi internet lancar atau file `trade_planner.py`"
+                        " berfungsi normal."
                     )
 
         # MENAMPILKAN HASIL + DROPDOWN CATEGORY FILTER
@@ -661,7 +701,8 @@ with tab3:
             col_f1, col_f2, col_f3 = st.columns(3)
 
             candle_opts = (
-                ["ALL"] + sorted(df_batch["Status Candle"].dropna().unique().tolist())
+                ["ALL"]
+                + sorted(df_batch["Status Candle"].dropna().unique().tolist())
                 if "Status Candle" in df_batch.columns
                 else ["ALL"]
             )
@@ -673,17 +714,21 @@ with tab3:
                 )
 
             pos_opts = (
-                ["ALL"] + sorted(df_batch["Posisi Harga"].dropna().unique().tolist())
+                ["ALL"]
+                + sorted(df_batch["Posisi Harga"].dropna().unique().tolist())
                 if "Posisi Harga" in df_batch.columns
                 else ["ALL"]
             )
             with col_f2:
                 sel_posisi = st.selectbox(
-                    "📈 Filter Posisi Harga:", pos_opts, key="filter_batch_posisi"
+                    "📈 Filter Posisi Harga:",
+                    pos_opts,
+                    key="filter_batch_posisi",
                 )
 
             warn_opts = (
-                ["ALL"] + sorted(df_batch["Warning"].dropna().unique().tolist())
+                ["ALL"]
+                + sorted(df_batch["Warning"].dropna().unique().tolist())
                 if "Warning" in df_batch.columns
                 else ["ALL"]
             )
@@ -697,15 +742,22 @@ with tab3:
             # Terapkan Filter
             df_filtered = df_batch.copy()
             if sel_candle != "ALL" and "Status Candle" in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered["Status Candle"] == sel_candle]
+                df_filtered = df_filtered[
+                    df_filtered["Status Candle"] == sel_candle
+                ]
             if sel_posisi != "ALL" and "Posisi Harga" in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered["Posisi Harga"] == sel_posisi]
+                df_filtered = df_filtered[
+                    df_filtered["Posisi Harga"] == sel_posisi
+                ]
             if sel_warning != "ALL" and "Warning" in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered["Warning"] == sel_warning]
+                df_filtered = df_filtered[
+                    df_filtered["Warning"] == sel_warning
+                ]
 
-            st.write(f"Menampilkan **{len(df_filtered)}** hasil saham terpilih:")
+            st.write(
+                f"Menampilkan **{len(df_filtered)}** hasil saham terpilih:"
+            )
 
-            # Menampilkan 'Score' di kolom awal hasil Batch Screener
             display_batch_cols = [
                 c
                 for c in [

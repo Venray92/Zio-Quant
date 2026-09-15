@@ -227,153 +227,169 @@ def _process_single_ticker(ticker):
     res_gc = None
     res_dc = None
 
-    # --- 1. GOLDEN CROSS (REVISI: STOCHASTIC %K < 30) ---
-    if k0 < 30:
-      gc_today = (k1 < d1) and (k0 >= d0)
-      gc_yesterday = (k2 < d2) and (k1 >= d1) and (k0 >= d0)
-      gc_2days_ago = (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0)
-      gc_3days_ago = (
-          (k4 < d4) and (k3 >= d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0)
-      )
-      is_almost_gc = (k0 <= d0) and ((d0 - k0) <= 3.0)
+    # --- 1. GOLDEN CROSS (REVISI: Syarat < 30 dicek saat hari terjadinya GC) ---
+    gc_today = (k1 < d1) and (k0 >= d0) and (k0 < 30)
+    gc_yesterday = (k2 < d2) and (k1 >= d1) and (k0 >= d0) and (k1 < 30)
+    gc_2days_ago = (
+        (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0) and (k2 < 30)
+    )
+    gc_3days_ago = (
+        (k4 < d4)
+        and (k3 >= d3)
+        and (k2 >= d2)
+        and (k1 >= d1)
+        and (k0 >= d0)
+        and (k3 < 30)
+    )
+    is_almost_gc = (k0 <= d0) and ((d0 - k0) <= 3.0) and (k0 < 30)
 
-      stoch_signal = None
-      if gc_today:
-        stoch_signal = {"type": "GC Hari Ini (H-0)", "score": 70, "code": "H0"}
-      elif gc_yesterday:
-        stoch_signal = {"type": "GC Kemarin (H-1)", "score": 70, "code": "H1"}
-      elif gc_2days_ago:
-        stoch_signal = {
-            "type": "GC 2 Hari Lalu (H-2)",
-            "score": 60,
-            "code": "H2",
-        }
-      elif gc_3days_ago:
-        stoch_signal = {
-            "type": "GC 3 Hari Lalu (H-3)",
-            "score": 60,
-            "code": "H3",
-        }
-      elif is_almost_gc:
-        stoch_signal = {
-            "type": "Early Signal (Merapat)",
-            "score": 50,
-            "code": "EARLY",
-        }
+    stoch_signal_gc = None
+    if gc_today:
+      stoch_signal_gc = {"type": "GC Hari Ini (H-0)", "score": 70, "code": "H0"}
+    elif gc_yesterday:
+      stoch_signal_gc = {"type": "GC Kemarin (H-1)", "score": 70, "code": "H1"}
+    elif gc_2days_ago:
+      stoch_signal_gc = {
+          "type": "GC 2 Hari Lalu (H-2)",
+          "score": 60,
+          "code": "H2",
+      }
+    elif gc_3days_ago:
+      stoch_signal_gc = {
+          "type": "GC 3 Hari Lalu (H-3)",
+          "score": 60,
+          "code": "H3",
+      }
+    elif is_almost_gc:
+      stoch_signal_gc = {
+          "type": "Early Signal (Merapat)",
+          "score": 50,
+          "code": "EARLY",
+      }
 
-      if stoch_signal:
-        score = stoch_signal["score"]
-        notes = [stoch_signal["type"]]
+    if stoch_signal_gc:
+      score = stoch_signal_gc["score"]
+      notes = [stoch_signal_gc["type"]]
 
-        # PSAR Bullish Bonus (+20)
-        if psar0 < l0:
-          score += 20
-          notes.append("PSAR Bullish (+20)")
+      # PSAR Bullish Bonus (+20)
+      if psar0 < l0:
+        score += 20
+        notes.append("PSAR Bullish (+20)")
 
-        # Pengecekan Volume MA20 (+5)
-        vol_hist_match = False
-        if stoch_signal["code"] == "H0":
-          vol_hist_match = v0 > vol_ma20_0
-        else:
-          vol_ma20_series = df["vol_ma20"]
-          vol_series = df["Volume"]
-          vol_hist_match = (
-              (vol_series.iloc[-2] > vol_ma20_series.iloc[-2])
-              or (vol_series.iloc[-3] > vol_ma20_series.iloc[-3])
-              or (vol_series.iloc[-4] > vol_ma20_series.iloc[-4])
-          )
+      # Pengecekan Volume MA20 (+5)
+      vol_hist_match = False
+      if stoch_signal_gc["code"] == "H0":
+        vol_hist_match = v0 > vol_ma20_0
+      else:
+        vol_ma20_series = df["vol_ma20"]
+        vol_series = df["Volume"]
+        vol_hist_match = (
+            (vol_series.iloc[-2] > vol_ma20_series.iloc[-2])
+            or (vol_series.iloc[-3] > vol_ma20_series.iloc[-3])
+            or (vol_series.iloc[-4] > vol_ma20_series.iloc[-4])
+        )
 
-        if vol_hist_match:
-          score += 5
-          notes.append("Vol > MA20 (+5)")
+      if vol_hist_match:
+        score += 5
+        notes.append("Vol > MA20 (+5)")
 
-        # Pembatasan Maksimal Skor 100
-        score = min(100, score)
+      # Pembatasan Maksimal Skor 100
+      score = min(100, score)
 
-        res_gc = {
-            "Ticker": ticker.replace(".JK", ""),
-            "Harga": int(c0),
-            "Value (M)": round(val0 / 1_000_000_000, 2),
-            "Stoch %K": round(k0, 1),
-            "Stoch %D": round(d0, 1),
-            "Score": score,
-            "Action": "BELI / WATCHLIST",
-            "Detail Signal": " | ".join(notes),
-        }
+      res_gc = {
+          "Ticker": ticker.replace(".JK", ""),
+          "Harga": int(c0),
+          "Value (M)": round(val0 / 1_000_000_000, 2),
+          "Stoch %K": round(k0, 1),
+          "Stoch %D": round(d0, 1),
+          "Score": score,
+          "Action": "BELI / WATCHLIST",
+          "Detail Signal": " | ".join(notes),
+      }
 
-    # --- 2. DEAD CROSS (REVISI: STOCHASTIC %K > 70) ---
-    if k0 > 70:
-      dc_today = (k1 > d1) and (k0 <= d0)
-      dc_yesterday = (k2 > d2) and (k1 <= d1) and (k0 <= d0)
-      dc_2days_ago = (k3 > d3) and (k2 >= d2) and (k1 <= d1) and (k0 <= d0)
-      dc_3days_ago = (
-          (k4 < d4) and (k3 >= d3) and (k2 >= d2) and (k1 >= d1) and (k0 <= d0)
-      )
-      is_almost_dc = (k0 >= d0) and ((k0 - d0) <= 3.0)
+    # --- 2. DEAD CROSS (REVISI: Syarat > 70 dicek saat hari terjadinya DC) ---
+    dc_today = (k1 > d1) and (k0 <= d0) and (k0 > 70)
+    dc_yesterday = (k2 > d2) and (k1 <= d1) and (k0 <= d0) and (k1 > 70)
+    dc_2days_ago = (
+        (k3 > d3) and (k2 >= d2) and (k1 <= d1) and (k0 <= d0) and (k2 > 70)
+    )
+    dc_3days_ago = (
+        (k4 < d4)
+        and (k3 >= d3)
+        and (k2 >= d2)
+        and (k1 >= d1)
+        and (k0 <= d0)
+        and (k3 > 70)
+    )
+    is_almost_dc = (k0 >= d0) and ((k0 - d0) <= 3.0) and (k0 > 70)
 
-      dc_signal = None
-      if dc_today:
-        dc_signal = {"type": "DC Hari Ini (H-0)", "score": -70, "code": "H0"}
-      elif dc_yesterday:
-        dc_signal = {"type": "DC Kemarin (H-1)", "score": -70, "code": "H1"}
-      elif dc_2days_ago:
-        dc_signal = {
-            "type": "DC 2 Hari Lalu (H-2)",
-            "score": -60,
-            "code": "H2",
-        }
-      elif dc_3days_ago:
-        dc_signal = {
-            "type": "DC 3 Hari Lalu (H-3)",
-            "score": -60,
-            "code": "H3",
-        }
-      elif is_almost_dc:
-        dc_signal = {
-            "type": "Early DC Signal (Merapat)",
-            "score": -50,
-            "code": "EARLY",
-        }
+    stoch_signal_dc = None
+    if dc_today:
+      stoch_signal_dc = {"type": "DC Hari Ini (H-0)", "score": -70, "code": "H0"}
+    elif dc_yesterday:
+      stoch_signal_dc = {
+          "type": "DC Kemarin (H-1)",
+          "score": -70,
+          "code": "H1",
+      }
+    elif dc_2days_ago:
+      stoch_signal_dc = {
+          "type": "DC 2 Hari Lalu (H-2)",
+          "score": -60,
+          "code": "H2",
+      }
+    elif dc_3days_ago:
+      stoch_signal_dc = {
+          "type": "DC 3 Hari Lalu (H-3)",
+          "score": -60,
+          "code": "H3",
+      }
+    elif is_almost_dc:
+      stoch_signal_dc = {
+          "type": "Early DC Signal (Merapat)",
+          "score": -50,
+          "code": "EARLY",
+      }
 
-      if dc_signal:
-        score = dc_signal["score"]
-        notes = [dc_signal["type"]]
+    if stoch_signal_dc:
+      score = stoch_signal_dc["score"]
+      notes = [stoch_signal_dc["type"]]
 
-        # PSAR Bearish Penalti (-20)
-        if psar0 > h0:
-          score -= 20
-          notes.append("PSAR Bearish (-20)")
+      # PSAR Bearish Penalti (-20)
+      if psar0 > h0:
+        score -= 20
+        notes.append("PSAR Bearish (-20)")
 
-        # Pengecekan Volume MA20 (-5)
-        vol_hist_match = False
-        if dc_signal["code"] == "H0":
-          vol_hist_match = v0 > vol_ma20_0
-        else:
-          vol_ma20_series = df["vol_ma20"]
-          vol_series = df["Volume"]
-          vol_hist_match = (
-              (vol_series.iloc[-2] > vol_ma20_series.iloc[-2])
-              or (vol_series.iloc[-3] > vol_ma20_series.iloc[-3])
-              or (vol_series.iloc[-4] > vol_ma20_series.iloc[-4])
-          )
+      # Pengecekan Volume MA20 (-5)
+      vol_hist_match = False
+      if stoch_signal_dc["code"] == "H0":
+        vol_hist_match = v0 > vol_ma20_0
+      else:
+        vol_ma20_series = df["vol_ma20"]
+        vol_series = df["Volume"]
+        vol_hist_match = (
+            (vol_series.iloc[-2] > vol_ma20_series.iloc[-2])
+            or (vol_series.iloc[-3] > vol_ma20_series.iloc[-3])
+            or (vol_series.iloc[-4] > vol_ma20_series.iloc[-4])
+        )
 
-        if vol_hist_match:
-          score -= 5
-          notes.append("High Vol Sell (-5)")
+      if vol_hist_match:
+        score -= 5
+        notes.append("High Vol Sell (-5)")
 
-        # Pembatasan Minimal Skor -100
-        score = max(-100, score)
+      # Pembatasan Minimal Skor -100
+      score = max(-100, score)
 
-        res_dc = {
-            "Ticker": ticker.replace(".JK", ""),
-            "Harga": int(c0),
-            "Value (M)": round(val0 / 1_000_000_000, 2),
-            "Stoch %K": round(k0, 1),
-            "Stoch %D": round(d0, 1),
-            "Score": score,
-            "Action": "JUAL / EXIT",
-            "Detail Signal": " | ".join(notes),
-        }
+      res_dc = {
+          "Ticker": ticker.replace(".JK", ""),
+          "Harga": int(c0),
+          "Value (M)": round(val0 / 1_000_000_000, 2),
+          "Stoch %K": round(k0, 1),
+          "Stoch %D": round(d0, 1),
+          "Score": score,
+          "Action": "JUAL / EXIT",
+          "Detail Signal": " | ".join(notes),
+      }
 
     return res_gc, res_dc
 

@@ -20,13 +20,8 @@ def load_stock_list(filepath="daftar_saham.txt"):
     return formatted_stocks
 
 
-# ==========================================================
-# FUNGSI BACKEND (6 TABEL BERJALAN DI BACKGROUND)
-# ==========================================================
-
-
 def extract_swings(df_in, series, left=2, right=2):
-    """Fungsi ekstraksi Swing High / Swing Low"""
+    """Mencari Swing High dan Swing Low"""
     swings = []
     n = len(series)
 
@@ -59,17 +54,16 @@ def extract_swings(df_in, series, left=2, right=2):
 
 
 def detect_all_divergences(df_data, is_gc, is_dc):
-    """Logika deteksi Divergence presisi dari kodingan baru"""
+    """Mendeteksi 4 Pola Divergence secara presisi"""
     max_date = df_data.index.max()
     cutoff_scan = max_date - pd.Timedelta(days=30)
     cutoff_fresh = max_date - pd.Timedelta(days=4)
 
     min_rsi_diff = 3.0
     min_price_diff_pct = 0.015
-
     div_results = []
 
-    # A. BULLISH DIVERGENCE (SWING LOW)
+    # 1. BULLISH DIVERGENCE (Swing Low)
     p_swings_low = extract_swings(df_data, df_data["Low"])
     rsi_swings_low = extract_swings(df_data, df_data["RSI_10"])
 
@@ -134,7 +128,7 @@ def detect_all_divergences(df_data, is_gc, is_dc):
                         left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
                     ]
 
-                    # 1. Regular Bullish
+                    # Regular Bullish Divergence
                     if (
                         (right_p["Nilai"] < left_p["Nilai"])
                         and (val_rsi_right > val_rsi_left)
@@ -144,12 +138,12 @@ def detect_all_divergences(df_data, is_gc, is_dc):
                         and rsi_diff >= min_rsi_diff
                     ):
                         div_results.append({
-                            "Signal": f"Regular Bullish ({status_bull})",
-                            "Category": "BULLISH",
+                            "Pattern": f"Regular Bullish ({status_bull})",
+                            "Score": 85 if is_gc else 70,
                         })
                         break
 
-                    # 2. Hidden Bullish
+                    # Hidden Bullish Divergence
                     elif (
                         (right_p["Nilai"] >= left_p["Nilai"])
                         and (val_rsi_right < val_rsi_left)
@@ -158,12 +152,12 @@ def detect_all_divergences(df_data, is_gc, is_dc):
                         and rsi_diff >= min_rsi_diff
                     ):
                         div_results.append({
-                            "Signal": f"Hidden Bullish ({status_bull})",
-                            "Category": "BULLISH",
+                            "Pattern": f"Hidden Bullish ({status_bull})",
+                            "Score": 80 if is_gc else 65,
                         })
                         break
 
-    # B. BEARISH DIVERGENCE (SWING HIGH)
+    # 2. BEARISH DIVERGENCE (Swing High)
     p_swings_high = extract_swings(df_data, df_data["High"])
     rsi_swings_high = extract_swings(df_data, df_data["RSI_10"])
 
@@ -228,7 +222,7 @@ def detect_all_divergences(df_data, is_gc, is_dc):
                         left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
                     ]
 
-                    # 3. Regular Bearish
+                    # Regular Bearish Divergence
                     if (
                         (right_p["Nilai"] > left_p["Nilai"])
                         and (val_rsi_right < val_rsi_left)
@@ -238,12 +232,12 @@ def detect_all_divergences(df_data, is_gc, is_dc):
                         and rsi_diff >= min_rsi_diff
                     ):
                         div_results.append({
-                            "Signal": f"Regular Bearish ({status_bear})",
-                            "Category": "BEARISH",
+                            "Pattern": f"Regular Bearish ({status_bear})",
+                            "Score": 85 if is_dc else 70,
                         })
                         break
 
-                    # 4. Hidden Bearish
+                    # Hidden Bearish Divergence
                     elif (
                         (right_p["Nilai"] <= left_p["Nilai"])
                         and (val_rsi_right > val_rsi_left)
@@ -252,16 +246,17 @@ def detect_all_divergences(df_data, is_gc, is_dc):
                         and rsi_diff >= min_rsi_diff
                     ):
                         div_results.append({
-                            "Signal": f"Hidden Bearish ({status_bear})",
-                            "Category": "BEARISH",
+                            "Pattern": f"Hidden Bearish ({status_bear})",
+                            "Score": 80 if is_dc else 65,
                         })
                         break
 
     return pd.DataFrame(div_results)
 
 
-def analyze_single_stock(ticker):
-    """Menjalankan alur 6 tabel lengkap di background untuk 1 saham"""
+# FUNGSI UTAMA YANG DIPANGGIL OLEH APP.PY
+def detect_rsi_patterns_and_score(ticker):
+    """Diadaptasi khusus untuk app.py"""
     try:
         df = yf.download(
             ticker, period="1y", interval="1d", auto_adjust=False, progress=False
@@ -283,64 +278,39 @@ def analyze_single_stock(ticker):
         is_gc = latest_rsi > latest_ema
         is_dc = latest_rsi < latest_ema
 
-        # Jalankan Deteksi Divergence (Tabel 5 Engine)
+        # Scan 4 Divergence Pattern
         df_div = detect_all_divergences(df, is_gc, is_dc)
 
         if not df_div.empty:
-            res_signal = df_div.iloc[0]["Signal"]
-            res_cat = df_div.iloc[0]["Category"]
+            res_pattern = df_div.iloc[0]["Pattern"]
+            res_score = df_div.iloc[0]["Score"]
             return {
                 "Ticker": ticker.replace(".JK", ""),
                 "Harga Close": f"Rp {latest_close:,.0f}",
                 "RSI 10": round(latest_rsi, 2),
-                "Signal": res_signal,
-                "Category": res_cat,
+                "Pattern": res_pattern,
+                "TOTAL SCORE": res_score,
             }
 
-        # Backup Signal jika tidak ada Divergence
+        # Sinyal Tambahan (Non-Divergence)
         if is_gc and latest_rsi < 40:
             return {
                 "Ticker": ticker.replace(".JK", ""),
                 "Harga Close": f"Rp {latest_close:,.0f}",
                 "RSI 10": round(latest_rsi, 2),
-                "Signal": "RSI Golden Cross (< 40)",
-                "Category": "BULLISH",
+                "Pattern": "Bullish RSI Golden Cross (<40)",
+                "TOTAL SCORE": 60,
             }
         elif is_dc and latest_rsi > 60:
             return {
                 "Ticker": ticker.replace(".JK", ""),
                 "Harga Close": f"Rp {latest_close:,.0f}",
                 "RSI 10": round(latest_rsi, 2),
-                "Signal": "RSI Dead Cross (> 60)",
-                "Category": "BEARISH",
+                "Pattern": "Bearish RSI Dead Cross (>60)",
+                "TOTAL SCORE": 60,
             }
 
         return None
 
     except Exception:
         return None
-
-
-def run_full_rsi_scan(filepath="daftar_saham.txt"):
-    """Fungsi Utama Mass Scanning"""
-    stocks = load_stock_list(filepath)
-    bullish_list = []
-    bearish_list = []
-
-    for s in stocks:
-        res = analyze_single_stock(s)
-        if res:
-            if res["Category"] == "BULLISH":
-                bullish_list.append(res)
-            elif res["Category"] == "BEARISH":
-                bearish_list.append(res)
-
-    df_bullish = pd.DataFrame(bullish_list)
-    df_bearish = pd.DataFrame(bearish_list)
-
-    if not df_bullish.empty:
-        df_bullish = df_bullish.drop(columns=["Category"])
-    if not df_bearish.empty:
-        df_bearish = df_bearish.drop(columns=["Category"])
-
-    return df_bullish, df_bearish

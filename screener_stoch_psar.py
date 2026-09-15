@@ -190,26 +190,26 @@ def _process_single_ticker(ticker):
 # =========================================================================
 # FUNGSI UTAMA (Dipanggil oleh app.py)
 # =========================================================================
-def run_stoch_psar_screener(tickers, max_workers=10):
+def run_stoch_psar_screener(tickers, max_workers=10, progress_callback=None, **kwargs):
     """
     Menjalankan screener Stochastic + PSAR secara paralel.
-    Mengembalikan tuple: (df_bullish, df_bearish)
+    Mendukung 'progress_callback' untuk menampilkan persentase di Streamlit.
     """
-    # Pastikan suffix .JK ada
     formatted_tickers = [
         t if t.endswith(".JK") else f"{t}.JK" for t in tickers
     ]
 
     gc_results = []
     dc_results = []
+    total_tickers = len(formatted_tickers)
 
-    # ThreadPoolExecutor aman digunakan di Streamlit Cloud
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
             executor.submit(_process_single_ticker, ticker)
             for ticker in formatted_tickers
         ]
 
+        completed = 0
         for future in concurrent.futures.as_completed(futures):
             res_gc, res_dc = future.result()
             if res_gc:
@@ -217,11 +217,14 @@ def run_stoch_psar_screener(tickers, max_workers=10):
             if res_dc:
                 dc_results.append(res_dc)
 
-    # Convert ke DataFrame
+            # Update progress bar jika callback dikirimkan dari Streamlit
+            completed += 1
+            if progress_callback and total_tickers > 0:
+                progress_callback(completed / total_tickers)
+
     df_gc = pd.DataFrame(gc_results)
     df_dc = pd.DataFrame(dc_results)
 
-    # Urutkan berdasarkan Score tertinggi
     if not df_gc.empty:
         df_gc = df_gc.sort_values(by="Score", ascending=False).reset_index(drop=True)
     if not df_dc.empty:

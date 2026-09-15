@@ -1,6 +1,24 @@
 import pandas as pd
-import pandas_ta as ta
 import yfinance as yf
+
+
+# Helper: Perhitungan RSI Murni dengan Pandas (Wilder's Smoothing)
+def calculate_rsi(series, period=10):
+  delta = series.diff()
+  gain = (delta.where(delta > 0, 0)).copy()
+  loss = (-delta.where(delta < 0, 0)).copy()
+
+  avg_gain = gain.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
+  avg_loss = loss.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
+
+  rs = avg_gain / avg_loss
+  rsi = 100 - (100 / (1 + rs))
+  return rsi
+
+
+# Helper: Perhitungan EMA Murni dengan Pandas
+def calculate_ema(series, period=10):
+  return series.ewm(span=period, adjust=False).mean()
 
 
 def extract_swings(df_in, series, left=2, right=2):
@@ -80,9 +98,9 @@ def detect_rsi_patterns_and_score(ticker):
     if isinstance(df.columns, pd.MultiIndex):
       df.columns = df.columns.get_level_values(0)
 
-    # Hitung RSI 10 dan EMA 10 RSI
-    df['RSI_10'] = df.ta.rsi(close=df['Close'], length=10)
-    df['RSI_EMA10'] = df.ta.ema(close=df['RSI_10'], length=10)
+    # Hitung RSI 10 dan EMA 10 RSI murni dengan Pandas
+    df['RSI_10'] = calculate_rsi(df['Close'], period=10)
+    df['RSI_EMA10'] = calculate_ema(df['RSI_10'], period=10)
     df = df.dropna(subset=['RSI_10', 'RSI_EMA10'])
 
     latest_date = df.index.max()
@@ -121,7 +139,6 @@ def detect_rsi_patterns_and_score(ticker):
       for i in range(len(p_swings_low) - 1):
         right_p = p_swings_low.iloc[i]
 
-        # Titik Kanan (V2) harus fresh (maksimal 7 hari kalender dari data terbaru)
         if (latest_date - right_p['Tanggal']).days > 7:
           continue
 
@@ -129,20 +146,18 @@ def detect_rsi_patterns_and_score(ticker):
           left_p = p_swings_low.iloc[j]
           days_gap = (right_p['Tanggal'] - left_p['Tanggal']).days
 
-          # BATAS 1 BULAN: Jarak Kiri ke Kanan minimal 4 hari, maksimal 35 hari kalender
+          # Max 35 hari (Batas 1 Bulan)
           if not (4 <= days_gap <= 35):
             continue
 
-          # VALIDASI SWING MELOMPAT (Intervening Low Check):
-          # Tidak boleh ada Low di antara Tgl Kiri & Kanan yang lebih rendah dari min(Low_Kiri, Low_Kanan)
+          # Cek swing melompat di antara V1 dan V2
           between_df = df.loc[left_p['Tanggal'] : right_p['Tanggal']]
           lowest_in_between = between_df['Low'].min()
           allowed_min = min(left_p['Nilai'], right_p['Nilai'])
 
           if lowest_in_between < (allowed_min * 0.998):
-            continue  # Ada low yang lebih rendah melompati garis trend -> Skip!
+            continue
 
-          # Matching dengan RSI Swing Low
           rsi_right_match = rsi_swings_low[
               (
                   rsi_swings_low['Tanggal']
@@ -178,7 +193,6 @@ def detect_rsi_patterns_and_score(ticker):
             )
             pattern_type = None
 
-            # 1. Regular Bullish
             if (
                 (right_p['Nilai'] < left_p['Nilai'])
                 and (val_rsi_right > val_rsi_left)
@@ -187,7 +201,6 @@ def detect_rsi_patterns_and_score(ticker):
               if price_diff_pct >= min_price_diff_pct and rsi_diff >= min_rsi_diff:
                 pattern_type = f'Regular Bullish Divergence {status_bull}'
 
-            # 2. Hidden Bullish
             elif (
                 (right_p['Nilai'] >= left_p['Nilai'])
                 and (val_rsi_right < val_rsi_left)
@@ -242,13 +255,12 @@ def detect_rsi_patterns_and_score(ticker):
           if not (4 <= days_gap <= 35):
             continue
 
-          # VALIDASI SWING MELOMPAT (Intervening High Check):
           between_df = df.loc[left_p['Tanggal'] : right_p['Tanggal']]
           highest_in_between = between_df['High'].max()
           allowed_max = max(left_p['Nilai'], right_p['Nilai'])
 
           if highest_in_between > (allowed_max * 1.002):
-            continue  # Ada high yang lebih tinggi melompati garis trend -> Skip!
+            continue
 
           rsi_right_match = rsi_swings_high[
               (
@@ -285,7 +297,6 @@ def detect_rsi_patterns_and_score(ticker):
             )
             pattern_type = None
 
-            # 3. Regular Bearish
             if (
                 (right_p['Nilai'] > left_p['Nilai'])
                 and (val_rsi_right < val_rsi_left)
@@ -294,7 +305,6 @@ def detect_rsi_patterns_and_score(ticker):
               if price_diff_pct >= min_price_diff_pct and rsi_diff >= min_rsi_diff:
                 pattern_type = f'Regular Bearish Divergence {status_bear}'
 
-            # 4. Hidden Bearish
             elif (
                 (right_p['Nilai'] <= left_p['Nilai'])
                 and (val_rsi_right > val_rsi_left)

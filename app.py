@@ -1,4 +1,5 @@
 import concurrent.futures
+import os
 import time
 import pandas as pd
 import streamlit as st
@@ -23,7 +24,25 @@ st.markdown(
 )
 
 
-# Helper function untuk merender Trade Planner di bawah tabel
+# Helper untuk membaca file daftar_saham.txt
+def load_daftar_saham(filepath="daftar_saham.txt"):
+  if not os.path.exists(filepath):
+    st.error(f"⚠️ File `{filepath}` tidak ditemukan.")
+    return []
+  try:
+    df = pd.read_csv(filepath)
+    if "Kode" in df.columns:
+      tickers = df["Kode"].dropna().astype(str).str.strip().tolist()
+      return [t + ".JK" if not t.endswith(".JK") else t for t in tickers if t]
+    else:
+      st.error(f"⚠️ Kolom 'Kode' tidak ditemukan dalam `{filepath}`.")
+      return []
+  except Exception as e:
+    st.error(f"Gagal membaca `{filepath}`: {e}")
+    return []
+
+
+# Helper function untuk merender detail Trade Planner
 def render_inline_trade_planner(ticker_symbol, key_suffix):
   st.markdown("---")
   st.subheader(f"📊 Live Trade Plan: **{ticker_symbol}**")
@@ -83,7 +102,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
 tab1, tab2, tab3 = st.tabs([
     "🔄 RSI Divergence",
     "⚡ Stochastic & Parabolic SAR",
-    "🎯 Custom Trade Planner",
+    "🎯 Trade Planner & Batch Screener",
 ])
 
 # ==========================================
@@ -190,7 +209,6 @@ with tab1:
   col_bull, col_bear = st.columns(2)
   selected_rsi_symbol = None
 
-  # TARGET KOLOM DENGAN TANGGAL
   target_rsi_cols = [
       "Saham",
       "Pattern",
@@ -401,34 +419,229 @@ with tab2:
 
 
 # ==========================================
-# TAB 3: CUSTOM TRADE PLANNER (MANUAL INPUT)
+# TAB 3: TRADE PLANNER & BATCH SCREENER
 # ==========================================
 with tab3:
-  st.header("Custom Trade Planner Calculator")
-  st.caption("Cari Trade Plan saham pilihan secara manual.")
+  st.header("🎯 Trade Planner & Multi-Category Batch Screener")
 
-  col_input1, col_input2 = st.columns([2, 1])
-  with col_input1:
-    ticker_input = st.text_input(
-        "Masukkan Kode Saham (Contoh: BBCA, ASII, BBRI)",
-        value="",
-        key="manual_ticker_input",
-        placeholder="Ketik kode saham...",
+  # Pilih Sub-Mode
+  planner_mode = st.radio(
+      "Pilih Mode Analisis:",
+      ["🔍 Manual Single Input", "⚡ Batch Screener (daftar_saham.txt)"],
+      horizontal=True,
+  )
+
+  if planner_mode == "🔍 Manual Single Input":
+    st.caption("Cari Trade Plan saham pilihan secara manual.")
+    col_input1, col_input2 = st.columns([2, 1])
+    with col_input1:
+      ticker_input = st.text_input(
+          "Masukkan Kode Saham (Contoh: BBCA, ASII, BBRI)",
+          value="",
+          key="manual_ticker_input",
+          placeholder="Ketik kode saham...",
+      )
+    with col_input2:
+      period_input = st.selectbox(
+          "Pilih Periode Data",
+          options=["3mo", "6mo", "1y", "2y"],
+          index=0,
+          key="manual_period_input",
+      )
+
+    if st.button("Generate Trade Plan", key="btn_planner_manual"):
+      if ticker_input.strip() == "":
+        st.warning("⚠️ Mohon masukkan kode saham terlebih dahulu.")
+      else:
+        clean_ticker = ticker_input.strip().upper()
+        if not clean_ticker.endswith(".JK") and "." not in clean_ticker:
+          clean_ticker += ".JK"
+        render_inline_trade_planner(clean_ticker, key_suffix="manual_tab")
+
+  else:  # MODE BATCH SCREENER
+    st.caption(
+        "Screening otomatis seluruh saham di `daftar_saham.txt` berdasarkan"
+        " Status Candle, Support/Resistance, dan Warning."
     )
-  with col_input2:
-    period_input = st.selectbox(
-        "Pilih Periode Data",
-        options=["3mo", "6mo", "1y", "2y"],
+
+    batch_period = st.selectbox(
+        "Pilih Periode Analysis Batch",
+        options=["3mo", "6mo", "1y"],
         index=0,
-        key="manual_period_input",
+        key="batch_period_select",
     )
 
-  if st.button("Generate Trade Plan", key="btn_planner_manual"):
-    if ticker_input.strip() == "":
-      st.warning("⚠️ Mohon masukkan kode saham terlebih dahulu.")
-    else:
-      clean_ticker = ticker_input.strip().upper()
-      if not clean_ticker.endswith(".JK") and "." not in clean_ticker:
-        clean_ticker += ".JK"
+    if st.button(
+        "🚀 Run Batch Screener (daftar_saham.txt)", key="btn_run_batch"
+    ):
+      batch_tickers = load_daftar_saham("daftar_saham.txt")
 
-      render_inline_trade_planner(clean_ticker, key_suffix="manual_tab")
+      if not batch_tickers:
+        st.error("Daftar ticker kosong atau gagal dimuat.")
+      else:
+        total_batch = len(batch_tickers)
+        st.info(
+            f"Memulai screening batch untuk {total_batch} saham dari"
+            " `daftar_saham.txt`..."
+        )
+
+        pbar_batch = st.progress(0)
+        pstatus_batch = st.empty()
+
+        def process_batch_item(ticker_sym):
+          try:
+            p = TradePlanner(ticker=ticker_sym, period=batch_period)
+            p.fetch_and_prepare_data()
+
+            df_tp = p.generate_trade_plan()
+            if df_tp.empty:
+              return None
+
+            close_p = p.data["Close"].iloc[-1]
+            status_candle = str(df_tp["Status Candle"].iloc[0])
+            warning_val = str(df_tp["Warning"].iloc[0])
+
+            # Hitung posisi terhadap Support & Resistance
+            df_sup = p.get_strong_support()
+            df_res = p.get_strong_resistance()
+
+            s_level = df_sup["Level"].iloc[0] if not df_sup.empty else 0
+            r_level = df_res["Level"].iloc[0] if not df_res.empty else 0
+
+            # Penentuan Kategori Posisi Harga
+            posisi_harga = "Normal / Floating"
+            if s_level > 0 and abs(close_p - s_level) / s_level <= 0.02:
+              posisi_harga = "🛡️ Dekat Support (<= 2%)"
+            elif r_level > 0 and close_p >= r_level:
+              posisi_harga = "🚀 Breakout Resistance"
+            elif r_level > 0 and abs(r_level - close_p) / close_p <= 0.02:
+              posisi_harga = "🧱 Dekat Resistance (<= 2%)"
+
+            res_row = df_tp.iloc[0].to_dict()
+            res_row["Saham"] = ticker_sym.replace(".JK", "")
+            res_row["Ticker"] = ticker_sym
+            res_row["Close Price"] = close_p
+            res_row["Posisi Harga"] = posisi_harga
+            return res_row
+          except Exception:
+            return None
+
+        batch_results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+          future_to_ticker = {
+              executor.submit(process_batch_item, t): t for t in batch_tickers
+          }
+          completed = 0
+
+          for future in concurrent.futures.as_completed(future_to_ticker):
+            completed += 1
+            pct = int((completed / total_batch) * 100)
+            pbar_batch.progress(pct)
+            pstatus_batch.text(
+                f"Memproses Batch Trade Planner: {completed}/{total_batch}"
+                " saham..."
+            )
+
+            res = future.result()
+            if res:
+              batch_results.append(res)
+
+        pbar_batch.empty()
+        pstatus_batch.empty()
+
+        if batch_results:
+          df_batch_all = pd.DataFrame(batch_results)
+          st.session_state["df_batch_screener"] = df_batch_all
+          st.success(
+              f"Screening selesai! Berhasil memproses {len(df_batch_all)} dari"
+              f" {total_batch} saham."
+          )
+        else:
+          st.error("Tidak ada data yang berhasil di-screen.")
+
+    # MENAMPILKAN HASIL + DROPDOWN CATEGORY FILTER
+    if (
+        "df_batch_screener" in st.session_state
+        and not st.session_state["df_batch_screener"].empty
+    ):
+      df_batch = st.session_state["df_batch_screener"]
+
+      st.markdown("---")
+      st.subheader("📊 Filter Hasil Batch Screener")
+
+      col_f1, col_f2, col_f3 = st.columns(3)
+
+      # 1. Filter Status Candle
+      list_candles = ["ALL"] + sorted(
+          df_batch["Status Candle"].dropna().unique().tolist()
+      )
+      with col_f1:
+        sel_candle = st.selectbox(
+            "🕯️ Filter Status Candle:",
+            list_candles,
+            key="filter_batch_candle",
+        )
+
+      # 2. Filter Posisi Harga (Support / Resistance)
+      list_posisi = ["ALL"] + sorted(
+          df_batch["Posisi Harga"].dropna().unique().tolist()
+      )
+      with col_f2:
+        sel_posisi = st.selectbox(
+            "📈 Filter Posisi Harga:", list_posisi, key="filter_batch_posisi"
+        )
+
+      # 3. Filter Warning
+      list_warning = ["ALL"] + sorted(
+          df_batch["Warning"].dropna().unique().tolist()
+      )
+      with col_f3:
+        sel_warning = st.selectbox(
+            "⚠️ Filter Status Warning:",
+            list_warning,
+            key="filter_batch_warning",
+        )
+
+      # Terapkan Filter
+      df_filtered = df_batch.copy()
+      if sel_candle != "ALL":
+        df_filtered = df_filtered[df_filtered["Status Candle"] == sel_candle]
+      if sel_posisi != "ALL":
+        df_filtered = df_filtered[df_filtered["Posisi Harga"] == sel_posisi]
+      if sel_warning != "ALL":
+        df_filtered = df_filtered[df_filtered["Warning"] == sel_warning]
+
+      st.write(f"Menampilkan **{len(df_filtered)}** hasil saham terpilih:")
+
+      # Tampilkan DataFrame Interaktif
+      display_batch_cols = [
+          c
+          for c in [
+              "Saham",
+              "Posisi Harga",
+              "Status Candle",
+              "Warning",
+              "Range Buy",
+              "Stop Loss",
+              "Target 1",
+              "Target 2",
+              "Rasio (R:R)",
+          ]
+          if c in df_filtered.columns
+      ]
+
+      event_batch = st.dataframe(
+          df_filtered[display_batch_cols],
+          use_container_width=True,
+          on_select="rerun",
+          selection_mode="single-row",
+          key="table_batch_screener",
+      )
+
+      # Render Detail Trade Planner jika baris diklik
+      if event_batch.selection and event_batch.selection["rows"]:
+        idx_b = event_batch.selection["rows"][0]
+        selected_batch_ticker = str(df_filtered.iloc[idx_b]["Ticker"])
+        render_inline_trade_planner(
+            selected_batch_ticker, key_suffix="batch_tab"
+        )

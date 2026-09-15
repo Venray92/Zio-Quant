@@ -1,40 +1,12 @@
 import warnings
+import concurrent.futures
 import pandas as pd
 import ta
 import yfinance as yf
-import concurrent.futures
 
 from ihsg_tickers import get_all_ihsg_tickers
 
 warnings.filterwarnings("ignore")
-
-DEFAULT_SAHAM_LIST = sorted(
-    list(
-        set([
-            "ISAT.JK", "ACES.JK", "ADHI.JK", "ADRO.JK", "AGRO.JK", "AALI.JK", "AKRA.JK",
-            "AMMN.JK", "AMRT.JK", "ANTM.JK", "APLN.JK", "ARTO.JK", "ASII.JK", "ASRI.JK",
-            "AUTO.JK", "AVIA.JK", "BBCA.JK", "BBHI.JK", "BBNI.JK", "BBRI.JK", "BBTN.JK",
-            "BCIC.JK", "BDMN.JK", "BELI.JK", "BIRD.JK", "BJBR.JK", "BJTM.JK", "BMRI.JK",
-            "BMTR.JK", "BNGA.JK", "BREN.JK", "BRIS.JK", "BRPT.JK", "BSDE.JK", "BUKA.JK",
-            "BUMI.JK", "BYAN.JK", "CITA.JK", "CLEO.JK", "CMRY.JK", "CPIN.JK", "CTRA.JK",
-            "CUAN.JK", "DCII.JK", "DEWA.JK", "DILD.JK", "DKFT.JK", "DOID.JK", "DRMA.JK",
-            "DSNG.JK", "EAST.JK", "EDGE.JK", "ELSA.JK", "EMTK.JK", "ENRG.JK", "ESSA.JK",
-            "EXCL.JK", "FILM.JK", "GEMS.JK", "GJTL.JK", "GOTO.JK", "HAIS.JK", "HEAL.JK",
-            "HRUM.JK", "ICBP.JK", "INAF.JK", "INCO.JK", "INDF.JK", "INDY.JK", "INKP.JK",
-            "INTP.JK", "IPCC.JK", "IPCM.JK", "IRRA.JK", "ITMG.JK", "JKON.JK", "JPFA.JK",
-            "JSPT.JK", "KAEF.JK", "KEEN.JK", "KIJA.JK", "KLBF.JK", "LEAD.JK", "LSIP.JK",
-            "MAIN.JK", "MAPA.JK", "MAPI.JK", "MBAP.JK", "MBMA.JK", "MCAS.JK", "MDKA.JK",
-            "MEDC.JK", "MEDS.JK", "MIKA.JK", "MNCN.JK", "MPMX.JK", "MTDL.JK", "MYOR.JK",
-            "NCKL.JK", "NELY.JK", "NRCA.JK", "PANI.JK", "PANR.JK", "PGAS.JK", "PGEO.JK",
-            "PNBN.JK", "POWR.JK", "PRDA.JK", "PSAB.JK", "PSSI.JK", "PTBA.JK", "PTPP.JK",
-            "PWON.JK", "RAAM.JK", "RALS.JK", "SAME.JK", "SCMA.JK", "SIDO.JK", "SILO.JK",
-            "SMBR.JK", "SMDR.JK", "SMGR.JK", "SMRA.JK", "SMSM.JK", "SSIA.JK", "SSMS.JK",
-            "STAA.JK", "TAPG.JK", "TBIG.JK", "TCPI.JK", "TINS.JK", "TKIM.JK", "TLKM.JK",
-            "TMAS.JK", "TOBA.JK", "TOTL.JK", "TOWR.JK", "TPIA.JK", "TSPC.JK", "UNTR.JK",
-            "UNVR.JK", "WEGE.JK", "WIFI.JK", "WIKA.JK", "WINS.JK", "WOOD.JK",
-        ])
-    )
-)
 
 
 def _process_single_ticker(ticker):
@@ -56,7 +28,6 @@ def _process_single_ticker(ticker):
             return None, None
 
         df["vol_ma20"] = df["Volume"].rolling(window=20).mean()
-        vol_ma20_0 = df["vol_ma20"].iloc[-1]
 
         low_min10 = df["Low"].rolling(window=10).min()
         high_max10 = df["High"].rolling(window=10).max()
@@ -84,10 +55,21 @@ def _process_single_ticker(ticker):
         k4, d4 = df["stoch_k"].iloc[-5], df["stoch_d"].iloc[-5]
         psar0 = df["psar"].iloc[-1]
 
+        # Pengecekan Volume > MA20 untuk rentang H-0 s.d. H-3
+        vol_spike_h0 = v0 > df["vol_ma20"].iloc[-1]
+        vol_spike_h1_h3 = (
+            (df["Volume"].iloc[-2] > df["vol_ma20"].iloc[-2])
+            or (df["Volume"].iloc[-3] > df["vol_ma20"].iloc[-3])
+            or (df["Volume"].iloc[-4] > df["vol_ma20"].iloc[-4])
+        )
+
         res_gc = None
         res_dc = None
 
-        if k0 < 35:
+        # ==========================================
+        # 1. LOGIKA BULLISH / GC (Stoch %K < 30)
+        # ==========================================
+        if k0 < 30:
             gc_today = (k1 < d1) and (k0 >= d0)
             gc_yesterday = (k2 < d2) and (k1 >= d1) and (k0 >= d0)
             gc_2days_ago = (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0)
@@ -102,29 +84,60 @@ def _process_single_ticker(ticker):
 
             stoch_signal = None
             if gc_today:
-                stoch_signal = {"type": "GC Hari Ini (H-0)", "score": 80, "code": "H0"}
+                stoch_signal = {
+                    "type": "GC Hari Ini (H-0)",
+                    "score": 70,
+                    "code": "H0",
+                }
             elif gc_yesterday:
-                stoch_signal = {"type": "GC Kemarin (H-1)", "score": 70, "code": "H1_H3"}
+                stoch_signal = {
+                    "type": "GC Kemarin (H-1)",
+                    "score": 70,
+                    "code": "H1",
+                }
             elif gc_2days_ago:
-                stoch_signal = {"type": "GC 2 Hari Lalu (H-2)", "score": 70, "code": "H1_H3"}
+                stoch_signal = {
+                    "type": "GC 2 Hari Lalu (H-2)",
+                    "score": 60,
+                    "code": "H2",
+                }
             elif gc_3days_ago:
-                stoch_signal = {"type": "GC 3 Hari Lalu (H-3)", "score": 70, "code": "H1_H3"}
+                stoch_signal = {
+                    "type": "GC 3 Hari Lalu (H-3)",
+                    "score": 60,
+                    "code": "H3",
+                }
             elif is_almost_gc:
-                stoch_signal = {"type": "Early Signal (Merapat)", "score": 55, "code": "EARLY"}
+                stoch_signal = {
+                    "type": "Early Signal (Merapat)",
+                    "score": 50,
+                    "code": "EARLY",
+                }
 
             if stoch_signal:
                 score = stoch_signal["score"]
                 notes = [stoch_signal["type"]]
 
+                # Bonus PSAR Bullish
                 if psar0 < l0:
                     score += 20
                     notes.append("PSAR Bullish (+20)")
                 else:
                     notes.append("PSAR Bearish (+0)")
 
-                if v0 > vol_ma20_0:
-                    score += 10 if stoch_signal["code"] == "H0" else 5
-                    notes.append("Vol > MA20")
+                # Bonus Volume > MA20 (+5 poin)
+                has_vol_bonus = False
+                if stoch_signal["code"] == "H0" and vol_spike_h0:
+                    has_vol_bonus = True
+                elif (
+                    stoch_signal["code"] in ["H1", "H2", "H3", "EARLY"]
+                    and vol_spike_h1_h3
+                ):
+                    has_vol_bonus = True
+
+                if has_vol_bonus:
+                    score += 5
+                    notes.append("Vol > MA20 (+5)")
 
                 res_gc = {
                     "Ticker": ticker.replace(".JK", ""),
@@ -137,7 +150,10 @@ def _process_single_ticker(ticker):
                     "Detail Signal": " | ".join(notes),
                 }
 
-        if k0 >= 75:
+        # ==========================================
+        # 2. LOGIKA BEARISH / DC (Stoch %K > 70)
+        # ==========================================
+        if k0 >= 70:
             dc_today = (k1 > d1) and (k0 <= d0)
             dc_yesterday = (k2 > d2) and (k1 <= d1) and (k0 <= d0)
             dc_2days_ago = (k3 > d3) and (k2 >= d2) and (k1 <= d1) and (k0 <= d0)
@@ -152,30 +168,60 @@ def _process_single_ticker(ticker):
 
             dc_signal = None
             if dc_today:
-                dc_signal = {"type": "DC Hari Ini (H-0)", "score": -80, "code": "H0"}
+                dc_signal = {
+                    "type": "DC Hari Ini (H-0)",
+                    "score": -70,
+                    "code": "H0",
+                }
             elif dc_yesterday:
-                dc_signal = {"type": "DC Kemarin (H-1)", "score": -70, "code": "H1_H3"}
+                dc_signal = {
+                    "type": "DC Kemarin (H-1)",
+                    "score": -70,
+                    "code": "H1",
+                }
             elif dc_2days_ago:
-                dc_signal = {"type": "DC 2 Hari Lalu (H-2)", "score": -70, "code": "H1_H3"}
+                dc_signal = {
+                    "type": "DC 2 Hari Lalu (H-2)",
+                    "score": -60,
+                    "code": "H2",
+                }
             elif dc_3days_ago:
-                dc_signal = {"type": "DC 3 Hari Lalu (H-3)", "score": -70, "code": "H1_H3"}
+                dc_signal = {
+                    "type": "DC 3 Hari Lalu (H-3)",
+                    "score": -60,
+                    "code": "H3",
+                }
             elif is_almost_dc:
-                dc_signal = {"type": "Early DC Signal (Merapat)", "score": -55, "code": "EARLY"}
+                dc_signal = {
+                    "type": "Early DC Signal (Merapat)",
+                    "score": -50,
+                    "code": "EARLY",
+                }
 
             if dc_signal:
                 score = dc_signal["score"]
                 notes = [dc_signal["type"]]
 
+                # Penalti PSAR Bearish
                 if psar0 > h0:
                     score -= 20
                     notes.append("PSAR Bearish (-20)")
                 else:
                     notes.append("PSAR Bullish (0)")
 
-                if v0 > vol_ma20_0:
-                    penalty = 10 if dc_signal["code"] == "H0" else 5
-                    score -= penalty
-                    notes.append(f"High Vol Sell (-{penalty})")
+                # Penalti Volume > MA20 (-5 poin)
+                has_vol_penalty = False
+                if dc_signal["code"] == "H0" and vol_spike_h0:
+                    has_vol_penalty = True
+                elif (
+                    dc_signal["code"] in ["H1", "H2", "H3", "EARLY"]
+                    and vol_spike_h1_h3
+                ):
+                    has_vol_penalty = True
+
+                if has_vol_penalty:
+                    score -= 5
+                    notes.append("High Vol Sell (-5)")
 
                 res_dc = {
                     "Ticker": ticker.replace(".JK", ""),
@@ -192,39 +238,3 @@ def _process_single_ticker(ticker):
 
     except Exception:
         return None, None
-
-
-def run_stoch_psar_screener(tickers=None, progress_callback=None):
-    """Jalankan screening dengan dukungan callback progress bar."""
-    if tickers is None:
-        tickers = get_all_ihsg_tickers()
-        if not tickers:
-            tickers = DEFAULT_SAHAM_LIST
-
-    results_gc = []
-    results_dc = []
-    total_tickers = len(tickers)
-    completed = 0
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-        futures = {executor.submit(_process_single_ticker, t): t for t in tickers}
-        for future in concurrent.futures.as_completed(futures):
-            res_gc, res_dc = future.result()
-            if res_gc:
-                results_gc.append(res_gc)
-            if res_dc:
-                results_dc.append(res_dc)
-
-            completed += 1
-            if progress_callback:
-                progress_callback(completed, total_tickers)
-
-    df_gc = pd.DataFrame(results_gc)
-    df_dc = pd.DataFrame(results_dc)
-
-    if not df_gc.empty:
-        df_gc = df_gc.sort_values(by="Score", ascending=False).reset_index(drop=True)
-    if not df_dc.empty:
-        df_dc = df_dc.sort_values(by="Score", ascending=True).reset_index(drop=True)
-
-    return df_gc, df_dc

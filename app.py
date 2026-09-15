@@ -361,66 +361,85 @@ with tab2:
         c_m3.metric("Sinyal Jual (Dead Cross)", f"{st_stats['matched_dc']} Saham")
         c_m4.metric("Total Sinyal Terdeteksi", f"{st_stats['total_signal']} Saham")
 
-    col_gc, col_dc = st.columns(2)
-    selected_stoch_symbol = None
+  # ==========================================
+# TAB 2: STOCHASTIC & PARABOLIC SAR
+# ==========================================
+col_gc, col_dc = st.columns(2)
+selected_stoch_symbol = None
 
-    with col_gc:
-        st.subheader("🟢 Signal Beli (Golden Cross)")
-        if (
-            "df_gc_data" in st.session_state
-            and not st.session_state["df_gc_data"].empty
-        ):
-            df_gc = st.session_state["df_gc_data"]
-            event_gc = st.dataframe(
-                df_gc,
-                use_container_width=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="table_gc",
-            )
-            if event_gc.selection and event_gc.selection["rows"]:
-                idx = event_gc.selection["rows"][0]
-                ticker_col = next(
-                    (
-                        c
-                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                        if c in df_gc.columns
-                    ),
-                    None,
-                )
-                if ticker_col:
-                    selected_stoch_symbol = str(df_gc.iloc[idx][ticker_col])
-        else:
-            st.info("Tidak ada data / Belum di-scan.")
+with col_gc:
+    st.subheader("🟢 Signal Beli (Golden Cross)")
+    if (
+        "df_gc_data" in st.session_state
+        and not st.session_state["df_gc_data"].empty
+    ):
+        df_gc = st.session_state["df_gc_data"]
 
-    with col_dc:
-        st.subheader("🔴 Signal Jual (Dead Cross)")
-        if (
-            "df_dc_data" in st.session_state
-            and not st.session_state["df_dc_data"].empty
-        ):
-            df_dc = st.session_state["df_dc_data"]
-            event_dc = st.dataframe(
-                df_dc,
-                use_container_width=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="table_dc",
+        # Hapus kolom 'Action' jika ada
+        df_gc_display = (
+            df_gc.drop(columns=["Action"], errors="ignore")
+            if "Action" in df_gc.columns
+            else df_gc
+        )
+
+        event_gc = st.dataframe(
+            df_gc_display,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="table_gc",
+        )
+        if event_gc.selection and event_gc.selection["rows"]:
+            idx = event_gc.selection["rows"][0]
+            ticker_col = next(
+                (
+                    c
+                    for c in ["Ticker", "Saham", "Stock", "Symbol"]
+                    if c in df_gc.columns
+                ),
+                None,
             )
-            if event_dc.selection and event_dc.selection["rows"]:
-                idx = event_dc.selection["rows"][0]
-                ticker_col = next(
-                    (
-                        c
-                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                        if c in df_dc.columns
-                    ),
-                    None,
-                )
-                if ticker_col:
-                    selected_stoch_symbol = str(df_dc.iloc[idx][ticker_col])
-        else:
-            st.info("Tidak ada data / Belum di-scan.")
+            if ticker_col:
+                selected_stoch_symbol = str(df_gc.iloc[idx][ticker_col])
+    else:
+        st.info("Tidak ada data / Belum di-scan.")
+
+with col_dc:
+    st.subheader("🔴 Signal Jual (Dead Cross)")
+    if (
+        "df_dc_data" in st.session_state
+        and not st.session_state["df_dc_data"].empty
+    ):
+        df_dc = st.session_state["df_dc_data"]
+
+        # Hapus kolom 'Action' jika ada
+        df_dc_display = (
+            df_dc.drop(columns=["Action"], errors="ignore")
+            if "Action" in df_dc.columns
+            else df_dc
+        )
+
+        event_dc = st.dataframe(
+            df_dc_display,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="table_dc",
+        )
+        if event_dc.selection and event_dc.selection["rows"]:
+            idx = event_dc.selection["rows"][0]
+            ticker_col = next(
+                (
+                    c
+                    for c in ["Ticker", "Saham", "Stock", "Symbol"]
+                    if c in df_dc.columns
+                ),
+                None,
+            )
+            if ticker_col:
+                selected_stoch_symbol = str(df_dc.iloc[idx][ticker_col])
+    else:
+        st.info("Tidak ada data / Belum di-scan.")
 
     if selected_stoch_symbol:
         if (

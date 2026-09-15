@@ -1,6 +1,24 @@
 import pandas as pd
-import pandas_ta as ta
 import yfinance as yf
+
+
+# Fungsi manual untuk menghitung RSI tanpa pandas_ta
+def calculate_rsi(series, period=10):
+  delta = series.diff()
+  gain = delta.where(delta > 0, 0.0)
+  loss = -delta.where(delta < 0, 0.0)
+
+  avg_gain = gain.ewm(com=period - 1, min_periods=period).mean()
+  avg_loss = loss.ewm(com=period - 1, min_periods=period).mean()
+
+  rs = avg_gain / avg_loss
+  rsi = 100 - (100 / (1 + rs))
+  return rsi
+
+
+# Fungsi manual untuk menghitung EMA tanpa pandas_ta
+def calculate_ema(series, period=10):
+  return series.ewm(span=period, adjust=False).mean()
 
 
 def extract_swings(df_in, series, left=2, right=2):
@@ -273,7 +291,6 @@ def detect_all_divergences(df_data, is_gc, is_dc):
 
 
 def detect_rsi_patterns_and_score(ticker: str):
-  """Fungsi utama yang dipanggil oleh app.py untuk melakukan screening RSI Divergence."""
   try:
     df = yf.download(ticker, period="1y", interval="1d", progress=False)
     if df.empty:
@@ -285,9 +302,9 @@ def detect_rsi_patterns_and_score(ticker: str):
     if len(df) < 30:
       return None
 
-    # Hitung indikator
-    df["RSI_10"] = df.ta.rsi(close=df["Close"], length=10)
-    df["RSI_EMA10"] = df.ta.ema(close=df["RSI_10"], length=10)
+    # Hitung indikator menggunakan fungsi manual berbasis pandas murni
+    df["RSI_10"] = calculate_rsi(df["Close"], period=10)
+    df["RSI_EMA10"] = calculate_ema(df["RSI_10"], period=10)
 
     latest_rsi_daily = df["RSI_10"].iloc[-1]
     latest_ema10_daily = df["RSI_EMA10"].iloc[-1]
@@ -295,17 +312,13 @@ def detect_rsi_patterns_and_score(ticker: str):
     is_golden_cross = latest_rsi_daily > latest_ema10_daily
     is_dead_cross = latest_rsi_daily < latest_ema10_daily
 
-    # Deteksi Divergence
     df_div = detect_all_divergences(df, is_golden_cross, is_dead_cross)
 
     if df_div.empty:
       return None
 
-    # Ambil pola pertama yang ditemukan untuk ditampilkan di ringkasan tabel screener
     first_row = df_div.iloc[0]
     pattern_name = first_row["Jenis Divergence"]
-
-    # Berikan skor sederhana untuk sorting di dashboard (misal: 100 jika valid, 50 jika potensial)
     score = 100 if "Valid" in pattern_name else 50
 
     return {

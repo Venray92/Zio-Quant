@@ -164,7 +164,7 @@ DEFAULT_SAHAM_LIST = sorted(
 
 def _process_single_ticker(ticker):
   try:
-    # --- PERBAIKAN 1: Auto add .JK jika dari daftar_saham.txt belum ada ---
+    # 1. Penyesuaian format ticker
     formatted_ticker = ticker.strip().upper()
     if not formatted_ticker.endswith(".JK"):
       formatted_ticker = f"{formatted_ticker}.JK"
@@ -175,7 +175,7 @@ def _process_single_ticker(ticker):
     if df.empty or len(df) < 30:
       return None, None
 
-    # --- PERBAIKAN 2: Flatten MultiIndex yfinance terbaru ---
+    # 2. Penanganan MultiIndex yfinance
     if isinstance(df.columns, pd.MultiIndex):
       df.columns = df.columns.get_level_values(0)
 
@@ -185,25 +185,26 @@ def _process_single_ticker(ticker):
     h0 = df["High"].iloc[-1]
     val0 = c0 * v0
 
-    # --- PERBAIKAN 3: Filter Value diperlonggar (misal > 100jt) agar tidak membuang semua hasil ---
+    # Filter dasar
     if c0 <= 50 or val0 < 100_000_000:
       return None, None
 
+    # Indikator Volume MA20
     df["vol_ma20"] = df["Volume"].rolling(window=20).mean()
     vol_ma20_0 = df["vol_ma20"].iloc[-1]
 
+    # Indikator Stochastic
     low_min10 = df["Low"].rolling(window=10).min()
     high_max10 = df["High"].rolling(window=10).max()
 
-    # Mencegah pembagian dengan nol
     diff = high_max10 - low_min10
     diff = diff.replace(0, 0.001)
 
     fast_k = 100 * ((df["Close"] - low_min10) / diff)
-
     df["stoch_k"] = fast_k.rolling(window=5).mean()
     df["stoch_d"] = df["stoch_k"].rolling(window=5).mean()
 
+    # Indikator PSAR
     try:
       psar_ind = ta.trend.PSARIndicator(
           high=df["High"],
@@ -226,49 +227,37 @@ def _process_single_ticker(ticker):
     res_gc = None
     res_dc = None
 
-    # --- LOGIKA GOLDEN CROSS (TETAP SESUAI ASLI) ---
-    if k0 < 35:
+    # --- 1. GOLDEN CROSS (REVISI: STOCHASTIC %K < 30) ---
+    if k0 < 30:
       gc_today = (k1 < d1) and (k0 >= d0)
       gc_yesterday = (k2 < d2) and (k1 >= d1) and (k0 >= d0)
       gc_2days_ago = (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0)
       gc_3days_ago = (
-          (k4 < d4)
-          and (k3 >= d3)
-          and (k2 >= d2)
-          and (k1 >= d1)
-          and (k0 >= d0)
+          (k4 < d4) and (k3 >= d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0)
       )
       is_almost_gc = (k0 <= d0) and ((d0 - k0) <= 3.0)
 
       stoch_signal = None
       if gc_today:
-        stoch_signal = {
-            "type": "GC Hari Ini (H-0)",
-            "score": 80,
-            "code": "H0",
-        }
+        stoch_signal = {"type": "GC Hari Ini (H-0)", "score": 70, "code": "H0"}
       elif gc_yesterday:
-        stoch_signal = {
-            "type": "GC Kemarin (H-1)",
-            "score": 70,
-            "code": "H1_H3",
-        }
+        stoch_signal = {"type": "GC Kemarin (H-1)", "score": 70, "code": "H1"}
       elif gc_2days_ago:
         stoch_signal = {
             "type": "GC 2 Hari Lalu (H-2)",
-            "score": 70,
-            "code": "H1_H3",
+            "score": 60,
+            "code": "H2",
         }
       elif gc_3days_ago:
         stoch_signal = {
             "type": "GC 3 Hari Lalu (H-3)",
-            "score": 70,
-            "code": "H1_H3",
+            "score": 60,
+            "code": "H3",
         }
       elif is_almost_gc:
         stoch_signal = {
             "type": "Early Signal (Merapat)",
-            "score": 55,
+            "score": 50,
             "code": "EARLY",
         }
 
@@ -276,15 +265,30 @@ def _process_single_ticker(ticker):
         score = stoch_signal["score"]
         notes = [stoch_signal["type"]]
 
+        # PSAR Bullish Bonus (+20)
         if psar0 < l0:
           score += 20
           notes.append("PSAR Bullish (+20)")
-        else:
-          notes.append("PSAR Bearish (+0)")
 
-        if v0 > vol_ma20_0:
-          score += 10 if stoch_signal["code"] == "H0" else 5
-          notes.append("Vol > MA20")
+        # Pengecekan Volume MA20 (+5)
+        vol_hist_match = False
+        if stoch_signal["code"] == "H0":
+          vol_hist_match = v0 > vol_ma20_0
+        else:
+          vol_ma20_series = df["vol_ma20"]
+          vol_series = df["Volume"]
+          vol_hist_match = (
+              (vol_series.iloc[-2] > vol_ma20_series.iloc[-2])
+              or (vol_series.iloc[-3] > vol_ma20_series.iloc[-3])
+              or (vol_series.iloc[-4] > vol_ma20_series.iloc[-4])
+          )
+
+        if vol_hist_match:
+          score += 5
+          notes.append("Vol > MA20 (+5)")
+
+        # Pembatasan Maksimal Skor 100
+        score = min(100, score)
 
         res_gc = {
             "Ticker": ticker.replace(".JK", ""),
@@ -297,45 +301,37 @@ def _process_single_ticker(ticker):
             "Detail Signal": " | ".join(notes),
         }
 
-    # --- LOGIKA DEAD CROSS (TETAP SESUAI ASLI) ---
-    if k0 >= 75:
+    # --- 2. DEAD CROSS (REVISI: STOCHASTIC %K > 70) ---
+    if k0 > 70:
       dc_today = (k1 > d1) and (k0 <= d0)
       dc_yesterday = (k2 > d2) and (k1 <= d1) and (k0 <= d0)
       dc_2days_ago = (k3 > d3) and (k2 >= d2) and (k1 <= d1) and (k0 <= d0)
       dc_3days_ago = (
-          (k4 < d4)
-          and (k3 >= d3)
-          and (k2 >= d2)
-          and (k1 <= d1)
-          and (k0 <= d0)
+          (k4 < d4) and (k3 >= d3) and (k2 >= d2) and (k1 >= d1) and (k0 <= d0)
       )
       is_almost_dc = (k0 >= d0) and ((k0 - d0) <= 3.0)
 
       dc_signal = None
       if dc_today:
-        dc_signal = {"type": "DC Hari Ini (H-0)", "score": -80, "code": "H0"}
+        dc_signal = {"type": "DC Hari Ini (H-0)", "score": -70, "code": "H0"}
       elif dc_yesterday:
-        dc_signal = {
-            "type": "DC Kemarin (H-1)",
-            "score": -70,
-            "code": "H1_H3",
-        }
+        dc_signal = {"type": "DC Kemarin (H-1)", "score": -70, "code": "H1"}
       elif dc_2days_ago:
         dc_signal = {
             "type": "DC 2 Hari Lalu (H-2)",
-            "score": -70,
-            "code": "H1_H3",
+            "score": -60,
+            "code": "H2",
         }
       elif dc_3days_ago:
         dc_signal = {
             "type": "DC 3 Hari Lalu (H-3)",
-            "score": -70,
-            "code": "H1_H3",
+            "score": -60,
+            "code": "H3",
         }
       elif is_almost_dc:
         dc_signal = {
             "type": "Early DC Signal (Merapat)",
-            "score": -55,
+            "score": -50,
             "code": "EARLY",
         }
 
@@ -343,16 +339,30 @@ def _process_single_ticker(ticker):
         score = dc_signal["score"]
         notes = [dc_signal["type"]]
 
+        # PSAR Bearish Penalti (-20)
         if psar0 > h0:
           score -= 20
           notes.append("PSAR Bearish (-20)")
-        else:
-          notes.append("PSAR Bullish (0)")
 
-        if v0 > vol_ma20_0:
-          penalty = 10 if dc_signal["code"] == "H0" else 5
-          score -= penalty
-          notes.append(f"High Vol Sell (-{penalty})")
+        # Pengecekan Volume MA20 (-5)
+        vol_hist_match = False
+        if dc_signal["code"] == "H0":
+          vol_hist_match = v0 > vol_ma20_0
+        else:
+          vol_ma20_series = df["vol_ma20"]
+          vol_series = df["Volume"]
+          vol_hist_match = (
+              (vol_series.iloc[-2] > vol_ma20_series.iloc[-2])
+              or (vol_series.iloc[-3] > vol_ma20_series.iloc[-3])
+              or (vol_series.iloc[-4] > vol_ma20_series.iloc[-4])
+          )
+
+        if vol_hist_match:
+          score -= 5
+          notes.append("High Vol Sell (-5)")
+
+        # Pembatasan Minimal Skor -100
+        score = max(-100, score)
 
         res_dc = {
             "Ticker": ticker.replace(".JK", ""),
@@ -372,7 +382,7 @@ def _process_single_ticker(ticker):
 
 
 def run_stoch_psar_screener(tickers=None, progress_callback=None):
-  """Jalankan screening dengan dukungan callback progress bar."""
+  """Fungsi utama screener."""
   if tickers is None:
     try:
       tickers = get_all_ihsg_tickers()
@@ -387,7 +397,6 @@ def run_stoch_psar_screener(tickers=None, progress_callback=None):
   total_tickers = len(tickers)
   completed = 0
 
-  # Gunakan max_workers=10 agar aman dari rate-limit yfinance
   with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
     futures = {executor.submit(_process_single_ticker, t): t for t in tickers}
     for future in concurrent.futures.as_completed(futures):

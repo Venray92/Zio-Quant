@@ -20,8 +20,13 @@ def load_stock_list(filepath="daftar_saham.txt"):
     return formatted_stocks
 
 
+# ==========================================================
+# FUNGSI BACKEND (6 TABEL BERJALAN DI BACKGROUND)
+# ==========================================================
+
+
 def extract_swings(df_in, series, left=2, right=2):
-    """Fungsi Swing Point dari kode baru"""
+    """Fungsi ekstraksi Swing High / Swing Low"""
     swings = []
     n = len(series)
 
@@ -53,8 +58,210 @@ def extract_swings(df_in, series, left=2, right=2):
     return pd.DataFrame(swings)
 
 
-def analyze_single_ticker_new(ticker):
-    """Menggunakan logika deteksi Divergence RSI 10 persis dari kode baru"""
+def detect_all_divergences(df_data, is_gc, is_dc):
+    """Logika deteksi Divergence presisi dari kodingan baru"""
+    max_date = df_data.index.max()
+    cutoff_scan = max_date - pd.Timedelta(days=30)
+    cutoff_fresh = max_date - pd.Timedelta(days=4)
+
+    min_rsi_diff = 3.0
+    min_price_diff_pct = 0.015
+
+    div_results = []
+
+    # A. BULLISH DIVERGENCE (SWING LOW)
+    p_swings_low = extract_swings(df_data, df_data["Low"])
+    rsi_swings_low = extract_swings(df_data, df_data["RSI_10"])
+
+    if not p_swings_low.empty and not rsi_swings_low.empty:
+        p_lows = (
+            p_swings_low[p_swings_low["Type"] == "SWING LOW"]
+            .sort_values("Tanggal", ascending=False)
+            .reset_index(drop=True)
+        )
+        rsi_lows = (
+            rsi_swings_low[rsi_swings_low["Type"] == "SWING LOW"]
+            .sort_values("Tanggal", ascending=False)
+            .reset_index(drop=True)
+        )
+
+        for i in range(len(p_lows) - 1):
+            right_p = p_lows.iloc[i]
+            if (
+                right_p["Tanggal"] < cutoff_scan
+                or right_p["Tanggal"] < cutoff_fresh
+            ):
+                continue
+
+            for j in range(i + 1, len(p_lows)):
+                left_p = p_lows.iloc[j]
+                days_gap = (right_p["Tanggal"] - left_p["Tanggal"]).days
+                if not (4 <= days_gap <= 60):
+                    continue
+
+                r_match_right = rsi_lows[
+                    (
+                        rsi_lows["Tanggal"]
+                        >= right_p["Tanggal"] - pd.Timedelta(days=5)
+                    )
+                    & (
+                        rsi_lows["Tanggal"]
+                        <= right_p["Tanggal"] + pd.Timedelta(days=5)
+                    )
+                ]
+                r_match_left = rsi_lows[
+                    (
+                        rsi_lows["Tanggal"]
+                        >= left_p["Tanggal"] - pd.Timedelta(days=5)
+                    )
+                    & (
+                        rsi_lows["Tanggal"]
+                        <= left_p["Tanggal"] + pd.Timedelta(days=5)
+                    )
+                ]
+
+                if not r_match_right.empty and not r_match_left.empty:
+                    val_rsi_right = r_match_right.iloc[0]["Nilai"]
+                    val_rsi_left = r_match_left.iloc[0]["Nilai"]
+
+                    price_diff_pct = (
+                        abs(right_p["Nilai"] - left_p["Nilai"]) / left_p["Nilai"]
+                    )
+                    rsi_diff = abs(val_rsi_right - val_rsi_left)
+                    status_bull = "Valid (GC)" if is_gc else "Potensial (Wait GC)"
+
+                    rsi_in_between = df_data.loc[
+                        left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
+                    ]
+
+                    # 1. Regular Bullish
+                    if (
+                        (right_p["Nilai"] < left_p["Nilai"])
+                        and (val_rsi_right > val_rsi_left)
+                        and (val_rsi_right < 30)
+                        and (rsi_in_between <= 30).all()
+                        and price_diff_pct >= min_price_diff_pct
+                        and rsi_diff >= min_rsi_diff
+                    ):
+                        div_results.append({
+                            "Signal": f"Regular Bullish ({status_bull})",
+                            "Category": "BULLISH",
+                        })
+                        break
+
+                    # 2. Hidden Bullish
+                    elif (
+                        (right_p["Nilai"] >= left_p["Nilai"])
+                        and (val_rsi_right < val_rsi_left)
+                        and (35 <= val_rsi_right <= 65)
+                        and price_diff_pct >= min_price_diff_pct
+                        and rsi_diff >= min_rsi_diff
+                    ):
+                        div_results.append({
+                            "Signal": f"Hidden Bullish ({status_bull})",
+                            "Category": "BULLISH",
+                        })
+                        break
+
+    # B. BEARISH DIVERGENCE (SWING HIGH)
+    p_swings_high = extract_swings(df_data, df_data["High"])
+    rsi_swings_high = extract_swings(df_data, df_data["RSI_10"])
+
+    if not p_swings_high.empty and not rsi_swings_high.empty:
+        p_highs = (
+            p_swings_high[p_swings_high["Type"] == "SWING HIGH"]
+            .sort_values("Tanggal", ascending=False)
+            .reset_index(drop=True)
+        )
+        rsi_highs = (
+            rsi_swings_high[rsi_swings_high["Type"] == "SWING HIGH"]
+            .sort_values("Tanggal", ascending=False)
+            .reset_index(drop=True)
+        )
+
+        for i in range(len(p_highs) - 1):
+            right_p = p_highs.iloc[i]
+            if (
+                right_p["Tanggal"] < cutoff_scan
+                or right_p["Tanggal"] < cutoff_fresh
+            ):
+                continue
+
+            for j in range(i + 1, len(p_highs)):
+                left_p = p_highs.iloc[j]
+                days_gap = (right_p["Tanggal"] - left_p["Tanggal"]).days
+                if not (4 <= days_gap <= 60):
+                    continue
+
+                r_match_right = rsi_highs[
+                    (
+                        rsi_highs["Tanggal"]
+                        >= right_p["Tanggal"] - pd.Timedelta(days=5)
+                    )
+                    & (
+                        rsi_highs["Tanggal"]
+                        <= right_p["Tanggal"] + pd.Timedelta(days=5)
+                    )
+                ]
+                r_match_left = rsi_highs[
+                    (
+                        rsi_highs["Tanggal"]
+                        >= left_p["Tanggal"] - pd.Timedelta(days=5)
+                    )
+                    & (
+                        rsi_highs["Tanggal"]
+                        <= left_p["Tanggal"] + pd.Timedelta(days=5)
+                    )
+                ]
+
+                if not r_match_right.empty and not r_match_left.empty:
+                    val_rsi_right = r_match_right.iloc[0]["Nilai"]
+                    val_rsi_left = r_match_left.iloc[0]["Nilai"]
+
+                    price_diff_pct = (
+                        abs(right_p["Nilai"] - left_p["Nilai"]) / left_p["Nilai"]
+                    )
+                    rsi_diff = abs(val_rsi_right - val_rsi_left)
+                    status_bear = "Valid (DC)" if is_dc else "Potensial (Wait DC)"
+
+                    rsi_in_between = df_data.loc[
+                        left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
+                    ]
+
+                    # 3. Regular Bearish
+                    if (
+                        (right_p["Nilai"] > left_p["Nilai"])
+                        and (val_rsi_right < val_rsi_left)
+                        and (val_rsi_right > 80)
+                        and (rsi_in_between >= 80).all()
+                        and price_diff_pct >= min_price_diff_pct
+                        and rsi_diff >= min_rsi_diff
+                    ):
+                        div_results.append({
+                            "Signal": f"Regular Bearish ({status_bear})",
+                            "Category": "BEARISH",
+                        })
+                        break
+
+                    # 4. Hidden Bearish
+                    elif (
+                        (right_p["Nilai"] <= left_p["Nilai"])
+                        and (val_rsi_right > val_rsi_left)
+                        and (45 <= val_rsi_right <= 75)
+                        and price_diff_pct >= min_price_diff_pct
+                        and rsi_diff >= min_rsi_diff
+                    ):
+                        div_results.append({
+                            "Signal": f"Hidden Bearish ({status_bear})",
+                            "Category": "BEARISH",
+                        })
+                        break
+
+    return pd.DataFrame(div_results)
+
+
+def analyze_single_stock(ticker):
+    """Menjalankan alur 6 tabel lengkap di background untuk 1 saham"""
     try:
         df = yf.download(
             ticker, period="1y", interval="1d", auto_adjust=False, progress=False
@@ -65,7 +272,7 @@ def analyze_single_ticker_new(ticker):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        # Hitung RSI 10 & EMA 10 sesuai kode baru
+        # Hitung RSI 10 & EMA 10
         df["RSI_10"] = df.ta.rsi(close=df["Close"], length=10)
         df["RSI_EMA10"] = df.ta.ema(close=df["RSI_10"], length=10)
 
@@ -76,212 +283,21 @@ def analyze_single_ticker_new(ticker):
         is_gc = latest_rsi > latest_ema
         is_dc = latest_rsi < latest_ema
 
-        max_date = df.index.max()
-        cutoff_scan = max_date - pd.Timedelta(days=30)
-        cutoff_fresh = max_date - pd.Timedelta(days=4)
+        # Jalankan Deteksi Divergence (Tabel 5 Engine)
+        df_div = detect_all_divergences(df, is_gc, is_dc)
 
-        min_rsi_diff = 3.0
-        min_price_diff_pct = 0.015
+        if not df_div.empty:
+            res_signal = df_div.iloc[0]["Signal"]
+            res_cat = df_div.iloc[0]["Category"]
+            return {
+                "Ticker": ticker.replace(".JK", ""),
+                "Harga Close": f"Rp {latest_close:,.0f}",
+                "RSI 10": round(latest_rsi, 2),
+                "Signal": res_signal,
+                "Category": res_cat,
+            }
 
-        # 1. DETEKSI BULLISH DIVERGENCE
-        p_swings_low = extract_swings(df, df["Low"])
-        rsi_swings_low = extract_swings(df, df["RSI_10"])
-
-        if not p_swings_low.empty and not rsi_swings_low.empty:
-            p_lows = (
-                p_swings_low[p_swings_low["Type"] == "SWING LOW"]
-                .sort_values("Tanggal", ascending=False)
-                .reset_index(drop=True)
-            )
-            r_lows = (
-                rsi_swings_low[rsi_swings_low["Type"] == "SWING LOW"]
-                .sort_values("Tanggal", ascending=False)
-                .reset_index(drop=True)
-            )
-
-            for i in range(len(p_lows) - 1):
-                right_p = p_lows.iloc[i]
-                if (
-                    right_p["Tanggal"] < cutoff_scan
-                    or right_p["Tanggal"] < cutoff_fresh
-                ):
-                    continue
-
-                for j in range(i + 1, len(p_lows)):
-                    left_p = p_lows.iloc[j]
-                    days_gap = (right_p["Tanggal"] - left_p["Tanggal"]).days
-                    if not (4 <= days_gap <= 60):
-                        continue
-
-                    rsi_right = r_lows[
-                        (
-                            r_lows["Tanggal"]
-                            >= right_p["Tanggal"] - pd.Timedelta(days=5)
-                        )
-                        & (
-                            r_lows["Tanggal"]
-                            <= right_p["Tanggal"] + pd.Timedelta(days=5)
-                        )
-                    ]
-                    rsi_left = r_lows[
-                        (
-                            r_lows["Tanggal"]
-                            >= left_p["Tanggal"] - pd.Timedelta(days=5)
-                        )
-                        & (
-                            r_lows["Tanggal"]
-                            <= left_p["Tanggal"] + pd.Timedelta(days=5)
-                        )
-                    ]
-
-                    if not rsi_right.empty and not rsi_left.empty:
-                        val_r = rsi_right.iloc[0]["Nilai"]
-                        val_l = rsi_left.iloc[0]["Nilai"]
-                        price_diff = (
-                            abs(right_p["Nilai"] - left_p["Nilai"])
-                            / left_p["Nilai"]
-                        )
-                        rsi_diff = abs(val_r - val_l)
-                        status_bull = (
-                            "Valid (GC)" if is_gc else "Potensial (Wait GC)"
-                        )
-
-                        rsi_in_between = df.loc[
-                            left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
-                        ]
-
-                        # Regular Bullish
-                        if (
-                            (right_p["Nilai"] < left_p["Nilai"])
-                            and (val_r > val_l)
-                            and (val_r < 30)
-                            and (rsi_in_between <= 30).all()
-                            and price_diff >= min_price_diff_pct
-                            and rsi_diff >= min_rsi_diff
-                        ):
-                            return {
-                                "Ticker": ticker.replace(".JK", ""),
-                                "Harga Close": f"Rp {latest_close:,.0f}",
-                                "RSI 10": round(latest_rsi, 2),
-                                "Signal": f"Regular Bullish ({status_bull})",
-                                "Category": "BULLISH",
-                            }
-                        # Hidden Bullish
-                        elif (
-                            (right_p["Nilai"] >= left_p["Nilai"])
-                            and (val_r < val_l)
-                            and (35 <= val_r <= 65)
-                            and price_diff >= min_price_diff_pct
-                            and rsi_diff >= min_rsi_diff
-                        ):
-                            return {
-                                "Ticker": ticker.replace(".JK", ""),
-                                "Harga Close": f"Rp {latest_close:,.0f}",
-                                "RSI 10": round(latest_rsi, 2),
-                                "Signal": f"Hidden Bullish ({status_bull})",
-                                "Category": "BULLISH",
-                            }
-
-        # 2. DETEKSI BEARISH DIVERGENCE
-        p_swings_high = extract_swings(df, df["High"])
-        rsi_swings_high = extract_swings(df, df["RSI_10"])
-
-        if not p_swings_high.empty and not rsi_swings_high.empty:
-            p_highs = (
-                p_swings_high[p_swings_high["Type"] == "SWING HIGH"]
-                .sort_values("Tanggal", ascending=False)
-                .reset_index(drop=True)
-            )
-            r_highs = (
-                rsi_swings_high[rsi_swings_high["Type"] == "SWING HIGH"]
-                .sort_values("Tanggal", ascending=False)
-                .reset_index(drop=True)
-            )
-
-            for i in range(len(p_highs) - 1):
-                right_p = p_highs.iloc[i]
-                if (
-                    right_p["Tanggal"] < cutoff_scan
-                    or right_p["Tanggal"] < cutoff_fresh
-                ):
-                    continue
-
-                for j in range(i + 1, len(p_highs)):
-                    left_p = p_highs.iloc[j]
-                    days_gap = (right_p["Tanggal"] - left_p["Tanggal"]).days
-                    if not (4 <= days_gap <= 60):
-                        continue
-
-                    rsi_right = r_highs[
-                        (
-                            r_highs["Tanggal"]
-                            >= right_p["Tanggal"] - pd.Timedelta(days=5)
-                        )
-                        & (
-                            r_highs["Tanggal"]
-                            <= right_p["Tanggal"] + pd.Timedelta(days=5)
-                        )
-                    ]
-                    rsi_left = r_highs[
-                        (
-                            r_highs["Tanggal"]
-                            >= left_p["Tanggal"] - pd.Timedelta(days=5)
-                        )
-                        & (
-                            r_highs["Tanggal"]
-                            <= left_p["Tanggal"] + pd.Timedelta(days=5)
-                        )
-                    ]
-
-                    if not rsi_right.empty and not rsi_left.empty:
-                        val_r = rsi_right.iloc[0]["Nilai"]
-                        val_l = rsi_left.iloc[0]["Nilai"]
-                        price_diff = (
-                            abs(right_p["Nilai"] - left_p["Nilai"])
-                            / left_p["Nilai"]
-                        )
-                        rsi_diff = abs(val_r - val_l)
-                        status_bear = (
-                            "Valid (DC)" if is_dc else "Potensial (Wait DC)"
-                        )
-
-                        rsi_in_between = df.loc[
-                            left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
-                        ]
-
-                        # Regular Bearish
-                        if (
-                            (right_p["Nilai"] > left_p["Nilai"])
-                            and (val_r < val_l)
-                            and (val_r > 80)
-                            and (rsi_in_between >= 80).all()
-                            and price_diff >= min_price_diff_pct
-                            and rsi_diff >= min_rsi_diff
-                        ):
-                            return {
-                                "Ticker": ticker.replace(".JK", ""),
-                                "Harga Close": f"Rp {latest_close:,.0f}",
-                                "RSI 10": round(latest_rsi, 2),
-                                "Signal": f"Regular Bearish ({status_bear})",
-                                "Category": "BEARISH",
-                            }
-                        # Hidden Bearish
-                        elif (
-                            (right_p["Nilai"] <= left_p["Nilai"])
-                            and (val_r > val_l)
-                            and (45 <= val_r <= 75)
-                            and price_diff >= min_price_diff_pct
-                            and rsi_diff >= min_rsi_diff
-                        ):
-                            return {
-                                "Ticker": ticker.replace(".JK", ""),
-                                "Harga Close": f"Rp {latest_close:,.0f}",
-                                "RSI 10": round(latest_rsi, 2),
-                                "Signal": f"Hidden Bearish ({status_bear})",
-                                "Category": "BEARISH",
-                            }
-
-        # Backup Signal: Cross di Extreme Area
+        # Backup Signal jika tidak ada Divergence
         if is_gc and latest_rsi < 40:
             return {
                 "Ticker": ticker.replace(".JK", ""),
@@ -306,13 +322,13 @@ def analyze_single_ticker_new(ticker):
 
 
 def run_full_rsi_scan(filepath="daftar_saham.txt"):
-    """Fungsi pembacaan massal"""
+    """Fungsi Utama Mass Scanning"""
     stocks = load_stock_list(filepath)
     bullish_list = []
     bearish_list = []
 
     for s in stocks:
-        res = analyze_single_ticker_new(s)
+        res = analyze_single_stock(s)
         if res:
             if res["Category"] == "BULLISH":
                 bullish_list.append(res)

@@ -1,487 +1,330 @@
-import warnings
-import numpy as np
+import os
 import pandas as pd
-from scipy.signal import find_peaks
+import pandas_ta as ta
 import yfinance as yf
 
-warnings.filterwarnings('ignore')
 
-TICKERS = [
-    "BBCA.JK",
-    "BBRI.JK",
-    "BMRI.JK",
-    "BBNI.JK",
-    "TLKM.JK",
-    "ASII.JK",
-    "GOTO.JK",
-    "UNVR.JK",
-    "ICBP.JK",
-    "INDF.JK",
-    "KLBF.JK",
-    "UNTR.JK",
-    "ADRO.JK",
-    "PTBA.JK",
-    "ANTM.JK",
-    "INCO.JK",
-    "MDKA.JK",
-    "PGAS.JK",
-    "SMGR.JK",
-    "INTP.JK",
-    "CPIN.JK",
-    "BRIS.JK",
-    "ARTO.JK",
-    "BUMI.JK",
-    "ENRG.JK",
-    "MEDC.JK",
-    "ELSA.JK",
-    "HRUM.JK",
-    "ITMG.JK",
-    "BRPT.JK",
-    "TPIA.JK",
-    "AMRT.JK",
-    "MAPI.JK",
-    "ERAA.JK",
-    "ACES.JK",
-    "MAPA.JK",
-    "MYOR.JK",
-    "GGRM.JK",
-    "HMSP.JK",
-    "SIDO.JK",
-    "JPFA.JK",
-    "MAIN.JK",
-    "CMRY.JK",
-    "ULTJ.JK",
-    "MIKA.JK",
-    "HEAL.JK",
-    "SILO.JK",
-    "BIRD.JK",
-    "ASSA.JK",
-    "SMDR.JK",
-    "TMAS.JK",
-    "TPMA.JK",
-    "DOID.JK",
-    "ABMM.JK",
-    "BSSR.JK",
-    "TOBA.JK",
-    "BBTN.JK",
-    "BBYB.JK",
-    "BNGA.JK",
-    "BDMN.JK",
-    "PNBN.JK",
-    "NISP.JK",
-    "BBKP.JK",
-    "MAYA.JK",
-    "BABP.JK",
-    "AGRO.JK",
-    "BANK.JK",
-    "BGTG.JK",
-    "NOBU.JK",
-    "INPC.JK",
-    "MEGA.JK",
-    "BNII.JK",
-    "BTPN.JK",
-    "BJBR.JK",
-    "BJTM.JK",
-    "BSIM.JK",
-    "BINA.JK",
-    "SDRA.JK",
-    "AMAR.JK",
-    "MASB.JK",
-    "AUTO.JK",
-    "GJTL.JK",
-    "SMSM.JK",
-    "DRMA.JK",
-    "IMJS.JK",
-    "IPCC.JK",
-    "IPCM.JK",
-    "WEHA.JK",
-    "JSMR.JK",
-    "CMNP.JK",
-    "SCMA.JK",
-    "MNCN.JK",
-    "EMTK.JK",
-    "BELL.JK",
-    "TRIS.JK",
-    "SRIL.JK",
-    "TEBE.JK",
-    "HRTA.JK",
-    "PSAB.JK",
-    "BRMS.JK",
-    "DEWA.JK",
-    "INDY.JK",
-    "BYAN.JK",
-    "CUAN.JK",
-    "BREN.JK",
-    "PANI.JK",
-    "AMMN.JK",
-    "ARCI.JK",
-    "ADMF.JK",
-    "CFIN.JK",
-    "WOMF.JK",
-    "LIFE.JK",
-    "ASBI.JK",
-    "ASRM.JK",
-    "PWON.JK",
-    "BSDE.JK",
-    "CTRA.JK",
-    "SMRA.JK",
-    "APLN.JK",
-    "ASRI.JK",
-    "BEST.JK",
-    "KIJA.JK",
-    "DMAS.JK",
-    "MKPI.JK",
-    "JRPT.JK",
-    "LPPF.JK",
-    "MPPA.JK",
-    "RALS.JK",
-    "HERO.JK",
-    "ERTX.JK",
-    "PURA.JK",
-    "STAR.JK",
-    "ESTI.JK",
-    "POLU.JK",
-    "RICY.JK",
-    "TFCO.JK",
-    "FIRE.JK",
-    "MITI.JK",
-    "INDS.JK",
-    "WINS.JK",
-    "BULL.JK",
-    "SOCI.JK",
-    "COAL.JK",
-    "PACK.JK",
-    "GTSI.JK",
-    "ADMR.JK",
-    "CLEO.JK",
-    "STAA.JK",
-    "DSNG.JK",
-    "AALI.JK",
-    "LSIP.JK",
-    "SIMP.JK",
-    "TAPG.JK",
-    "SGRO.JK",
-    "TBLA.JK",
-    "MGRO.JK",
-    "UNSP.JK",
-    "PALM.JK",
-    "SMAR.JK",
-    "GZCO.JK",
-    "PSGO.JK",
-    "BTEK.JK",
-    "GOLL.JK",
-    "SHIP.JK",
-    "PORT.JK",
-    "PEGE.JK",
-    "RIGS.JK",
-    "BESS.JK",
-    "BPFI.JK",
-    "TRUS.JK",
-    "VINS.JK",
-    "ASDM.JK",
-    "ASMI.JK",
-    "ABDA.JK",
-    "EDGE.JK",
-    "DGIK.JK",
-    "KOKA.JK",
-    "BOAT.JK",
-    "MORA.JK",
-    "PTDU.JK",
-    "GTRA.JK",
-    "RELF.JK",
-    "HAIS.JK",
-    "ALII.JK",
-    "PUDP.JK",
-    "CPRO.JK",
-    "BIKA.JK",
-]
+def load_stock_list(filepath="daftar_saham.txt"):
+    """Membaca daftar saham dari file txt"""
+    if not os.path.exists(filepath):
+        return ["BBRI.JK", "BBCA.JK", "BMRI.JK", "TLKM.JK", "ASII.JK"]
+
+    with open(filepath, "r") as f:
+        stocks = [line.strip().upper() for line in f if line.strip()]
+
+    formatted_stocks = []
+    for s in stocks:
+        if not s.endswith(".JK") and "." not in s:
+            s += ".JK"
+        formatted_stocks.append(s)
+    return formatted_stocks
 
 
-def calculate_rsi_tradingview(df, rsi_period=10, ema_period=10):
-  delta = df['Close'].diff()
-  gain = delta.clip(lower=0)
-  loss = -delta.clip(upper=0)
+def extract_swings(df_in, series, left=2, right=2):
+    """Fungsi Swing Point dari kode baru"""
+    swings = []
+    n = len(series)
 
-  avg_gain = gain.ewm(alpha=1 / rsi_period, adjust=False).mean()
-  avg_loss = loss.ewm(alpha=1 / rsi_period, adjust=False).mean()
+    for i in range(left, n):
+        current_val = series.iloc[i]
+        left_vals = series.iloc[i - left : i]
+        remaining_right = n - 1 - i
 
-  rs = avg_gain / avg_loss
-  df['RSI'] = 100 - (100 / (1 + rs))
-  df['RSI_EMA'] = df['RSI'].ewm(span=ema_period, adjust=False).mean()
-  df['Vol_MA20'] = df['Volume'].rolling(window=20).mean()
-  df['Turnover'] = df['Close'] * df['Volume']
-  return df
-
-
-def find_rsi_swings_optimized(df):
-  # Lembah (Valleys) untuk Bullish
-  valleys, _ = find_peaks(-df['RSI'].values, distance=8, prominence=2.5)
-  # Puncak (Peaks) untuk Bearish
-  peaks, _ = find_peaks(df['RSI'].values, distance=8, prominence=2.5)
-  return valleys, peaks
-
-
-def is_local_price_low(df, idx, window=2):
-  start = max(0, idx - window)
-  end = min(len(df) - 1, idx + window)
-  return df.iloc[idx]['Low'] == df.iloc[start : end + 1]['Low'].min()
-
-
-def is_local_price_high(df, idx, window=2):
-  start = max(0, idx - window)
-  end = min(len(df) - 1, idx + window)
-  return df.iloc[idx]['High'] == df.iloc[start : end + 1]['High'].max()
-
-
-def check_line_penetration(df, idx1, idx2, is_bearish=False):
-  rsi_v1 = df.iloc[idx1]['RSI']
-  rsi_v2 = df.iloc[idx2]['RSI']
-
-  for x in range(idx1 + 1, idx2):
-    expected_rsi = rsi_v1 + (rsi_v2 - rsi_v1) * (x - idx1) / (idx2 - idx1)
-    actual_rsi = df.iloc[x]['RSI']
-    if not is_bearish:
-      if actual_rsi < expected_rsi - 3:
-        return False
-    else:
-      if actual_rsi > expected_rsi + 3:
-        return False
-  return True
-
-
-def calculate_candlestick_bonus(curr_bar):
-  open_p = curr_bar['Open']
-  close_p = curr_bar['Close']
-  low_p = curr_bar['Low']
-  body = abs(close_p - open_p)
-  lower_wick = min(open_p, close_p) - low_p
-
-  if (body > 0 and lower_wick >= 2 * body) or (body == 0 and lower_wick > 0):
-    return 20
-  elif close_p > open_p:
-    return 10
-  return 0
-
-
-def detect_rsi_patterns_and_score(ticker):
-  try:
-    data = yf.download(ticker, period='4mo', interval='1d', progress=False)
-    if len(data) < 30:
-      return None
-
-    if isinstance(data.columns, pd.MultiIndex):
-      data.columns = data.columns.get_level_values(0)
-
-    df = calculate_rsi_tradingview(data)
-
-    avg_turnover = df['Turnover'].rolling(window=20).mean().iloc[-1]
-    if pd.isna(avg_turnover) or avg_turnover < 1_000_000_000:
-      return None
-
-    valleys, peaks = find_rsi_swings_optimized(df)
-    latest_idx = len(df) - 1
-
-    # Array swing titik yang akan diperiksa (Bullish & Bearish)
-    swings = [('Bullish', valleys), ('Bearish', peaks)]
-
-    for mode, swing_points in swings:
-      if len(swing_points) < 2:
-        continue
-
-      for i in range(len(swing_points) - 1, -1, -1):
-        idx2 = swing_points[i]
-        age_bars = latest_idx - idx2
-
-        if age_bars > 10:
-          continue
-
-        for j in range(i - 1, -1, -1):
-          idx1 = swing_points[j]
-          gap = idx2 - idx1
-
-          if 6 <= gap <= 25:
-            is_bearish_mode = mode == 'Bearish'
-
-            if not is_bearish_mode:
-              if not (
-                  is_local_price_low(df, idx1) and is_local_price_low(df, idx2)
-              ):
-                continue
-            else:
-              if not (
-                  is_local_price_high(df, idx1)
-                  and is_local_price_high(df, idx2)
-              ):
-                continue
-
-            if not check_line_penetration(
-                df, idx1, idx2, is_bearish=is_bearish_mode
+        if remaining_right >= right:
+            right_vals = series.iloc[i + 1 : i + 1 + right]
+            if all(current_val >= val for val in left_vals) and all(
+                current_val > val for val in right_vals
             ):
-              continue
+                swings.append({
+                    "Tanggal": series.index[i],
+                    "Nilai": current_val,
+                    "Harga Close": df_in["Close"].iloc[i],
+                    "Type": "SWING HIGH",
+                })
+            elif all(current_val <= val for val in left_vals) and all(
+                current_val < val for val in right_vals
+            ):
+                swings.append({
+                    "Tanggal": series.index[i],
+                    "Nilai": current_val,
+                    "Harga Close": df_in["Close"].iloc[i],
+                    "Type": "SWING LOW",
+                })
+    return pd.DataFrame(swings)
 
-            if not is_bearish_mode:
-              price1, price2 = df.iloc[idx1]['Low'], df.iloc[idx2]['Low']
-            else:
-              price1, price2 = df.iloc[idx1]['High'], df.iloc[idx2]['High']
 
-            rsi_v1, rsi_v2 = df.iloc[idx1]['RSI'], df.iloc[idx2]['RSI']
-            price_diff_pct = (price2 - price1) / price1
+def analyze_single_ticker_new(ticker):
+    """Menggunakan logika deteksi Divergence RSI 10 persis dari kode baru"""
+    try:
+        df = yf.download(
+            ticker, period="1y", interval="1d", auto_adjust=False, progress=False
+        )
+        if df.empty or len(df) < 30:
+            return None
 
-            pattern_name = None
-            base_score = 0
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
 
-            # --- DETEKSI BULLISH PATTERNS ---
-            if not is_bearish_mode:
-              if (
-                  price_diff_pct <= -0.01
-                  and rsi_v2 > rsi_v1
-                  and (rsi_v2 - rsi_v1 >= 1.0)
-              ):
-                if 5 <= rsi_v2 < 30:
-                  pattern_name = 'Regular Bullish'
-                  base_score = 70
-                elif 30 <= rsi_v2 <= 40:
-                  pattern_name = 'Regular Bullish'
-                  base_score = 50
+        # Hitung RSI 10 & EMA 10 sesuai kode baru
+        df["RSI_10"] = df.ta.rsi(close=df["Close"], length=10)
+        df["RSI_EMA10"] = df.ta.ema(close=df["RSI_10"], length=10)
 
-              elif (
-                  price_diff_pct >= 0.01
-                  and rsi_v2 < rsi_v1
-                  and (rsi_v1 - rsi_v2 >= 1.0)
-              ):
-                if 50 <= rsi_v2 <= 60:
-                  pattern_name = 'Hidden Bullish'
-                  base_score = 65
-                elif 40 <= rsi_v2 < 50:
-                  pattern_name = 'Hidden Bullish'
-                  base_score = 45
+        latest_close = df["Close"].iloc[-1]
+        latest_rsi = df["RSI_10"].iloc[-1]
+        latest_ema = df["RSI_EMA10"].iloc[-1]
 
-              elif (
-                  -0.01 < price_diff_pct < 0.01
-                  and rsi_v2 > rsi_v1
-                  and (rsi_v2 - rsi_v1 >= 1.0)
-              ):
-                if 30 <= rsi_v2 < 40:
-                  pattern_name = 'Medium Bullish'
-                  base_score = 60
-                elif 40 <= rsi_v2 <= 50:
-                  pattern_name = 'Medium Bullish'
-                  base_score = 40
+        is_gc = latest_rsi > latest_ema
+        is_dc = latest_rsi < latest_ema
 
-            # --- DETEKSI BEARISH PATTERNS ---
-            else:
-              if (
-                  price_diff_pct >= 0.01
-                  and rsi_v2 < rsi_v1
-                  and (rsi_v1 - rsi_v2 >= 1.0)
-              ):
-                if rsi_v2 >= 70:
-                  pattern_name = 'Regular Bearish'
-                  base_score = 70
-                elif 60 <= rsi_v2 < 70:
-                  pattern_name = 'Regular Bearish'
-                  base_score = 50
+        max_date = df.index.max()
+        cutoff_scan = max_date - pd.Timedelta(days=30)
+        cutoff_fresh = max_date - pd.Timedelta(days=4)
 
-              elif (
-                  price_diff_pct <= -0.01
-                  and rsi_v2 > rsi_v1
-                  and (rsi_v2 - rsi_v1 >= 1.0)
-              ):
-                if 40 <= rsi_v2 <= 50:
-                  pattern_name = 'Hidden Bearish'
-                  base_score = 65
-                elif 50 < rsi_v2 <= 60:
-                  pattern_name = 'Hidden Bearish'
-                  base_score = 45
+        min_rsi_diff = 3.0
+        min_price_diff_pct = 0.015
 
-              elif (
-                  -0.01 < price_diff_pct < 0.01
-                  and rsi_v2 < rsi_v1
-                  and (rsi_v1 - rsi_v2 >= 1.0)
-              ):
-                if 60 <= rsi_v2 < 70:
-                  pattern_name = 'Medium Bearish'
-                  base_score = 60
-                elif 50 <= rsi_v2 < 60:
-                  pattern_name = 'Medium Bearish'
-                  base_score = 40
+        # 1. DETEKSI BULLISH DIVERGENCE
+        p_swings_low = extract_swings(df, df["Low"])
+        rsi_swings_low = extract_swings(df, df["RSI_10"])
 
-            if pattern_name and base_score > 0:
-              curr_bar = df.iloc[latest_idx]
-              prev_bar = df.iloc[latest_idx - 1]
-              date1 = df.index[idx1].strftime('%Y-%m-%d')
-              date2 = df.index[idx2].strftime('%Y-%m-%d')
+        if not p_swings_low.empty and not rsi_swings_low.empty:
+            p_lows = (
+                p_swings_low[p_swings_low["Type"] == "SWING LOW"]
+                .sort_values("Tanggal", ascending=False)
+                .reset_index(drop=True)
+            )
+            r_lows = (
+                rsi_swings_low[rsi_swings_low["Type"] == "SWING LOW"]
+                .sort_values("Tanggal", ascending=False)
+                .reset_index(drop=True)
+            )
 
-              is_gc = False
-              for idx in range(idx2, latest_idx + 1):
+            for i in range(len(p_lows) - 1):
+                right_p = p_lows.iloc[i]
                 if (
-                    idx > 0
-                    and df.iloc[idx - 1]['RSI'] <= df.iloc[idx - 1]['RSI_EMA']
-                    and df.iloc[idx]['RSI'] > df.iloc[idx]['RSI_EMA']
+                    right_p["Tanggal"] < cutoff_scan
+                    or right_p["Tanggal"] < cutoff_fresh
                 ):
-                  is_gc = True
-                  break
+                    continue
 
-              gc_score = 15 if is_gc else 0
+                for j in range(i + 1, len(p_lows)):
+                    left_p = p_lows.iloc[j]
+                    days_gap = (right_p["Tanggal"] - left_p["Tanggal"]).days
+                    if not (4 <= days_gap <= 60):
+                        continue
 
-              vol_score = 0
-              if is_gc:
-                if curr_bar['Volume'] > 2 * curr_bar['Vol_MA20']:
-                  vol_score = 15
-                elif curr_bar['Volume'] > 1 * curr_bar['Vol_MA20']:
-                  vol_score = 10
-              else:
-                if curr_bar['Volume'] > prev_bar['Volume']:
-                  vol_score = 5
+                    rsi_right = r_lows[
+                        (
+                            r_lows["Tanggal"]
+                            >= right_p["Tanggal"] - pd.Timedelta(days=5)
+                        )
+                        & (
+                            r_lows["Tanggal"]
+                            <= right_p["Tanggal"] + pd.Timedelta(days=5)
+                        )
+                    ]
+                    rsi_left = r_lows[
+                        (
+                            r_lows["Tanggal"]
+                            >= left_p["Tanggal"] - pd.Timedelta(days=5)
+                        )
+                        & (
+                            r_lows["Tanggal"]
+                            <= left_p["Tanggal"] + pd.Timedelta(days=5)
+                        )
+                    ]
 
-              candle_score = calculate_candlestick_bonus(curr_bar)
+                    if not rsi_right.empty and not rsi_left.empty:
+                        val_r = rsi_right.iloc[0]["Nilai"]
+                        val_l = rsi_left.iloc[0]["Nilai"]
+                        price_diff = (
+                            abs(right_p["Nilai"] - left_p["Nilai"])
+                            / left_p["Nilai"]
+                        )
+                        rsi_diff = abs(val_r - val_l)
+                        status_bull = (
+                            "Valid (GC)" if is_gc else "Potensial (Wait GC)"
+                        )
 
-              if age_bars <= 3:
-                age_penalty = 0
-              elif age_bars <= 7:
-                age_penalty = 10
-              else:
-                age_penalty = 20
+                        rsi_in_between = df.loc[
+                            left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
+                        ]
 
-              total_score = (
-                  base_score + gc_score + vol_score + candle_score - age_penalty
-              )
+                        # Regular Bullish
+                        if (
+                            (right_p["Nilai"] < left_p["Nilai"])
+                            and (val_r > val_l)
+                            and (val_r < 30)
+                            and (rsi_in_between <= 30).all()
+                            and price_diff >= min_price_diff_pct
+                            and rsi_diff >= min_rsi_diff
+                        ):
+                            return {
+                                "Ticker": ticker.replace(".JK", ""),
+                                "Harga Close": f"Rp {latest_close:,.0f}",
+                                "RSI 10": round(latest_rsi, 2),
+                                "Signal": f"Regular Bullish ({status_bull})",
+                                "Category": "BULLISH",
+                            }
+                        # Hidden Bullish
+                        elif (
+                            (right_p["Nilai"] >= left_p["Nilai"])
+                            and (val_r < val_l)
+                            and (35 <= val_r <= 65)
+                            and price_diff >= min_price_diff_pct
+                            and rsi_diff >= min_rsi_diff
+                        ):
+                            return {
+                                "Ticker": ticker.replace(".JK", ""),
+                                "Harga Close": f"Rp {latest_close:,.0f}",
+                                "RSI 10": round(latest_rsi, 2),
+                                "Signal": f"Hidden Bullish ({status_bull})",
+                                "Category": "BULLISH",
+                            }
 
-              return {
-                  'Ticker': ticker.replace('.JK', ''),
-                  'Price': int(curr_bar['Close']),
-                  'Pattern': pattern_name,
-                  'Tgl V1': date1,
-                  'Tgl V2': date2,
-                  'Gap': f'{gap} bar',
-                  'RSI V1': round(rsi_v1, 2),
-                  'RSI V2': round(rsi_v2, 2),
-                  'Age': f'H+{age_bars}',
-                  'Penalti Usia': f'-{age_penalty} pts',
-                  'Status GC': 'GC CONFIRMED' if is_gc else 'WATCHLIST',
-                  'TOTAL SCORE': total_score,
-              }
-    return None
+        # 2. DETEKSI BEARISH DIVERGENCE
+        p_swings_high = extract_swings(df, df["High"])
+        rsi_swings_high = extract_swings(df, df["RSI_10"])
 
-  except Exception:
-    return None
+        if not p_swings_high.empty and not rsi_swings_high.empty:
+            p_highs = (
+                p_swings_high[p_swings_high["Type"] == "SWING HIGH"]
+                .sort_values("Tanggal", ascending=False)
+                .reset_index(drop=True)
+            )
+            r_highs = (
+                rsi_swings_high[rsi_swings_high["Type"] == "SWING HIGH"]
+                .sort_values("Tanggal", ascending=False)
+                .reset_index(drop=True)
+            )
+
+            for i in range(len(p_highs) - 1):
+                right_p = p_highs.iloc[i]
+                if (
+                    right_p["Tanggal"] < cutoff_scan
+                    or right_p["Tanggal"] < cutoff_fresh
+                ):
+                    continue
+
+                for j in range(i + 1, len(p_highs)):
+                    left_p = p_highs.iloc[j]
+                    days_gap = (right_p["Tanggal"] - left_p["Tanggal"]).days
+                    if not (4 <= days_gap <= 60):
+                        continue
+
+                    rsi_right = r_highs[
+                        (
+                            r_highs["Tanggal"]
+                            >= right_p["Tanggal"] - pd.Timedelta(days=5)
+                        )
+                        & (
+                            r_highs["Tanggal"]
+                            <= right_p["Tanggal"] + pd.Timedelta(days=5)
+                        )
+                    ]
+                    rsi_left = r_highs[
+                        (
+                            r_highs["Tanggal"]
+                            >= left_p["Tanggal"] - pd.Timedelta(days=5)
+                        )
+                        & (
+                            r_highs["Tanggal"]
+                            <= left_p["Tanggal"] + pd.Timedelta(days=5)
+                        )
+                    ]
+
+                    if not rsi_right.empty and not rsi_left.empty:
+                        val_r = rsi_right.iloc[0]["Nilai"]
+                        val_l = rsi_left.iloc[0]["Nilai"]
+                        price_diff = (
+                            abs(right_p["Nilai"] - left_p["Nilai"])
+                            / left_p["Nilai"]
+                        )
+                        rsi_diff = abs(val_r - val_l)
+                        status_bear = (
+                            "Valid (DC)" if is_dc else "Potensial (Wait DC)"
+                        )
+
+                        rsi_in_between = df.loc[
+                            left_p["Tanggal"] : right_p["Tanggal"], "RSI_10"
+                        ]
+
+                        # Regular Bearish
+                        if (
+                            (right_p["Nilai"] > left_p["Nilai"])
+                            and (val_r < val_l)
+                            and (val_r > 80)
+                            and (rsi_in_between >= 80).all()
+                            and price_diff >= min_price_diff_pct
+                            and rsi_diff >= min_rsi_diff
+                        ):
+                            return {
+                                "Ticker": ticker.replace(".JK", ""),
+                                "Harga Close": f"Rp {latest_close:,.0f}",
+                                "RSI 10": round(latest_rsi, 2),
+                                "Signal": f"Regular Bearish ({status_bear})",
+                                "Category": "BEARISH",
+                            }
+                        # Hidden Bearish
+                        elif (
+                            (right_p["Nilai"] <= left_p["Nilai"])
+                            and (val_r > val_l)
+                            and (45 <= val_r <= 75)
+                            and price_diff >= min_price_diff_pct
+                            and rsi_diff >= min_rsi_diff
+                        ):
+                            return {
+                                "Ticker": ticker.replace(".JK", ""),
+                                "Harga Close": f"Rp {latest_close:,.0f}",
+                                "RSI 10": round(latest_rsi, 2),
+                                "Signal": f"Hidden Bearish ({status_bear})",
+                                "Category": "BEARISH",
+                            }
+
+        # Backup Signal: Cross di Extreme Area
+        if is_gc and latest_rsi < 40:
+            return {
+                "Ticker": ticker.replace(".JK", ""),
+                "Harga Close": f"Rp {latest_close:,.0f}",
+                "RSI 10": round(latest_rsi, 2),
+                "Signal": "RSI Golden Cross (< 40)",
+                "Category": "BULLISH",
+            }
+        elif is_dc and latest_rsi > 60:
+            return {
+                "Ticker": ticker.replace(".JK", ""),
+                "Harga Close": f"Rp {latest_close:,.0f}",
+                "RSI 10": round(latest_rsi, 2),
+                "Signal": "RSI Dead Cross (> 60)",
+                "Category": "BEARISH",
+            }
+
+        return None
+
+    except Exception:
+        return None
 
 
-if __name__ == '__main__':
-  results = []
-  print('--- SCREENER RSI DIVERGENCE (BULLISH & BEARISH) ---')
-  for idx, t in enumerate(TICKERS):
-    res = detect_rsi_patterns_and_score(t)
-    if res:
-      results.append(res)
-    print(f'Progress: {idx+1}/{len(TICKERS)} checked...', end='\r')
+def run_full_rsi_scan(filepath="daftar_saham.txt"):
+    """Fungsi pembacaan massal"""
+    stocks = load_stock_list(filepath)
+    bullish_list = []
+    bearish_list = []
 
-  df_res = pd.DataFrame(results)
-  if not df_res.empty:
-    df_res = df_res.sort_values(by='TOTAL SCORE', ascending=False).reset_index(
-        drop=True
-    )
-    print(f'\n\nHASIL AKURAT FINAL ({len(df_res)} Saham Lolos):')
-    print(df_res.to_string())
-  else:
-    print('\n\nTidak ada saham yang lolos.')
+    for s in stocks:
+        res = analyze_single_ticker_new(s)
+        if res:
+            if res["Category"] == "BULLISH":
+                bullish_list.append(res)
+            elif res["Category"] == "BEARISH":
+                bearish_list.append(res)
+
+    df_bullish = pd.DataFrame(bullish_list)
+    df_bearish = pd.DataFrame(bearish_list)
+
+    if not df_bullish.empty:
+        df_bullish = df_bullish.drop(columns=["Category"])
+    if not df_bearish.empty:
+        df_bearish = df_bearish.drop(columns=["Category"])
+
+    return df_bullish, df_bearish

@@ -161,20 +161,6 @@ with tab1:
           df_rsi_all["Pattern"].str.contains("Bearish", case=False, na=False)
       ]
 
-      score_col = next(
-          (c for c in ["TOTAL SCORE", "Score", "score"] if c in df_rsi_all.columns),
-          None,
-      )
-      if score_col:
-        if not df_rsi_bullish.empty:
-          df_rsi_bullish = df_rsi_bullish.sort_values(
-              by=score_col, ascending=False
-          ).reset_index(drop=True)
-        if not df_rsi_bearish.empty:
-          df_rsi_bearish = df_rsi_bearish.sort_values(
-              by=score_col, ascending=False
-          ).reset_index(drop=True)
-
     st.session_state["rsi_stats"] = {
         "total": total_tickers,
         "success": success_count,
@@ -204,6 +190,16 @@ with tab1:
   col_bull, col_bear = st.columns(2)
   selected_rsi_symbol = None
 
+  # Daftar kolom khusus yang ingin ditampilkan di tabel RSI Divergence
+  target_rsi_cols = [
+      "Saham",
+      "Pattern",
+      "RSI Kiri",
+      "RSI Kanan",
+      "Harga Kiri",
+      "Harga Kanan",
+  ]
+
   with col_bull:
     st.subheader("🟢 Signal Bullish (Divergence)")
     if (
@@ -211,8 +207,15 @@ with tab1:
         and not st.session_state["df_rsi_bullish"].empty
     ):
       df_rsi_bullish = st.session_state["df_rsi_bullish"]
+
+      # Memastikan hanya mengambil kolom yang tersedia
+      display_cols = [c for c in target_rsi_cols if c in df_rsi_bullish.columns]
+      df_display_bull = (
+          df_rsi_bullish[display_cols] if display_cols else df_rsi_bullish
+      )
+
       event_bull = st.dataframe(
-          df_rsi_bullish,
+          df_display_bull,
           use_container_width=True,
           on_select="rerun",
           selection_mode="single-row",
@@ -220,16 +223,11 @@ with tab1:
       )
       if event_bull.selection and event_bull.selection["rows"]:
         idx = event_bull.selection["rows"][0]
-        ticker_col = next(
-            (
-                c
-                for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                if c in df_rsi_bullish.columns
-            ),
-            None,
+        selected_rsi_symbol = str(
+            df_rsi_bullish.iloc[idx].get(
+                "Ticker", df_rsi_bullish.iloc[idx].get("Saham")
+            )
         )
-        if ticker_col:
-          selected_rsi_symbol = str(df_rsi_bullish.iloc[idx][ticker_col])
     else:
       st.info("Tidak ada sinyal Bullish / Belum di-scan.")
 
@@ -240,8 +238,15 @@ with tab1:
         and not st.session_state["df_rsi_bearish"].empty
     ):
       df_rsi_bearish = st.session_state["df_rsi_bearish"]
+
+      # Memastikan hanya mengambil kolom yang tersedia
+      display_cols = [c for c in target_rsi_cols if c in df_rsi_bearish.columns]
+      df_display_bear = (
+          df_rsi_bearish[display_cols] if display_cols else df_rsi_bearish
+      )
+
       event_bear = st.dataframe(
-          df_rsi_bearish,
+          df_display_bear,
           use_container_width=True,
           on_select="rerun",
           selection_mode="single-row",
@@ -249,16 +254,11 @@ with tab1:
       )
       if event_bear.selection and event_bear.selection["rows"]:
         idx = event_bear.selection["rows"][0]
-        ticker_col = next(
-            (
-                c
-                for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                if c in df_rsi_bearish.columns
-            ),
-            None,
+        selected_rsi_symbol = str(
+            df_rsi_bearish.iloc[idx].get(
+                "Ticker", df_rsi_bearish.iloc[idx].get("Saham")
+            )
         )
-        if ticker_col:
-          selected_rsi_symbol = str(df_rsi_bearish.iloc[idx][ticker_col])
     else:
       st.info("Tidak ada sinyal Bearish / Belum di-scan.")
 
@@ -409,7 +409,6 @@ with tab3:
 
   col_input1, col_input2 = st.columns([2, 1])
   with col_input1:
-    # Input ticker dibuat kosong secara default, teks helper memberikan petunjuk format
     ticker_input = st.text_input(
         "Masukkan Kode Saham (Contoh: BBCA, ASII, BBRI)",
         value="",
@@ -428,7 +427,6 @@ with tab3:
     if ticker_input.strip() == "":
       st.warning("⚠️ Mohon masukkan kode saham terlebih dahulu.")
     else:
-      # Otomatis menambahkan .JK di background jika user belum mengetiknya
       clean_ticker = ticker_input.strip().upper()
       if not clean_ticker.endswith(".JK") and "." not in clean_ticker:
         clean_ticker += ".JK"

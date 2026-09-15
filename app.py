@@ -2,15 +2,7 @@ import concurrent.futures
 import pandas as pd
 import streamlit as st
 
-# 1. Import modul dari repositori
-from screener_rsi_divergence import (
-    TICKERS as RSI_TICKERS,
-    detect_rsi_patterns_and_score,
-)
-from screener_stoch_psar import run_stoch_psar_screener
-from trade_planner import TradePlanner
-
-# 2. Konfigurasi Halaman Streamlit
+# 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
     page_title="ZIO QUANT - Screener & Trade Planner",
     page_icon="📈",
@@ -22,11 +14,43 @@ st.markdown(
     "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic & Parabolic SAR**, serta kalkulator **Trade Planner**."
 )
 
+# 2. Import Modul Internal dengan Fallback Aman
+try:
+    from screener_rsi_divergence import (
+        TICKERS as RSI_TICKERS,
+        detect_rsi_patterns_and_score,
+    )
+except ImportError:
+    try:
+        from screener_rsi_divergence import load_stock_list
+        RSI_TICKERS = load_stock_list("daftar_saham.txt")
+    except Exception:
+        RSI_TICKERS = ["BBRI.JK", "BBCA.JK", "BMRI.JK", "TLKM.JK"]
+    
+    # Fallback function jika fungsi lama tidak ada
+    def detect_rsi_patterns_and_score(ticker):
+        return None
+
+try:
+    from screener_stoch_psar import run_stoch_psar_screener
+except ImportError:
+    def run_stoch_psar_screener():
+        return pd.DataFrame(), pd.DataFrame()
+
+try:
+    from trade_planner import TradePlanner
+except ImportError:
+    TradePlanner = None
+
 
 # Helper function untuk merender Trade Planner di bawah tabel
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     st.markdown("---")
     st.subheader(f"📊 Live Trade Plan: **{ticker_symbol}**")
+
+    if TradePlanner is None:
+        st.error("Modul `trade_planner.py` belum ditemukan.")
+        return
 
     period_selected = st.selectbox(
         "Periode Data Analysis",
@@ -96,37 +120,40 @@ with tab1:
     )
 
     if st.button("Jalankan Screener RSI", key="btn_rsi"):
-        with st.spinner(f"Menganalisis {len(RSI_TICKERS)} saham..."):
-            results_rsi = []
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=10
-            ) as executor:
-                futures = [
-                    executor.submit(detect_rsi_patterns_and_score, ticker)
-                    for ticker in RSI_TICKERS
-                ]
-                for future in concurrent.futures.as_completed(futures):
-                    res = future.result()
-                    if res is not None:
-                        results_rsi.append(res)
+        if not RSI_TICKERS:
+            st.warning("Daftar ticker RSI kosong atau file `daftar_saham.txt` tidak ditemukan.")
+        else:
+            with st.spinner(f"Menganalisis {len(RSI_TICKERS)} saham..."):
+                results_rsi = []
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=10
+                ) as executor:
+                    futures = [
+                        executor.submit(detect_rsi_patterns_and_score, ticker)
+                        for ticker in RSI_TICKERS
+                    ]
+                    for future in concurrent.futures.as_completed(futures):
+                        res = future.result()
+                        if res is not None:
+                            results_rsi.append(res)
 
-            if results_rsi:
-                df_rsi = pd.DataFrame(results_rsi)
-                score_col = next(
-                    (
-                        c
-                        for c in ["Score", "score", "total_score", "RSI_Score"]
-                        if c in df_rsi.columns
-                    ),
-                    None,
-                )
-                if score_col:
-                    df_rsi = df_rsi.sort_values(by=score_col, ascending=False).reset_index(
-                        drop=True
+                if results_rsi:
+                    df_rsi = pd.DataFrame(results_rsi)
+                    score_col = next(
+                        (
+                            c
+                            for c in ["Score", "score", "total_score", "RSI_Score", "TOTAL SCORE"]
+                            if c in df_rsi.columns
+                        ),
+                        None,
                     )
-                st.session_state["df_rsi_data"] = df_rsi
-            else:
-                st.session_state["df_rsi_data"] = pd.DataFrame()
+                    if score_col:
+                        df_rsi = df_rsi.sort_values(by=score_col, ascending=False).reset_index(
+                            drop=True
+                        )
+                    st.session_state["df_rsi_data"] = df_rsi
+                else:
+                    st.session_state["df_rsi_data"] = pd.DataFrame()
 
     if "df_rsi_data" in st.session_state and not st.session_state[
         "df_rsi_data"

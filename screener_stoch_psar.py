@@ -102,6 +102,9 @@ def _process_single_ticker(ticker):
         k3, d3 = df["stoch_k"].iloc[-4], df["stoch_d"].iloc[-4]
         psar0 = df["psar"].iloc[-1]
 
+        # Perhitungan Change (%) untuk display UI di list panel
+        chg_pct = round(((c0 - c1) / c1) * 100, 2)
+
         res_gc = None
         res_dc = None
 
@@ -116,7 +119,6 @@ def _process_single_ticker(ticker):
         is_almost_gc = (k0 <= d0) and ((d0 - k0) <= 3.0) and (k0 < 30)
 
         stoch_signal_gc = None
-        # BASE SCORE OPSI A (+10 SEMUA): H-0 (50), H-1 (40), H-2 (30), EARLY (20)
         if gc_today:
             stoch_signal_gc = {"type": "GC Hari Ini (H-0)", "score": 50, "code": "H0"}
         elif gc_yesterday:
@@ -130,14 +132,11 @@ def _process_single_ticker(ticker):
             score = stoch_signal_gc["score"]
             notes = [stoch_signal_gc["type"]]
 
-            # PSAR Bullish Bonus (+20)
             if psar0 < l0:
                 score += 20
                 notes.append("PSAR Bullish (+20)")
 
-            # BONUS KHUSUS H-0
             if stoch_signal_gc["code"] == "H0":
-                # Bonus Volume
                 if v0 > vol_ma20_0:
                     score += 20
                     notes.append("Vol > MA20 (+20)")
@@ -145,7 +144,6 @@ def _process_single_ticker(ticker):
                     score += 10
                     notes.append("Vol > Prev Vol (+10)")
 
-                # Bonus Harga
                 if c0 > c1:
                     score += 10
                     notes.append("Price > Prev (+10)")
@@ -155,11 +153,13 @@ def _process_single_ticker(ticker):
             res_gc = {
                 "Ticker": ticker.replace(".JK", ""),
                 "Harga": int(c0),
+                "Change (%)": chg_pct,
                 "Value (M)": round(val0 / 1_000_000_000, 2),
                 "Stoch %K": round(k0, 1),
                 "Stoch %D": round(d0, 1),
                 "Score": score,
                 "Detail Signal": " | ".join(notes),
+                "Signal_Type": "GC"  # <--- FLAG UNTUK UI TOGGLE
             }
 
         # =========================================================
@@ -173,7 +173,6 @@ def _process_single_ticker(ticker):
         is_almost_dc = (k0 >= d0) and ((k0 - d0) <= 3.0) and (k0 > 70)
 
         stoch_signal_dc = None
-        # BASE SCORE OPSI A BEARSISH: H-0 (-50), H-1 (-40), H-2 (-30), EARLY (-20)
         if dc_today:
             stoch_signal_dc = {"type": "DC Hari Ini (H-0)", "score": -50, "code": "H0"}
         elif dc_yesterday:
@@ -187,14 +186,11 @@ def _process_single_ticker(ticker):
             score = stoch_signal_dc["score"]
             notes = [stoch_signal_dc["type"]]
 
-            # PSAR Bearish Penalti (-20)
             if psar0 > h0:
                 score -= 20
                 notes.append("PSAR Bearish (-20)")
 
-            # PENALTI KHUSUS H-0
             if stoch_signal_dc["code"] == "H0":
-                # Penalti Volume
                 if v0 > vol_ma20_0:
                     score -= 20
                     notes.append("Vol > MA20 (-20)")
@@ -202,7 +198,6 @@ def _process_single_ticker(ticker):
                     score -= 10
                     notes.append("Vol > Prev Vol (-10)")
 
-                # Penalti Harga
                 if c0 < c1:
                     score -= 10
                     notes.append("Price < Prev (-10)")
@@ -212,11 +207,13 @@ def _process_single_ticker(ticker):
             res_dc = {
                 "Ticker": ticker.replace(".JK", ""),
                 "Harga": int(c0),
+                "Change (%)": chg_pct,
                 "Value (M)": round(val0 / 1_000_000_000, 2),
                 "Stoch %K": round(k0, 1),
                 "Stoch %D": round(d0, 1),
                 "Score": score,
                 "Detail Signal": " | ".join(notes),
+                "Signal_Type": "DC"  # <--- FLAG UNTUK UI TOGGLE
             }
 
         return res_gc, res_dc
@@ -253,42 +250,13 @@ def run_stoch_psar_screener(tickers=None, progress_callback=None):
             if progress_callback:
                 progress_callback(completed, total_tickers)
 
-    df_gc = (
-        pd.DataFrame(results_gc)
-        if results_gc
-        else pd.DataFrame(
-            columns=[
-                "Ticker",
-                "Harga",
-                "Value (M)",
-                "Stoch %K",
-                "Stoch %D",
-                "Score",
-                "Detail Signal",
-            ]
-        )
-    )
-    df_dc = (
-        pd.DataFrame(results_dc)
-        if results_dc
-        else pd.DataFrame(
-            columns=[
-                "Ticker",
-                "Harga",
-                "Value (M)",
-                "Stoch %K",
-                "Stoch %D",
-                "Score",
-                "Detail Signal",
-            ]
-        )
-    )
+    df_gc = pd.DataFrame(results_gc) if results_gc else pd.DataFrame()
+    df_dc = pd.DataFrame(results_dc) if results_dc else pd.DataFrame()
 
     if not df_gc.empty and "Score" in df_gc.columns:
-        df_gc = df_gc.sort_values(by="Score", ascending=False).reset_index(
-            drop=True
-        )
+        df_gc = df_gc.sort_values(by="Score", ascending=False).reset_index(drop=True)
     if not df_dc.empty and "Score" in df_dc.columns:
         df_dc = df_dc.sort_values(by="Score", ascending=True).reset_index(drop=True)
 
+    # Mengembalikan tuple (df_gc, df_dc) agar tetap backward compatible dengan kode lama
     return df_gc, df_dc

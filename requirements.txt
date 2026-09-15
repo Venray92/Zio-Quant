@@ -3,3 +3,8 @@ yfinance
 pandas
 numpy
 TA-Lib
+streamlit
+yfinance
+pandas
+numpy
+git+https://github.com/twopirllc/pandas-ta.git@development

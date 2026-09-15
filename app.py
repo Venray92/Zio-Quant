@@ -417,7 +417,6 @@ with tab2:
       selected_stoch_symbol += ".JK"
     render_inline_trade_planner(selected_stoch_symbol, key_suffix="stoch_tab")
 
-
 # ==========================================
 # TAB 3: TRADE PLANNER & BATCH SCREENER
 # ==========================================
@@ -471,13 +470,31 @@ with tab3:
         key="batch_period_select",
     )
 
+    # HELPER ROBUST UNTUK MEMBACA DAFTAR SAHAM
+    def get_clean_tickers_from_file(filepath="daftar_saham.txt"):
+      if not os.path.exists(filepath):
+        return []
+
+      tickers = []
+      with open(filepath, "r", encoding="utf-8-sig") as f:
+        lines = f.readlines()
+        for line in lines:
+          item = line.strip().upper()
+          # Abaikan header atau teks 'KODE'
+          if item and item != "KODE":
+            clean_t = item.replace(".JK", "")
+            tickers.append(f"{clean_t}.JK")
+      return list(set(tickers))  # Hapus duplikat
+
     if st.button(
         "🚀 Run Batch Screener (daftar_saham.txt)", key="btn_run_batch"
     ):
-      batch_tickers = load_daftar_saham("daftar_saham.txt")
+      batch_tickers = get_clean_tickers_from_file("daftar_saham.txt")
 
       if not batch_tickers:
-        st.error("Daftar ticker kosong atau gagal dimuat.")
+        st.error(
+            "⚠️ File `daftar_saham.txt` tidak ditemukan atau isinya kosong."
+        )
       else:
         total_batch = len(batch_tickers)
         st.info(
@@ -494,19 +511,49 @@ with tab3:
             p.fetch_and_prepare_data()
 
             df_tp = p.generate_trade_plan()
-            if df_tp.empty:
+
+            if df_tp is None or len(df_tp) == 0:
               return None
 
-            close_p = p.data["Close"].iloc[-1]
-            status_candle = str(df_tp["Status Candle"].iloc[0])
-            warning_val = str(df_tp["Warning"].iloc[0])
+            # Ambil data pertama jika berupa DataFrame atau Series
+            if isinstance(df_tp, pd.DataFrame):
+              tp_row = df_tp.iloc[0].to_dict()
+            elif isinstance(df_tp, dict):
+              tp_row = df_tp
+            else:
+              return None
+
+            close_p = (
+                p.data["Close"].iloc[-1]
+                if (hasattr(p, "data") and not p.data.empty)
+                else 0
+            )
+
+            status_candle = str(tp_row.get("Status Candle", "-"))
+            warning_val = str(tp_row.get("Warning", "-"))
 
             # Hitung posisi terhadap Support & Resistance
             df_sup = p.get_strong_support()
             df_res = p.get_strong_resistance()
 
-            s_level = df_sup["Level"].iloc[0] if not df_sup.empty else 0
-            r_level = df_res["Level"].iloc[0] if not df_res.empty else 0
+            s_level = (
+                df_sup["Level"].iloc[0]
+                if (
+                    isinstance(df_sup, pd.DataFrame)
+                    and not df_sup.empty
+                    and "Level" in df_sup.columns
+                )
+                else 0
+            )
+            r_level = (
+                df_res["Level"].iloc[0]
+                if (
+                    isinstance(df_res, pd.DataFrame)
+                    and not df_res.empty
+                    and "Level" in df_res.columns
+                )
+                else 0
+            )
 
             # Penentuan Kategori Posisi Harga
             posisi_harga = "Normal / Floating"
@@ -514,20 +561,24 @@ with tab3:
               posisi_harga = "🛡️ Dekat Support (<= 2%)"
             elif r_level > 0 and close_p >= r_level:
               posisi_harga = "🚀 Breakout Resistance"
-            elif r_level > 0 and abs(r_level - close_p) / close_p <= 0.02:
+            elif (
+                r_level > 0
+                and close_p > 0
+                and abs(r_level - close_p) / close_p <= 0.02
+            ):
               posisi_harga = "🧱 Dekat Resistance (<= 2%)"
 
-            res_row = df_tp.iloc[0].to_dict()
-            res_row["Saham"] = ticker_sym.replace(".JK", "")
-            res_row["Ticker"] = ticker_sym
-            res_row["Close Price"] = close_p
-            res_row["Posisi Harga"] = posisi_harga
-            return res_row
-          except Exception:
+            tp_row["Saham"] = ticker_sym.replace(".JK", "")
+            tp_row["Ticker"] = ticker_sym
+            tp_row["Close Price"] = close_p
+            tp_row["Posisi Harga"] = posisi_harga
+            return tp_row
+          except Exception as err:
+            # Mengabaikan error pada saham individual yang gagal dimuat
             return None
 
         batch_results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
           future_to_ticker = {
               executor.submit(process_batch_item, t): t for t in batch_tickers
           }
@@ -543,7 +594,7 @@ with tab3:
             )
 
             res = future.result()
-            if res:
+            if res is not None:
               batch_results.append(res)
 
         pbar_batch.empty()
@@ -557,7 +608,10 @@ with tab3:
               f" {total_batch} saham."
           )
         else:
-          st.error("Tidak ada data yang berhasil di-screen.")
+          st.error(
+              "Tidak ada data yang berhasil di-screen. Pastikan koneksi internet"
+              " lancar atau file `trade_planner.py` berfungsi normal."
+          )
 
     # MENAMPILKAN HASIL + DROPDOWN CATEGORY FILTER
     if (
@@ -572,43 +626,49 @@ with tab3:
       col_f1, col_f2, col_f3 = st.columns(3)
 
       # 1. Filter Status Candle
-      list_candles = ["ALL"] + sorted(
-          df_batch["Status Candle"].dropna().unique().tolist()
+      candle_opts = (
+          ["ALL"] + sorted(df_batch["Status Candle"].dropna().unique().tolist())
+          if "Status Candle" in df_batch.columns
+          else ["ALL"]
       )
       with col_f1:
         sel_candle = st.selectbox(
             "🕯️ Filter Status Candle:",
-            list_candles,
+            candle_opts,
             key="filter_batch_candle",
         )
 
       # 2. Filter Posisi Harga (Support / Resistance)
-      list_posisi = ["ALL"] + sorted(
-          df_batch["Posisi Harga"].dropna().unique().tolist()
+      pos_opts = (
+          ["ALL"] + sorted(df_batch["Posisi Harga"].dropna().unique().tolist())
+          if "Posisi Harga" in df_batch.columns
+          else ["ALL"]
       )
       with col_f2:
         sel_posisi = st.selectbox(
-            "📈 Filter Posisi Harga:", list_posisi, key="filter_batch_posisi"
+            "📈 Filter Posisi Harga:", pos_opts, key="filter_batch_posisi"
         )
 
       # 3. Filter Warning
-      list_warning = ["ALL"] + sorted(
-          df_batch["Warning"].dropna().unique().tolist()
+      warn_opts = (
+          ["ALL"] + sorted(df_batch["Warning"].dropna().unique().tolist())
+          if "Warning" in df_batch.columns
+          else ["ALL"]
       )
       with col_f3:
         sel_warning = st.selectbox(
             "⚠️ Filter Status Warning:",
-            list_warning,
+            warn_opts,
             key="filter_batch_warning",
         )
 
       # Terapkan Filter
       df_filtered = df_batch.copy()
-      if sel_candle != "ALL":
+      if sel_candle != "ALL" and "Status Candle" in df_filtered.columns:
         df_filtered = df_filtered[df_filtered["Status Candle"] == sel_candle]
-      if sel_posisi != "ALL":
+      if sel_posisi != "ALL" and "Posisi Harga" in df_filtered.columns:
         df_filtered = df_filtered[df_filtered["Posisi Harga"] == sel_posisi]
-      if sel_warning != "ALL":
+      if sel_warning != "ALL" and "Warning" in df_filtered.columns:
         df_filtered = df_filtered[df_filtered["Warning"] == sel_warning]
 
       st.write(f"Menampilkan **{len(df_filtered)}** hasil saham terpilih:")

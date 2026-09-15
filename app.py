@@ -214,10 +214,11 @@ with tab1:
       "Pattern",
       "Tgl Kiri",
       "Tgl Kanan",
-      "RSI Kiri",
-      "RSI Kanan",
       "Harga Kiri",
       "Harga Kanan",
+      "RSI Kiri",
+      "RSI Kanan",
+
   ]
 
   with col_bull:

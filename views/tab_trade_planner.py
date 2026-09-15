@@ -1,8 +1,26 @@
 import concurrent.futures
+import os
 import pandas as pd
 import streamlit as st
 
 from trade_planner import TradePlanner
+
+
+def load_daftar_saham(filename="daftar_saham.txt"):
+    """Membaca file daftar_saham.txt."""
+    if not os.path.exists(filename):
+        return []
+    try:
+        with open(filename, "r") as f:
+            lines = f.readlines()
+        tickers = [
+            line.strip().upper()
+            for line in lines
+            if line.strip() and not line.startswith("#")
+        ]
+        return tickers
+    except Exception:
+        return []
 
 
 def process_single_ticker(ticker_code: str):
@@ -66,47 +84,72 @@ def process_single_ticker(ticker_code: str):
         return None
 
 
-def render_tab_trade_planner(ticker_list=None):
+def render_tab_trade_planner():
     st.header("📊 Smart Execution Screener")
     st.write(
         "Platform pemeringkat saham berbasis **Price Action**, **Risk-to-Reward Ratio**, dan **Skoring Otomatis (0-100)**."
     )
 
-    if not ticker_list:
-        ticker_list = [
-            "AADI",
-            "ABBA",
-            "AALI",
-            "ACES",
-            "ABMM",
-            "ABDA",
-            "ADCP",
-            "ACST",
-            "ACRO",
-            "ADES",
-            "BBCA",
-            "BMRI",
-            "TLKM",
-            "ANTM",
-            "INCO",
-        ]
+    # 1. PILIHAN MODE SCREENER
+    mode_screener = st.radio(
+        "📌 Pilih Mode Screener:",
+        [
+            "1. Single / Custom Ticker (Input Manual)",
+            "2. Full Batch Screener (Daftar Saham ~962 Ticker)",
+        ],
+        horizontal=True,
+    )
 
-    # --- PANEL FILTER LENGKAP & PRESISI ---
-    st.subheader("🔍 Filter & Parameter Screener")
+    list_to_scan = []
+
+    if "1. Single" in mode_screener:
+        input_ticker = st.text_input(
+            "Masukkan Kode Saham (Pisahkan dengan koma jika lebih dari 1):",
+            value="BBCA, BMRI, TLKM, ANTM, INCO",
+        )
+        if input_ticker:
+            list_to_scan = [
+                t.strip().upper() for t in input_ticker.split(",") if t.strip()
+            ]
+
+    else:
+        # Load dari file daftar_saham.txt
+        all_tickers = load_daftar_saham("daftar_saham.txt")
+        if not all_tickers:
+            st.error(
+                "❌ File 'daftar_saham.txt' tidak ditemukan atau kosong di direktori utama!"
+            )
+            return
+
+        st.info(
+            f"📁 Berhasil memuat **{len(all_tickers)} saham** dari `daftar_saham.txt`."
+        )
+
+        # Opsi pembatasan jumlah jika terlalu banyak/lama
+        limit_scan = st.number_input(
+            "Batas Jumlah Saham yang Di-scan (0 = Scan Semua 962 Saham):",
+            min_value=0,
+            max_value=len(all_tickers),
+            value=0,
+        )
+        if limit_scan > 0:
+            list_to_scan = all_tickers[:limit_scan]
+        else:
+            list_to_scan = all_tickers
+
+    # --- PANEL FILTER HASIL SCREENER ---
+    st.markdown("---")
+    st.subheader("🔍 Filter & Sortir Tabel Hasil Screener")
 
     row1_col1, row1_col2, row1_col3 = st.columns(3)
     with row1_col1:
         f_strategi = st.selectbox(
             "🎯 Strategi Trading:",
-            [
-                "SEMUA STRATEGI",
-                "Buy On Weakness (BOW)",
-                "Breakout (BOB)",
-            ],
+            ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
         )
     with row1_col2:
         f_grade = st.selectbox(
-            "🏆 Tingkat Kualitas (Grade):",
+            "🏆 Kualitas Setup (Grade):",
             [
                 "SEMUA GRADE",
                 "Grade A / A+ Only (High Quality)",
@@ -123,7 +166,7 @@ def render_tab_trade_planner(ticker_list=None):
             ],
         )
 
-    row2_col1, row2_col2, row2_col3 = st.columns(3)
+    row2_col1, row2_col2 = st.columns(2)
     with row2_col1:
         f_rr = st.selectbox(
             "⚖️ Minimal Risk-to-Reward:",
@@ -137,111 +180,123 @@ def render_tab_trade_planner(ticker_list=None):
     with row2_col2:
         f_candle = st.selectbox(
             "🕯️ Sinyal Candlestick:",
-            [
-                "SEMUA CANDLE",
-                "Bullish Signal Only",
-                "Neutral / Doji Only",
-            ],
-        )
-    with row2_col3:
-        selected_tickers = st.multiselect(
-            "📋 Pilih List Saham:", options=ticker_list, default=ticker_list
+            ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
         )
 
-    if st.button("🚀 Jalankan Batch Screener", type="primary"):
-        if not selected_tickers:
-            st.warning("Pilih minimal satu kode saham!")
+    # BUTTON ESEKUSI
+    if st.button("🚀 Jalankan Screener", type="primary"):
+        if not list_to_scan:
+            st.warning("Daftar ticker kosong!")
             return
 
-        with st.spinner("Memproses analisis teknikal & kalkulasi skor..."):
-            results = []
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=10
-            ) as executor:
-                futures = [
-                    executor.submit(process_single_ticker, t)
-                    for t in selected_tickers
-                ]
-                for future in concurrent.futures.as_completed(futures):
-                    res = future.result()
-                    if res:
-                        results.append(res)
+        total_saham = len(list_to_scan)
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
-            if not results:
-                st.error("Gagal memuat data saham.")
-                return
+        results = []
 
-            df = pd.DataFrame(results)
+        # Pake Multi-threading biar scan 962 saham ngebut
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=15
+        ) as executor:
+            future_to_ticker = {
+                executor.submit(process_single_ticker, t): t
+                for t in list_to_scan
+            }
 
-            # --- ESEKUSI FILTERING ---
-            if f_strategi == "Buy On Weakness (BOW)":
-                df = df[df["Strategi"] == "BOW"]
-            elif f_strategi == "Breakout (BOB)":
-                df = df[df["Strategi"] == "BOB"]
+            completed = 0
+            for future in concurrent.futures.as_completed(future_to_ticker):
+                res = future.result()
+                if res:
+                    results.append(res)
 
-            if f_grade == "Grade A / A+ Only (High Quality)":
-                df = df[df["Score"] >= 70]
-            elif f_grade == "Grade B Kebawah (Moderate/Risk)":
-                df = df[df["Score"] < 70]
+                completed += 1
+                progress_bar.progress(completed / total_saham)
+                status_text.text(
+                    f"Progres Screener: {completed} / {total_saham} saham diproses..."
+                )
 
-            if f_zone == "🎯 In Buy Zone (Siap Eksekusi)":
-                df = df[df["Posisi Zone"] == "In Buy Zone"]
-            elif f_zone == "⏳ Near Zone (Dekat Entry)":
-                df = df[df["Posisi Zone"] == "Near Zone"]
+        status_text.success(
+            f"✅ Selesai! Berhasil menganalisis {len(results)} saham dari {total_saham} ticker."
+        )
 
-            if f_rr == "Min 1 : 1.5":
-                df = df[df["RR_Val"] >= 1.5]
-            elif f_rr == "Min 1 : 2.0 (Pro Standard)":
-                df = df[df["RR_Val"] >= 2.0]
-            elif f_rr == "Min 1 : 3.0 (High Reward)":
-                df = df[df["RR_Val"] >= 3.0]
+        if not results:
+            st.error("Tidak ada data saham yang berhasil di-fetch.")
+            return
 
-            if f_candle == "Bullish Signal Only":
-                df = df[
-                    df["Pola Candle"].str.contains(
-                        "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
-                        case=False,
-                        na=False,
-                    )
-                ]
-            elif f_candle == "Neutral / Doji Only":
-                df = df[
-                    df["Pola Candle"].str.contains(
-                        "Doji|Spinning|Standard", case=False, na=False
-                    )
-                ]
+        df_raw = pd.DataFrame(results)
 
-            # Urutkan berdasarkan Score tertinggi
-            df = df.sort_values(by="Score", ascending=False).reset_index(
-                drop=True
-            )
+        # --- TERAPKAN FILTER POST-SCREENER ---
+        df = df_raw.copy()
 
-            st.subheader(f"📋 Hasil Batch Screener ({len(df)} Saham Terpilih)")
+        if f_strategi == "Buy On Weakness (BOW)":
+            df = df[df["Strategi"] == "BOW"]
+        elif f_strategi == "Breakout (BOB)":
+            df = df[df["Strategi"] == "BOB"]
 
-            # Tampilkan Tabel
-            st.dataframe(
-                df,
-                column_config={
-                    "Saham": st.column_config.TextColumn("Saham"),
-                    "Score": st.column_config.NumberColumn(
-                        "Score (0-100)", format="%d pts"
-                    ),
-                    "Grade": st.column_config.TextColumn("Kualitas Setup"),
-                    "Harga Last": st.column_config.NumberColumn(
-                        "Harga Last", format="Rp %d"
-                    ),
-                    "Area Buy": st.column_config.TextColumn("Area Buy (Entry)"),
-                    "Stop Loss (SL)": st.column_config.NumberColumn(
-                        "SL", format="%d"
-                    ),
-                    "TP 1": st.column_config.NumberColumn("TP 1", format="%d"),
-                    "TP 2": st.column_config.NumberColumn("TP 2", format="%d"),
-                    "Potensi Gain": st.column_config.TextColumn("Gain TP1"),
-                    "Risiko SL": st.column_config.TextColumn("Risk SL"),
-                    "Catatan Analisis & Warning": st.column_config.TextColumn(
-                        "Rekomendasi & Warning", width="large"
-                    ),
-                },
-                hide_index=True,
-                use_container_width=True,
-            )
+        if f_grade == "Grade A / A+ Only (High Quality)":
+            df = df[df["Score"] >= 70]
+        elif f_grade == "Grade B Kebawah (Moderate/Risk)":
+            df = df[df["Score"] < 70]
+
+        if f_zone == "🎯 In Buy Zone (Siap Eksekusi)":
+            df = df[df["Posisi Zone"] == "In Buy Zone"]
+        elif f_zone == "⏳ Near Zone (Dekat Entry)":
+            df = df[df["Posisi Zone"] == "Near Zone"]
+
+        if f_rr == "Min 1 : 1.5":
+            df = df[df["RR_Val"] >= 1.5]
+        elif f_rr == "Min 1 : 2.0 (Pro Standard)":
+            df = df[df["RR_Val"] >= 2.0]
+        elif f_rr == "Min 1 : 3.0 (High Reward)":
+            df = df[df["RR_Val"] >= 3.0]
+
+        if f_candle == "Bullish Signal Only":
+            df = df[
+                df["Pola Candle"].str.contains(
+                    "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
+                    case=False,
+                    na=False,
+                )
+            ]
+        elif f_candle == "Neutral / Doji Only":
+            df = df[
+                df["Pola Candle"].str.contains(
+                    "Doji|Spinning|Standard", case=False, na=False
+                )
+            ]
+
+        # URUTKAN BERDASARKAN SCORE HIGHEST FIRST
+        df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
+
+        st.subheader(
+            f"📋 Hasil Filtering Screener ({len(df)} dari {len(df_raw)} Saham Lolos Filter)"
+        )
+
+        # Tampilkan Tabel
+        st.dataframe(
+            df,
+            column_config={
+                "Saham": st.column_config.TextColumn("Saham"),
+                "Score": st.column_config.NumberColumn(
+                    "Score (0-100)", format="%d pts"
+                ),
+                "Grade": st.column_config.TextColumn("Kualitas Setup"),
+                "Harga Last": st.column_config.NumberColumn(
+                    "Harga Last", format="Rp %d"
+                ),
+                "Area Buy": st.column_config.TextColumn("Area Buy (Entry)"),
+                "Stop Loss (SL)": st.column_config.NumberColumn(
+                    "SL", format="%d"
+                ),
+                "TP 1": st.column_config.NumberColumn("TP 1", format="%d"),
+                "TP 2": st.column_config.NumberColumn("TP 2", format="%d"),
+                "Potensi Gain": st.column_config.TextColumn("Gain TP1"),
+                "Risiko SL": st.column_config.TextColumn("Risk SL"),
+                "Catatan Analisis & Warning": st.column_config.TextColumn(
+                    "Rekomendasi & Warning", width="large"
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )

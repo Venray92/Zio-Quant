@@ -185,7 +185,6 @@ with tab1:
             pd.DataFrame(results_rsi) if results_rsi else pd.DataFrame()
         )
 
-        # Sortir dataframe berdasarkan Score secara descending jika kolom Score ada
         if not df_rsi_all.empty and "Score" in df_rsi_all.columns:
             df_rsi_all = df_rsi_all.sort_values(by="Score", ascending=False)
 
@@ -357,7 +356,6 @@ with tab2:
             pbar_stoch.empty()
             pstatus_stoch.empty()
 
-            # Mengurutkan berdasarkan Score jika kolom Score tersedia
             if (
                 df_gc is not None
                 and not df_gc.empty
@@ -538,16 +536,24 @@ with tab3:
             " Status Candle, Support/Resistance, Score, dan Warning."
         )
 
-        batch_period = st.selectbox(
-            "Pilih Periode Analysis Batch",
-            options=["3mo", "6mo", "1y"],
-            index=0,
-            key="batch_period_select",
-        )
+        col_b1, col_b2 = st.columns([3, 1])
+        with col_b1:
+            batch_period = st.selectbox(
+                "Pilih Periode Analysis Batch",
+                options=["3mo", "6mo", "1y"],
+                index=0,
+                key="batch_period_select",
+            )
+        with col_b2:
+            st.write("")
+            st.write("")
+            btn_run = st.button(
+                "🚀 Run Batch Screener",
+                key="btn_run_batch",
+                use_container_width=True,
+            )
 
-        if st.button(
-            "🚀 Run Batch Screener (daftar_saham.txt)", key="btn_run_batch"
-        ):
+        if btn_run:
             batch_tickers = load_daftar_saham("daftar_saham.txt")
 
             if not batch_tickers:
@@ -577,19 +583,16 @@ with tab3:
                         if df_tp is None or len(df_tp) == 0:
                             return None
 
-                        if isinstance(df_tp, pd.DataFrame):
-                            tp_row = df_tp.iloc[0].to_dict()
-                        elif isinstance(df_tp, dict):
-                            tp_row = df_tp
-                        else:
-                            return None
-
+                        tp_row = (
+                            df_tp.iloc[0].to_dict()
+                            if isinstance(df_tp, pd.DataFrame)
+                            else df_tp
+                        )
                         close_p = (
                             p.data["Close"].iloc[-1]
                             if (hasattr(p, "data") and not p.data.empty)
                             else 0
                         )
-
                         score_val = tp_row.get(
                             "Score", tp_row.get("Total Score", 0)
                         )
@@ -654,11 +657,9 @@ with tab3:
                         future_to_ticker
                     ):
                         completed += 1
-                        pct = int((completed / total_batch) * 100)
-                        pbar_batch.progress(pct)
+                        pbar_batch.progress(int((completed / total_batch) * 100))
                         pstatus_batch.text(
-                            f"Memproses Batch Trade Planner:"
-                            f" {completed}/{total_batch} saham..."
+                            f"Memproses Batch: {completed}/{total_batch}..."
                         )
 
                         res = future.result()
@@ -670,92 +671,214 @@ with tab3:
 
                 if batch_results:
                     df_batch_all = pd.DataFrame(batch_results)
-
                     if "Score" in df_batch_all.columns:
                         df_batch_all = df_batch_all.sort_values(
                             by="Score", ascending=False
                         )
-
                     st.session_state["df_batch_screener"] = df_batch_all
                     st.success(
-                        f"Screening selesai! Berhasil memproses"
-                        f" {len(df_batch_all)} dari {total_batch} saham."
-                    )
-                else:
-                    st.error(
-                        "Tidak ada data yang berhasil di-screen. Pastikan"
-                        " koneksi internet lancar atau file `trade_planner.py`"
-                        " berfungsi normal."
+                        f"Screening selesai! Terkumpul {len(df_batch_all)} saham."
                     )
 
-        # MENAMPILKAN HASIL + DROPDOWN CATEGORY FILTER
+        # BAGIAN FILTER INTERAKTIF TERSTRUKTUR
+        st.markdown("---")
+        st.subheader("📊 Filter Hasil Batch Screener")
+
         if (
             "df_batch_screener" in st.session_state
             and not st.session_state["df_batch_screener"].empty
         ):
-            df_batch = st.session_state["df_batch_screener"]
+            df_batch = st.session_state["df_batch_screener"].copy()
 
-            st.markdown("---")
-            st.subheader("📊 Filter Hasil Batch Screener")
+            # Clean & Standardize
+            for col in [
+                "Warning",
+                "Posisi Harga",
+                "Status Candle",
+                "Score",
+                "Rasio (R:R)",
+                "Stop Loss",
+                "Close Price",
+            ]:
+                if col not in df_batch.columns:
+                    df_batch[col] = "-" if col not in ["Score", "Close Price"] else 0
 
+            df_batch["Warning"] = (
+                df_batch["Warning"].fillna("-").astype(str).str.strip()
+            )
+            df_batch["Posisi Harga"] = (
+                df_batch["Posisi Harga"].fillna("-").astype(str).str.strip()
+            )
+            df_batch["Status Candle"] = (
+                df_batch["Status Candle"].fillna("-").astype(str).str.strip()
+            )
+
+            def parse_rr(val):
+                try:
+                    val_str = str(val).lower().replace(" ", "").replace("1:", "")
+                    return float(val_str)
+                except Exception:
+                    return 0.0
+
+            df_batch["rr_ratio_float"] = df_batch["Rasio (R:R)"].apply(parse_rr)
+
+            def calc_sl_pct(row):
+                try:
+                    close_p = float(row.get("Close Price", 0))
+                    sl_p = float(row.get("Stop Loss", 0))
+                    if close_p > 0 and sl_p > 0:
+                        return abs(close_p - sl_p) / close_p * 100
+                except Exception:
+                    pass
+                return 999.0
+
+            df_batch["sl_pct"] = df_batch.apply(calc_sl_pct, axis=1)
+
+            # Dropdown Controls
             col_f1, col_f2, col_f3 = st.columns(3)
 
-            candle_opts = (
-                ["ALL"]
-                + sorted(df_batch["Status Candle"].dropna().unique().tolist())
-                if "Status Candle" in df_batch.columns
-                else ["ALL"]
-            )
             with col_f1:
-                sel_candle = st.selectbox(
-                    "🕯️ Filter Status Candle:",
-                    candle_opts,
-                    key="filter_batch_candle",
+                sel_kualitas = st.selectbox(
+                    "🎯 Kualitas Setup:",
+                    options=[
+                        "SEMUA",
+                        "Grade A (Ideal)",
+                        "Rawan Retracement",
+                        "Tekanan Jual Tinggi",
+                        "Sinyal Bearish",
+                    ],
+                    key="f_kualitas",
                 )
 
-            pos_opts = (
-                ["ALL"]
-                + sorted(df_batch["Posisi Harga"].dropna().unique().tolist())
-                if "Posisi Harga" in df_batch.columns
-                else ["ALL"]
-            )
+                sel_pola = st.selectbox(
+                    "🕯️ Pola Candle:",
+                    options=[
+                        "SEMUA",
+                        "Doji / Reversal",
+                        "Standard Hijau",
+                        "Standard Merah",
+                    ],
+                    key="f_pola",
+                )
+
             with col_f2:
                 sel_posisi = st.selectbox(
-                    "📈 Filter Posisi Harga:",
-                    pos_opts,
-                    key="filter_batch_posisi",
+                    "📈 Posisi Harga:",
+                    options=[
+                        "SEMUA",
+                        "Near Support",
+                        "Normal / Floating",
+                        "Breakout",
+                    ],
+                    key="f_posisi",
                 )
 
-            warn_opts = (
-                ["ALL"]
-                + sorted(df_batch["Warning"].dropna().unique().tolist())
-                if "Warning" in df_batch.columns
-                else ["ALL"]
-            )
+                sel_rr = st.selectbox(
+                    "⚖️ Minimal Risk/Reward:",
+                    options=["SEMUA", "R:R ≥ 1:3", "R:R ≥ 1:5"],
+                    key="f_rr",
+                )
+
             with col_f3:
-                sel_warning = st.selectbox(
-                    "⚠️ Filter Status Warning:",
-                    warn_opts,
-                    key="filter_batch_warning",
+                sel_sort = st.selectbox(
+                    "🔢 Urutkan Berdasarkan:",
+                    options=[
+                        "Default",
+                        "R:R Tertinggi",
+                        "Score Tertinggi",
+                        "Stop Loss Terdekat (%)",
+                    ],
+                    key="f_sort",
                 )
 
-            # Terapkan Filter
+            # Filtering
             df_filtered = df_batch.copy()
-            if sel_candle != "ALL" and "Status Candle" in df_filtered.columns:
-                df_filtered = df_filtered[
-                    df_filtered["Status Candle"] == sel_candle
-                ]
-            if sel_posisi != "ALL" and "Posisi Harga" in df_filtered.columns:
-                df_filtered = df_filtered[
-                    df_filtered["Posisi Harga"] == sel_posisi
-                ]
-            if sel_warning != "ALL" and "Warning" in df_filtered.columns:
-                df_filtered = df_filtered[
-                    df_filtered["Warning"] == sel_warning
-                ]
+
+            if sel_kualitas != "SEMUA":
+                if sel_kualitas == "Grade A (Ideal)":
+                    df_filtered = df_filtered[
+                        df_filtered["Warning"].str.contains(
+                            "Aman|Ideal|Grade A|OK", case=False, na=False
+                        )
+                        | (df_filtered["Warning"] == "-")
+                    ]
+                elif sel_kualitas == "Rawan Retracement":
+                    df_filtered = df_filtered[
+                        df_filtered["Warning"].str.contains(
+                            "Retracement|Jenuh Beli|Overbought", case=False, na=False
+                        )
+                    ]
+                elif sel_kualitas == "Tekanan Jual Tinggi":
+                    df_filtered = df_filtered[
+                        df_filtered["Warning"].str.contains(
+                            "Tekanan Jual|Selling|Jual", case=False, na=False
+                        )
+                    ]
+                elif sel_kualitas == "Sinyal Bearish":
+                    df_filtered = df_filtered[
+                        df_filtered["Warning"].str.contains(
+                            "Bearish|Downtrend", case=False, na=False
+                        )
+                    ]
+
+            if sel_posisi != "SEMUA":
+                if sel_posisi == "Near Support":
+                    df_filtered = df_filtered[
+                        df_filtered["Posisi Harga"].str.contains(
+                            "Support", case=False, na=False
+                        )
+                    ]
+                elif sel_posisi == "Normal / Floating":
+                    df_filtered = df_filtered[
+                        df_filtered["Posisi Harga"].str.contains(
+                            "Normal|Floating", case=False, na=False
+                        )
+                    ]
+                elif sel_posisi == "Breakout":
+                    df_filtered = df_filtered[
+                        df_filtered["Posisi Harga"].str.contains(
+                            "Breakout", case=False, na=False
+                        )
+                    ]
+
+            if sel_pola != "SEMUA":
+                if sel_pola == "Doji / Reversal":
+                    df_filtered = df_filtered[
+                        df_filtered["Status Candle"].str.contains(
+                            "Doji|Reversal|Hammer|Spinning", case=False, na=False
+                        )
+                    ]
+                elif sel_pola == "Standard Hijau":
+                    df_filtered = df_filtered[
+                        df_filtered["Status Candle"].str.contains(
+                            "Hijau|Bullish|Standard Green", case=False, na=False
+                        )
+                    ]
+                elif sel_pola == "Standard Merah":
+                    df_filtered = df_filtered[
+                        df_filtered["Status Candle"].str.contains(
+                            "Merah|Bearish|Standard Red", case=False, na=False
+                        )
+                    ]
+
+            if sel_rr == "R:R ≥ 1:3":
+                df_filtered = df_filtered[df_filtered["rr_ratio_float"] >= 3.0]
+            elif sel_rr == "R:R ≥ 1:5":
+                df_filtered = df_filtered[df_filtered["rr_ratio_float"] >= 5.0]
+
+            # Sorting
+            if sel_sort == "R:R Tertinggi":
+                df_filtered = df_filtered.sort_values(
+                    by="rr_ratio_float", ascending=False
+                )
+            elif sel_sort == "Score Tertinggi":
+                df_filtered = df_filtered.sort_values(by="Score", ascending=False)
+            elif sel_sort == "Stop Loss Terdekat (%)":
+                df_filtered = df_filtered.sort_values(by="sl_pct", ascending=True)
 
             st.write(
-                f"Menampilkan **{len(df_filtered)}** hasil saham terpilih:"
+                f"Menampilkan **{len(df_filtered)}** dari **{len(df_batch)}** hasil"
+                " saham:"
             )
 
             display_batch_cols = [
@@ -789,3 +912,8 @@ with tab3:
                 render_inline_trade_planner(
                     selected_batch_ticker, key_suffix="batch_tab"
                 )
+        else:
+            st.info(
+                "Belum ada data batch screening. Klik tombol **🚀 Run Batch"
+                " Screener** di atas untuk memulai."
+            )

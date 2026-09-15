@@ -3,7 +3,7 @@ import time
 import pandas as pd
 import streamlit as st
 
-# 1. Import modul internal (Bulk screener dihapus)
+# 1. Import modul internal
 from ihsg_tickers import get_all_ihsg_tickers
 from screener_rsi_divergence import detect_rsi_patterns_and_score
 from screener_stoch_psar import run_stoch_psar_screener
@@ -31,7 +31,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
   period_selected = st.selectbox(
       "Periode Data Analysis",
       options=["3mo", "6mo", "1y", "2y"],
-      index=0,  # Default 3mo (index 0)
+      index=0,
       key=f"period_{key_suffix}",
   )
 
@@ -79,7 +79,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
       st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}: {e}")
 
 
-# 3. Membuat Tab Navigasi (Sisa 3 Tab)
+# 3. Membuat Tab Navigasi
 tab1, tab2, tab3 = st.tabs([
     "🔄 RSI Divergence",
     "⚡ Stochastic & Parabolic SAR",
@@ -190,10 +190,12 @@ with tab1:
   col_bull, col_bear = st.columns(2)
   selected_rsi_symbol = None
 
-  # Daftar kolom khusus yang ingin ditampilkan di tabel RSI Divergence
+  # TARGET KOLOM DENGAN TANGGAL
   target_rsi_cols = [
       "Saham",
       "Pattern",
+      "Tgl Kiri",
+      "Tgl Kanan",
       "RSI Kiri",
       "RSI Kanan",
       "Harga Kiri",
@@ -208,7 +210,6 @@ with tab1:
     ):
       df_rsi_bullish = st.session_state["df_rsi_bullish"]
 
-      # Memastikan hanya mengambil kolom yang tersedia
       display_cols = [c for c in target_rsi_cols if c in df_rsi_bullish.columns]
       df_display_bull = (
           df_rsi_bullish[display_cols] if display_cols else df_rsi_bullish
@@ -239,7 +240,6 @@ with tab1:
     ):
       df_rsi_bearish = st.session_state["df_rsi_bearish"]
 
-      # Memastikan hanya mengambil kolom yang tersedia
       display_cols = [c for c in target_rsi_cols if c in df_rsi_bearish.columns]
       df_display_bear = (
           df_rsi_bearish[display_cols] if display_cols else df_rsi_bearish
@@ -419,7 +419,7 @@ with tab3:
     period_input = st.selectbox(
         "Pilih Periode Data",
         options=["3mo", "6mo", "1y", "2y"],
-        index=0,  # Default 3mo
+        index=0,
         key="manual_period_input",
     )
 

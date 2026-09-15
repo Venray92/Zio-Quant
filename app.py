@@ -24,7 +24,8 @@ st.markdown(
 )
 
 
-# Helper Robust untuk membaca & membersihkan daftar saham dari file TXT
+# Helper Robust dengan Cache untuk membaca & membersihkan daftar saham dari file TXT
+@st.cache_data(ttl="1h")
 def load_daftar_saham(filepath="daftar_saham.txt"):
     if not os.path.exists(filepath):
         return []
@@ -403,7 +404,6 @@ with tab2:
             "Total Sinyal Terdeteksi", f"{st_stats['total_signal']} Saham"
         )
 
-    # PERBAIKAN: Seluruh blok visualiasi tabel berada dalam 'with tab2:'
     col_gc, col_dc = st.columns(2)
     selected_stoch_symbol = None
 

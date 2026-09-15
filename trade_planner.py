@@ -229,10 +229,10 @@ class TradePlanner:
     def get_strong_resistance(self):
         return self.strong_resistance
 
-    # --- PERBAIKAN 1: CLASSIFY CANDLE PRO (ATR & MA20 TREN) ---
+    # --- CLASSIFY CANDLE (DISINKRONKAN DENGAN FILTER APP.PY) ---
     def classify_candle(self):
         if len(self.df) < 5 or self.atr_14 <= 0:
-            return "Standard Candle", "NEUTRAL"
+            return "Standard Hijau", "NEUTRAL"
 
         ma20 = self.df["Close"].rolling(20).mean().iloc[-1]
         last_close = self.df.iloc[-1]["Close"]
@@ -270,9 +270,8 @@ class TradePlanner:
         p1 = get_props(self.df.iloc[-1])
 
         is_large_body = p1["body_size"] >= (1.0 * self.atr_14)
-        is_small_body = p1["body_size"] < (0.4 * self.atr_14)
 
-        # 1. Three-Candle Patterns
+        # 1. Pattern Reversal & Doji -> Dikategorikan sebagai "Doji / Reversal"
         if (
             p3["is_green"]
             and p2["is_green"]
@@ -280,7 +279,8 @@ class TradePlanner:
             and (p1["close"] > p2["close"] > p3["close"])
             and is_large_body
         ):
-            return "Three White Soldiers", "BULLISH"
+            return "Doji / Reversal", "BULLISH"
+
         if (
             p3["is_red"]
             and (p3["body_size"] >= 0.8 * self.atr_14)
@@ -289,7 +289,8 @@ class TradePlanner:
             and (p1["close"] >= (p3["open"] + p3["close"]) / 2)
             and is_downtrend
         ):
-            return "Morning Star (Reversal)", "BULLISH"
+            return "Doji / Reversal", "BULLISH"
+
         if (
             p3["is_green"]
             and (p3["body_size"] >= 0.8 * self.atr_14)
@@ -298,9 +299,8 @@ class TradePlanner:
             and (p1["close"] <= (p3["open"] + p3["close"]) / 2)
             and is_uptrend
         ):
-            return "Evening Star (Reversal)", "BEARISH"
+            return "Doji / Reversal", "BEARISH"
 
-        # 2. Two-Candle Patterns
         if (
             p1["is_green"]
             and p2["is_red"]
@@ -308,14 +308,8 @@ class TradePlanner:
             and (p1["body_bottom"] <= p2["body_bottom"])
             and is_large_body
         ):
-            return (
-                (
-                    "Bullish Engulfing (Reversal)"
-                    if is_downtrend
-                    else "Bullish Engulfing"
-                ),
-                "BULLISH",
-            )
+            return "Doji / Reversal", "BULLISH"
+
         if (
             p1["is_red"]
             and p2["is_green"]
@@ -323,37 +317,11 @@ class TradePlanner:
             and (p1["body_top"] >= p2["body_top"])
             and is_large_body
         ):
-            return "Bearish Engulfing", "BEARISH"
+            return "Doji / Reversal", "BEARISH"
 
-        # 3. Single-Candle Patterns
         if p1["is_doji"]:
-            if (p1["lower_shadow"] >= 2.5 * p1["body_size"]) and (
-                p1["upper_shadow"] <= 0.5 * p1["body_size"]
-            ):
-                return "Dragonfly Doji", "BULLISH"
-            elif (p1["upper_shadow"] >= 2.5 * p1["body_size"]) and (
-                p1["lower_shadow"] <= 0.5 * p1["body_size"]
-            ):
-                return "Gravestone Doji", "BEARISH"
-            return "Doji (Indecision)", "NEUTRAL"
+            return "Doji / Reversal", "NEUTRAL"
 
-        # Marubozu Valid: Wajib Body >= 1.1x ATR & Ekor Minimal
-        is_marubozu_body = p1["body_size"] >= (1.1 * self.atr_14)
-        has_minimal_shadows = (
-            p1["upper_shadow"] <= 0.1 * p1["total_range"]
-        ) and (p1["lower_shadow"] <= 0.1 * p1["total_range"])
-
-        if is_marubozu_body and has_minimal_shadows:
-            return (
-                (
-                    "Bullish Marubozu (Strong)"
-                    if p1["is_green"]
-                    else "Bearish Marubozu (Strong)"
-                ),
-                "BULLISH" if p1["is_green"] else "BEARISH",
-            )
-
-        # Hammer & Shooting Star
         is_hammer_shape = (p1["lower_shadow"] >= 2.0 * p1["body_size"]) and (
             p1["upper_shadow"] <= 0.3 * p1["body_size"]
         )
@@ -361,31 +329,16 @@ class TradePlanner:
             p1["lower_shadow"] <= 0.3 * p1["body_size"]
         )
 
-        if is_hammer_shape:
-            return (
-                ("Hammer (Valid Reversal)", "BULLISH")
-                if is_downtrend
-                else ("Hanging Man", "BEARISH")
-            )
+        if is_hammer_shape or is_shooting_shape:
+            return "Doji / Reversal", "BULLISH" if p1["is_green"] else "BEARISH"
 
-        if is_shooting_shape:
-            return (
-                ("Shooting Star (Valid Reversal)", "BEARISH")
-                if is_uptrend
-                else ("Inverted Hammer", "NEUTRAL")
-            )
+        # 2. Pattern Standar -> Standard Hijau / Standard Merah
+        if p1["is_green"]:
+            return "Standard Hijau", "BULLISH"
+        else:
+            return "Standard Merah", "BEARISH"
 
-        # Small Candle (Bukan Marubozu)
-        color_str = "Hijau" if p1["is_green"] else "Merah"
-        if is_small_body:
-            return f"Small {color_str} / Spinning Top", "NEUTRAL"
-
-        return (
-            f"Standard {color_str}",
-            "BULLISH" if p1["is_green"] else "BEARISH",
-        )
-
-    # --- PERBAIKAN 2: DYNAMIC MULTIDIMENSIONAL WARNING SYSTEM ---
+    # --- SMART WARNING SYSTEM (DISINKRONKAN DENGAN FILTER DROPDOWN) ---
     def _generate_smart_warning(
         self,
         plan_type,
@@ -396,60 +349,28 @@ class TradePlanner:
         candle_type,
         candle_bias,
     ):
-        warnings = []
         last_close = self.df.iloc[-1]["Close"]
         p1_high = self.df.iloc[-1]["High"]
         p1_low = self.df.iloc[-1]["Low"]
         p1_body_top = max(self.df.iloc[-1]["Open"], last_close)
         upper_shadow = p1_high - p1_body_top
 
-        # 1. Evaluasi Risk-to-Reward Ratio (R:R)
-        if rr_ratio > 0 and rr_ratio < 1.0:
-            warnings.append("🚫 Risk-to-Reward Buruk (< 1:1). Hindari Trade!")
-        elif rr_ratio >= 1.0 and rr_ratio < 1.5:
-            warnings.append("⚠️ Risk:Reward Kurang Ideal (< 1:1.5). Batasi Lot.")
+        # Prioritas Kategori Warning untuk Sesuai Filter
+        if candle_bias == "BEARISH":
+            return "Sinyal Bearish - Konfirmasi Belum Valid"
 
-        # 2. Evaluasi Proximity / Jarak ke Support / Target
-        if plan_type == "BOW":
-            dist_to_support = (
-                ((last_close - entry_price) / entry_price) * 100
-                if entry_price > 0
-                else 0
-            )
-            if dist_to_support > 4.0:
-                warnings.append(
-                    f"⚠️ Harga Sudah Naik (+{round(dist_to_support, 1)}% dari Support). Rawan Retracement."
-                )
-
-        dist_to_target = (
-            ((target_1 - last_close) / last_close) * 100 if last_close > 0 else 0
-        )
-        if 0 < dist_to_target <= 1.5:
-            warnings.append(
-                f"⚠️ Dekat Resistance Utama (Sisa Potensi +{round(dist_to_target, 1)}%). Rawan Rejection."
-            )
-
-        # 3. Evaluasi Ekor & Selling Pressure
         if upper_shadow >= (0.4 * (p1_high - p1_low)) and upper_shadow > 0:
-            warnings.append("⚡ Tekanan Jual Tinggi Dari Ekor Atas.")
+            return "Tekanan Jual Tinggi Dari Ekor Atas"
 
-        # 4. Evaluasi Keselarasan Sinyal Candle vs Tipe Plan
-        if plan_type == "BOW" and candle_bias == "BEARISH":
-            warnings.append(
-                f"⚠️ Sinyal Candle ({candle_type}) Masih Bearish. Tunggu Konfirmasi Pantulan."
-            )
-        elif plan_type == "BOB" and candle_bias == "BEARISH":
-            warnings.append(
-                "⚠️ Candle Terakhir Merah/Bearish. Waspada Fake Breakout!"
-            )
+        if plan_type == "BOW" and entry_price > 0:
+            dist_to_support = ((last_close - entry_price) / entry_price) * 100
+            if dist_to_support > 4.0:
+                return "Rawan Retracement (Harga Sudah Naik)"
 
-        # Jika Semua Parameter Bagus
-        if not warnings and rr_ratio >= 1.8:
-            return "✅ Setup Ideal (Grade A). Risk Terukur & Potensi Bagus."
-        elif not warnings:
-            return "👍 Setup Wajar (Grade B). Lakukan Entry Sesuai Money Management."
+        if rr_ratio < 1.0 and rr_ratio > 0:
+            return "Risk-to-Reward Buruk (< 1:1)"
 
-        return " | ".join(warnings)
+        return "Grade A (Ideal) - Setup Aman"
 
     def generate_trade_plan(self):
         min_point_gap = 9
@@ -493,6 +414,7 @@ class TradePlanner:
             return self.round_to_nearest_tick(target_2_atr)
 
         candle_name, candle_bias = self.classify_candle()
+        last_close = self.df.iloc[-1]["Close"]
 
         # 1. BOW PLAN
         if not self.strong_support.empty:
@@ -511,6 +433,12 @@ class TradePlanner:
         reward_bow = target_1_bow - rb_bow_min
         rr_val_bow = round(reward_bow / risk_bow, 1) if risk_bow > 0 else 0.0
         ratio_bow = f"1 : {rr_val_bow}" if risk_bow > 0 else "-"
+
+        posisi_harga_bow = (
+            "Near Support"
+            if abs(last_close - rb_bow_max) / max(rb_bow_max, 1) <= 0.025
+            else "Normal / Floating"
+        )
 
         warning_bow = self._generate_smart_warning(
             "BOW",
@@ -542,6 +470,10 @@ class TradePlanner:
         rr_val_bob = round(reward_bob / risk_bob, 1) if risk_bob > 0 else 0.0
         ratio_bob_val = f"1 : {rr_val_bob}" if risk_bob > 0 else "-"
 
+        posisi_harga_bob = (
+            "Breakout" if last_close >= base_bob_high else "Normal / Floating"
+        )
+
         warning_bob = self._generate_smart_warning(
             "BOB",
             base_bob_high,
@@ -556,6 +488,7 @@ class TradePlanner:
             {
                 "No": 1,
                 "Type": "BOW",
+                "Posisi Harga": posisi_harga_bow,
                 "Range Buy": range_buy_bow,
                 "Stop Loss": stop_loss_bow,
                 "Target 1": target_1_bow,
@@ -567,6 +500,7 @@ class TradePlanner:
             {
                 "No": 2,
                 "Type": "BOB",
+                "Posisi Harga": posisi_harga_bob,
                 "Range Buy": range_buy_bob,
                 "Stop Loss": stop_loss_bob,
                 "Target 1": target_1_bob,

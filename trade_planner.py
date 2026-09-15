@@ -10,19 +10,19 @@ class TradePlanner:
         self.ticker = ticker.upper()
         self.period = period
         self.df = None
-        self.atr_14 = 0
+        self.atr_14 = 0.0
         self.highs_15 = pd.DataFrame()
         self.lows_15 = pd.DataFrame()
         self.highs_5 = pd.DataFrame()
         self.strong_support = pd.DataFrame()
         self.strong_resistance = pd.DataFrame()
 
-    # --- ATURAN TICK SIZE IDX ---
+    # --- ATURAN TICK SIZE BEI / IDX ---
     @staticmethod
-    def get_tick_size(price):
+    def get_tick_size(price: float) -> int:
         if price < 200:
             return 1
-        elif price <= 500:
+        elif price < 500:
             return 2
         elif price < 2000:
             return 5
@@ -32,44 +32,48 @@ class TradePlanner:
             return 25
 
     @classmethod
-    def add_ticks(cls, price, n_ticks):
+    def add_ticks(cls, price: float, n_ticks: int) -> float:
         p = float(price)
         for _ in range(n_ticks):
             p += cls.get_tick_size(p)
         return round(p, 2)
 
     @classmethod
-    def sub_ticks(cls, price, n_ticks):
+    def sub_ticks(cls, price: float, n_ticks: int) -> float:
         p = float(price)
         for _ in range(n_ticks):
             tick = cls.get_tick_size(p)
             p -= tick
             if p < 1:
-                p = 1
+                p = 1.0
+                break
         return round(p, 2)
 
     @classmethod
-    def round_to_nearest_tick(cls, price):
+    def round_to_nearest_tick(cls, price: float) -> float:
         price = float(price)
+        if price <= 0:
+            return 0.0
         tick = cls.get_tick_size(price)
         return round(round(price / tick) * tick, 2)
 
-    # --- FETCH & DATA PREPARATION ---
+    # --- FETCH & PREPARE DATA ---
     def fetch_and_prepare_data(self):
         stock = yf.Ticker(self.ticker)
         df = stock.history(period=self.period, interval="1d").reset_index()
 
-        if df.empty:
+        if df.empty or len(df) < 14:
             raise ValueError(
-                f"Data tidak ditemukan untuk ticker '{self.ticker}'. Pastikan kode"
-                " saham benar (misal: INCO.JK)."
+                f"Data tidak mencukupi/tidak ditemukan untuk ticker '{self.ticker}'."
             )
 
-        # Hitung Body Top & Body Bottom
+        if "Date" in df.columns:
+            df["Date"] = pd.to_datetime(df["Date"]).dt.tz_localize(None)
+
         df["Body_Top"] = df[["Open", "Close"]].max(axis=1)
         df["Body_Bottom"] = df[["Open", "Close"]].min(axis=1)
 
-        # Hitung ATR(14)
+        # ATR(14)
         df["Prev_Close"] = df["Close"].shift(1)
         df["TR"] = np.maximum(
             df["High"] - df["Low"],
@@ -78,16 +82,19 @@ class TradePlanner:
                 abs(df["Low"] - df["Prev_Close"]),
             ),
         )
-        self.atr_14 = df["TR"].rolling(window=14).mean().iloc[-1]
-        if pd.isna(self.atr_14):
-            self.atr_14 = 0.0
+        atr_series = df["TR"].rolling(window=14).mean()
+        self.atr_14 = float(
+            atr_series.iloc[-1] if not pd.isna(atr_series.iloc[-1]) else 0.0
+        )
 
-        # Swing High & Low Detection
+        # Swing Points
         order = 3
         high_idx = argrelextrema(
             df["High"].values, np.greater_equal, order=order
         )[0]
-        low_idx = argrelextrema(df["Low"].values, np.less_equal, order=order)[0]
+        low_idx = argrelextrema(
+            df["Low"].values, np.less_equal, order=order
+        )[0]
 
         df["Swing_Type"] = ""
         df.iloc[high_idx, df.columns.get_loc("Swing_Type")] = "Swing High"
@@ -95,7 +102,6 @@ class TradePlanner:
 
         self.df = df
 
-        # Top 15 Swing Highs & Lows
         self.highs_15 = (
             df[df["Swing_Type"] == "Swing High"]
             .sort_values(by="Date", ascending=False)
@@ -108,10 +114,8 @@ class TradePlanner:
         )
         self.highs_5 = self.highs_15.head(5)
 
-        # Kalkulasi Support & Resistance
         self._calculate_strong_levels()
 
-    # --- FILTER OVERLAPPING LEVEL ---
     @staticmethod
     def _filter_overlapping_levels(df_levels, col1, col2, prefix="Resistance"):
         if df_levels.empty:
@@ -120,8 +124,7 @@ class TradePlanner:
         if "Date" in df_levels.columns:
             df_levels = df_levels.sort_values(by="Date", ascending=False)
 
-        accepted_rows = []
-        accepted_ranges = []
+        accepted_rows, accepted_ranges = [], []
         for _, row in df_levels.iterrows():
             r_min = min(row[col1], row[col2])
             r_max = max(row[col1], row[col2])
@@ -135,45 +138,39 @@ class TradePlanner:
                 accepted_ranges.append((r_min, r_max))
 
         res_df = pd.DataFrame(accepted_rows)
-
         if not res_df.empty:
             res_df = res_df.head(3).reset_index(drop=True)
-            ranks = []
-            for i in range(len(res_df)):
-                if i == 0:
-                    ranks.append(f"1st {prefix} (Terdekat)")
-                elif i == 1:
-                    ranks.append(f"2nd {prefix}")
-                else:
-                    ranks.append(f"3rd {prefix} (Terjauh)")
+            ranks = [
+                f"1st {prefix} (Terdekat)"
+                if i == 0
+                else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
+                for i in range(len(res_df))
+            ]
             res_df["Rank"] = ranks
 
         return res_df
 
     def _calculate_strong_levels(self):
-        # Strong Resistance
         sorted_highs = self.highs_5.sort_values(by="Date", ascending=False)
         res_results = []
         for _, row in sorted_highs.iterrows():
             idx = row.name
             body_tops = [row["Body_Top"]]
-            if idx > 0 and idx - 1 in self.df.index:
+            if idx > 0 and (idx - 1) in self.df.index:
                 body_tops.append(self.df.loc[idx - 1, "Body_Top"])
-            if idx < len(self.df) - 1 and idx + 1 in self.df.index:
+            if (idx + 1) in self.df.index:
                 body_tops.append(self.df.loc[idx + 1, "Body_Top"])
 
             res_results.append({
                 "Date": row["Date"].strftime("%Y-%m-%d"),
-                "Body_Top": round(max(body_tops), 2),
-                "High": round(row["High"], 2),
+                "Body_Top": self.round_to_nearest_tick(max(body_tops)),
+                "High": self.round_to_nearest_tick(row["High"]),
             })
 
-        raw_res = pd.DataFrame(res_results)
         self.strong_resistance = self._filter_overlapping_levels(
-            raw_res, "Body_Top", "High", prefix="Resistance"
+            pd.DataFrame(res_results), "Body_Top", "High", prefix="Resistance"
         )
 
-        # Strong Support
         recent_lows = self.lows_15.sort_values(
             by="Date", ascending=False
         ).head(5)
@@ -181,55 +178,44 @@ class TradePlanner:
         for _, row in recent_lows.iterrows():
             idx = row.name
             body_bottoms = [row["Body_Bottom"]]
-            if idx > 0 and idx - 1 in self.df.index:
+            if idx > 0 and (idx - 1) in self.df.index:
                 body_bottoms.append(self.df.loc[idx - 1, "Body_Bottom"])
-            if idx < len(self.df) - 1 and idx + 1 in self.df.index:
+            if (idx + 1) in self.df.index:
                 body_bottoms.append(self.df.loc[idx + 1, "Body_Bottom"])
 
             sup_results.append({
                 "Date": row["Date"].strftime("%Y-%m-%d"),
-                "Low": round(row["Low"], 2),
-                "Body_Bottom": round(min(body_bottoms), 2),
+                "Low": self.round_to_nearest_tick(row["Low"]),
+                "Body_Bottom": self.round_to_nearest_tick(min(body_bottoms)),
             })
 
-        raw_sup = pd.DataFrame(sup_results)
         self.strong_support = self._filter_overlapping_levels(
-            raw_sup, "Body_Bottom", "Low", prefix="Support"
+            pd.DataFrame(sup_results), "Body_Bottom", "Low", prefix="Support"
         )
 
-    # --- METHOD PUBLIK UNTUK STREAMLIT ---
     def get_direction(self):
         if self.highs_5.empty or self.lows_15.empty:
             return pd.DataFrame()
 
-        latest_high_row = self.highs_5.sort_values(
+        latest_high_val = self.highs_5.sort_values(
             by="Date", ascending=False
-        ).iloc[0]
-        latest_low_row = (
-            self.lows_15.head(5).sort_values(by="Date", ascending=False).iloc[0]
+        ).iloc[0]["High"]
+        latest_low_val = (
+            self.lows_15.head(5).sort_values(by="Date", ascending=False).iloc[0]["Low"]
         )
 
-        latest_high_val = latest_high_row["High"]
-        latest_low_val = latest_low_row["Low"]
         last_market_close = self.df.iloc[-1]["Close"]
-        midpoint_50 = (latest_high_val + latest_low_val) / 2
+        midpoint_50 = (latest_high_val + latest_low_val) / 2.0
         direction_result = "BOB" if last_market_close >= midpoint_50 else "BOW"
 
         return pd.DataFrame([{
-            "Swing High Terupdate": round(latest_high_val, 2),
-            "Swing Low Terupdate": round(latest_low_val, 2),
-            "Level 50%": round(midpoint_50, 2),
-            "Last Close Market": round(last_market_close, 2),
+            "Swing High Terupdate": self.round_to_nearest_tick(latest_high_val),
+            "Swing Low Terupdate": self.round_to_nearest_tick(latest_low_val),
+            "Level 50%": self.round_to_nearest_tick(midpoint_50),
+            "Last Close Market": self.round_to_nearest_tick(last_market_close),
             "Direction": direction_result,
         }])
 
-    def get_strong_support(self):
-        return self.strong_support
-
-    def get_strong_resistance(self):
-        return self.strong_resistance
-
-    # --- PERBAIKAN 1: CLASSIFY CANDLE PRO (ATR & MA20 TREN) ---
     def classify_candle(self):
         if len(self.df) < 5 or self.atr_14 <= 0:
             return "Standard Candle", "NEUTRAL"
@@ -272,7 +258,6 @@ class TradePlanner:
         is_large_body = p1["body_size"] >= (1.0 * self.atr_14)
         is_small_body = p1["body_size"] < (0.4 * self.atr_14)
 
-        # 1. Three-Candle Patterns
         if (
             p3["is_green"]
             and p2["is_green"]
@@ -300,7 +285,6 @@ class TradePlanner:
         ):
             return "Evening Star (Reversal)", "BEARISH"
 
-        # 2. Two-Candle Patterns
         if (
             p1["is_green"]
             and p2["is_red"]
@@ -325,7 +309,6 @@ class TradePlanner:
         ):
             return "Bearish Engulfing", "BEARISH"
 
-        # 3. Single-Candle Patterns
         if p1["is_doji"]:
             if (p1["lower_shadow"] >= 2.5 * p1["body_size"]) and (
                 p1["upper_shadow"] <= 0.5 * p1["body_size"]
@@ -337,7 +320,6 @@ class TradePlanner:
                 return "Gravestone Doji", "BEARISH"
             return "Doji (Indecision)", "NEUTRAL"
 
-        # Marubozu Valid: Wajib Body >= 1.1x ATR & Ekor Minimal
         is_marubozu_body = p1["body_size"] >= (1.1 * self.atr_14)
         has_minimal_shadows = (
             p1["upper_shadow"] <= 0.1 * p1["total_range"]
@@ -353,7 +335,6 @@ class TradePlanner:
                 "BULLISH" if p1["is_green"] else "BEARISH",
             )
 
-        # Hammer & Shooting Star
         is_hammer_shape = (p1["lower_shadow"] >= 2.0 * p1["body_size"]) and (
             p1["upper_shadow"] <= 0.3 * p1["body_size"]
         )
@@ -375,7 +356,6 @@ class TradePlanner:
                 else ("Inverted Hammer", "NEUTRAL")
             )
 
-        # Small Candle (Bukan Marubozu)
         color_str = "Hijau" if p1["is_green"] else "Merah"
         if is_small_body:
             return f"Small {color_str} / Spinning Top", "NEUTRAL"
@@ -385,74 +365,132 @@ class TradePlanner:
             "BULLISH" if p1["is_green"] else "BEARISH",
         )
 
-    # --- PERBAIKAN 2: DYNAMIC MULTIDIMENSIONAL WARNING SYSTEM ---
-    def _generate_smart_warning(
+    # --- METODE SCORING ENGINE (0 - 100 POINT) ---
+    def calculate_score_and_warnings(
         self,
         plan_type,
-        entry_price,
+        buy_min,
+        buy_max,
         target_1,
         stop_loss,
         rr_ratio,
         candle_type,
         candle_bias,
     ):
-        warnings = []
         last_close = self.df.iloc[-1]["Close"]
         p1_high = self.df.iloc[-1]["High"]
         p1_low = self.df.iloc[-1]["Low"]
         p1_body_top = max(self.df.iloc[-1]["Open"], last_close)
         upper_shadow = p1_high - p1_body_top
 
-        # 1. Evaluasi Risk-to-Reward Ratio (R:R)
-        if rr_ratio > 0 and rr_ratio < 1.0:
-            warnings.append("🚫 Risk-to-Reward Buruk (< 1:1). Hindari Trade!")
-        elif rr_ratio >= 1.0 and rr_ratio < 1.5:
-            warnings.append("⚠️ Risk:Reward Kurang Ideal (< 1:1.5). Batasi Lot.")
+        # 1. RISK-TO-REWARD SCORE (MAX 35)
+        if rr_ratio >= 3.0:
+            score_rr = 35
+        elif rr_ratio >= 2.0:
+            score_rr = 28
+        elif rr_ratio >= 1.5:
+            score_rr = 20
+        elif rr_ratio >= 1.0:
+            score_rr = 10
+        else:
+            score_rr = 0
 
-        # 2. Evaluasi Proximity / Jarak ke Support / Target
+        # 2. PRICE POSITION / ZONE SCORE (MAX 25)
+        if buy_min <= last_close <= buy_max:
+            score_zone = 25  # In Buy Zone Perfect!
+            pos_status = "In Buy Zone"
+        elif (
+            last_close > buy_max
+            and ((last_close - buy_max) / buy_max * 100) <= 2.0
+        ):
+            score_zone = 15  # Near Buy Zone
+            pos_status = "Near Zone"
+        elif last_close < buy_min:
+            score_zone = 5  # Breakdown Below Area
+            pos_status = "Below Buy Zone"
+        else:
+            score_zone = 0  # Already Running
+            pos_status = "Running / Away"
+
+        # 3. CANDLESTICK SCORE (MAX 20)
+        if candle_bias == "BULLISH":
+            if any(
+                k in candle_type
+                for k in ["Engulfing", "Morning Star", "Soldiers", "Marubozu"]
+            ):
+                score_candle = 20
+            else:
+                score_candle = 15
+        elif candle_bias == "NEUTRAL":
+            score_candle = 10
+        else:  # BEARISH
+            score_candle = 0
+
+        # 4. SAFETY & WARNING PENALTIES (MAX 20)
+        penalty = 0
+        warnings = []
+
+        if rr_ratio < 1.0:
+            warnings.append("🚫 R:R Buruk (< 1:1)")
+            penalty += 15
+        elif rr_ratio < 1.5:
+            warnings.append("⚠️ R:R Kurang Ideal (< 1:1.5)")
+            penalty += 5
+
         if plan_type == "BOW":
             dist_to_support = (
-                ((last_close - entry_price) / entry_price) * 100
-                if entry_price > 0
-                else 0
+                ((last_close - buy_min) / buy_min) * 100 if buy_min > 0 else 0
             )
             if dist_to_support > 4.0:
                 warnings.append(
-                    f"⚠️ Harga Sudah Naik (+{round(dist_to_support, 1)}% dari Support). Rawan Retracement."
+                    f"⚠️ Jauh dari Support (+{round(dist_to_support, 1)}%)"
                 )
+                penalty += 10
 
         dist_to_target = (
             ((target_1 - last_close) / last_close) * 100 if last_close > 0 else 0
         )
         if 0 < dist_to_target <= 1.5:
             warnings.append(
-                f"⚠️ Dekat Resistance Utama (Sisa Potensi +{round(dist_to_target, 1)}%). Rawan Rejection."
+                f"⚠️ Dekat Resistance (Sisa +{round(dist_to_target, 1)}%)"
             )
+            penalty += 5
 
-        # 3. Evaluasi Ekor & Selling Pressure
         if upper_shadow >= (0.4 * (p1_high - p1_low)) and upper_shadow > 0:
-            warnings.append("⚡ Tekanan Jual Tinggi Dari Ekor Atas.")
+            warnings.append("⚡ Tekanan Jual Ekor Atas")
+            penalty += 5
 
-        # 4. Evaluasi Keselarasan Sinyal Candle vs Tipe Plan
-        if plan_type == "BOW" and candle_bias == "BEARISH":
-            warnings.append(
-                f"⚠️ Sinyal Candle ({candle_type}) Masih Bearish. Tunggu Konfirmasi Pantulan."
-            )
-        elif plan_type == "BOB" and candle_bias == "BEARISH":
-            warnings.append(
-                "⚠️ Candle Terakhir Merah/Bearish. Waspada Fake Breakout!"
-            )
+        if candle_bias == "BEARISH":
+            warnings.append("⚠️ Sinyal Candle Masih Bearish")
+            penalty += 10
 
-        # Jika Semua Parameter Bagus
-        if not warnings and rr_ratio >= 1.8:
-            return "✅ Setup Ideal (Grade A). Risk Terukur & Potensi Bagus."
-        elif not warnings:
-            return "👍 Setup Wajar (Grade B). Lakukan Entry Sesuai Money Management."
+        score_safety = max(0, 20 - penalty)
 
-        return " | ".join(warnings)
+        # TOTAL SCORE (0 - 100)
+        total_score = int(
+            score_rr + score_zone + score_candle + score_safety
+        )
+
+        # DETERMINING GRADE BADGE
+        if total_score >= 85:
+            grade = "🟢 Grade A+ (Prime)"
+        elif total_score >= 70:
+            grade = "🟢 Grade A (Ideal)"
+        elif total_score >= 50:
+            grade = "🟡 Grade B (Moderate)"
+        else:
+            grade = "🔴 Grade C (High Risk)"
+
+        warning_str = (
+            " | ".join(warnings)
+            if warnings
+            else "✅ Setup Clean / Minimum Risk"
+        )
+
+        return total_score, grade, pos_status, warning_str
 
     def generate_trade_plan(self):
-        min_point_gap = 9
+        min_point_gap = max(self.get_tick_size(self.df.iloc[-1]["Close"]) * 2, 5)
 
         def find_target_1(min_val):
             if not self.strong_resistance.empty:
@@ -469,8 +507,9 @@ class TradePlanner:
             if not sh_valid.empty:
                 return self.round_to_nearest_tick(sh_valid.iloc[0]["High"])
 
-            target_1_atr = min_val + max(1.5 * self.atr_14, min_point_gap + 1)
-            return self.round_to_nearest_tick(target_1_atr)
+            return self.round_to_nearest_tick(
+                min_val + max(1.5 * self.atr_14, min_point_gap + 2)
+            )
 
         def find_target_2(target_1):
             if not self.strong_resistance.empty:
@@ -483,14 +522,13 @@ class TradePlanner:
                     return self.round_to_nearest_tick(valid_res[0])
 
             sh_sorted = self.highs_15.sort_values(by="Date", ascending=False)
-            sh_valid = sh_sorted[
-                (sh_sorted["High"] - target_1) >= min_point_gap
-            ]
+            sh_valid = sh_sorted[(sh_sorted["High"] - target_1) >= min_point_gap]
             if not sh_valid.empty:
                 return self.round_to_nearest_tick(sh_valid.iloc[0]["High"])
 
-            target_2_atr = target_1 + max(1.5 * self.atr_14, min_point_gap + 1)
-            return self.round_to_nearest_tick(target_2_atr)
+            return self.round_to_nearest_tick(
+                target_1 + max(1.5 * self.atr_14, min_point_gap + 2)
+            )
 
         candle_name, candle_bias = self.classify_candle()
 
@@ -503,23 +541,24 @@ class TradePlanner:
             s_low, s_bb = last_low, last_low
 
         rb_bow_min, rb_bow_max = min(s_low, s_bb), max(s_low, s_bb)
-        range_buy_bow = f"{rb_bow_min} - {rb_bow_max}"
         stop_loss_bow = self.sub_ticks(rb_bow_min, 3)
         target_1_bow = find_target_1(rb_bow_max)
         target_2_bow = find_target_2(target_1_bow)
         risk_bow = rb_bow_min - stop_loss_bow
         reward_bow = target_1_bow - rb_bow_min
         rr_val_bow = round(reward_bow / risk_bow, 1) if risk_bow > 0 else 0.0
-        ratio_bow = f"1 : {rr_val_bow}" if risk_bow > 0 else "-"
 
-        warning_bow = self._generate_smart_warning(
-            "BOW",
-            rb_bow_max,
-            target_1_bow,
-            stop_loss_bow,
-            rr_val_bow,
-            candle_name,
-            candle_bias,
+        score_bow, grade_bow, pos_bow, warn_bow = (
+            self.calculate_score_and_warnings(
+                "BOW",
+                rb_bow_min,
+                rb_bow_max,
+                target_1_bow,
+                stop_loss_bow,
+                rr_val_bow,
+                candle_name,
+                candle_bias,
+            )
         )
 
         # 2. BOB PLAN
@@ -527,130 +566,74 @@ class TradePlanner:
             res_sorted = self.strong_resistance.sort_values(
                 by="Date", ascending=False
             )
-            latest_res_row = res_sorted.iloc[0]
-            base_bob_high = latest_res_row["High"]
+            base_bob_high = res_sorted.iloc[0]["High"]
         else:
             base_bob_high = self.df.iloc[-1]["High"]
 
         upper_bob_high = self.add_ticks(base_bob_high, 3)
-        range_buy_bob = f"{base_bob_high} - {upper_bob_high}"
         stop_loss_bob = self.sub_ticks(base_bob_high, 3)
         target_1_bob = find_target_1(upper_bob_high)
         target_2_bob = find_target_2(target_1_bob)
         risk_bob = base_bob_high - stop_loss_bob
         reward_bob = target_1_bob - base_bob_high
         rr_val_bob = round(reward_bob / risk_bob, 1) if risk_bob > 0 else 0.0
-        ratio_bob_val = f"1 : {rr_val_bob}" if risk_bob > 0 else "-"
 
-        warning_bob = self._generate_smart_warning(
-            "BOB",
-            base_bob_high,
-            target_1_bob,
-            stop_loss_bob,
-            rr_val_bob,
-            candle_name,
-            candle_bias,
+        score_bob, grade_bob, pos_bob, warn_bob = (
+            self.calculate_score_and_warnings(
+                "BOB",
+                base_bob_high,
+                upper_bob_high,
+                target_1_bob,
+                stop_loss_bob,
+                rr_val_bob,
+                candle_name,
+                candle_bias,
+            )
         )
+
+        def fmt_range(p_min, p_max):
+            p_min_str = (
+                f"{int(p_min):,}" if p_min.is_integer() else f"{p_min:,}"
+            )
+            p_max_str = (
+                f"{int(p_max):,}" if p_max.is_integer() else f"{p_max:,}"
+            )
+            return f"{p_min_str} - {p_max_str}"
 
         plan_data = [
             {
                 "No": 1,
                 "Type": "BOW",
-                "Range Buy": range_buy_bow,
+                "Score": score_bow,
+                "Grade": grade_bow,
+                "Posisi Harga": pos_bow,
+                "Range Buy Min": rb_bow_min,
+                "Range Buy Max": rb_bow_max,
+                "Area Buy": fmt_range(rb_bow_min, rb_bow_max),
                 "Stop Loss": stop_loss_bow,
-                "Target 1": target_1_bow,
-                "Target 2": target_2_bow,
-                "Rasio (R:R)": ratio_bow,
-                "Status Candle": candle_name,
-                "Warning": warning_bow,
+                "TP 1": target_1_bow,
+                "TP 2": target_2_bow,
+                "Rasio (R:R)": f"1 : {rr_val_bow}" if rr_val_bow > 0 else "-",
+                "RR_Val": rr_val_bow,
+                "Pola Candle": candle_name,
+                "Warning": warn_bow,
             },
             {
                 "No": 2,
                 "Type": "BOB",
-                "Range Buy": range_buy_bob,
+                "Score": score_bob,
+                "Grade": grade_bob,
+                "Posisi Harga": pos_bob,
+                "Range Buy Min": base_bob_high,
+                "Range Buy Max": upper_bob_high,
+                "Area Buy": fmt_range(base_bob_high, upper_bob_high),
                 "Stop Loss": stop_loss_bob,
-                "Target 1": target_1_bob,
-                "Target 2": target_2_bob,
-                "Rasio (R:R)": ratio_bob_val,
-                "Status Candle": candle_name,
-                "Warning": warning_bob,
+                "TP 1": target_1_bob,
+                "TP 2": target_2_bob,
+                "Rasio (R:R)": f"1 : {rr_val_bob}" if rr_val_bob > 0 else "-",
+                "RR_Val": rr_val_bob,
+                "Pola Candle": candle_name,
+                "Warning": warn_bob,
             },
         ]
         return pd.DataFrame(plan_data)
-
-    def get_swing_points(self):
-        if self.highs_15.empty and self.lows_15.empty:
-            return pd.DataFrame()
-
-        swing_points = pd.concat([self.highs_15, self.lows_15]).copy()
-        swing_points = swing_points.sort_values(
-            by=["Swing_Type", "Date"], ascending=[True, False]
-        )
-        swing_points["No"] = range(1, len(swing_points) + 1)
-
-        TOLERANCE_PCT = 0.015
-
-        def find_metpoints(row, df_all):
-            no_curr = row["No"]
-            stype_curr = row["Swing_Type"]
-            prices_curr = (
-                [row["Low"], row["Close"]]
-                if stype_curr == "Swing Low"
-                else [row["High"], row["Open"]]
-            )
-            matched_prices = set()
-
-            for _, other_row in df_all.iterrows():
-                if no_curr == other_row["No"]:
-                    continue
-                stype_other = other_row["Swing_Type"]
-                prices_other = (
-                    [other_row["Low"], other_row["Close"]]
-                    if stype_other == "Swing Low"
-                    else [other_row["High"], other_row["Open"]]
-                )
-                for p1 in prices_curr:
-                    for p2 in prices_other:
-                        if abs(p1 - p2) / p1 <= TOLERANCE_PCT:
-                            matched_prices.add(round(p1, 2))
-
-            return (
-                ", ".join(map(str, sorted(matched_prices)))
-                if matched_prices
-                else "-"
-            )
-
-        swing_points["metpoint"] = swing_points.apply(
-            lambda r: find_metpoints(r, swing_points), axis=1
-        )
-        swing_points["Date"] = swing_points["Date"].dt.strftime("%Y-%m-%d")
-        swing_points = swing_points.set_index("Date")
-        swing_points = swing_points[
-            ["No", "Open", "High", "Low", "Close", "Swing_Type", "metpoint"]
-        ]
-        swing_points[["Open", "High", "Low", "Close"]] = swing_points[
-            ["Open", "High", "Low", "Close"]
-        ].round(2)
-
-        return swing_points
-
-
-# --- UTILS UNTUK INTEGRASI STREAMLIT SCRIPT ---
-if __name__ == "__main__":
-    planner = TradePlanner("INCO.JK", "6mo")
-    planner.fetch_and_prepare_data()
-
-    print("=== TABEL DIRECTION ===")
-    print(planner.get_direction().to_string(index=False))
-
-    print("\n=== STRONG RESISTANCE ===")
-    print(planner.get_strong_resistance().to_string(index=False))
-
-    print("\n=== STRONG SUPPORT ===")
-    print(planner.get_strong_support().to_string(index=False))
-
-    print("\n=== TABEL TRADE PLAN ===")
-    print(planner.generate_trade_plan().to_string(index=False))
-
-    print("\n=== TABEL SWING POINTS ===")
-    print(planner.get_swing_points().to_string())

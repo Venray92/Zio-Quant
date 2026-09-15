@@ -118,11 +118,32 @@ def run_batch_execution(ticker_list):
         st.session_state["df_screener_raw"] = df_res
 
 
+def reset_filters():
+    """Fungsi Callback untuk mereset nilai filter ke pilihan pertama (SEMUA)."""
+    st.session_state["f_strategi"] = "SEMUA STRATEGI"
+    st.session_state["f_grade"] = "SEMUA GRADE"
+    st.session_state["f_zone"] = "SEMUA POSISI"
+    st.session_state["f_rr"] = "SEMUA RASIO"
+    st.session_state["f_candle"] = "SEMUA CANDLE"
+
+
 def render_tab_trade_planner():
     st.header("📊 Smart Execution Screener")
     st.write(
         "Platform pemeringkat saham berbasis **Price Action**, **Risk-to-Reward Ratio**, dan **Skoring Otomatis (0-100)**."
     )
+
+    # Inisialisasi state filter jika belum ada
+    if "f_strategi" not in st.session_state:
+        st.session_state["f_strategi"] = "SEMUA STRATEGI"
+    if "f_grade" not in st.session_state:
+        st.session_state["f_grade"] = "SEMUA GRADE"
+    if "f_zone" not in st.session_state:
+        st.session_state["f_zone"] = "SEMUA POSISI"
+    if "f_rr" not in st.session_state:
+        st.session_state["f_rr"] = "SEMUA RASIO"
+    if "f_candle" not in st.session_state:
+        st.session_state["f_candle"] = "SEMUA CANDLE"
 
     # 1. PILIHAN MODE SCREENER
     mode_screener = st.radio(
@@ -186,13 +207,25 @@ def render_tab_trade_planner():
         df_raw = st.session_state["df_screener_raw"]
 
         st.markdown("---")
-        st.subheader("🔍 Filter & Sortir Tabel Hasil Screener")
+
+        # Header Filter + Tombol Clear Filter
+        col_title, col_clear = st.columns([3, 1])
+        with col_title:
+            st.subheader("🔍 Filter & Sortir Tabel Hasil Screener")
+        with col_clear:
+            st.write(" ")  # Alignment
+            st.button(
+                "🔄 Clear / Reset Filter",
+                on_click=reset_filters,
+                use_container_width=True,
+            )
 
         row1_col1, row1_col2, row1_col3 = st.columns(3)
         with row1_col1:
             f_strategi = st.selectbox(
                 "🎯 Strategi Trading:",
                 ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
+                key="f_strategi",
             )
         with row1_col2:
             f_grade = st.selectbox(
@@ -202,6 +235,7 @@ def render_tab_trade_planner():
                     "Grade A / A+ Only (High Quality)",
                     "Grade B Kebawah (Moderate/Risk)",
                 ],
+                key="f_grade",
             )
         with row1_col3:
             f_zone = st.selectbox(
@@ -211,6 +245,7 @@ def render_tab_trade_planner():
                     "In Buy Zone (Siap Eksekusi)",
                     "Near Zone (Dekat Entry)",
                 ],
+                key="f_zone",
             )
 
         row2_col1, row2_col2 = st.columns(2)
@@ -223,11 +258,13 @@ def render_tab_trade_planner():
                     "Min 1 : 2.0 (Pro Standard)",
                     "Min 1 : 3.0 (High Reward)",
                 ],
+                key="f_rr",
             )
         with row2_col2:
             f_candle = st.selectbox(
                 "🕯️ Sinyal Candlestick:",
                 ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
+                key="f_candle",
             )
 
         # --- PENERAPAN LOGIKA FILTER SINKRON ---
@@ -279,7 +316,7 @@ def render_tab_trade_planner():
 
         if df.empty:
             st.warning(
-                "⚠️ Tidak ada saham yang cocok dengan kombinasi filter Anda. Coba longgarkan kriteria filter."
+                "⚠️ Tidak ada saham yang cocok dengan kombinasi filter Anda. Coba longgarkan kriteria filter atau tekan tombol 'Clear / Reset Filter'."
             )
         else:
             st.dataframe(

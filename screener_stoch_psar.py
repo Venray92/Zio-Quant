@@ -1,90 +1,94 @@
 import concurrent.futures
+import numpy as np
 import pandas as pd
 import yfinance as yf
 
 
 def analyze_single_ticker(ticker):
-  """Fungsi pembantu untuk menganalisis 1 ticker saham secara independen."""
+  """Menganalisis 1 ticker untuk Stochastic %K/%D dan Parabolic SAR."""
   try:
-    # 1. Download data (opsional: tambahkan timeout/period sesuai kebutuhan)
-    df = yf.download(ticker, period="6m", progress=False)
-    if df.empty or len(df) < 20:
+    # 1. Pastikan akhiran .JK untuk yfinance
+    symbol = ticker.strip().upper()
+    if not symbol.endswith(".JK"):
+      symbol = f"{symbol}.JK"
+
+    # 2. Download Data 6 bulan terakhir
+    df = yf.download(symbol, period="6m", progress=False)
+    if df.empty or len(df) < 30:
       return None, None
 
-    # Normalisasi kolom MultiIndex jika ada (fitur yfinance terbaru)
+    # 3. Ratakan MultiIndex jika ada (fitur yfinance terbaru)
     if isinstance(df.columns, pd.MultiIndex):
       df.columns = df.columns.get_level_values(0)
 
-    # 2. Hitung Indikator (Stochastic & Parabolic SAR)
-    # --- Contoh kalkulasi sederhana, sesuaikan dengan rumus di file kamu ---
-    # Stochastic (14, 3, 3)
-    low_min = df['Low'].rolling(window=14).min()
-    high_max = df['High'].rolling(window=14).max()
-    df['%K'] = 100 * ((df['Close'] - low_min) / (high_max - low_min))
-    df['%D'] = df['%K'].rolling(window=3).mean()
+    # Clean missing values
+    df = df.dropna(subset=["Close", "High", "Low"])
 
-    # Logika Parabolic SAR & Sinyal (Gunakan logika eksisting kamu di sini)
-    # ...
-    # -----------------------------------------------------------------------
+    # --- HITUNG STOCHASTIC (14, 3, 3) ---
+    low_14 = df["Low"].rolling(window=14).min()
+    high_14 = df["High"].rolling(window=14).max()
 
-    # Contoh penentuan sinyal (sesuaikan dengan output DF yang kamu harapkan):
-    is_golden_cross = False  # Logika GC kamu
-    is_dead_cross = False  # Logika DC kamu
+    # Mencegah division by zero
+    denom = high_14 - low_14
+    denom = denom.replace(0, np.nan)
 
-    gc_row = None
-    dc_row = None
+    df["%K"] = 100 * ((df["Close"] - low_14) / denom)
+    df["%D"] = df["%K"].rolling(window=3).mean()
 
-    if is_golden_cross:
-      gc_row = {
-          "Ticker": ticker,
-          "Close": df["Close"].iloc[-1],
-          "Stoch_%K": df["%K"].iloc[-1],
-          "Stoch_%D": df["%D"].iloc[-1],
-      }
+    # --- LOGIKA CROSSOVER STOCHASTIC ---
+    k_curr, k_prev = df["%K"].iloc[-1], df["%K"].iloc[-2]
+    d_curr, d_prev = df["%D"].iloc[-1], df["%D"].iloc[-2]
+    close_curr = df["Close"].iloc[-1]
 
-    if is_dead_cross:
-      dc_row = {
-          "Ticker": ticker,
-          "Close": df["Close"].iloc[-1],
-          "Stoch_%K": df["%K"].iloc[-1],
-          "Stoch_%D": df["%D"].iloc[-1],
-      }
+    # Golden Cross: %K memotong %D ke atas & di bawah area Oversold (misal < 80 atau < 20)
+    is_gc = (k_prev <= d_prev) and (k_curr > d_curr)
 
-    return gc_row, dc_row
+    # Dead Cross: %K memotong %D ke bawah
+    is_dc = (k_prev >= d_prev) and (k_curr < d_curr)
 
-  except Exception:
+    row_data = {
+        "Ticker": ticker.replace(".JK", ""),
+        "Close": round(float(close_curr), 2),
+        "Stoch_%K": round(float(k_curr), 2),
+        "Stoch_%D": round(float(d_curr), 2),
+    }
+
+    gc_res = row_data if is_gc else None
+    dc_res = row_data if is_dc else None
+
+    return gc_res, dc_res
+
+  except Exception as e:
+    # Jika ada error pada ticker tertentu, kembalikan None
     return None, None
 
 
-def run_stoch_psar_screener(tickers, max_workers=6, progress_callback=None):
-  """Menjalankan screening Stoch & PSAR menggunakan multithreading."""
+def run_stoch_psar_screener(tickers, max_workers=8, progress_callback=None):
+  """Fungsi utama yang dipanggil oleh app.py."""
   results_gc = []
   results_dc = []
-  total_tickers = len(tickers)
+  total = len(tickers)
 
-  # Menggunakan ThreadPoolExecutor di dalam modul
   with concurrent.futures.ThreadPoolExecutor(
       max_workers=max_workers
   ) as executor:
-    # Mapping task ke ticker
     future_to_ticker = {
-        executor.submit(analyze_single_ticker, ticker): ticker
-        for ticker in tickers
+        executor.submit(analyze_single_ticker, t): t for t in tickers
     }
 
     for i, future in enumerate(
         concurrent.futures.as_completed(future_to_ticker)
     ):
-      gc_data, dc_data = future.result()
+      gc_item, dc_item = future.result()
 
-      if gc_data:
-        results_gc.append(gc_data)
-      if dc_data:
-        results_dc.append(dc_data)
+      if gc_item:
+        results_gc.append(gc_item)
+      if dc_item:
+        results_dc.append(dc_item)
 
-      # Kirim progress balik ke Streamlit UI jika callback disediakan
+      # Callback untuk update progress bar di Streamlit
       if progress_callback:
-        progress_callback(i + 1, total_tickers)
+        progress_callback(i + 1, total)
 
   df_gc = pd.DataFrame(results_gc) if results_gc else pd.DataFrame()
   df_dc = pd.DataFrame(results_dc) if results_dc else pd.DataFrame()

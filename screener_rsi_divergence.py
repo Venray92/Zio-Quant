@@ -10,8 +10,12 @@ def calculate_rsi(series, period=10):
   gain = (delta.where(delta > 0, 0)).copy()
   loss = (-delta.where(delta < 0, 0)).copy()
 
-  avg_gain = gain.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
-  avg_loss = loss.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
+  avg_gain = gain.ewm(
+      alpha=1 / period, min_periods=period, adjust=False
+  ).mean()
+  avg_loss = loss.ewm(
+      alpha=1 / period, min_periods=period, adjust=False
+  ).mean()
 
   rs = avg_gain / avg_loss
   rsi = 100 - (100 / (1 + rs))
@@ -25,9 +29,7 @@ def calculate_ema(series, period=10):
 # ----------------------------------------------------
 # 2. HELPER DETEKSI BASE KONSOLIDASI (Lebar <= 8%, Min 5 Candle)
 # ----------------------------------------------------
-def detect_bases(
-    df, min_candles=5, max_width_pct=8.0, window_lookback=60
-):
+def detect_bases(df, min_candles=5, max_width_pct=8.0, window_lookback=60):
   bases = []
   sub_df = df.tail(window_lookback)
   n = len(sub_df)
@@ -150,6 +152,14 @@ def detect_rsi_patterns_and_score(ticker):
     if isinstance(df.columns, pd.MultiIndex):
       df.columns = df.columns.get_level_values(0)
 
+    # Filter Tambahan: Cek Nilai Transaksi Harian Terakhir (Value > 1 Miliar)
+    latest_volume = df['Volume'].iloc[-1]
+    latest_close = df['Close'].iloc[-1]
+    latest_value = latest_volume * latest_close
+
+    if latest_value <= 1000000000:  # < 1 Miliar rupiah
+      return None
+
     # Indikator RSI & EMA RSI
     df['RSI_10'] = calculate_rsi(df['Close'], period=10)
     df['RSI_EMA10'] = calculate_ema(df['RSI_10'], period=10)
@@ -161,8 +171,9 @@ def detect_rsi_patterns_and_score(ticker):
     is_gc = latest_rsi > latest_ema
     is_dc = latest_rsi < latest_ema
 
+    # Parameter yang Direvisi
     min_rsi_diff = 2.5
-    min_price_diff_pct = 0.01
+    min_price_diff_pct = 0.02  # REVISI 3: Min perbedaan harga 2%
     clean_symbol = ticker.replace('.JK', '')
 
     # Deteksi Semua Base Konsolidasi
@@ -186,7 +197,7 @@ def detect_rsi_patterns_and_score(ticker):
           has_base_t1 = True
           width_t1 = base['Lebar Konsolidasi (%)']
 
-        # 2. Base SEBELUM Titik 2 (Berada di antara T1 & T2, serta Tgl Akhir Base <= T2 dan selisih <= 5 hari)
+        # 2. Base SEBELUM Titik 2
         if (
             base['Tgl Mulai Base'] >= tgl_titik_1
             and base['Tgl Akhir Base'] <= tgl_titik_2
@@ -226,13 +237,17 @@ def detect_rsi_patterns_and_score(ticker):
       if len(p_swings_low) >= 2 and len(rsi_swings_low) >= 2:
         for i in range(len(p_swings_low) - 1):
           right_p = p_swings_low.iloc[i]
-          if (latest_date - right_p['Tanggal']).days > 7:
+
+          # REVISI 1: Freshness filter <= 1 hari saja
+          if (latest_date - right_p['Tanggal']).days > 1:
             continue
 
           for j in range(i + 1, len(p_swings_low)):
             left_p = p_swings_low.iloc[j]
             days_gap = (right_p['Tanggal'] - left_p['Tanggal']).days
-            if not (4 <= days_gap <= 35):
+
+            # REVISI 2: Gap antara 4 s/d 25 hari kerja
+            if not (4 <= days_gap <= 25):
               continue
 
             between_df = df.loc[left_p['Tanggal'] : right_p['Tanggal']]
@@ -308,6 +323,7 @@ def detect_rsi_patterns_and_score(ticker):
                     'Saham': clean_symbol,
                     'Pattern': pattern_type,
                     'Status Base': base_status,
+                    'Value (Rp)': f'Rp {latest_value:,.0f}',
                     'Tgl Kiri': left_p['Tanggal'].strftime('%Y-%m-%d'),
                     'Harga Kiri': f"Rp {left_p['Nilai']:,.0f}",
                     'RSI Kiri': round(val_rsi_left, 2),
@@ -337,13 +353,17 @@ def detect_rsi_patterns_and_score(ticker):
       if len(p_swings_high) >= 2 and len(rsi_swings_high) >= 2:
         for i in range(len(p_swings_high) - 1):
           right_p = p_swings_high.iloc[i]
-          if (latest_date - right_p['Tanggal']).days > 7:
+
+          # REVISI 1: Freshness filter <= 1 hari saja
+          if (latest_date - right_p['Tanggal']).days > 1:
             continue
 
           for j in range(i + 1, len(p_swings_high)):
             left_p = p_swings_high.iloc[j]
             days_gap = (right_p['Tanggal'] - left_p['Tanggal']).days
-            if not (4 <= days_gap <= 35):
+
+            # REVISI 2: Gap antara 4 s/d 25 hari kerja
+            if not (4 <= days_gap <= 25):
               continue
 
             between_df = df.loc[left_p['Tanggal'] : right_p['Tanggal']]
@@ -388,10 +408,11 @@ def detect_rsi_patterns_and_score(ticker):
               )
               pattern_type = None
 
+              # REVISI 4: Regular Bearish dengan syarat RSI Kanan >= 80
               if (
                   (right_p['Nilai'] > left_p['Nilai'])
                   and (val_rsi_right < val_rsi_left)
-                  and (val_rsi_right >= 65)
+                  and (val_rsi_right >= 80)
               ):
                 if (
                     price_diff_pct >= min_price_diff_pct
@@ -419,6 +440,7 @@ def detect_rsi_patterns_and_score(ticker):
                     'Saham': clean_symbol,
                     'Pattern': pattern_type,
                     'Status Base': base_status,
+                    'Value (Rp)': f'Rp {latest_value:,.0f}',
                     'Tgl Kiri': left_p['Tanggal'].strftime('%Y-%m-%d'),
                     'Harga Kiri': f"Rp {left_p['Nilai']:,.0f}",
                     'RSI Kiri': round(val_rsi_left, 2),

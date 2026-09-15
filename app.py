@@ -22,8 +22,10 @@ except ImportError:
         ]
 
 try:
-    from screener_rsi_divergence import detect_all_divergences
+    from screener_rsi_divergence import load_stock_list, detect_all_divergences
 except ImportError:
+    def load_stock_list(filename="daftar_saham.txt"):
+        return ["BBRI.JK", "BBCA.JK", "BMRI.JK", "TLKM.JK"]
     def detect_all_divergences(df_data, is_gc, is_dc):
         return pd.DataFrame()
 
@@ -112,121 +114,124 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ==========================================
-# TAB 1: RSI DIVERGENCE (BATCH PROCESSING OPTIMIZED)
+# TAB 1: RSI DIVERGENCE (DARI DAFTAR_SAHAM.TXT)
 # ==========================================
 with tab1:
     st.header("Screener RSI Divergence & Technical Patterns")
-    st.caption("Screening saham IHSG menggunakan Batch Engine anti-block.")
+    st.caption("Screening saham berdasarkan daftar di `daftar_saham.txt`.")
 
-    if st.button("Jalankan Screener RSI (Full IHSG)", key="btn_rsi"):
-        all_tickers = get_all_ihsg_tickers()
+    if st.button("Jalankan Screener RSI", key="btn_rsi"):
+        all_tickers = load_stock_list("daftar_saham.txt")
         total_tickers = len(all_tickers)
 
-        pbar = st.progress(0)
-        pstatus = st.empty()
+        if not all_tickers:
+            st.warning("File `daftar_saham.txt` kosong atau tidak ditemukan.")
+        else:
+            pbar = st.progress(0)
+            pstatus = st.empty()
 
-        pstatus.text(f"Downloading Data Batch ({total_tickers} Saham Yahoo Finance)...")
+            pstatus.text(f"Downloading Data Batch ({total_tickers} Saham dari daftar_saham.txt)...")
 
-        try:
-            bulk_data = yf.download(
-                tickers=all_tickers,
-                period="1y",
-                interval="1d",
-                group_by="ticker",
-                auto_adjust=False,
-                progress=False,
-                threads=True,
-            )
-        except Exception as e:
-            st.error(f"Gagal mengunduh data batch: {e}")
-            bulk_data = None
+            try:
+                bulk_data = yf.download(
+                    tickers=all_tickers,
+                    period="1y",
+                    interval="1d",
+                    group_by="ticker",
+                    auto_adjust=False,
+                    progress=False,
+                    threads=True,
+                )
+            except Exception as e:
+                st.error(f"Gagal mengunduh data batch: {e}")
+                bulk_data = None
 
-        pbar.progress(40)
-        pstatus.text("Memproses Indikator RSI & Pattern Divergence...")
+            pbar.progress(40)
+            pstatus.text("Memproses Indikator RSI & Pattern Divergence...")
 
-        results_rsi = []
-        if bulk_data is not None:
-            for idx, ticker in enumerate(all_tickers):
-                try:
-                    if len(all_tickers) == 1:
-                        df_stock = bulk_data.copy()
-                    else:
-                        if ticker in bulk_data.columns.levels[0]:
-                            df_stock = bulk_data[ticker].dropna(how="all")
+            results_rsi = []
+            if bulk_data is not None:
+                for idx, ticker in enumerate(all_tickers):
+                    try:
+                        if len(all_tickers) == 1:
+                            df_stock = bulk_data.copy()
                         else:
+                            if ticker in bulk_data.columns.levels[0]:
+                                df_stock = bulk_data[ticker].dropna(how="all")
+                            else:
+                                continue
+
+                        if df_stock.empty or len(df_stock) < 30:
                             continue
 
-                    if df_stock.empty or len(df_stock) < 30:
+                        df_stock = df_stock.copy()
+                        df_stock["RSI_10"] = calculate_rsi_pure(df_stock["Close"], length=10)
+                        df_stock["RSI_EMA10"] = calculate_ema_pure(df_stock["RSI_10"], length=10)
+
+                        latest_close = df_stock["Close"].iloc[-1]
+                        latest_rsi = df_stock["RSI_10"].iloc[-1]
+                        latest_ema = df_stock["RSI_EMA10"].iloc[-1]
+
+                        is_gc = latest_rsi > latest_ema
+                        is_dc = latest_rsi < latest_ema
+
+                        df_div = detect_all_divergences(df_stock, is_gc, is_dc)
+
+                        if not df_div.empty:
+                            res_pattern = df_div.iloc[0]["Pattern"]
+                            res_score = df_div.iloc[0]["Score"]
+                            results_rsi.append({
+                                "Ticker": ticker.replace(".JK", ""),
+                                "Harga Close": f"Rp {latest_close:,.0f}",
+                                "RSI 10": round(latest_rsi, 2),
+                                "Pattern": res_pattern,
+                                "TOTAL SCORE": res_score,
+                            })
+                        elif is_gc and latest_rsi < 40:
+                            results_rsi.append({
+                                "Ticker": ticker.replace(".JK", ""),
+                                "Harga Close": f"Rp {latest_close:,.0f}",
+                                "RSI 10": round(latest_rsi, 2),
+                                "Pattern": "Bullish RSI Golden Cross (<40)",
+                                "TOTAL SCORE": 60,
+                            })
+                        elif is_dc and latest_rsi > 60:
+                            results_rsi.append({
+                                "Ticker": ticker.replace(".JK", ""),
+                                "Harga Close": f"Rp {latest_close:,.0f}",
+                                "RSI 10": round(latest_rsi, 2),
+                                "Pattern": "Bearish RSI Dead Cross (>60)",
+                                "TOTAL SCORE": 60,
+                            })
+                    except Exception:
                         continue
 
-                    df_stock = df_stock.copy()
-                    df_stock["RSI_10"] = calculate_rsi_pure(df_stock["Close"], length=10)
-                    df_stock["RSI_EMA10"] = calculate_ema_pure(df_stock["RSI_10"], length=10)
+                    pct = int(40 + ((idx + 1) / total_tickers) * 60)
+                    pbar.progress(min(pct, 100))
 
-                    latest_close = df_stock["Close"].iloc[-1]
-                    latest_rsi = df_stock["RSI_10"].iloc[-1]
-                    latest_ema = df_stock["RSI_EMA10"].iloc[-1]
+            pbar.empty()
+            pstatus.empty()
 
-                    is_gc = latest_rsi > latest_ema
-                    is_dc = latest_rsi < latest_ema
+            df_rsi_all = pd.DataFrame(results_rsi) if results_rsi else pd.DataFrame()
+            df_rsi_bullish = pd.DataFrame()
+            df_rsi_bearish = pd.DataFrame()
 
-                    df_div = detect_all_divergences(df_stock, is_gc, is_dc)
+            if not df_rsi_all.empty and "Pattern" in df_rsi_all.columns:
+                df_rsi_bullish = df_rsi_all[
+                    df_rsi_all["Pattern"].str.contains("Bullish", case=False, na=False)
+                ].sort_values(by="TOTAL SCORE", ascending=False)
+                df_rsi_bearish = df_rsi_all[
+                    df_rsi_all["Pattern"].str.contains("Bearish", case=False, na=False)
+                ].sort_values(by="TOTAL SCORE", ascending=False)
 
-                    if not df_div.empty:
-                        res_pattern = df_div.iloc[0]["Pattern"]
-                        res_score = df_div.iloc[0]["Score"]
-                        results_rsi.append({
-                            "Ticker": ticker.replace(".JK", ""),
-                            "Harga Close": f"Rp {latest_close:,.0f}",
-                            "RSI 10": round(latest_rsi, 2),
-                            "Pattern": res_pattern,
-                            "TOTAL SCORE": res_score,
-                        })
-                    elif is_gc and latest_rsi < 40:
-                        results_rsi.append({
-                            "Ticker": ticker.replace(".JK", ""),
-                            "Harga Close": f"Rp {latest_close:,.0f}",
-                            "RSI 10": round(latest_rsi, 2),
-                            "Pattern": "Bullish RSI Golden Cross (<40)",
-                            "TOTAL SCORE": 60,
-                        })
-                    elif is_dc and latest_rsi > 60:
-                        results_rsi.append({
-                            "Ticker": ticker.replace(".JK", ""),
-                            "Harga Close": f"Rp {latest_close:,.0f}",
-                            "RSI 10": round(latest_rsi, 2),
-                            "Pattern": "Bearish RSI Dead Cross (>60)",
-                            "TOTAL SCORE": 60,
-                        })
-                except Exception:
-                    continue
-
-                pct = int(40 + ((idx + 1) / total_tickers) * 60)
-                pbar.progress(min(pct, 100))
-
-        pbar.empty()
-        pstatus.empty()
-
-        df_rsi_all = pd.DataFrame(results_rsi) if results_rsi else pd.DataFrame()
-        df_rsi_bullish = pd.DataFrame()
-        df_rsi_bearish = pd.DataFrame()
-
-        if not df_rsi_all.empty and "Pattern" in df_rsi_all.columns:
-            df_rsi_bullish = df_rsi_all[
-                df_rsi_all["Pattern"].str.contains("Bullish", case=False, na=False)
-            ].sort_values(by="TOTAL SCORE", ascending=False)
-            df_rsi_bearish = df_rsi_all[
-                df_rsi_all["Pattern"].str.contains("Bearish", case=False, na=False)
-            ].sort_values(by="TOTAL SCORE", ascending=False)
-
-        st.session_state["df_rsi_bullish"] = df_rsi_bullish
-        st.session_state["df_rsi_bearish"] = df_rsi_bearish
-        st.session_state["rsi_stats"] = {
-            "total": total_tickers,
-            "matched": len(df_rsi_all),
-            "bullish_count": len(df_rsi_bullish),
-            "bearish_count": len(df_rsi_bearish),
-        }
+            st.session_state["df_rsi_bullish"] = df_rsi_bullish
+            st.session_state["df_rsi_bearish"] = df_rsi_bearish
+            st.session_state["rsi_stats"] = {
+                "total": total_tickers,
+                "matched": len(df_rsi_all),
+                "bullish_count": len(df_rsi_bullish),
+                "bearish_count": len(df_rsi_bearish),
+            }
 
     if "rsi_stats" in st.session_state:
         stats = st.session_state["rsi_stats"]
@@ -278,11 +283,17 @@ with tab1:
             selected_rsi_symbol += ".JK"
         render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
 
+# ==========================================
+# TAB 2: STOCHASTIC & PARABOLIC SAR
+# ==========================================
 with tab2:
     st.header("Screener Stochastic & Parabolic SAR")
     if st.button("Jalankan Screener Stoch & PSAR", key="btn_stoch"):
         st.info("Fitur Stoch & PSAR Siap!")
 
+# ==========================================
+# TAB 3: CUSTOM TRADE PLANNER
+# ==========================================
 with tab3:
     st.header("Custom Trade Planner Calculator")
     ticker_input = st.text_input("Masukkan Kode Saham", value="", key="manual_ticker_input")

@@ -1,7 +1,6 @@
 import concurrent.futures
 import time
 import pandas as pd
-import pandas_ta as ta
 import streamlit as st
 import yfinance as yf
 
@@ -16,35 +15,23 @@ st.set_page_config(
 try:
     from ihsg_tickers import get_all_ihsg_tickers
 except ImportError:
-
     def get_all_ihsg_tickers():
         return [
-            "BBRI.JK",
-            "BBCA.JK",
-            "BMRI.JK",
-            "TLKM.JK",
-            "ASII.JK",
-            "BBNI.JK",
-            "UNVR.JK",
-            "ICBP.JK",
+            "BBRI.JK", "BBCA.JK", "BMRI.JK", "TLKM.JK",
+            "ASII.JK", "BBNI.JK", "UNVR.JK", "ICBP.JK"
         ]
-
 
 try:
     from screener_rsi_divergence import detect_all_divergences
 except ImportError:
-
     def detect_all_divergences(df_data, is_gc, is_dc):
         return pd.DataFrame()
-
 
 try:
     from screener_stoch_psar import run_stoch_psar_screener
 except ImportError:
-
     def run_stoch_psar_screener(tickers, progress_callback=None):
         return pd.DataFrame(), pd.DataFrame()
-
 
 try:
     from trade_planner import TradePlanner
@@ -53,10 +40,19 @@ except ImportError:
 
 st.title("📈 ZIO QUANT Dashboard")
 st.markdown(
-    "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic &"
-    " Parabolic SAR**, serta kalkulator **Trade Planner**."
+    "Aplikasi screening saham berbasis **RSI Divergence**, **Stochastic & Parabolic SAR**, serta kalkulator **Trade Planner**."
 )
 
+# Fungsi Kalkulasi Manual (Pengganti pandas-ta)
+def calculate_rsi_pure(series, length=10):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=length).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=length).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+def calculate_ema_pure(series, length=10):
+    return series.ewm(span=length, adjust=False).mean()
 
 # Helper function Trade Planner
 def render_inline_trade_planner(ticker_symbol, key_suffix):
@@ -76,9 +72,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
 
     with st.spinner(f"Menghitung Trade Plan untuk {ticker_symbol}..."):
         try:
-            planner = TradePlanner(
-                ticker=ticker_symbol.upper(), period=period_selected
-            )
+            planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
             planner.fetch_and_prepare_data()
 
             st.markdown("#### 📌 Direction Market")
@@ -99,21 +93,16 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             col_sup, col_res = st.columns(2)
             with col_sup:
                 st.markdown("#### 🛡️ Support Levels")
-                st.dataframe(
-                    planner.get_strong_support(), use_container_width=True
-                )
+                st.dataframe(planner.get_strong_support(), use_container_width=True)
             with col_res:
                 st.markdown("#### 🧱 Resistance Levels")
-                st.dataframe(
-                    planner.get_strong_resistance(), use_container_width=True
-                )
+                st.dataframe(planner.get_strong_resistance(), use_container_width=True)
 
             st.markdown("#### 📍 Swing Points & Metpoints")
             st.dataframe(planner.get_swing_points(), use_container_width=True)
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}: {e}")
-
 
 # Tab Navigasi
 tab1, tab2, tab3 = st.tabs([
@@ -136,11 +125,8 @@ with tab1:
         pbar = st.progress(0)
         pstatus = st.empty()
 
-        pstatus.text(
-            f"Downloading Data Batch ({total_tickers} Saham Yahoo Finance)..."
-        )
+        pstatus.text(f"Downloading Data Batch ({total_tickers} Saham Yahoo Finance)...")
 
-        # Batch Download Sekaligus (Menghindari Limit Yahoo)
         try:
             bulk_data = yf.download(
                 tickers=all_tickers,
@@ -162,7 +148,6 @@ with tab1:
         if bulk_data is not None:
             for idx, ticker in enumerate(all_tickers):
                 try:
-                    # Ambil data per ticker dari batch download
                     if len(all_tickers) == 1:
                         df_stock = bulk_data.copy()
                     else:
@@ -175,12 +160,8 @@ with tab1:
                         continue
 
                     df_stock = df_stock.copy()
-                    df_stock["RSI_10"] = df_stock.ta.rsi(
-                        close=df_stock["Close"], length=10
-                    )
-                    df_stock["RSI_EMA10"] = df_stock.ta.ema(
-                        close=df_stock["RSI_10"], length=10
-                    )
+                    df_stock["RSI_10"] = calculate_rsi_pure(df_stock["Close"], length=10)
+                    df_stock["RSI_EMA10"] = calculate_ema_pure(df_stock["RSI_10"], length=10)
 
                     latest_close = df_stock["Close"].iloc[-1]
                     latest_rsi = df_stock["RSI_10"].iloc[-1]
@@ -220,7 +201,6 @@ with tab1:
                 except Exception:
                     continue
 
-                # Progress Update
                 pct = int(40 + ((idx + 1) / total_tickers) * 60)
                 pbar.progress(min(pct, 100))
 
@@ -233,14 +213,10 @@ with tab1:
 
         if not df_rsi_all.empty and "Pattern" in df_rsi_all.columns:
             df_rsi_bullish = df_rsi_all[
-                df_rsi_all["Pattern"].str.contains(
-                    "Bullish", case=False, na=False
-                )
+                df_rsi_all["Pattern"].str.contains("Bullish", case=False, na=False)
             ].sort_values(by="TOTAL SCORE", ascending=False)
             df_rsi_bearish = df_rsi_all[
-                df_rsi_all["Pattern"].str.contains(
-                    "Bearish", case=False, na=False
-                )
+                df_rsi_all["Pattern"].str.contains("Bearish", case=False, na=False)
             ].sort_values(by="TOTAL SCORE", ascending=False)
 
         st.session_state["df_rsi_bullish"] = df_rsi_bullish
@@ -265,10 +241,7 @@ with tab1:
 
     with col_bull:
         st.subheader("🟢 Signal Bullish (Divergence)")
-        if (
-            "df_rsi_bullish" in st.session_state
-            and not st.session_state["df_rsi_bullish"].empty
-        ):
+        if "df_rsi_bullish" in st.session_state and not st.session_state["df_rsi_bullish"].empty:
             df_rsi_bullish = st.session_state["df_rsi_bullish"]
             event_bull = st.dataframe(
                 df_rsi_bullish,
@@ -277,24 +250,15 @@ with tab1:
                 selection_mode="single-row",
                 key="table_rsi_bullish",
             )
-            if (
-                event_bull
-                and hasattr(event_bull, "selection")
-                and event_bull.selection.get("rows")
-            ):
+            if event_bull and hasattr(event_bull, "selection") and event_bull.selection.get("rows"):
                 idx = event_bull.selection["rows"][0]
-                selected_rsi_symbol = str(
-                    df_rsi_bullish.iloc[idx]["Ticker"]
-                )
+                selected_rsi_symbol = str(df_rsi_bullish.iloc[idx]["Ticker"])
         else:
             st.info("Tidak ada sinyal Bullish / Belum di-scan.")
 
     with col_bear:
         st.subheader("🔴 Signal Bearish (Divergence)")
-        if (
-            "df_rsi_bearish" in st.session_state
-            and not st.session_state["df_rsi_bearish"].empty
-        ):
+        if "df_rsi_bearish" in st.session_state and not st.session_state["df_rsi_bearish"].empty:
             df_rsi_bearish = st.session_state["df_rsi_bearish"]
             event_bear = st.dataframe(
                 df_rsi_bearish,
@@ -303,40 +267,25 @@ with tab1:
                 selection_mode="single-row",
                 key="table_rsi_bearish",
             )
-            if (
-                event_bear
-                and hasattr(event_bear, "selection")
-                and event_bear.selection.get("rows")
-            ):
+            if event_bear and hasattr(event_bear, "selection") and event_bear.selection.get("rows"):
                 idx = event_bear.selection["rows"][0]
-                selected_rsi_symbol = str(
-                    df_rsi_bearish.iloc[idx]["Ticker"]
-                )
+                selected_rsi_symbol = str(df_rsi_bearish.iloc[idx]["Ticker"])
         else:
             st.info("Tidak ada sinyal Bearish / Belum di-scan.")
 
     if selected_rsi_symbol:
-        if (
-            not selected_rsi_symbol.endswith(".JK")
-            and "." not in selected_rsi_symbol
-        ):
+        if not selected_rsi_symbol.endswith(".JK") and "." not in selected_rsi_symbol:
             selected_rsi_symbol += ".JK"
         render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
 
-# ==========================================
-# TAB 2 & TAB 3 (TETAP SAMA SEPERTI KODE LAMA)
-# ==========================================
 with tab2:
     st.header("Screener Stochastic & Parabolic SAR")
     if st.button("Jalankan Screener Stoch & PSAR", key="btn_stoch"):
-        all_stoch_tickers = get_all_ihsg_tickers()
         st.info("Fitur Stoch & PSAR Siap!")
 
 with tab3:
     st.header("Custom Trade Planner Calculator")
-    ticker_input = st.text_input(
-        "Masukkan Kode Saham", value="", key="manual_ticker_input"
-    )
+    ticker_input = st.text_input("Masukkan Kode Saham", value="", key="manual_ticker_input")
     if st.button("Generate Trade Plan", key="btn_planner_manual"):
         if ticker_input.strip():
             clean_ticker = ticker_input.strip().upper()

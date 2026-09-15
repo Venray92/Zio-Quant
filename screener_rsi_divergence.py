@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import pandas_ta as ta
 import yfinance as yf
 
 
@@ -18,6 +17,21 @@ def load_stock_list(filepath="daftar_saham.txt"):
             s += ".JK"
         formatted_stocks.append(s)
     return formatted_stocks
+
+
+def calculate_rsi_pure(series, length=10):
+    """Menghitung RSI secara manual menggunakan Pandas (Tanpa pandas-ta)"""
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=length).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=length).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
+
+
+def calculate_ema_pure(series, length=10):
+    """Menghitung EMA secara manual menggunakan Pandas (Tanpa pandas-ta)"""
+    return series.ewm(span=length, adjust=False).mean()
 
 
 def extract_swings(df_in, series, left=2, right=2):
@@ -267,9 +281,9 @@ def detect_rsi_patterns_and_score(ticker):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        # Hitung RSI 10 & EMA 10
-        df["RSI_10"] = df.ta.rsi(close=df["Close"], length=10)
-        df["RSI_EMA10"] = df.ta.ema(close=df["RSI_10"], length=10)
+        # Hitung RSI 10 & EMA 10 secara manual (Murni Pandas)
+        df["RSI_10"] = calculate_rsi_pure(df["Close"], length=10)
+        df["RSI_EMA10"] = calculate_ema_pure(df["RSI_10"], length=10)
 
         latest_close = df["Close"].iloc[-1]
         latest_rsi = df["RSI_10"].iloc[-1]

@@ -3,7 +3,7 @@ import yfinance as yf
 
 
 # ----------------------------------------------------
-# 1. HELPER MATHS & INDICATORS (Pandas Murni)
+# 1. HELPER MATHS & INDICATORS
 # ----------------------------------------------------
 def calculate_rsi(series, period=10):
   delta = series.diff()
@@ -27,7 +27,7 @@ def calculate_ema(series, period=10):
 
 
 # ----------------------------------------------------
-# 2. HELPER DETEKSI BASE KONSOLIDASI (Lebar <= 8%, Min 5 Candle)
+# 2. HELPER DETEKSI BASE KONSOLIDASI
 # ----------------------------------------------------
 def detect_bases(df, min_candles=5, max_width_pct=8.0, window_lookback=60):
   bases = []
@@ -54,7 +54,6 @@ def detect_bases(df, min_candles=5, max_width_pct=8.0, window_lookback=60):
             'Jumlah Candle': length,
             'Base Support': base_low,
             'Base Resistance': base_high,
-            'Range Harga': base_high - base_low,
             'Lebar Konsolidasi (%)': round(width_pct, 2),
         }
       else:
@@ -88,8 +87,8 @@ def extract_swings(df_in, series, left=2, right=2):
       ):
         swings.append({
             'Tanggal': series.index[i],
+            'Index_Pos': i,
             'Nilai': current_val,
-            'Harga Close': df_in['Close'].iloc[i],
             'Type': 'SWING HIGH',
             'Status': 'Confirmed',
         })
@@ -98,48 +97,17 @@ def extract_swings(df_in, series, left=2, right=2):
       ):
         swings.append({
             'Tanggal': series.index[i],
+            'Index_Pos': i,
             'Nilai': current_val,
-            'Harga Close': df_in['Close'].iloc[i],
             'Type': 'SWING LOW',
             'Status': 'Confirmed',
-        })
-    elif remaining_right >= 0:
-      right_vals = series.iloc[i + 1 : n]
-      is_low = (
-          all(current_val <= val for val in left_vals)
-          and all(current_val <= val for val in right_vals)
-          if len(right_vals) > 0
-          else all(current_val <= val for val in left_vals)
-      )
-      is_high = (
-          all(current_val >= val for val in left_vals)
-          and all(current_val >= val for val in right_vals)
-          if len(right_vals) > 0
-          else all(current_val >= val for val in left_vals)
-      )
-
-      if is_low:
-        swings.append({
-            'Tanggal': series.index[i],
-            'Nilai': current_val,
-            'Harga Close': df_in['Close'].iloc[i],
-            'Type': 'SWING LOW',
-            'Status': 'Potential',
-        })
-      elif is_high:
-        swings.append({
-            'Tanggal': series.index[i],
-            'Nilai': current_val,
-            'Harga Close': df_in['Close'].iloc[i],
-            'Type': 'SWING HIGH',
-            'Status': 'Potential',
         })
 
   return pd.DataFrame(swings)
 
 
 # ----------------------------------------------------
-# 4. UTAMA: SCREENER DIVERGENCE + BASE POSISI SPESIFIK
+# 4. MAIN SCREENER WITH INTEGRATED SCORING SYSTEM
 # ----------------------------------------------------
 def detect_rsi_patterns_and_score(ticker):
   try:
@@ -152,52 +120,47 @@ def detect_rsi_patterns_and_score(ticker):
     if isinstance(df.columns, pd.MultiIndex):
       df.columns = df.columns.get_level_values(0)
 
-    # Filter Tambahan: Cek Nilai Transaksi Harian Terakhir (Value > 1 Miliar)
+    # Filter Likuiditas (> 1 Miliar Rupiah)
     latest_volume = df['Volume'].iloc[-1]
     latest_close = df['Close'].iloc[-1]
     latest_value = latest_volume * latest_close
 
-    if latest_value <= 1000000000:  # < 1 Miliar rupiah
+    if latest_value <= 1_000_000_000:
       return None
 
-    # Indikator RSI & EMA RSI
+    # Calculate Indicators
     df['RSI_10'] = calculate_rsi(df['Close'], period=10)
     df['RSI_EMA10'] = calculate_ema(df['RSI_10'], period=10)
     df = df.dropna(subset=['RSI_10', 'RSI_EMA10'])
 
-    latest_date = df.index.max()
+    latest_idx = len(df) - 1
     latest_rsi = df['RSI_10'].iloc[-1]
     latest_ema = df['RSI_EMA10'].iloc[-1]
+
     is_gc = latest_rsi > latest_ema
     is_dc = latest_rsi < latest_ema
 
-    # Parameter yang Direvisi
     min_rsi_diff = 2.5
-    min_price_diff_pct = 0.02  # REVISI 3: Min perbedaan harga 2%
+    min_price_diff_pct = 0.02
     clean_symbol = ticker.replace('.JK', '')
 
-    # Deteksi Semua Base Konsolidasi
     df_bases = detect_bases(df, min_candles=5, max_width_pct=8.0)
 
-    # HELPER: Validasi Posisi Base terhadap Titik 1 dan Titik 2
-    def evaluate_base_positions(tgl_titik_1, tgl_titik_2):
+    # Helper evaluasi base + skornya
+    def evaluate_base_score(tgl_titik_1, tgl_titik_2):
       if df_bases.empty:
-        return 'Tidak Ada Base'
+        return 'Tidak Ada Base', 0
 
-      has_base_t1 = False
-      has_base_t2 = False
-      width_t1 = 0.0
-      width_t2 = 0.0
+      has_base_t1, has_base_t2 = False, False
+      width_t1, width_t2 = 0.0, 0.0
 
       for _, base in df_bases.iterrows():
-        # 1. Base sebelum/dekat Titik 1 (selisih <= 5 hari dari tgl_titik_1)
         start_t1 = base['Tgl Mulai Base'] - pd.Timedelta(days=5)
         end_t1 = base['Tgl Akhir Base'] + pd.Timedelta(days=5)
         if start_t1 <= tgl_titik_1 <= end_t1:
           has_base_t1 = True
           width_t1 = base['Lebar Konsolidasi (%)']
 
-        # 2. Base SEBELUM Titik 2
         if (
             base['Tgl Mulai Base'] >= tgl_titik_1
             and base['Tgl Akhir Base'] <= tgl_titik_2
@@ -206,15 +169,14 @@ def detect_rsi_patterns_and_score(ticker):
             has_base_t2 = True
             width_t2 = base['Lebar Konsolidasi (%)']
 
-      # Output Status
       if has_base_t1 and has_base_t2:
-        return f'Grade A++ (Base T1: {width_t1}% | Base T2: {width_t2}%)'
-      elif has_base_t1:
-        return f'Ada Base Titik 1 ({width_t1}%)'
+        return f'Grade A++ (T1: {width_t1}% | T2: {width_t2}%)', 30
       elif has_base_t2:
-        return f'Ada Base Sblm Titik 2 ({width_t2}%)'
+        return f'Ada Base Sblm Titik 2 ({width_t2}%)', 20
+      elif has_base_t1:
+        return f'Ada Base Titik 1 ({width_t1}%)', 10
       else:
-        return 'Tidak Ada Base'
+        return 'Tidak Ada Base', 0
 
     # ==========================================
     # A. BULLISH DIVERGENCE (SWING LOW)
@@ -223,58 +185,42 @@ def detect_rsi_patterns_and_score(ticker):
     rsi_swings_low = extract_swings(df, df['RSI_10'])
 
     if not p_swings_low.empty and not rsi_swings_low.empty:
-      p_swings_low = (
-          p_swings_low[p_swings_low['Type'] == 'SWING LOW']
-          .sort_values('Tanggal', ascending=False)
-          .reset_index(drop=True)
-      )
-      rsi_swings_low = (
-          rsi_swings_low[rsi_swings_low['Type'] == 'SWING LOW']
-          .sort_values('Tanggal', ascending=False)
-          .reset_index(drop=True)
-      )
+      p_swings_low = p_swings_low[
+          p_swings_low['Type'] == 'SWING LOW'
+      ].sort_values('Index_Pos', ascending=False)
+      rsi_swings_low = rsi_swings_low[
+          rsi_swings_low['Type'] == 'SWING LOW'
+      ].sort_values('Index_Pos', ascending=False)
 
       if len(p_swings_low) >= 2 and len(rsi_swings_low) >= 2:
         for i in range(len(p_swings_low) - 1):
           right_p = p_swings_low.iloc[i]
 
-          # REVISI 1: Freshness filter <= 1 hari saja
-          if (latest_date - right_p['Tanggal']).days > 1:
+          # PENTING: Menggunakan Jarak Bar/Candle (bukan hari kalender) untuk Freshness
+          bars_from_latest = latest_idx - right_p['Index_Pos']
+          if bars_from_latest > 2:  # Toleransi 2 candle terakhir
             continue
 
           for j in range(i + 1, len(p_swings_low)):
             left_p = p_swings_low.iloc[j]
-            days_gap = (right_p['Tanggal'] - left_p['Tanggal']).days
+            bars_gap = right_p['Index_Pos'] - left_p['Index_Pos']
 
-            # REVISI 2: Gap antara 4 s/d 25 hari kerja
-            if not (4 <= days_gap <= 25):
+            if not (4 <= bars_gap <= 25):  # 4 s/d 25 candle
               continue
 
-            between_df = df.loc[left_p['Tanggal'] : right_p['Tanggal']]
+            between_df = df.iloc[
+                int(left_p['Index_Pos']) : int(right_p['Index_Pos']) + 1
+            ]
             if between_df['Low'].min() < (
                 min(left_p['Nilai'], right_p['Nilai']) * 0.998
             ):
               continue
 
             rsi_right_match = rsi_swings_low[
-                (
-                    rsi_swings_low['Tanggal']
-                    >= right_p['Tanggal'] - pd.Timedelta(days=3)
-                )
-                & (
-                    rsi_swings_low['Tanggal']
-                    <= right_p['Tanggal'] + pd.Timedelta(days=3)
-                )
+                abs(rsi_swings_low['Index_Pos'] - right_p['Index_Pos']) <= 3
             ]
             rsi_left_match = rsi_swings_low[
-                (
-                    rsi_swings_low['Tanggal']
-                    >= left_p['Tanggal'] - pd.Timedelta(days=3)
-                )
-                & (
-                    rsi_swings_low['Tanggal']
-                    <= left_p['Tanggal'] + pd.Timedelta(days=3)
-                )
+                abs(rsi_swings_low['Index_Pos'] - left_p['Index_Pos']) <= 3
             ]
 
             if not rsi_right_match.empty and not rsi_left_match.empty:
@@ -285,13 +231,9 @@ def detect_rsi_patterns_and_score(ticker):
               )
               rsi_diff = abs(val_rsi_right - val_rsi_left)
 
-              status_bull = (
-                  'Valid (GC Confirmed)'
-                  if is_gc
-                  else 'Potensial (Menunggu GC)'
-              )
               pattern_type = None
 
+              # Condition Bullish Regular
               if (
                   (right_p['Nilai'] < left_p['Nilai'])
                   and (val_rsi_right > val_rsi_left)
@@ -301,7 +243,9 @@ def detect_rsi_patterns_and_score(ticker):
                     price_diff_pct >= min_price_diff_pct
                     and rsi_diff >= min_rsi_diff
                 ):
-                  pattern_type = f'Regular Bullish Divergence {status_bull}'
+                  pattern_type = 'Regular Bullish Divergence'
+
+              # Condition Bullish Hidden
               elif (
                   (right_p['Nilai'] >= left_p['Nilai'])
                   and (val_rsi_right < val_rsi_left)
@@ -311,18 +255,47 @@ def detect_rsi_patterns_and_score(ticker):
                     price_diff_pct >= min_price_diff_pct
                     and rsi_diff >= min_rsi_diff
                 ):
-                  pattern_type = f'Hidden Bullish Divergence {status_bull}'
+                  pattern_type = 'Hidden Bullish Divergence'
 
               if pattern_type:
-                base_status = evaluate_base_positions(
+                base_desc, base_score = evaluate_base_score(
                     left_p['Tanggal'], right_p['Tanggal']
+                )
+
+                # --- HITUNG SCORING SYSTEM ---
+                score = 0
+
+                # 1. Confirmation Score (Max 30)
+                confirm_score = 30 if is_gc else 15
+                score += confirm_score
+
+                # 2. Base Score (Max 30)
+                score += base_score
+
+                # 3. Quality Delta Score (Max 20)
+                if rsi_diff >= 5.0 and price_diff_pct >= 0.03:
+                  score += 20
+                else:
+                  score += 10
+
+                # 4. Extremity/Area Reversal Score (Max 20)
+                if val_rsi_right <= 30:
+                  score += 20
+                elif val_rsi_right <= 35:
+                  score += 10
+
+                status_bull = (
+                    'Valid (GC Confirmed)'
+                    if is_gc
+                    else 'Potensial (Menunggu GC)'
                 )
 
                 return {
                     'Ticker': ticker,
                     'Saham': clean_symbol,
-                    'Pattern': pattern_type,
-                    'Status Base': base_status,
+                    'Pattern': f'{pattern_type} {status_bull}',
+                    'Score': score,
+                    'Status Base': base_desc,
                     'Value (Rp)': f'Rp {latest_value:,.0f}',
                     'Tgl Kiri': left_p['Tanggal'].strftime('%Y-%m-%d'),
                     'Harga Kiri': f"Rp {left_p['Nilai']:,.0f}",
@@ -339,58 +312,41 @@ def detect_rsi_patterns_and_score(ticker):
     rsi_swings_high = extract_swings(df, df['RSI_10'])
 
     if not p_swings_high.empty and not rsi_swings_high.empty:
-      p_swings_high = (
-          p_swings_high[p_swings_high['Type'] == 'SWING HIGH']
-          .sort_values('Tanggal', ascending=False)
-          .reset_index(drop=True)
-      )
-      rsi_swings_high = (
-          rsi_swings_high[rsi_swings_high['Type'] == 'SWING HIGH']
-          .sort_values('Tanggal', ascending=False)
-          .reset_index(drop=True)
-      )
+      p_swings_high = p_swings_high[
+          p_swings_high['Type'] == 'SWING HIGH'
+      ].sort_values('Index_Pos', ascending=False)
+      rsi_swings_high = rsi_swings_high[
+          rsi_swings_high['Type'] == 'SWING HIGH'
+      ].sort_values('Index_Pos', ascending=False)
 
       if len(p_swings_high) >= 2 and len(rsi_swings_high) >= 2:
         for i in range(len(p_swings_high) - 1):
           right_p = p_swings_high.iloc[i]
 
-          # REVISI 1: Freshness filter <= 1 hari saja
-          if (latest_date - right_p['Tanggal']).days > 1:
+          bars_from_latest = latest_idx - right_p['Index_Pos']
+          if bars_from_latest > 2:
             continue
 
           for j in range(i + 1, len(p_swings_high)):
             left_p = p_swings_high.iloc[j]
-            days_gap = (right_p['Tanggal'] - left_p['Tanggal']).days
+            bars_gap = right_p['Index_Pos'] - left_p['Index_Pos']
 
-            # REVISI 2: Gap antara 4 s/d 25 hari kerja
-            if not (4 <= days_gap <= 25):
+            if not (4 <= bars_gap <= 25):
               continue
 
-            between_df = df.loc[left_p['Tanggal'] : right_p['Tanggal']]
+            between_df = df.iloc[
+                int(left_p['Index_Pos']) : int(right_p['Index_Pos']) + 1
+            ]
             if between_df['High'].max() > (
                 max(left_p['Nilai'], right_p['Nilai']) * 1.002
             ):
               continue
 
             rsi_right_match = rsi_swings_high[
-                (
-                    rsi_swings_high['Tanggal']
-                    >= right_p['Tanggal'] - pd.Timedelta(days=3)
-                )
-                & (
-                    rsi_swings_high['Tanggal']
-                    <= right_p['Tanggal'] + pd.Timedelta(days=3)
-                )
+                abs(rsi_swings_high['Index_Pos'] - right_p['Index_Pos']) <= 3
             ]
             rsi_left_match = rsi_swings_high[
-                (
-                    rsi_swings_high['Tanggal']
-                    >= left_p['Tanggal'] - pd.Timedelta(days=3)
-                )
-                & (
-                    rsi_swings_high['Tanggal']
-                    <= left_p['Tanggal'] + pd.Timedelta(days=3)
-                )
+                abs(rsi_swings_high['Index_Pos'] - left_p['Index_Pos']) <= 3
             ]
 
             if not rsi_right_match.empty and not rsi_left_match.empty:
@@ -401,24 +357,20 @@ def detect_rsi_patterns_and_score(ticker):
               )
               rsi_diff = abs(val_rsi_right - val_rsi_left)
 
-              status_bear = (
-                  'Valid (DC Confirmed)'
-                  if is_dc
-                  else 'Potensial (Menunggu DC)'
-              )
               pattern_type = None
 
-              # REVISI 4: Regular Bearish dengan syarat RSI Kanan >= 80
+              # REVISI REFORMULASI: Ambang batas RSI Bearish diturunkan dari 80 ke >= 65
               if (
                   (right_p['Nilai'] > left_p['Nilai'])
                   and (val_rsi_right < val_rsi_left)
-                  and (val_rsi_right >= 80)
+                  and (val_rsi_right >= 65)
               ):
                 if (
                     price_diff_pct >= min_price_diff_pct
                     and rsi_diff >= min_rsi_diff
                 ):
-                  pattern_type = f'Regular Bearish Divergence {status_bear}'
+                  pattern_type = 'Regular Bearish Divergence'
+
               elif (
                   (right_p['Nilai'] <= left_p['Nilai'])
                   and (val_rsi_right > val_rsi_left)
@@ -428,18 +380,47 @@ def detect_rsi_patterns_and_score(ticker):
                     price_diff_pct >= min_price_diff_pct
                     and rsi_diff >= min_rsi_diff
                 ):
-                  pattern_type = f'Hidden Bearish Divergence {status_bear}'
+                  pattern_type = 'Hidden Bearish Divergence'
 
               if pattern_type:
-                base_status = evaluate_base_positions(
+                base_desc, base_score = evaluate_base_score(
                     left_p['Tanggal'], right_p['Tanggal']
+                )
+
+                # --- HITUNG SCORING SYSTEM ---
+                score = 0
+
+                # 1. Confirmation Score (Max 30)
+                confirm_score = 30 if is_dc else 15
+                score += confirm_score
+
+                # 2. Base Score (Max 30)
+                score += base_score
+
+                # 3. Quality Delta Score (Max 20)
+                if rsi_diff >= 5.0 and price_diff_pct >= 0.03:
+                  score += 20
+                else:
+                  score += 10
+
+                # 4. Extremity/Area Reversal Score (Max 20)
+                if val_rsi_right >= 70:
+                  score += 20
+                elif val_rsi_right >= 65:
+                  score += 10
+
+                status_bear = (
+                    'Valid (DC Confirmed)'
+                    if is_dc
+                    else 'Potensial (Menunggu DC)'
                 )
 
                 return {
                     'Ticker': ticker,
                     'Saham': clean_symbol,
-                    'Pattern': pattern_type,
-                    'Status Base': base_status,
+                    'Pattern': f'{pattern_type} {status_bear}',
+                    'Score': score,
+                    'Status Base': base_desc,
                     'Value (Rp)': f'Rp {latest_value:,.0f}',
                     'Tgl Kiri': left_p['Tanggal'].strftime('%Y-%m-%d'),
                     'Harga Kiri': f"Rp {left_p['Nilai']:,.0f}",

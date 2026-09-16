@@ -1,19 +1,25 @@
+import concurrent.futures
 import os
 import sys
-
-# Menambahkan root directory ke Python path agar modul utama dapat di-import
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-# Impor modul screener setelah mengatur sys.path
-from screener_rsi_divergence import detect_rsi_patterns_and_score
-
-import concurrent.futures
 import time
 import pandas as pd
 import streamlit as st
-from ihsg_tickers import get_all_ihsg_tickers
-from screener_rsi_divergence import detect_rsi_patterns_and_score
-from utils.ui_helpers import render_inline_trade_planner
+
+# 1. Daftarkan Root Directory ke sys.path di bagian paling atas
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+# 2. Impor modul internal setelah sys.path disesuaikan
+try:
+    from ihsg_tickers import get_all_ihsg_tickers
+    from screener_rsi_divergence import detect_rsi_patterns_and_score
+    from utils.ui_helpers import render_inline_trade_planner
+except ImportError:
+    # Fallback untuk eksekusi langsung tanpa hierarki paket
+    from ihsg_tickers import get_all_ihsg_tickers
+    from screener_rsi_divergence import detect_rsi_patterns_and_score
+    from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():

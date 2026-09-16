@@ -35,7 +35,7 @@ def get_logo_base64(file_path="logo.jpg"):
 
 logo_b64 = get_logo_base64("logo.jpg")
 
-# 3. Custom CSS Cyberpunk & Header Layout
+# 3. Custom CSS Cyberpunk & Direct Clickable Brand Header
 st.markdown(
     """
     <style>
@@ -56,12 +56,39 @@ st.markdown(
         padding-bottom: 2rem !important;
     }
 
-    /* Styling Visual Logo & Brand */
+    /* Trik Tombol Klik Logo + Brand Jadi Satu */
+    div.brand-click-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    /* Menjadikan stButton transparan & menutupi visual logo+teks */
+    div.brand-click-wrapper div.stButton > button {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: transparent !important;
+        border: none !important;
+        color: transparent !important;
+        z-index: 10 !important;
+        cursor: pointer !important;
+        box-shadow: none !important;
+    }
+
+    /* Container Visual Brand */
     .brand-container {
         display: flex;
         align-items: center;
         gap: 14px;
-        margin-bottom: 6px;
+        padding: 4px;
+        border-radius: 8px;
+        transition: transform 0.15s ease-in-out, opacity 0.15s ease-in-out;
+    }
+    div.brand-click-wrapper:hover .brand-container {
+        opacity: 0.85;
+        transform: scale(1.02);
     }
 
     .brand-logo-img {
@@ -80,24 +107,6 @@ st.markdown(
         letter-spacing: 1px;
         text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
         font-family: 'Share Tech Mono', monospace;
-    }
-
-    /* Styling Tombol Home */
-    div.btn-home-wrapper div.stButton > button {
-        background-color: #090C15 !important;
-        border: 1px solid #1E2338 !important;
-        color: #00F3FF !important;
-        font-size: 11px !important;
-        padding: 2px 12px !important;
-        height: 28px !important;
-        border-radius: 4px !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    div.btn-home-wrapper div.stButton > button:hover {
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.4) !important;
-        background-color: rgba(0, 243, 255, 0.1) !important;
     }
 
     /* Popover Menu Styling */
@@ -178,7 +187,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 4. Header Bar (Logo + Z-QUANT Kiri, Popover Kanan)
+# 4. Header Bar (Logo + Z-QUANT Bisa Diklik Langsung untuk Home)
 col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
 with col_brand:
@@ -187,7 +196,9 @@ with col_brand:
     else:
         logo_html = '<span style="font-size: 32px;">⚡</span>'
 
-    # Render Logo + Nama Z-QUANT Sejajar Bersih
+    st.markdown('<div class="brand-click-wrapper">', unsafe_allow_html=True)
+
+    # Visual Logo + Nama Z-QUANT Sejajar
     st.markdown(
         f"""
         <div class="brand-container">
@@ -198,11 +209,11 @@ with col_brand:
         unsafe_allow_html=True,
     )
 
-    # Tombol Home
-    st.markdown('<div class="btn-home-wrapper">', unsafe_allow_html=True)
-    if st.button("🏠 HOME", key="btn_go_home"):
+    # Button Transparan yang menutupi area Logo & Nama
+    if st.button("HOME_CLICK", key="btn_brand_home"):
         st.session_state["selected_screener"] = None
         st.rerun()
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_popover:

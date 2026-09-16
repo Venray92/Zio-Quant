@@ -164,7 +164,12 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
     """Renders Trade Plan Cards for given stocks Dataframe."""
     if is_title_needed:
         st.markdown(
-            f"<h3 style='color:#1e293b;'>Trade Plans <span style='font-size:0.9rem; color:#64748b;'>({len(df_data)} items)</span></h3>",
+            f"""
+            <h3 class="glow-title">
+                <span class="cyan-dot"></span>Trade Plans 
+                <span style='font-size:0.9rem; color:#94a3b8;'>({len(df_data)} items)</span>
+            </h3>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -245,10 +250,71 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
 
 
 def render_tab_trade_planner():
-    # 🎨 PROFESSIONAL & MODERN CSS STYLING
+    # 🎨 CUSTOM CSS STYLING
     st.markdown(
         """
         <style>
+        /* Banner Header dengan Glowing Border Cyan Neon */
+        .header-banner {
+            border: 1px solid #00F3FF;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5), inset 0 0 10px rgba(0, 243, 255, 0.2);
+            border-radius: 8px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-banner h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00F3FF 0%, #10b981 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 6px rgba(0, 243, 255, 0.4));
+        }
+
+        /* Styling Judul-Judul Penting + Gradasi + Glowing */
+        .glow-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.3rem;
+            background: linear-gradient(90deg, #00F3FF 0%, #10b981 60%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.4));
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Indikator Dot Cyan */
+        .cyan-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #00F3FF;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #00F3FF, 0 0 12px #00F3FF;
+            flex-shrink: 0;
+        }
+
+        /* Border Glowing Cyan Neon untuk Tombol Mode Screener */
+        div.stButton > button {
+            border: 1px solid #00F3FF !important;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.4) !important;
+            border-radius: 6px !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+
+        div.stButton > button:hover {
+            border-color: #00F3FF !important;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.8) !important;
+        }
+
         /* Card Styling */
         .card {
             background-color: #ffffff;
@@ -306,9 +372,15 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- HEADER ---
-    st.title("📈 Stock Trade Planner")
-    st.markdown("---")
+    # --- BANNER HEADER ---
+    st.markdown(
+        """
+        <div class="header-banner">
+            <h1>Stock Trade Planner</h1>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if "screener_mode" not in st.session_state:
         st.session_state["screener_mode"] = "single"
@@ -323,7 +395,14 @@ def render_tab_trade_planner():
     if "f_candle" not in st.session_state:
         st.session_state["f_candle"] = "ALL CANDLES"
 
-    st.markdown("**Select Execution Mode:**")
+    st.markdown(
+        """
+        <div class="glow-title">
+            <span class="cyan-dot"></span>Select Execution Mode
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     mode_col1, mode_col2 = st.columns(2)
     current_mode = st.session_state["screener_mode"]
@@ -359,7 +438,14 @@ def render_tab_trade_planner():
     if st.session_state["screener_mode"] == "single":
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
-            st.markdown("**Enter Tickers:**")
+            st.markdown(
+                """
+                <div class="glow-title" style="font-size: 1rem;">
+                    <span class="cyan-dot"></span>Enter Tickers
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             input_ticker = st.text_input(
                 "Stock Tickers",
                 value="",
@@ -391,7 +477,12 @@ def render_tab_trade_planner():
             h_left, h_right = st.columns([3, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
-                    f"### Analysis Results <span style='font-size:0.9rem; color:#64748b;'>({len(df_single_res)} items)</span>",
+                    f"""
+                    <h3 class="glow-title">
+                        <span class="cyan-dot"></span>Analysis Results 
+                        <span style='font-size:0.9rem; color:#94a3b8;'>({len(df_single_res)} items)</span>
+                    </h3>
+                    """,
                     unsafe_allow_html=True,
                 )
             with h_right:
@@ -519,7 +610,12 @@ def render_tab_trade_planner():
             h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
-                    f"### Screener Results <span style='font-size:0.9rem; color:#64748b;'>({len(df)} items)</span>",
+                    f"""
+                    <h3 class="glow-title">
+                        <span class="cyan-dot"></span>Screener Results 
+                        <span style='font-size:0.9rem; color:#94a3b8;'>({len(df)} items)</span>
+                    </h3>
+                    """,
                     unsafe_allow_html=True,
                 )
             with h_center:

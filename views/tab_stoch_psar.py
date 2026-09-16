@@ -6,22 +6,23 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_stoch_psar():
+    # 🎨 STYLING MODERN DARK MODE
     st.markdown(
         """
         <style>
         .panel-header-center {
-            background-color: #161B22;
-            border: 1px solid #21262D;
-            border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 10px;
+            background-color: #0D111A;
+            border: 1px solid #1E2638;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 12px;
             text-align: center;
         }
         .metric-card {
-            background-color: #161B22;
-            border: 1px solid #21262D;
-            border-radius: 8px;
-            padding: 8px 10px;
+            background-color: #0D111A;
+            border: 1px solid #1E2638;
+            border-radius: 10px;
+            padding: 10px;
             text-align: center;
         }
         .metric-value {
@@ -30,19 +31,27 @@ def render_tab_stoch_psar():
             color: #FFFFFF;
         }
         .metric-label {
-            font-size: 9px;
-            color: #8B949E;
+            font-size: 10px;
+            color: #94A3B8;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
         .empty-card {
-            background-color: #161B22;
-            border: 1px dashed #30363D;
-            border-radius: 8px;
+            background-color: #0D111A;
+            border: 1px dashed #1E2638;
+            border-radius: 12px;
             padding: 40px 20px;
             text-align: center;
-            color: #8B949E;
+            color: #94A3B8;
+        }
+        
+        /* Input & Select Box Custom Styling */
+        div[data-baseweb="select"] > div {
+            background-color: #07090E !important;
+            border: 1px solid #1E2638 !important;
+            border-radius: 8px !important;
+            color: #F8FAFC !important;
         }
         </style>
         """,
@@ -61,13 +70,13 @@ def render_tab_stoch_psar():
     col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
     # =========================================================
-    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
+    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM (CARD VIEW)
     # =========================================================
     with col_left:
         st.markdown(
             """
             <div class="panel-header-center">
-                <div style="color: #00E676; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">STOCHASTIC & PARABOLIC SAR</div>
+                <div style="color: #10B981; font-weight: 800; font-size: 15px; letter-spacing: 0.5px;">⚡ STOCHASTIC & PARABOLIC SAR</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -77,7 +86,7 @@ def render_tab_stoch_psar():
 
         with col_btn_run:
             run_clicked = st.button(
-                "Run Screening",
+                "🚀 Run Scan",
                 key="btn_run_stoch_screener",
                 use_container_width=True,
                 type="primary",
@@ -118,17 +127,9 @@ def render_tab_stoch_psar():
                 pbar_stoch.empty()
                 pstatus_stoch.empty()
 
-                if (
-                    df_gc is not None
-                    and not df_gc.empty
-                    and "Score" in df_gc.columns
-                ):
+                if df_gc is not None and not df_gc.empty and "Score" in df_gc.columns:
                     df_gc = df_gc.sort_values(by="Score", ascending=False)
-                if (
-                    df_dc is not None
-                    and not df_dc.empty
-                    and "Score" in df_dc.columns
-                ):
+                if df_dc is not None and not df_dc.empty and "Score" in df_dc.columns:
                     df_dc = df_dc.sort_values(by="Score", ascending=False)
 
                 st.session_state["df_gc_data"] = (
@@ -150,42 +151,32 @@ def render_tab_stoch_psar():
 
                 if df_gc is not None and not df_gc.empty:
                     first_row = df_gc.iloc[0]
-                    st.session_state["selected_stoch_ticker"] = first_row.get(
-                        "Ticker", ""
-                    )
+                    st.session_state["selected_stoch_ticker"] = first_row.get("Ticker", "")
                 elif df_dc is not None and not df_dc.empty:
                     first_row = df_dc.iloc[0]
-                    st.session_state["selected_stoch_ticker"] = first_row.get(
-                        "Ticker", ""
-                    )
+                    st.session_state["selected_stoch_ticker"] = first_row.get("Ticker", "")
 
             except Exception as e:
                 pbar_stoch.empty()
                 pstatus_stoch.empty()
                 st.error(f"Terjadi kesalahan: {e}")
 
-        st.markdown(
-            "<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True
-        )
+        st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 
         has_results = "stoch_stats" in st.session_state
 
         if has_results:
             screener_mode = st.selectbox(
-                "Choose Signal Mode",
+                "🎯 Choose Signal Mode:",
                 options=["Golden Cross (Beli)", "Dead Cross (Jual)"],
                 index=0
-                if st.session_state.get("active_stoch_type")
-                == "Golden Cross (Beli)"
+                if st.session_state.get("active_stoch_type") == "Golden Cross (Beli)"
                 else 1,
                 key="stoch_screener_mode_select",
             )
             st.session_state["active_stoch_type"] = screener_mode
 
-            st.markdown(
-                "<div style='margin-bottom: 6px;'></div>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
             is_gc_tab = screener_mode == "Golden Cross (Beli)"
             df_target = (
@@ -200,10 +191,7 @@ def render_tab_stoch_psar():
                     saham = ticker.replace(".JK", "")
                     score = row.get("Score", 0)
 
-                    # Ambil Detail Signal dari dict screener
                     signal_desc = row.get("Detail Signal", "-")
-
-                    # Ambil Harga dan Persentase
                     close_price = row.get("Harga", 0)
                     change_pct = row.get("Change (%)", 0.0)
 
@@ -221,32 +209,34 @@ def render_tab_stoch_psar():
                         st.session_state.get("selected_stoch_ticker") == ticker
                     )
 
-                    change_color = "#00E676" if change_pct >= 0 else "#FF5252"
+                    change_color = "#10B981" if change_pct >= 0 else "#EF4444"
                     change_icon = "📈" if change_pct >= 0 else "📉"
                     change_str = f"{change_icon} {change_pct:+.2f}%"
-                    price_str = f"{close_price:,.0f}".replace(",", ".")
+                    price_str = f"{int(close_price):,}"
 
+                    # Styling Card Kotak Modern
                     border_style = (
-                        "border: 1.5px solid #00E676; background-color: #0D2B1D;"
+                        "border: 1.5px solid #10B981; background-color: #0D2B1D; box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);"
                         if is_selected
-                        else "border: 1px solid #30363D; background-color: #161B22;"
+                        else "border: 1px solid #1E2638; background-color: #111622;"
                     )
 
+                    # --- HASIL SCREENER KOTAK-KOTAK (CARD) ---
                     with st.container():
                         st.markdown(
                             f"""
-                            <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
+                            <div style="{border_style} border-radius: 10px; padding: 12px 14px; margin-bottom: 6px; transition: all 0.2s ease;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div>
-                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                                            <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
-                                            <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                                            <span style="font-size: 1.1rem; font-weight: 800; color: #FFFFFF;">{saham}</span>
+                                            <span style="background-color: rgba(139, 92, 246, 0.2); border: 1px solid #8B5CF6; color: #C084FC; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">⭐ {score}</span>
                                         </div>
-                                        <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {signal_desc}</div>
+                                        <div style="font-size: 11px; color: #94A3B8; font-weight: 500;">📌 {signal_desc}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
-                                        <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                        <div style="font-size: 1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 700; color: {change_color};">{change_str}</div>
                                     </div>
                                 </div>
                             </div>
@@ -255,7 +245,7 @@ def render_tab_stoch_psar():
                         )
 
                         btn_label = (
-                            f"✓ Selected ({saham})"
+                            f"✓ Active Workspace ({saham})"
                             if is_selected
                             else f"Select {saham}"
                         )
@@ -271,15 +261,13 @@ def render_tab_stoch_psar():
                             st.rerun()
 
                         st.markdown(
-                            "<div style='margin-bottom: 10px;'></div>",
+                            "<div style='margin-bottom: 12px;'></div>",
                             unsafe_allow_html=True,
                         )
             else:
                 st.info(f"Tidak ada signal {screener_mode} yang terdeteksi.")
         else:
-            st.info(
-                "Klik **Run Screening** di atas untuk mulai memindai pasar."
-            )
+            st.info("Klik **🚀 Run Scan** di atas untuk mulai memindai pasar.")
 
     # =========================================================
     # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER
@@ -298,17 +286,17 @@ def render_tab_stoch_psar():
                 )
             with m2:
                 st.markdown(
-                    f"""<div class="metric-card" style="border-color: #00E676;">
-                        <div class="metric-label" style="color: #00E676;">Golden Cross</div>
-                        <div class="metric-value" style="color: #00E676;">{stats['matched_gc']}</div>
+                    f"""<div class="metric-card" style="border-color: #10B981;">
+                        <div class="metric-label" style="color: #10B981;">Golden Cross</div>
+                        <div class="metric-value" style="color: #10B981;">{stats['matched_gc']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
             with m3:
                 st.markdown(
-                    f"""<div class="metric-card" style="border-color: #FF5252;">
-                        <div class="metric-label" style="color: #FF5252;">Dead Cross</div>
-                        <div class="metric-value" style="color: #FF5252;">{stats['matched_dc']}</div>
+                    f"""<div class="metric-card" style="border-color: #EF4444;">
+                        <div class="metric-label" style="color: #EF4444;">Dead Cross</div>
+                        <div class="metric-value" style="color: #EF4444;">{stats['matched_dc']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
@@ -321,7 +309,7 @@ def render_tab_stoch_psar():
                     unsafe_allow_html=True,
                 )
             st.markdown(
-                "<div style='margin-bottom: 10px;'></div>",
+                "<div style='margin-bottom: 12px;'></div>",
                 unsafe_allow_html=True,
             )
 
@@ -336,9 +324,9 @@ def render_tab_stoch_psar():
 
             st.markdown(
                 f"""
-                <div style="background-color: #0D2B1D; border: 1.5px solid #00E676; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00E676; font-size: 15px; margin-left: 6px;">{selected_stoch_symbol}</strong></span>
-                    <span style="color: #8B949E; font-size: 11px; font-weight: 400;">Interactive Analysis Workspace</span>
+                <div style="background-color: #0D2B1D; border: 1.5px solid #10B981; padding: 10px 16px; border-radius: 10px; color: #FFFFFF; font-weight: 600; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>🎯 SELECTED SYMBOL: <strong style="color: #10B981; font-size: 1.1rem; margin-left: 6px;">{selected_stoch_symbol}</strong></span>
+                    <span style="color: #94A3B8; font-size: 12px; font-weight: 500;">Interactive Analysis Workspace</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -351,13 +339,11 @@ def render_tab_stoch_psar():
             except KeyError as ke:
                 if "Status Candle" in str(ke):
                     st.warning(
-                        "Trade Plan rendered with partial data for"
-                        f" {selected_stoch_symbol}."
+                        f"Trade Plan rendered with partial data for {selected_stoch_symbol}."
                     )
                 else:
                     st.error(
-                        "Failed to load Trade Plan for"
-                        f" {selected_stoch_symbol}: {ke}"
+                        f"Failed to load Trade Plan for {selected_stoch_symbol}: {ke}"
                     )
             except Exception as e:
                 st.error(
@@ -367,10 +353,10 @@ def render_tab_stoch_psar():
             st.markdown(
                 """
                 <div class="empty-card">
-                    <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
-                    <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
-                    <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
-                        Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.
+                    <div style="font-size: 32px; margin-bottom: 8px;">👈</div>
+                    <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock Card from Left Panel</h3>
+                    <p style="font-size: 12px; color: #94A3B8; max-width: 400px; margin: 0 auto;">
+                        Run screening scan, then click any stock card from the left panel to display complete interactive Trade Plan details.
                     </p>
                 </div>
                 """,

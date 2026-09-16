@@ -237,6 +237,7 @@ def render_tab_rsi():
         st.markdown(
             """
             <div class="cyber-header-container">
+             <span class="cyber-status-dot"></span>
                 <div class="cyber-header-title">⚡ RSI MATRIX</div>
             </div>
             """,

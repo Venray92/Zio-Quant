@@ -112,7 +112,7 @@ def run_batch_execution(ticker_list):
     progress_bar.empty()
     status_text.empty()
     st.toast(
-        f"✅ Selesai! Berhasil menganalisis {len(results)} dari {total_saham} saham.",
+        f"Berhasil menganalisis {len(results)} dari {total_saham} saham!",
         icon="🚀",
     )
 
@@ -131,33 +131,102 @@ def reset_filters():
 
 
 def render_tab_trade_planner():
-    # Style Custom CSS untuk mempercantik tampilan UI
+    # 🎨 INJEKSI CSS CUSTOM PREMIUM DASHBOARD
     st.markdown(
         """
         <style>
-        .stMetric {
-            background-color: rgba(255, 255, 255, 0.05);
-            padding: 12px 18px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .screener-header {
-            font-size: 1.6rem;
-            font-weight: 700;
-            background: linear-gradient(90deg, #4A90E2, #50E3C2);
+        /* Header Title Gradient */
+        .main-header {
+            font-size: 2.2rem !important;
+            font-weight: 800 !important;
+            background: linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0px;
+            letter-spacing: -0.5px;
+        }
+        .sub-header {
+            color: #94A3B8;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+        }
+
+        /* Container Card styling */
+        div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column"] > div[data-testid="stBlock"] {
+            border-radius: 12px;
+        }
+        
+        /* Input Field Styling */
+        div[data-baseweb="input"] {
+            border-radius: 8px !important;
+            border: 1px solid #334155 !important;
+            background-color: #0F172A !important;
+        }
+        div[data-baseweb="input"]:focus-within {
+            border-color: #38BDF8 !important;
+            box-shadow: 0 0 0 1px #38BDF8 !important;
+        }
+
+        /* Custom Button Styling */
+        div.stButton > button {
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            transition: all 0.2s ease-in-out !important;
+            border: none !important;
+        }
+        div.stButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+        }
+        div.stButton > button[kind="primary"]:hover {
+            background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%) !important;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5) !important;
+            transform: translateY(-1px);
+        }
+
+        /* Radio Group Styling */
+        div[role="radiogroup"] {
+            gap: 20px;
+            background: #0F172A;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid #1E293B;
+        }
+
+        /* Metric Box Custom */
+        div[data-testid="stMetric"] {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%);
+            border: 1px solid #334155;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        div[data-testid="stMetricLabel"] {
+            color: #94A3B8 !important;
+            font-size: 0.85rem !important;
+            font-weight: 600 !important;
+        }
+        div[data-testid="stMetricValue"] {
+            color: #F8FAFC !important;
+            font-weight: 700 !important;
+            font-size: 1.5rem !important;
+        }
+
+        /* Expander / Filter Box */
+        div[data-testid="stExpander"] {
+            background-color: #0F172A !important;
+            border: 1px solid #1E293B !important;
+            border-radius: 12px !important;
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown('<p class="screener-header">📊 Smart Execution Screener</p>', unsafe_allow_html=True)
-    st.caption(
-        "Platform pemeringkat & rekomendasi saham berbasis **Price Action**, **Risk-to-Reward Ratio**, dan **Skoring Otomatis (0-100)**."
-    )
+    # --- HEADER ---
+    st.markdown('<p class="main-header">⚡ Smart Execution Screener</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Platform pemeringkat saham cerdas berbasis <b>Price Action</b>, <b>Risk-to-Reward Ratio</b>, & <b>Skoring Otomatis</b>.</p>', unsafe_allow_html=True)
 
     # Inisialisasi state filter jika belum ada
     if "f_strategi" not in st.session_state:
@@ -171,31 +240,35 @@ def render_tab_trade_planner():
     if "f_candle" not in st.session_state:
         st.session_state["f_candle"] = "SEMUA CANDLE"
 
-    # --- 1. PILIHAN MODE SCREENER ---
+    # --- 1. PANEL CONTROLLER / MODE ---
     with st.container(border=True):
+        st.markdown("<span style='font-weight:600; color:#E2E8F0; font-size: 0.95rem;'>🎯 Pilih Mode Screener</span>", unsafe_allow_html=True)
+        st.write("")
         mode_screener = st.radio(
-            "🎯 Pilih Mode Screener:",
+            "Pilih Mode Screener:",
             [
                 "⚡ Single / Custom Ticker",
                 "🚀 Full Batch Screener (Daftar Saham 962 Ticker)",
             ],
             horizontal=True,
+            label_visibility="collapsed"
         )
+        st.write("")
 
         # MODE 1: SINGLE / CUSTOM TICKER
         if "⚡ Single" in mode_screener:
-            col_input, col_btn = st.columns([3, 1], vertical_alignment="bottom")
+            col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
 
             with col_input:
                 input_ticker = st.text_input(
-                    "Masukkan Kode Saham (Pisahkan koma jika > 1):",
+                    "Masukkan Kode Saham:",
                     value="",
-                    placeholder="Contoh: BBCA, BMRI, TLKM, INCO",
+                    placeholder="Contoh: BBCA, BMRI, TLKM, INCO (pisahkan koma)",
                 )
 
             with col_btn:
                 btn_single = st.button(
-                    "🔍 Analisis Ticker", type="primary", use_container_width=True
+                    "🔍 Analisis Sekarang", type="primary", use_container_width=True
                 )
 
             if btn_single:
@@ -213,52 +286,48 @@ def render_tab_trade_planner():
         else:
             all_tickers = load_daftar_saham("daftar_saham.txt")
             if not all_tickers:
-                st.error(
-                    "❌ File `daftar_saham.txt` tidak ditemukan atau kosong di direktori utama!"
-                )
+                st.error("❌ File `daftar_saham.txt` tidak ditemukan di folder utama!")
                 return
 
             col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
             with col_info:
-                st.info(
-                    f"📁 Siap menganalisis **{len(all_tickers)} saham** yang terdaftar di `daftar_saham.txt`."
-                )
+                st.info(f"📁 Siap memindai **{len(all_tickers)} saham** sekaligus dari database `daftar_saham.txt`.")
             with col_batch_btn:
                 if st.button("🚀 Jalankan Batch Screener", type="primary", use_container_width=True):
                     run_batch_execution(all_tickers)
 
-    # --- 2. TAMPILAN DASHBOARD & PANEL FILTER ---
+    # --- 2. STATS KPI DASHBOARD & PANEL FILTER ---
     if "df_screener_raw" in st.session_state:
         df_raw = st.session_state["df_screener_raw"]
 
         st.write("")
 
-        # Metrics KPI Dashboard Ringkas
+        # KPI Metrics Cards
         c1, c2, c3, c4 = st.columns(4)
         total_scanned = len(df_raw)
         in_buy_zone = len(df_raw[df_raw["Posisi Zone"] == "In Buy Zone"])
         high_grade = len(df_raw[df_raw["Score"] >= 70])
         avg_score = round(df_raw["Score"].mean(), 1) if not df_raw.empty else 0
 
-        c1.metric("Total Saham Menganalisis", f"{total_scanned} Saham")
-        c2.metric("In Buy Zone (Siap Eksekusi)", f"{in_buy_zone}", delta=f"{(in_buy_zone/total_scanned*100):.1f}%" if total_scanned else None)
-        c3.metric("Setup High Quality (Grade A/A+)", f"{high_grade}")
-        c4.metric("Rata-Rata Skoring Market", f"{avg_score} / 100")
+        c1.metric("TOTAL SAHAM", f"{total_scanned}")
+        c2.metric("IN BUY ZONE", f"{in_buy_zone}", delta=f"{(in_buy_zone/total_scanned*100):.1f}%" if total_scanned else None)
+        c3.metric("GRADE A / A+", f"{high_grade}")
+        c4.metric("AVG SCORE", f"{avg_score} / 100")
 
-        st.markdown("---")
+        st.write("")
 
-        # Container Panel Filter
-        with st.expander("🛠️ **Panel Filter & Parameter Pencarian**", expanded=True):
+        # Panel Filter
+        with st.expander("🎛️ **Filter & Custom Screener Result**", expanded=True):
             r1c1, r1c2, r1c3 = st.columns(3)
             with r1c1:
                 f_strategi = st.selectbox(
-                    "🎯 Strategi Trading:",
+                    "🎯 Strategi Trading",
                     ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
                     key="f_strategi",
                 )
             with r1c2:
                 f_grade = st.selectbox(
-                    "🏆 Kualitas Setup (Grade):",
+                    "🏆 Kualitas Setup",
                     [
                         "SEMUA GRADE",
                         "Grade A / A+ Only (High Quality)",
@@ -268,7 +337,7 @@ def render_tab_trade_planner():
                 )
             with r1c3:
                 f_zone = st.selectbox(
-                    "📍 Posisi Harga Saat Ini:",
+                    "📍 Posisi Harga",
                     [
                         "SEMUA POSISI",
                         "In Buy Zone (Siap Eksekusi)",
@@ -280,7 +349,7 @@ def render_tab_trade_planner():
             r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
             with r2c1:
                 f_rr = st.selectbox(
-                    "⚖️ Minimal Risk-to-Reward:",
+                    "⚖️ Minimal Risk-to-Reward",
                     [
                         "SEMUA RASIO",
                         "Min 1 : 1.5",
@@ -291,18 +360,14 @@ def render_tab_trade_planner():
                 )
             with r2c2:
                 f_candle = st.selectbox(
-                    "🕯️ Sinyal Candlestick:",
+                    "🕯️ Sinyal Candlestick",
                     ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
                     key="f_candle",
                 )
             with r2c3:
-                st.button(
-                    "🔄 Reset Filter",
-                    on_click=reset_filters,
-                    use_container_width=True,
-                )
+                st.button("🔄 Reset Filter", on_click=reset_filters, use_container_width=True)
 
-        # --- LOGIKA FILTERING ---
+        # Logika Filtering Data
         df = df_raw.copy()
 
         if f_strategi == "Buy On Weakness (BOW)":
@@ -342,16 +407,16 @@ def render_tab_trade_planner():
                 )
             ]
 
-        # Urutkan berdasarkan Score tertinggi
+        # Sort berdasarkan Score tertinggi
         df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
-        # --- HEADER HASIL SCREENER ---
-        header_col, download_col = st.columns([3, 1], vertical_alignment="center")
-        with header_col:
-            st.subheader(
-                f"📋 Hasil Screener ({len(df)} dari {len(df_raw)} Saham Lolos Filter)"
-            )
-        with download_col:
+        st.write("")
+
+        # Header Hasil + Download CSV
+        h_left, h_right = st.columns([3, 1], vertical_alignment="center")
+        with h_left:
+            st.markdown(f"### 📋 Hasil Screener <span style='font-size:1rem; color:#38BDF8;'>({len(df)} Lolos Filter)</span>", unsafe_allow_html=True)
+        with h_right:
             if not df.empty:
                 csv_data = df.to_csv(index=False).encode("utf-8")
                 st.download_button(
@@ -363,42 +428,34 @@ def render_tab_trade_planner():
                 )
 
         if df.empty:
-            st.warning(
-                "⚠️ Tidak ada saham yang cocok dengan kombinasi filter Anda. Coba longgarkan kriteria filter atau tekan tombol 'Reset Filter'."
-            )
+            st.warning("⚠️ Tidak ada saham yang sesuai dengan kombinasi filter Anda. Silakan longgarkan kriteria filter.")
         else:
-            # --- TAMPILAN DATAFRAME YANG ELEGAN & COLORFUL ---
+            # Dataframe Modern & Interactive
             st.dataframe(
                 df,
                 column_config={
-                    "Saham": st.column_config.TextColumn("Saham", help="Kode Ticker Saham"),
+                    "Saham": st.column_config.TextColumn("Saham"),
                     "Score": st.column_config.ProgressColumn(
-                        "Score Setup",
-                        help="Skor Kualitas Setup (0-100)",
+                        "Score (0-100)",
+                        help="Skor Kualitas Setup Saham",
                         format="%d pts",
                         min_value=0,
                         max_value=100,
                     ),
-                    "Grade": st.column_config.TextColumn("Grade", help="Grade Kualitas Setup"),
+                    "Grade": st.column_config.TextColumn("Grade"),
                     "Strategi": st.column_config.TextColumn("Strategi"),
-                    "Harga Last": st.column_config.NumberColumn(
-                        "Harga Last", format="Rp %d"
-                    ),
+                    "Harga Last": st.column_config.NumberColumn("Harga Last", format="Rp %d"),
                     "Posisi Zone": st.column_config.TextColumn("Posisi Price"),
                     "Area Buy": st.column_config.TextColumn("Area Buy (Entry)"),
-                    "Stop Loss (SL)": st.column_config.NumberColumn(
-                        "SL", format="%d"
-                    ),
+                    "Stop Loss (SL)": st.column_config.NumberColumn("SL", format="%d"),
                     "TP 1": st.column_config.NumberColumn("TP 1", format="%d"),
                     "TP 2": st.column_config.NumberColumn("TP 2", format="%d"),
                     "Potensi Gain": st.column_config.TextColumn("Gain TP1"),
                     "Risiko SL": st.column_config.TextColumn("Risk SL"),
                     "Rasio (R:R)": st.column_config.TextColumn("R:R Ratio"),
-                    "RR_Val": None,  # Sembunyikan kolom numerik pembantu dari tampilan
+                    "RR_Val": None,
                     "Pola Candle": st.column_config.TextColumn("Candle Signal"),
-                    "Catatan Analisis & Warning": st.column_config.TextColumn(
-                        "Rekomendasi & Warning", width="large"
-                    ),
+                    "Catatan Analisis & Warning": st.column_config.TextColumn("Analisis & Warning", width="large"),
                 },
                 hide_index=True,
                 use_container_width=True,

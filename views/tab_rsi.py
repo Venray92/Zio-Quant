@@ -8,6 +8,34 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
+    # Style override khusus tab RSI
+    st.markdown(
+        """
+        <style>
+        /* Card container style */
+        .rsi-card-header {
+            background-color: #161B22;
+            border: 1px solid #21262D;
+            border-radius: 6px 6px 0px 0px;
+            padding: 10px 14px;
+            margin-bottom: -1px;
+            font-weight: 600;
+        }
+        /* Custom Empty State */
+        .empty-state-box {
+            background-color: #161B22;
+            border: 1px solid #21262D;
+            border-radius: 6px;
+            padding: 24px 16px;
+            text-align: center;
+            color: #8B949E;
+            font-size: 13px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.header("Screener RSI Divergence & Technical Patterns")
     st.caption(
         "Screening seluruh saham IHSG yang sedang membentuk Divergence Bullish"
@@ -133,7 +161,10 @@ def render_tab_rsi():
     ]
 
     with col_bull:
-        st.subheader("🟢 Signal Bullish (Divergence)")
+        st.markdown(
+            '<div class="rsi-card-header"><span style="color:#00E676;">🟢</span> Signal Bullish (Divergence)</div>',
+            unsafe_allow_html=True,
+        )
         if (
             "df_rsi_bullish" in st.session_state
             and not st.session_state["df_rsi_bullish"].empty
@@ -164,10 +195,16 @@ def render_tab_rsi():
                     )
                 )
         else:
-            st.info("Tidak ada sinyal Bullish / Belum di-scan.")
+            st.markdown(
+                '<div class="empty-state-box">Tidak ada sinyal Bullish / Belum di-scan.</div>',
+                unsafe_allow_html=True,
+            )
 
     with col_bear:
-        st.subheader("🔴 Signal Bearish (Divergence)")
+        st.markdown(
+            '<div class="rsi-card-header"><span style="color:#FF5252;">🔴</span> Signal Bearish (Divergence)</div>',
+            unsafe_allow_html=True,
+        )
         if (
             "df_rsi_bearish" in st.session_state
             and not st.session_state["df_rsi_bearish"].empty
@@ -198,7 +235,10 @@ def render_tab_rsi():
                     )
                 )
         else:
-            st.info("Tidak ada sinyal Bearish / Belum di-scan.")
+            st.markdown(
+                '<div class="empty-state-box">Tidak ada sinyal Bearish / Belum di-scan.</div>',
+                unsafe_allow_html=True,
+            )
 
     if selected_rsi_symbol:
         if (

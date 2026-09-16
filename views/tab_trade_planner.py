@@ -503,7 +503,7 @@ def render_tab_trade_planner():
             )
         with col_btn:
             btn_single = st.button(
-                "🔍 Analyze", type="primary", use_container_width=True
+                "Run Analyze", type="primary", use_container_width=True
             )
 
         if btn_single:

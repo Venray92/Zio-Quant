@@ -122,12 +122,12 @@ def _safe_get_method_or_attr(obj, possible_names):
 
 
 def _format_val(val):
-    """Helper formatting nilai numerik menjadi pemisah ribuan atau strip jika kosong."""
+    """Helper formatting nilai numerik menjadi pemisah ribuan atau string bersih."""
     if pd.isna(val) or val is None or val == "" or val == "-":
         return "-"
     try:
         num = float(val)
-        return f"{int(num):,}"
+        return f"{int(num):,}" if num.is_integer() else f"{num:,.2f}"
     except (ValueError, TypeError):
         return str(val)
 
@@ -160,7 +160,9 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             if df_plan is not None and not (hasattr(df_plan, "empty") and df_plan.empty):
                 st.markdown("#### 🎯 Trade Plan Recommendation")
 
-                # Parse DataFrame ke Card UI Modern
+                # =========================================================
+                # FUTURISTIC CARD GENERATOR (MEMUAT SELURUH DATA DF)
+                # =========================================================
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
                     plan_type = row.get("Type", row.get("Strategy", f"Plan #{plan_no}"))
@@ -168,7 +170,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade = row.get("Grade", "N/A")
                     posisi = row.get("Posisi Harga", row.get("Status", "-"))
                     
-                    # Target harga & range
+                    # Target harga & range utama
                     range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
                     range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
                     
@@ -186,42 +188,67 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade_badge = "🟢" if "A" in str(grade) else ("🟡" if "B" in str(grade) else "⚪")
                     posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
 
-                    # Single Compact HTML String (Mencegah Streamlit mencetak sintaks mentah)
+                    # 1. Bikin Main Card UI
                     card_html = (
-                        f'<div style="background-color: #161B22; border: 1px solid #21262D; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;">'
-                        f'<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 8px; margin-bottom: 10px;">'
-                        f'<div style="display: flex; align-items: center; gap: 8px;">'
-                        f'<span style="background-color: #21262D; color: #38BDF8; font-weight: 800; font-size: 13px; padding: 3px 8px; border-radius: 4px;">#{plan_no} {plan_type}</span>'
-                        f'<span style="font-size: 13px; font-weight: 600; color: #E6EDF3;">{grade_badge} {grade}</span>'
+                        f'<div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 4px solid #00E676; border-radius: 12px; padding: 16px; margin-bottom: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">'
+                        f'<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 10px; margin-bottom: 12px;">'
+                        f'<div style="display: flex; align-items: center; gap: 10px;">'
+                        f'<span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px;">#{plan_no} {plan_type}</span>'
+                        f'<span style="font-size: 13px; font-weight: 700; color: #E6EDF3;">{grade_badge} {grade}</span>'
                         f'</div>'
-                        f'<div style="background-color: rgba(139, 92, 246, 0.15); border: 1px solid #8B5CF6; color: #C084FC; font-weight: 700; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Score: {score}</div>'
-                        f'</div>'
-                        f'<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; text-align: center;">'
-                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
-                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">Area Buy</div>'
-                        f'<div style="font-size: 13px; font-weight: 700; color: #38BDF8; margin-top: 2px;">{area_buy}</div>'
-                        f'</div>'
-                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
-                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">Stop Loss</div>'
-                        f'<div style="font-size: 13px; font-weight: 700; color: #FF5252; margin-top: 2px;">{stop_loss}</div>'
-                        f'</div>'
-                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
-                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">TP 1</div>'
-                        f'<div style="font-size: 13px; font-weight: 700; color: #00E676; margin-top: 2px;">{tp1}</div>'
-                        f'</div>'
-                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
-                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">TP 2</div>'
-                        f'<div style="font-size: 13px; font-weight: 700; color: #00E676; margin-top: 2px;">{tp2}</div>'
+                        f'<div style="background: rgba(139, 92, 246, 0.2); border: 1px solid #A855F7; color: #E9D5FF; font-weight: 800; padding: 3px 12px; border-radius: 20px; font-size: 12px; box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);">'
+                        f'SCORE: {score}'
                         f'</div>'
                         f'</div>'
-                        f'<div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; background-color: #0E1117; padding: 6px 10px; border-radius: 4px;">'
-                        f'<span style="color: #8B949E;">Posisi Harga Saat Ini:</span>'
-                        f'<span style="font-weight: 700; color: {posisi_color};">{posisi}</span>'
+                        f'<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; text-align: center;">'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #38BDF833; box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.05);">'
+                        f'<div style="font-size: 10px; color: #38BDF8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Area Buy</div>'
+                        f'<div style="font-size: 14px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>'
+                        f'</div>'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #FF525233; box-shadow: inset 0 0 12px rgba(255, 82, 82, 0.05);">'
+                        f'<div style="font-size: 10px; color: #FF5252; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Stop Loss</div>'
+                        f'<div style="font-size: 14px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>'
+                        f'</div>'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #00E67633; box-shadow: inset 0 0 12px rgba(0, 230, 118, 0.05);">'
+                        f'<div style="font-size: 10px; color: #00E676; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">TP 1</div>'
+                        f'<div style="font-size: 14px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>'
+                        f'</div>'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #00E67633; box-shadow: inset 0 0 12px rgba(0, 230, 118, 0.05);">'
+                        f'<div style="font-size: 10px; color: #00E676; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">TP 2</div>'
+                        f'<div style="font-size: 14px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>'
+                        f'</div>'
+                        f'</div>'
+                        f'<div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; background-color: #0E1117; padding: 8px 12px; border-radius: 6px; border: 1px solid #21262D;">'
+                        f'<span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>'
+                        f'<span style="font-weight: 800; color: {posisi_color};">{posisi}</span>'
                         f'</div>'
                         f'</div>'
                     )
                     st.markdown(card_html, unsafe_allow_html=True)
 
+                    # 2. SELEKSI OTOMATIS SELURUH KOLOM SISANYA DI DATAFRAME
+                    skip_cols = [
+                        "Type", "Strategy", "Score", "Grade", "Posisi Harga", "Status",
+                        "Range Buy Min", "Buy Min", "Range Buy Max", "Buy Max", "Area Buy",
+                        "Stop Loss", "SL", "TP 1", "TP1", "Target 1", "TP 2", "TP2", "Target 2",
+                        "Warning", "Status Candle"
+                    ]
+                    
+                    extra_cols = [c for c in df_plan.columns if c not in skip_cols]
+
+                    # Jika ada data tambahan (Risk/Reward, Margin, Catatan, dll) keluarkan semua secara otomatis!
+                    if extra_cols:
+                        with st.expander(f"📋 Detail Lengkap Parameter #{plan_no} ({plan_type})", expanded=False):
+                            # Tampilkan dalam bentuk Grid Metric
+                            cols_per_row = 3
+                            for i in range(0, len(extra_cols), cols_per_row):
+                                chunk_cols = extra_cols[i:i + cols_per_row]
+                                ui_cols = st.columns(len(chunk_cols))
+                                for col_idx, c_name in enumerate(chunk_cols):
+                                    val = _format_val(row[c_name])
+                                    ui_cols[col_idx].metric(label=c_name, value=val)
+
+                # Warning & Candle Banner jika ada
                 if hasattr(df_plan, "columns") and len(df_plan) > 0:
                     warning_msg = df_plan["Warning"].iloc[0] if "Warning" in df_plan.columns else "-"
                     candle_type = df_plan["Status Candle"].iloc[0] if "Status Candle" in df_plan.columns else "-"

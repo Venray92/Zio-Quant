@@ -89,40 +89,49 @@ st.markdown(
 
     /* =========================================================
        🎛️ POPOVER BUTTON MAIN (CHOOSE_SCREENER)
-       Perbaikan: Menambahkan Border Cyan Neon Glowing
+       Targeting semua kemungkinan kelas & elemen tombol popover
        ========================================================= */
-    div[data-testid="stPopover"] > button {
+    div[data-testid="stPopover"] > button,
+    div[data-testid="stPopover"] button,
+    div[data-testid="stPopover"] > button[aria-expanded] {
         background-color: #080a12 !important;
-        /* Menegaskan kembali border warna cyan */
-        border: 1.5px solid #00F3FF !important;
+        border: 2px solid #00F3FF !important;
         color: #00F3FF !important;
         border-radius: 6px !important;
         padding: 6px 16px !important;
         font-weight: 800 !important;
         font-family: 'Share Tech Mono', monospace !important;
         height: 48px !important;
-        /* Neon Cyan Glow Border & Text - Diperkuat box-shadow-nya */
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.7), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
-        text-shadow: 0 0 10px rgba(0, 243, 255, 0.9) !important;
+        /* Forced Neon Glow Cyan */
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.8), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        text-shadow: 0 0 8px rgba(0, 243, 255, 0.9) !important;
         letter-spacing: 1px !important;
         text-transform: uppercase !important;
         transition: all 0.25s ease-in-out !important;
     }
 
-    /* Hover Effect untuk Main Popover Button */
+    /* Memastikan teks/icon di dalam tombol popover juga berwarna cyan */
+    div[data-testid="stPopover"] button * {
+        color: #00F3FF !important;
+    }
+
     div[data-testid="stPopover"] > button:hover {
         background-color: #00F3FF !important;
         color: #000000 !important;
         border-color: #00F3FF !important;
-        box-shadow: 0 0 25px #00F3FF, 0 0 10px #00F3FF !important;
+        box-shadow: 0 0 25px #00F3FF, 0 0 12px #00F3FF !important;
         text-shadow: none !important;
     }
 
-    /* Popover Content Box Container */
+    div[data-testid="stPopover"] > button:hover * {
+        color: #000000 !important;
+    }
+
+    /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #080A10 !important;
         border: 1.5px solid #00F3FF !important;
-        box-shadow: 0 0 20px rgba(0, 243, 255, 0.4) !important;
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.5) !important;
         border-radius: 8px !important;
         padding: 12px !important;
     }
@@ -150,33 +159,40 @@ st.markdown(
         height: 42px !important;
         border-radius: 6px !important;
         background-color: #0D101D !important;
-        border: 1px solid #00F3FF !important;
-        color: #00F3FF !important; /* Warna Tulisan Cyan Neon */
+        border: 1.5px solid #00F3FF !important;
+        color: #00F3FF !important;
         font-size: 13px !important;
         font-family: 'Share Tech Mono', monospace !important;
         font-weight: 700 !important;
         margin: 0 !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.2) !important;
-        text-shadow: 0 0 5px rgba(0, 243, 255, 0.6) !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        text-shadow: 0 0 6px rgba(0, 243, 255, 0.7) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* Hover Effect untuk opsi screener */
+    div[data-testid="stPopoverContent"] div.stButton > button * {
+        color: #00F3FF !important;
+    }
+
     div[data-testid="stPopoverContent"] div.stButton > button:hover {
         border-color: #00F3FF !important;
         color: #000000 !important;
         background-color: #00F3FF !important;
-        box-shadow: 0 0 16px #00F3FF !important;
+        box-shadow: 0 0 18px #00F3FF !important;
         text-shadow: none !important;
+    }
+
+    div[data-testid="stPopoverContent"] div.stButton > button:hover * {
+        color: #000000 !important;
     }
 
     /* Status Active (Screener Terpilih) */
     div.btn-active div.stButton > button {
         background-color: rgba(0, 243, 255, 0.2) !important;
-        border: 1.5px solid #00F3FF !important;
+        border: 2px solid #00F3FF !important;
         color: #00F3FF !important;
         font-weight: 800 !important;
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.6), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.7), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
         text-shadow: 0 0 10px #00F3FF !important;
     }
     </style>

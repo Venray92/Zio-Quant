@@ -143,9 +143,9 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                 planner.fetch_and_prepare_data()
 
             # 1. Direction Market
-            st.markdown("#### 📌 Direction Market")
             df_dir = _safe_get_method_or_attr(planner, ["get_direction", "direction"])
-            if df_dir is not None:
+            if df_dir is not None and not (hasattr(df_dir, "empty") and df_dir.empty):
+                st.markdown("#### 📌 Direction Market")
                 st.dataframe(df_dir, use_container_width=True)
                 if hasattr(df_dir, "columns") and "Direction" in df_dir.columns and len(df_dir) > 0:
                     direction_val = df_dir["Direction"].iloc[0]
@@ -155,9 +155,9 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                         st.info("Analisis Arah: **BOW (Buy on Weakness)**")
 
             # 2. Strategy Trade Plan
-            st.markdown("#### 🎯 Trade Plan Recommendation")
             df_plan = _safe_get_method_or_attr(planner, ["generate_trade_plan", "get_trade_plan"])
-            if df_plan is not None:
+            if df_plan is not None and not (hasattr(df_plan, "empty") and df_plan.empty):
+                st.markdown("#### 🎯 Trade Plan Recommendation")
                 st.dataframe(df_plan, use_container_width=True)
 
                 if hasattr(df_plan, "columns") and len(df_plan) > 0:
@@ -169,7 +169,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}"
                         )
 
-            # 3. Support & Resistance Levels (Dilengkapi Safe Fallback)
+            # 3. Support & Resistance Levels (Sembunyikan Total Jika Tidak Ada Data)
             df_sup = _safe_get_method_or_attr(
                 planner, ["get_strong_support", "get_support_levels", "get_support", "support_levels"]
             )
@@ -177,24 +177,24 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                 planner, ["get_strong_resistance", "get_resistance_levels", "get_resistance", "resistance_levels"]
             )
 
-            col_sup, col_res = st.columns(2)
-            with col_sup:
-                st.markdown("#### 🛡️ Support Levels")
-                if df_sup is not None:
-                    st.dataframe(df_sup, use_container_width=True)
-                else:
-                    st.caption("Data support tidak tersedia.")
+            has_sup = df_sup is not None and not (hasattr(df_sup, "empty") and df_sup.empty)
+            has_res = df_res is not None and not (hasattr(df_res, "empty") and df_res.empty)
 
-            with col_res:
-                st.markdown("#### 🧱 Resistance Levels")
-                if df_res is not None:
-                    st.dataframe(df_res, use_container_width=True)
-                else:
-                    st.caption("Data resistance tidak tersedia.")
+            if has_sup or has_res:
+                col_sup, col_res = st.columns(2)
+                with col_sup:
+                    if has_sup:
+                        st.markdown("#### 🛡️ Support Levels")
+                        st.dataframe(df_sup, use_container_width=True)
+
+                with col_res:
+                    if has_res:
+                        st.markdown("#### 🧱 Resistance Levels")
+                        st.dataframe(df_res, use_container_width=True)
 
             # 4. Swing Points
             df_swing = _safe_get_method_or_attr(planner, ["get_swing_points", "swing_points"])
-            if df_swing is not None:
+            if df_swing is not None and not (hasattr(df_swing, "empty") and df_swing.empty):
                 st.markdown("#### 📍 Swing Points & Metpoints")
                 st.dataframe(df_swing, use_container_width=True)
 

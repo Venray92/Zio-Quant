@@ -24,8 +24,8 @@ if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
 
-# Helper untuk konversi logo.png ke Base64
-def get_logo_base64(file_path="logo.png"):
+# Helper untuk konversi logo.jpg ke Base64
+def get_logo_base64(file_path="logo.jpg"):
     if os.path.exists(file_path):
         with open(file_path, "rb") as f:
             data = f.read()
@@ -33,7 +33,7 @@ def get_logo_base64(file_path="logo.png"):
     return None
 
 
-logo_b64 = get_logo_base64("logo.png")
+logo_b64 = get_logo_base64("logo.jpg")
 
 # 3. Custom CSS Cyberpunk & Header Layout
 st.markdown(
@@ -88,7 +88,7 @@ st.markdown(
         border: 1px solid #1E2338 !important;
         color: #00F3FF !important;
         font-size: 11px !important;
-        padding: 2px 10px !important;
+        padding: 2px 12px !important;
         height: 28px !important;
         border-radius: 4px !important;
         font-family: 'Share Tech Mono', monospace !important;
@@ -183,7 +183,7 @@ col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
 with col_brand:
     if logo_b64:
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="brand-logo-img" />'
+        logo_html = f'<img src="data:image/jpeg;base64,{logo_b64}" class="brand-logo-img" />'
     else:
         logo_html = '<span style="font-size: 32px;">⚡</span>'
 
@@ -198,9 +198,9 @@ with col_brand:
         unsafe_allow_html=True,
     )
 
-    # Tombol Reset ke Home
+    # Tombol Home
     st.markdown('<div class="btn-home-wrapper">', unsafe_allow_html=True)
-    if st.button("🏠 RESET TO HOME", key="btn_go_home"):
+    if st.button("🏠 HOME", key="btn_go_home"):
         st.session_state["selected_screener"] = None
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)

@@ -1,342 +1,190 @@
-import concurrent.futures
-import time
-import pandas as pd
+import os
 import streamlit as st
-from ihsg_tickers import get_all_ihsg_tickers
-from screener_rsi_divergence import detect_rsi_patterns_and_score
-from utils.ui_helpers import render_inline_trade_planner
+from trade_planner import TradePlanner
 
 
-def render_tab_rsi():
-    # CSS Styling Rapi & Metric Card
-    st.markdown(
-        """
-        <style>
-        .panel-header-center {
-            background-color: #161B22;
-            border: 1px solid #21262D;
-            border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        .metric-card {
-            background-color: #161B22;
-            border: 1px solid #21262D;
-            border-radius: 8px;
-            padding: 8px 10px;
-            text-align: center;
-        }
-        .metric-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: #FFFFFF;
-        }
-        .metric-label {
-            font-size: 9px;
-            color: #8B949E;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
-        }
-        .empty-card {
-            background-color: #161B22;
-            border: 1px dashed #30363D;
-            border-radius: 8px;
-            padding: 40px 20px;
-            text-align: center;
-            color: #8B949E;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
+def inject_custom_css():
+    """Injects Dark Trading / Stockbit-style custom CSS into Streamlit."""
+    custom_css = """
+    <style>
+    /* Global Background */
+    .stApp {
+        background-color: #0E1117 !important;
+        color: #E6EDF3 !important;
+    }
+    
+    /* Header Bar Minimalis */
+    .zio-header-container {
+        display: flex;
+        align-items: center;
+        background-color: #161B22;
+        padding: 10px 16px;
+        border-radius: 6px;
+        border: 1px solid #21262D;
+        margin-bottom: 15px;
+    }
+    
+    .zio-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Styling Info Box / Empty State Card */
+    div[data-testid="stAlert"] {
+        background-color: #161B22 !important;
+        color: #8B949E !important;
+        border: 1px solid #21262D !important;
+        border-radius: 6px !important;
+        padding: 12px 16px !important;
+    }
+
+    /* Styling Tombol Utama (Green Action Button) */
+    .stButton > button {
+        background-color: #0D2B1D !important;
+        color: #00E676 !important;
+        border: 1px solid #00E676 !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+        padding: 6px 16px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #00E676 !important;
+        color: #0E1117 !important;
+        box-shadow: 0 0 10px rgba(0, 230, 118, 0.3) !important;
+    }
+
+    /* Dataframe Table Styling */
+    div[data-testid="stDataFrame"] {
+        border: 1px solid #21262D;
+        border-radius: 6px;
+        background-color: #161B22;
+    }
+    
+    /* Metric Card Custom Style */
+    div[data-testid="stMetric"] {
+        background-color: #161B22;
+        border: 1px solid #21262D;
+        padding: 10px 15px;
+        border-radius: 6px;
+    }
+    
+    div[data-testid="stMetricValue"] {
+        color: #00E676 !important;
+        font-size: 20px !important;
+        font-weight: 700 !important;
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        color: #8B949E !important;
+        font-size: 12px !important;
+    }
+    </style>
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
+
+
+def load_daftar_saham(filepath="daftar_saham.txt"):
+    """Helper Robust untuk membaca & membersihkan daftar saham dari file TXT."""
+    if not os.path.exists(filepath):
+        return []
+
+    tickers = []
+    try:
+        with open(filepath, "r", encoding="utf-8-sig") as f:
+            for line in f:
+                item = line.strip().upper()
+                if item and item not in ["KODE", "TICKER", "SAHAM"]:
+                    clean_t = item.split(",")[0].replace(".JK", "").strip()
+                    if clean_t:
+                        tickers.append(f"{clean_t}.JK")
+        return sorted(list(set(tickers)))
+    except Exception as e:
+        st.error(f"Gagal membaca `{filepath}`: {e}")
+        return []
+
+
+def _safe_get_method_or_attr(obj, possible_names):
+    """Helper internal untuk mengambil data dari objek TradePlanner secara fleksibel."""
+    for name in possible_names:
+        if hasattr(obj, name):
+            attr = getattr(obj, name)
+            if callable(attr):
+                try:
+                    return attr()
+                except Exception:
+                    continue
+            return attr
+    return None
+
+
+def render_inline_trade_planner(ticker_symbol, key_suffix):
+    """Helper function untuk merender detail Trade Planner di bawah tabel."""
+    st.markdown("---")
+    st.subheader(f"📊 Live Trade Plan: **{ticker_symbol}**")
+
+    period_selected = st.selectbox(
+        "Periode Data Analysis",
+        options=["3mo", "6mo", "1y", "2y"],
+        index=0,
+        key=f"period_{key_suffix}",
     )
 
-    # Inisialisasi State
-    if "stop_rsi_scan" not in st.session_state:
-        st.session_state["stop_rsi_scan"] = False
+    with st.spinner(f"Menghitung Trade Plan untuk {ticker_symbol}..."):
+        try:
+            planner = TradePlanner(
+                ticker=ticker_symbol.upper(), period=period_selected
+            )
+            
+            # Fetch & prepare data
+            if hasattr(planner, "fetch_and_prepare_data"):
+                planner.fetch_and_prepare_data()
 
-    if "active_rsi_type" not in st.session_state:
-        st.session_state["active_rsi_type"] = "Bullish"
+            # 1. Strategy Trade Plan
+            df_plan = _safe_get_method_or_attr(planner, ["generate_trade_plan", "get_trade_plan"])
+            if df_plan is not None and not (hasattr(df_plan, "empty") and df_plan.empty):
+                st.markdown("#### 🎯 Trade Plan Recommendation")
+                st.dataframe(df_plan, use_container_width=True)
 
-    if "selected_rsi_ticker" not in st.session_state:
-        st.session_state["selected_rsi_ticker"] = None
+                if hasattr(df_plan, "columns") and len(df_plan) > 0:
+                    warning_msg = df_plan["Warning"].iloc[0] if "Warning" in df_plan.columns else "-"
+                    candle_type = df_plan["Status Candle"].iloc[0] if "Status Candle" in df_plan.columns else "-"
+                    
+                    if candle_type != "-" or warning_msg != "-":
+                        st.warning(
+                            f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}"
+                        )
 
-    # ---------------------------------------------------------
-    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 35% : KANAN 65%)
-    # ---------------------------------------------------------
-    col_left, col_right = st.columns([1.2, 2.8], gap="medium")
-
-    # =========================================================
-    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
-    # =========================================================
-    with col_left:
-        # Header Center
-        st.markdown(
-            """
-            <div class="panel-header-center">
-                <div style="color: #00E676; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">RSI DIVERGENCE</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Tombol Run & Stop
-        col_btn_run, col_btn_stop = st.columns([1, 1])
-
-        with col_btn_run:
-            run_clicked = st.button(
-                "Run Screening",
-                key="btn_run_rsi_screener",
-                use_container_width=True,
-                type="primary",
+            # 2. Support & Resistance Levels (Tampil jika ada data)
+            df_sup = _safe_get_method_or_attr(
+                planner, ["get_strong_support", "get_support_levels", "get_support", "support_levels"]
+            )
+            df_res = _safe_get_method_or_attr(
+                planner, ["get_strong_resistance", "get_resistance_levels", "get_resistance", "resistance_levels"]
             )
 
-        with col_btn_stop:
-            stop_clicked = st.button(
-                "🛑 Stop", key="btn_stop_rsi_screener", use_container_width=True
-            )
+            has_sup = df_sup is not None and not (hasattr(df_sup, "empty") and df_sup.empty)
+            has_res = df_res is not None and not (hasattr(df_res, "empty") and df_res.empty)
 
-        if stop_clicked:
-            st.session_state["stop_rsi_scan"] = True
+            if has_sup or has_res:
+                col_sup, col_res = st.columns(2)
+                with col_sup:
+                    if has_sup:
+                        st.markdown("#### 🛡️ Support Levels")
+                        st.dataframe(df_sup, use_container_width=True)
 
-        if run_clicked:
-            st.session_state["stop_rsi_scan"] = False
-            with st.spinner("Fetching IHSG tickers list..."):
-                all_tickers = get_all_ihsg_tickers()
+                with col_res:
+                    if has_res:
+                        st.markdown("#### 🧱 Resistance Levels")
+                        st.dataframe(df_res, use_container_width=True)
 
-            total_tickers = len(all_tickers)
-            pbar_rsi = st.progress(0)
-            pstatus_rsi = st.empty()
+            # 3. Swing Points
+            df_swing = _safe_get_method_or_attr(planner, ["get_swing_points", "swing_points"])
+            if df_swing is not None and not (hasattr(df_swing, "empty") and df_swing.empty):
+                st.markdown("#### 📍 Swing Points & Metpoints")
+                st.dataframe(df_swing, use_container_width=True)
 
-            results_rsi = []
-            success_count = 0
-            failed_count = 0
-
-            def fetch_rsi_with_retry(ticker, max_retries=2):
-                if st.session_state.get("stop_rsi_scan", False):
-                    return False, None
-                for attempt in range(max_retries + 1):
-                    try:
-                        res = detect_rsi_patterns_and_score(ticker)
-                        return True, res
-                    except Exception:
-                        if attempt < max_retries:
-                            time.sleep(0.3 * (attempt + 1))
-                        else:
-                            return False, None
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-                future_to_ticker = {
-                    executor.submit(fetch_rsi_with_retry, t): t
-                    for t in all_tickers
-                }
-                completed = 0
-
-                for future in concurrent.futures.as_completed(future_to_ticker):
-                    if st.session_state.get("stop_rsi_scan", False):
-                        pstatus_rsi.warning("Screening process cancelled.")
-                        break
-
-                    completed += 1
-                    pct = int((completed / total_tickers) * 100)
-                    pbar_rsi.progress(pct)
-                    pstatus_rsi.text(f"Scanning: {completed}/{total_tickers}")
-
-                    try:
-                        is_success, res = future.result()
-                        if is_success:
-                            success_count += 1
-                            if res is not None and isinstance(res, dict):
-                                results_rsi.append(res)
-                        else:
-                            failed_count += 1
-                    except Exception:
-                        failed_count += 1
-
-            pbar_rsi.empty()
-            pstatus_rsi.empty()
-
-            df_rsi_all = (
-                pd.DataFrame(results_rsi) if results_rsi else pd.DataFrame()
-            )
-
-            if not df_rsi_all.empty and "Score" in df_rsi_all.columns:
-                df_rsi_all = df_rsi_all.sort_values(by="Score", ascending=False)
-
-            df_rsi_bullish = pd.DataFrame()
-            df_rsi_bearish = pd.DataFrame()
-
-            if not df_rsi_all.empty and "Pattern" in df_rsi_all.columns:
-                df_rsi_bullish = df_rsi_all[
-                    df_rsi_all["Pattern"].str.contains(
-                        "Bullish", case=False, na=False
-                    )
-                ]
-                df_rsi_bearish = df_rsi_all[
-                    df_rsi_all["Pattern"].str.contains(
-                        "Bearish", case=False, na=False
-                    )
-                ]
-
-            st.session_state["rsi_stats"] = {
-                "total": total_tickers,
-                "success": success_count,
-                "failed": failed_count,
-                "bullish_count": len(df_rsi_bullish),
-                "bearish_count": len(df_rsi_bearish),
-                "matched": len(df_rsi_all),
-            }
-
-            st.session_state["df_rsi_bullish"] = df_rsi_bullish
-            st.session_state["df_rsi_bearish"] = df_rsi_bearish
-
-            # Default selection
-            if not df_rsi_bullish.empty:
-                st.session_state["selected_rsi_ticker"] = df_rsi_bullish.iloc[0].get("Ticker", df_rsi_bullish.iloc[0].get("Saham"))
-            elif not df_rsi_bearish.empty:
-                st.session_state["selected_rsi_ticker"] = df_rsi_bearish.iloc[0].get("Ticker", df_rsi_bearish.iloc[0].get("Saham"))
-
-        st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
-
-        has_results = "rsi_stats" in st.session_state
-
-        if has_results:
-            screener_mode = st.selectbox(
-                "Choose Screener Mode",
-                options=["Bullish", "Bearish"],
-                index=0 if st.session_state.get("active_rsi_type") == "Bullish" else 1,
-                key="rsi_screener_mode_select",
-            )
-            st.session_state["active_rsi_type"] = screener_mode
-
-            st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
-
-            is_bull_tab = screener_mode == "Bullish"
-            df_target = (
-                st.session_state.get("df_rsi_bullish", pd.DataFrame())
-                if is_bull_tab
-                else st.session_state.get("df_rsi_bearish", pd.DataFrame())
-            )
-
-            if not df_target.empty:
-                # Format Tampilan Tabel Ringkas Berbentuk Card Row
-                df_display = df_target.copy()
-                
-                # Menyiapkan kolom ringkas
-                if "Saham" not in df_display.columns and "Ticker" in df_display.columns:
-                    df_display["Saham"] = df_display["Ticker"].str.replace(".JK", "")
-
-                df_display["Price"] = df_display["Close_Price"].apply(lambda x: f"Rp {x:,.0f}" if x > 0 else "-")
-                df_display["Change"] = df_display["Change_Pct"].apply(lambda x: f"+{x:.2f}%" if x >= 0 else f"{x:.2f}%")
-                df_display["Score"] = df_display["Score"].apply(lambda x: f"⭐ {x}")
-
-                # Pilih kolom yang ditampilkan saja
-                display_cols = ["Saham", "Price", "Change", "Score", "Pattern"]
-                df_view = df_display[[c for c in display_cols if c in df_display.columns]]
-
-                st.caption("👇 Klik baris saham di bawah untuk memilih:")
-                
-                # Interactive Table (Bisa Langsung Diklik Barisnya)
-                event = st.dataframe(
-                    df_view,
-                    use_container_width=True,
-                    hide_index=True,
-                    selection_mode="single_row",
-                    on_select="rerun",
-                    key="rsi_saham_dataframe"
-                )
-
-                # Ambil Ticker dari Baris yang Diklik User
-                selected_rows = event.selection.get("rows", [])
-                if selected_rows:
-                    row_idx = selected_rows[0]
-                    clicked_ticker = df_display.iloc[row_idx].get("Ticker", df_display.iloc[row_idx].get("Saham"))
-                    if clicked_ticker != st.session_state.get("selected_rsi_ticker"):
-                        st.session_state["selected_rsi_ticker"] = clicked_ticker
-                        st.rerun()
-
-            else:
-                st.info(f"No {screener_mode} patterns detected.")
-        else:
-            st.info("Click **Run Screening** above to start scanning the market.")
-
-    # =========================================================
-    # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER
-    # =========================================================
-    with col_right:
-        if "rsi_stats" in st.session_state:
-            stats = st.session_state["rsi_stats"]
-            m1, m2, m3, m4 = st.columns(4)
-            with m1:
-                st.markdown(
-                    f"""<div class="metric-card">
-                        <div class="metric-label">Total Scanned</div>
-                        <div class="metric-value">{stats['total']}</div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-            with m2:
-                st.markdown(
-                    f"""<div class="metric-card" style="border-color: #00E676;">
-                        <div class="metric-label" style="color: #00E676;">Bullish</div>
-                        <div class="metric-value" style="color: #00E676;">{stats['bullish_count']}</div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-            with m3:
-                st.markdown(
-                    f"""<div class="metric-card" style="border-color: #FF5252;">
-                        <div class="metric-label" style="color: #FF5252;">Bearish</div>
-                        <div class="metric-value" style="color: #FF5252;">{stats['bearish_count']}</div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-            with m4:
-                st.markdown(
-                    f"""<div class="metric-card">
-                        <div class="metric-label">Signals Found</div>
-                        <div class="metric-value">{stats['matched']}</div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-            st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
-
-        selected_rsi_symbol = st.session_state.get("selected_rsi_ticker")
-
-        if selected_rsi_symbol:
-            if not selected_rsi_symbol.endswith(".JK") and "." not in selected_rsi_symbol:
-                selected_rsi_symbol += ".JK"
-
-            st.markdown(
-                f"""
-                <div style="background-color: #0D2B1D; border: 1.5px solid #00E676; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00E676; font-size: 15px; margin-left: 6px;">{selected_rsi_symbol}</strong></span>
-                    <span style="color: #8B949E; font-size: 11px; font-weight: 400;">Interactive Analysis Workspace</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            try:
-                render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
-            except KeyError as ke:
-                if "Status Candle" in str(ke):
-                    st.warning(f"Trade Plan rendered with partial data for {selected_rsi_symbol}.")
-                else:
-                    st.error(f"Failed to load Trade Plan for {selected_rsi_symbol}: {ke}")
-            except Exception as e:
-                st.error(f"Failed to load Trade Plan for {selected_rsi_symbol}: {e}")
-        else:
-            st.markdown(
-                """
-                <div class="empty-card">
-                    <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
-                    <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
-                    <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
-                        Run the screening process, then click any stock row from the left panel to inspect full Trade Planner details.
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        except Exception as e:
+            st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}: {e}")

@@ -114,12 +114,11 @@ def run_batch_execution(ticker_list):
 
     if results:
         df_res = pd.DataFrame(results)
-        # Simpan ke session state agar data tidak hilang saat filter digeser
         st.session_state["df_screener_raw"] = df_res
 
 
 def reset_filters():
-    """Fungsi Callback untuk mereset nilai filter ke pilihan pertama (SEMUA)."""
+    """Fungsi Callback untuk mereset nilai filter."""
     st.session_state["f_strategi"] = "SEMUA STRATEGI"
     st.session_state["f_grade"] = "SEMUA GRADE"
     st.session_state["f_zone"] = "SEMUA POSISI"
@@ -128,96 +127,13 @@ def reset_filters():
 
 
 def render_tab_trade_planner():
-    # Inject CSS Futuristik
-    st.markdown(
-        """
-        <style>
-        .tp-card-container {
-            background-color: #161B22;
-            border: 1px solid #30363D;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: transform 0.2s ease, border-color 0.2s ease;
-        }
-        .tp-card-container:hover {
-            border-color: #58A6FF;
-        }
-        .tp-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #21262D;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
-        }
-        .tp-badge-type {
-            font-size: 14px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            color: #FFFFFF;
-            background: linear-gradient(135deg, #1F6FEB, #238636);
-            padding: 4px 10px;
-            border-radius: 6px;
-        }
-        .tp-badge-grade {
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background-color: #21262D;
-            border: 1px solid #30363D;
-            color: #C9D1D9;
-        }
-        .tp-price-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 10px;
-        }
-        .tp-metric-box {
-            background-color: #0D1117;
-            border: 1px solid #21262D;
-            border-radius: 8px;
-            padding: 8px 10px;
-            text-align: center;
-        }
-        .tp-metric-box.buy-zone {
-            border-color: #0366D6;
-            background-color: rgba(3, 102, 214, 0.1);
-        }
-        .tp-metric-box.stop-loss {
-            border-color: #DA3633;
-            background-color: rgba(218, 54, 51, 0.1);
-        }
-        .tp-metric-box.target-profit {
-            border-color: #238636;
-            background-color: rgba(35, 134, 54, 0.1);
-        }
-        .tp-metric-title {
-            font-size: 10px;
-            color: #8B949E;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .tp-metric-value {
-            font-size: 14px;
-            font-weight: 700;
-            color: #FFFFFF;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Header tanpa Logo/Emoji
+    # Header Tanpa Logo / Emoji
     st.header("Smart Execution Screener")
     st.write(
         "Platform pemeringkat saham berbasis **Price Action**, **Risk-to-Reward Ratio**, dan **Skoring Otomatis (0-100)**."
     )
 
-    # Inisialisasi state filter jika belum ada
+    # Inisialisasi state filter
     if "f_strategi" not in st.session_state:
         st.session_state["f_strategi"] = "SEMUA STRATEGI"
     if "f_grade" not in st.session_state:
@@ -251,7 +167,7 @@ def render_tab_trade_planner():
             )
 
         with col_btn:
-            st.write(" ")  # Spacer vertikal
+            st.write(" ")
             st.write(" ")
             btn_single = st.button(
                 "Run Single Ticker", type="primary", use_container_width=True
@@ -268,7 +184,7 @@ def render_tab_trade_planner():
                 ]
                 run_batch_execution(list_to_scan)
 
-    # --- MODE 2: FULL BATCH SCREENER (962 SAHAM) ---
+    # --- MODE 2: FULL BATCH SCREENER ---
     else:
         all_tickers = load_daftar_saham("daftar_saham.txt")
         if not all_tickers:
@@ -277,27 +193,24 @@ def render_tab_trade_planner():
             )
             return
 
-        st.info(
-            f"Memuat **{len(all_tickers)} saham** dari `daftar_saham.txt`."
-        )
+        st.info(f"Memuat **{len(all_tickers)} saham** dari `daftar_saham.txt`.")
 
         if st.button("Jalankan Batch Screener (962 Saham)", type="primary"):
             run_batch_execution(all_tickers)
 
     # ---------------------------------------------------------
-    # 2. PANEL FILTER & SORTIR TABEL HASIL SCREENER
+    # 2. PANEL FILTER & HASIL SCREENER
     # ---------------------------------------------------------
     if "df_screener_raw" in st.session_state:
         df_raw = st.session_state["df_screener_raw"]
 
         st.markdown("---")
 
-        # Header Filter + Tombol Clear Filter
         col_title, col_clear = st.columns([3, 1])
         with col_title:
             st.subheader("Filter & Sortir Hasil Screener")
         with col_clear:
-            st.write(" ")  # Alignment
+            st.write(" ")
             st.button(
                 "Clear / Reset Filter",
                 on_click=reset_filters,
@@ -351,7 +264,7 @@ def render_tab_trade_planner():
                 key="f_candle",
             )
 
-        # --- PENERAPAN LOGIKA FILTER SINKRON ---
+        # --- LOGIKA FILTER ---
         df = df_raw.copy()
 
         if f_strategi == "Buy On Weakness (BOW)":
@@ -403,69 +316,38 @@ def render_tab_trade_planner():
                 "Tidak ada saham yang cocok dengan kombinasi filter Anda. Coba longgarkan kriteria filter atau tekan tombol 'Clear / Reset Filter'."
             )
         else:
-            # TAMPILAN CARD FUTURISTIK DINAMIS BERDASARKAN DATAFRAME
+            # TAMPILAN CARD DENGAN ST.CONTAINER (BERSIH, SAFE, DAN INTERAKTIF)
             for idx, row in df.iterrows():
-                saham = row.get("Saham", "-")
-                score = row.get("Score", 0)
-                grade = row.get("Grade", "-")
-                strategi = row.get("Strategi", "-")
-                harga_last = row.get("Harga Last", "-")
-                posisi_zone = row.get("Posisi Zone", "-")
-                area_buy = row.get("Area Buy", "-")
-                sl = row.get("Stop Loss (SL)", "-")
-                tp1 = row.get("TP 1", "-")
-                tp2 = row.get("TP 2", "-")
-                gain = row.get("Potensi Gain", "-")
-                risk = row.get("Risiko SL", "-")
-                rr = row.get("Rasio (R:R)", "-")
-                candle = row.get("Pola Candle", "-")
-                warning = row.get("Catatan Analisis & Warning", "")
+                with st.container(border=True):
+                    # Card Header
+                    c_h1, c_h2 = st.columns([3, 1])
+                    with c_h1:
+                        st.markdown(
+                            f"### **{row['Saham']}** · {row['Strategi']} | Score: `{row['Score']}` (`{row['Grade']}`)"
+                        )
+                    with c_h2:
+                        st.caption(f"Posisi: **{row['Posisi Zone']}**")
 
-                posisi_color = "#00E676" if "In Buy Zone" in str(posisi_zone) else "#FFD600"
+                    # Grid Metric Harga & Planning
+                    m1, m2, m3, m4, m5, m6 = st.columns(6)
+                    m1.metric("Harga Last", f"Rp {row['Harga Last']:,}")
+                    m2.metric("Area Buy", str(row["Area Buy"]))
+                    m3.metric(
+                        "Stop Loss (SL)",
+                        f"{row['Stop Loss (SL)']:,}",
+                        delta=row["Risiko SL"],
+                        delta_color="inverse",
+                    )
+                    m4.metric(
+                        "TP 1",
+                        f"{row['TP 1']:,}",
+                        delta=row["Potensi Gain"],
+                        delta_color="normal",
+                    )
+                    m5.metric("TP 2", f"{row['TP 2']:,}")
+                    m6.metric("R:R Ratio", str(row["Rasio (R:R)"]))
 
-                card_html = f"""
-                <div class="tp-card-container">
-                    <div class="tp-card-header">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="tp-badge-type">{saham} • {strategi}</span>
-                            <span style="color: #8B949E; font-size: 13px; font-weight: 600;">Score: <strong style="color:#FFFFFF;">{score} pts</strong></span>
-                            <span class="tp-badge-grade">{grade}</span>
-                        </div>
-                        <div>
-                            <span style="font-size: 11px; color: #8B949E;">Posisi: </span>
-                            <span style="font-size: 12px; font-weight: 700; color: {posisi_color};">{posisi_zone}</span>
-                        </div>
-                    </div>
-
-                    <div class="tp-price-grid">
-                        <div class="tp-metric-box">
-                            <div class="tp-metric-title">Harga Last</div>
-                            <div class="tp-metric-value">Rp {harga_last:,}</div>
-                        </div>
-                        <div class="tp-metric-box buy-zone">
-                            <div class="tp-metric-title">Area Buy</div>
-                            <div class="tp-metric-value" style="color: #58A6FF;">{area_buy}</div>
-                        </div>
-                        <div class="tp-metric-box stop-loss">
-                            <div class="tp-metric-title">SL ({risk})</div>
-                            <div class="tp-metric-value" style="color: #FF5252;">{sl}</div>
-                        </div>
-                        <div class="tp-metric-box target-profit">
-                            <div class="tp-metric-title">TP 1 ({gain})</div>
-                            <div class="tp-metric-value" style="color: #00E676;">{tp1}</div>
-                        </div>
-                        <div class="tp-metric-box target-profit">
-                            <div class="tp-metric-title">TP 2</div>
-                            <div class="tp-metric-value" style="color: #00E676;">{tp2}</div>
-                        </div>
-                        <div class="tp-metric-box">
-                            <div class="tp-metric-title">R:R Ratio</div>
-                            <div class="tp-metric-value" style="color: #FFD600;">{rr}</div>
-                        </div>
-                    </div>
-                    <div style="margin-top: 10px; font-size: 12px; color: #8B949E;">
-                        <strong>Pola Candle:</strong> {candle} | <strong>Info:</strong> {warning}
-                    </div>
-                </div>
-                """
-                st.markdown(card_html, unsafe_allow_html=True)
+                    # Footer Info & Warning
+                    st.caption(
+                        f"**Pola Candle:** {row['Pola Candle']} | **Catatan:** {row['Catatan Analisis & Warning']}"
+                    )

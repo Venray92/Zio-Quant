@@ -2,14 +2,13 @@ import concurrent.futures
 import time
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 from ihsg_tickers import get_all_ihsg_tickers
 from screener_rsi_divergence import detect_rsi_patterns_and_score
 from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
-    # Styling CSS Rapi & Metric Card
+    # CSS Styling Rapi, Kompak, dan Card Overlay Clickable
     st.markdown(
         """
         <style>
@@ -47,6 +46,118 @@ def render_tab_rsi():
             padding: 40px 20px;
             text-align: center;
             color: #8B949E;
+        }
+
+        /* Card Overlay Click Container */
+        .card-wrapper {
+            position: relative;
+            margin-bottom: 8px;
+        }
+        .card-inner {
+            background-color: #161B22;
+            border: 1px solid #30363D;
+            border-radius: 8px;
+            padding: 8px 10px;
+            pointer-events: none;
+            transition: all 0.2s ease-in-out;
+        }
+        .card-inner-selected {
+            background-color: #0D1117;
+            border: 1.5px solid #238636 !important;
+            border-radius: 8px;
+            padding: 8px 10px;
+            pointer-events: none;
+        }
+        .card-wrapper:hover .card-inner {
+            border-color: #58A6FF;
+            background-color: #1F242C;
+        }
+
+        /* Elements inside Card */
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .ticker-symbol {
+            font-size: 14px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        .price-tag {
+            font-size: 12px;
+            font-weight: 600;
+            color: #C9D1D9;
+        }
+        .change-badge-green {
+            color: #3FB950;
+            font-weight: 600;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+        .change-badge-red {
+            color: #F85149;
+            font-weight: 600;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+        .pattern-badge-bull {
+            background-color: rgba(46, 160, 67, 0.15);
+            color: #3FB950;
+            border: 1px solid rgba(46, 160, 67, 0.3);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 9.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 190px;
+        }
+        .pattern-badge-bear {
+            background-color: rgba(248, 81, 73, 0.15);
+            color: #F85149;
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 9.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 190px;
+        }
+        .card-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            background-color: #0D1117;
+            border-radius: 4px;
+            padding: 4px 6px;
+            margin-top: 5px;
+            font-size: 9.5px;
+            width: 100%;
+        }
+        .detail-item-title {
+            color: #8B949E;
+            font-weight: 500;
+        }
+        .detail-item-val {
+            color: #C9D1D9;
+            font-weight: 600;
+        }
+
+        /* Invisible Full-Overlay Button Styling */
+        div.stButton > button[key^="overlay_btn_"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            z-index: 10;
+            cursor: pointer;
         }
         </style>
         """,
@@ -221,7 +332,7 @@ def render_tab_rsi():
                 df_target = st.session_state.get("df_rsi_bearish", pd.DataFrame())
 
             if not df_target.empty:
-                # Rendering Kartu Kompak yang BISA DIKLIK LANGSUNG
+                # Rendering Kompak Kartu Clickable Native
                 for idx, row in df_target.iterrows():
                     ticker = row.get("Ticker", row.get("Saham"))
                     saham = row.get("Saham", ticker.replace(".JK", ""))
@@ -240,114 +351,48 @@ def render_tab_rsi():
 
                     is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
 
-                    badge_color = "#3FB950" if is_bull_tab else "#F85149"
-                    badge_bg = "rgba(46, 160, 67, 0.15)" if is_bull_tab else "rgba(248, 81, 73, 0.15)"
-                    border_color = "#238636" if is_selected else "#30363D"
-                    bg_card = "#0D1117" if is_selected else "#161B22"
+                    badge_class = "pattern-badge-bull" if is_bull_tab else "pattern-badge-bear"
+                    card_inner_class = "card-inner-selected" if is_selected else "card-inner"
 
-                    change_color = "#3FB950" if change_pct >= 0 else "#F85149"
-                    change_sign = "+" if change_pct >= 0 else ""
-                    change_str = f"{change_sign}{change_pct:.2f}%"
+                    if change_pct >= 0:
+                        change_html = f'<span class="change-badge-green">+{change_pct:.2f}%</span>'
+                    else:
+                        change_html = f'<span class="change-badge-red">{change_pct:.2f}%</span>'
+
                     price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
 
-                    # HTML Card Component dengan OnClick Event Handler
-                    card_html_code = f"""
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <style>
-                            * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
-                            body {{ background: transparent; padding: 0; margin: 0; }}
-                            .card-btn {{
-                                width: 100%;
-                                background-color: {bg_card};
-                                border: 1.5px solid {border_color};
-                                border-radius: 8px;
-                                padding: 8px 10px;
-                                cursor: pointer;
-                                text-align: left;
-                                transition: all 0.2s ease-in-out;
-                            }}
-                            .card-btn:hover {{
-                                border-color: #58A6FF;
-                                background-color: #1F242C;
-                            }}
-                            .header-row {{ display: flex; justify-content: space-between; align-items: center; width: 100%; }}
-                            .ticker {{ font-size: 14px; font-weight: 700; color: #FFFFFF; }}
-                            .change {{ color: {change_color}; font-weight: 600; font-size: 11px; margin-left: 4px; }}
-                            .price {{ font-size: 12px; font-weight: 600; color: #C9D1D9; }}
-                            .badge {{
-                                background-color: {badge_bg};
-                                color: {badge_color};
-                                border: 1px solid {badge_color}66;
-                                border-radius: 4px;
-                                padding: 1px 5px;
-                                font-size: 9.5px;
-                                font-weight: 600;
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                                max-width: 190px;
-                            }}
-                            .score {{ font-size: 10.5px; font-weight: 700; color: #E3B341; }}
-                            .grid-details {{
-                                display: grid;
-                                grid-template-columns: 1fr 1fr;
-                                gap: 4px;
-                                background-color: #0D1117;
-                                border-radius: 4px;
-                                padding: 4px 6px;
-                                margin-top: 5px;
-                                font-size: 9.5px;
-                            }}
-                            .detail-title {{ color: #8B949E; font-weight: 500; }}
-                            .detail-val {{ color: #C9D1D9; font-weight: 600; }}
-                        </style>
-                    </head>
-                    <body>
-                        <button class="card-btn" onclick="sendSelection()">
-                            <div class="header-row">
+                    # Render UI Kartu
+                    st.html(f"""
+                    <div class="card-wrapper">
+                        <div class="{card_inner_class}">
+                            <div class="card-header-row">
                                 <div>
-                                    <span class="ticker">{saham}</span>
-                                    <span class="change">{change_str}</span>
+                                    <span class="ticker-symbol">{saham}</span>
+                                    {change_html}
                                 </div>
-                                <div class="price">{price_str}</div>
+                                <div class="price-tag">{price_str}</div>
                             </div>
-                            <div class="header-row" style="margin-top: 3px;">
-                                <div class="badge" title="{pattern}">{pattern}</div>
-                                <div class="score">⭐ {score}</div>
+                            <div class="card-header-row" style="margin-top: 3px;">
+                                <div class="{badge_class}" title="{pattern}">{pattern}</div>
+                                <div style="font-size: 10.5px; font-weight: 700; color: #E3B341;">⭐ {score}</div>
                             </div>
-                            <div class="grid-details">
+                            <div class="card-details-grid">
                                 <div>
-                                    <div class="detail-title">Kiri ({tgl_kiri})</div>
-                                    <div class="detail-val">{harga_kiri} | RSI: {rsi_kiri}</div>
+                                    <div class="detail-item-title">Kiri ({tgl_kiri})</div>
+                                    <div class="detail-item-val">{harga_kiri} | RSI: {rsi_kiri}</div>
                                 </div>
                                 <div>
-                                    <div class="detail-title">Kanan ({tgl_kanan})</div>
-                                    <div class="detail-val">{harga_kanan} | RSI: {rsi_kanan}</div>
+                                    <div class="detail-item-title">Kanan ({tgl_kanan})</div>
+                                    <div class="detail-item-val">{harga_kanan} | RSI: {rsi_kanan}</div>
                                 </div>
                             </div>
-                        </button>
-                        <script>
-                            function sendSelection() {{
-                                window.parent.postMessage({{
-                                    type: 'streamlit:setComponentValue',
-                                    value: '{ticker}'
-                                }}, '*');
-                            }}
-                        </script>
-                    </body>
-                    </html>
-                    """
+                        </div>
+                    </div>
+                    """)
 
-                    # Render HTML Component Interaktif
-                    clicked_ticker = components.html(
-                        card_html_code, height=92, scrolling=False
-                    )
-
-                    # Update state jika kartu diklik
-                    if clicked_ticker and clicked_ticker != st.session_state.get("selected_rsi_ticker"):
-                        st.session_state["selected_rsi_ticker"] = clicked_ticker
+                    # Overlay Tombol Transparan di atas Kartu
+                    if st.button("", key=f"overlay_btn_{ticker}_{idx}", use_container_width=True):
+                        st.session_state["selected_rsi_ticker"] = ticker
                         st.rerun()
 
             else:

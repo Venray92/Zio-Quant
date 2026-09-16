@@ -6,7 +6,7 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_stoch_psar():
-    # CSS Custom disamakan persis dengan tab_rsi.py
+    # CSS Custom dasar
     st.markdown(
         """
         <style>
@@ -51,6 +51,9 @@ def render_tab_stoch_psar():
     )
 
     # Inisialisasi Session State
+    if "stop_stoch_scan" not in st.session_state:
+        st.session_state["stop_stoch_scan"] = False
+
     if "active_stoch_type" not in st.session_state:
         st.session_state["active_stoch_type"] = "Golden Cross (Beli)"
 
@@ -75,14 +78,26 @@ def render_tab_stoch_psar():
             unsafe_allow_html=True,
         )
 
-        run_clicked = st.button(
-            "Run Screening",
-            key="btn_run_stoch_screener",
-            use_container_width=True,
-            type="primary",
-        )
+        col_btn_run, col_btn_stop = st.columns([1, 1])
+
+        with col_btn_run:
+            run_clicked = st.button(
+                "Run Screening",
+                key="btn_run_stoch_screener",
+                use_container_width=True,
+                type="primary",
+            )
+
+        with col_btn_stop:
+            stop_clicked = st.button(
+                "🛑 Stop", key="btn_stop_stoch_screener", use_container_width=True
+            )
+
+        if stop_clicked:
+            st.session_state["stop_stoch_scan"] = True
 
         if run_clicked:
+            st.session_state["stop_stoch_scan"] = False
             with st.spinner("Fetching IHSG tickers list..."):
                 all_stoch_tickers = get_all_ihsg_tickers()
 
@@ -91,7 +106,10 @@ def render_tab_stoch_psar():
             pstatus_stoch = st.empty()
 
             def update_stoch_progress(current, total):
-                pct = current / total
+                if st.session_state.get("stop_stoch_scan", False):
+                    pstatus_stoch.warning("Screening cancelled.")
+                    return
+                pct = current / total if total > 0 else 0
                 pbar_stoch.progress(pct)
                 pstatus_stoch.text(
                     f"Scanning Stoch & PSAR: {current}/{total} tickers..."
@@ -135,16 +153,16 @@ def render_tab_stoch_psar():
                     "total_signal": gc_len + dc_len,
                 }
 
-                # Auto select saham teratas
+                # Auto-select saham paling atas
                 if df_gc is not None and not df_gc.empty:
                     first_row = df_gc.iloc[0]
                     st.session_state["selected_stoch_ticker"] = first_row.get(
-                        "Ticker", first_row.get("Saham")
+                        "Ticker", first_row.get("Saham", first_row.get("Symbol"))
                     )
                 elif df_dc is not None and not df_dc.empty:
                     first_row = df_dc.iloc[0]
                     st.session_state["selected_stoch_ticker"] = first_row.get(
-                        "Ticker", first_row.get("Saham")
+                        "Ticker", first_row.get("Saham", first_row.get("Symbol"))
                     )
 
             except Exception as e:
@@ -184,13 +202,61 @@ def render_tab_stoch_psar():
 
             if not df_target.empty:
                 for idx, row in df_target.iterrows():
-                    ticker = str(row.get("Ticker", row.get("Saham", "")))
-                    saham = str(row.get("Saham", ticker.replace(".JK", "")))
-                    score = row.get("Score", 0)
-                    signal_desc = row.get("Signal", row.get("Action", "-"))
+                    # Ekstraksi nama ticker & saham
+                    ticker = str(
+                        row.get(
+                            "Ticker",
+                            row.get("Saham", row.get("Symbol", row.get("Stock", ""))),
+                        )
+                    )
+                    saham = str(
+                        row.get("Saham", ticker.replace(".JK", ""))
+                    )
+                    score = row.get("Score", row.get("Skor", 0))
 
-                    close_price = row.get("Close", row.get("Close_Price", 0))
-                    change_pct = row.get("Change (%)", row.get("Change_Pct", 0.0))
+                    # Penanganan variasi nama kolom deskripsi sinyal
+                    signal_desc = row.get(
+                        "Signal",
+                        row.get(
+                            "Action",
+                            row.get("Keterangan", row.get("Pattern", "-")),
+                        ),
+                    )
+
+                    # Penanganan variasi nama kolom harga
+                    close_price = row.get(
+                        "Harga",
+                        row.get(
+                            "Close",
+                            row.get(
+                                "Close_Price",
+                                row.get("Price", row.get("Last", 0)),
+                            ),
+                        ),
+                    )
+
+                    # Penanganan variasi nama kolom persentase perubahan
+                    change_pct = row.get(
+                        "Change (%)",
+                        row.get(
+                            "% Change",
+                            row.get(
+                                "Change_Pct",
+                                row.get("Change", row.get("Perubahan (%)", 0.0)),
+                            ),
+                        ),
+                    )
+
+                    # Parsing angka secara aman
+                    try:
+                        close_price = float(close_price)
+                    except (ValueError, TypeError):
+                        close_price = 0.0
+
+                    try:
+                        change_pct = float(change_pct)
+                    except (ValueError, TypeError):
+                        change_pct = 0.0
 
                     is_selected = (
                         st.session_state.get("selected_stoch_ticker") == ticker
@@ -211,7 +277,7 @@ def render_tab_stoch_psar():
                         " #161B22;"
                     )
 
-                    # Container Kartu Rapi
+                    # Rendering kartu saham
                     with st.container():
                         st.markdown(
                             f"""

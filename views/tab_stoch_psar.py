@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 from ihsg_tickers import get_all_ihsg_tickers
 from screener_stoch_psar import run_stoch_psar_screener
@@ -5,164 +6,353 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_stoch_psar():
-    st.header("Screener Stochastic & Parabolic SAR")
-    st.caption(
-        "Klik pada baris saham di tabel Golden Cross/Dead Cross untuk melihat"
-        " Trade Planner secara otomatis."
+    # CSS Custom disamakan persis dengan tab_rsi.py
+    st.markdown(
+        """
+        <style>
+        .panel-header-center {
+            background-color: #161B22;
+            border: 1px solid #21262D;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .metric-card {
+            background-color: #161B22;
+            border: 1px solid #21262D;
+            border-radius: 8px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        .metric-label {
+            font-size: 9px;
+            color: #8B949E;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .empty-card {
+            background-color: #161B22;
+            border: 1px dashed #30363D;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            color: #8B949E;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
 
-    if st.button("Jalankan Screener Stoch & PSAR", key="btn_stoch"):
-        with st.spinner("Mengambil daftar lengkap saham IHSG..."):
-            all_stoch_tickers = get_all_ihsg_tickers()
+    # Inisialisasi Session State
+    if "active_stoch_type" not in st.session_state:
+        st.session_state["active_stoch_type"] = "Golden Cross (Beli)"
 
-        total_stoch_tickers = len(all_stoch_tickers)
-        st.info(f"Menganalisis {total_stoch_tickers} ticker saham IHSG...")
+    if "selected_stoch_ticker" not in st.session_state:
+        st.session_state["selected_stoch_ticker"] = None
 
-        pbar_stoch = st.progress(0)
-        pstatus_stoch = st.empty()
+    # ---------------------------------------------------------
+    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 38% : KANAN 62%)
+    # ---------------------------------------------------------
+    col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
-        def update_stoch_progress(current, total):
-            pct = current / total
-            pbar_stoch.progress(pct)
-            pstatus_stoch.text(
-                f"Menganalisis Stoch & PSAR: {current}/{total} saham..."
-            )
-
-        try:
-            df_gc, df_dc = run_stoch_psar_screener(
-                tickers=all_stoch_tickers,
-                progress_callback=update_stoch_progress,
-            )
-            pbar_stoch.empty()
-            pstatus_stoch.empty()
-
-            if (
-                df_gc is not None
-                and not df_gc.empty
-                and "Score" in df_gc.columns
-            ):
-                df_gc = df_gc.sort_values(by="Score", ascending=False)
-            if (
-                df_dc is not None
-                and not df_dc.empty
-                and "Score" in df_dc.columns
-            ):
-                df_dc = df_dc.sort_values(by="Score", ascending=False)
-
-            st.session_state["df_gc_data"] = df_gc
-            st.session_state["df_dc_data"] = df_dc
-
-            gc_len = len(df_gc) if df_gc is not None else 0
-            dc_len = len(df_dc) if df_dc is not None else 0
-
-            st.session_state["stoch_stats"] = {
-                "total": total_stoch_tickers,
-                "matched_gc": gc_len,
-                "matched_dc": dc_len,
-                "total_signal": gc_len + dc_len,
-            }
-
-            st.success("Screening Stochastic & Parabolic SAR Selesai!")
-        except Exception as e:
-            pbar_stoch.empty()
-            pstatus_stoch.empty()
-            st.error(f"Terjadi kesalahan: {e}")
-
-    if "stoch_stats" in st.session_state:
-        st_stats = st.session_state["stoch_stats"]
-        c_m1, c_m2, c_m3, c_m4 = st.columns(4)
-        c_m1.metric("Total Ticker Di-scan", f"{st_stats['total']} Saham")
-        c_m2.metric(
-            "Sinyal Beli (Golden Cross)", f"{st_stats['matched_gc']} Saham"
-        )
-        c_m3.metric(
-            "Sinyal Jual (Dead Cross)", f"{st_stats['matched_dc']} Saham"
-        )
-        c_m4.metric(
-            "Total Sinyal Terdeteksi", f"{st_stats['total_signal']} Saham"
+    # =========================================================
+    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
+    # =========================================================
+    with col_left:
+        st.markdown(
+            """
+            <div class="panel-header-center">
+                <div style="color: #00E676; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">STOCHASTIC & PARABOLIC SAR</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-    col_gc, col_dc = st.columns(2)
-    selected_stoch_symbol = None
+        run_clicked = st.button(
+            "Run Screening",
+            key="btn_run_stoch_screener",
+            use_container_width=True,
+            type="primary",
+        )
 
-    with col_gc:
-        st.subheader("🟢 Signal Beli (Golden Cross)")
-        if (
-            "df_gc_data" in st.session_state
-            and not st.session_state["df_gc_data"].empty
-        ):
-            df_gc = st.session_state["df_gc_data"]
+        if run_clicked:
+            with st.spinner("Fetching IHSG tickers list..."):
+                all_stoch_tickers = get_all_ihsg_tickers()
 
-            df_gc_display = (
-                df_gc.drop(columns=["Action"], errors="ignore")
-                if "Action" in df_gc.columns
-                else df_gc
-            )
+            total_stoch_tickers = len(all_stoch_tickers)
+            pbar_stoch = st.progress(0)
+            pstatus_stoch = st.empty()
 
-            event_gc = st.dataframe(
-                df_gc_display,
-                use_container_width=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="table_gc",
-            )
-            if event_gc.selection and event_gc.selection["rows"]:
-                idx = event_gc.selection["rows"][0]
-                ticker_col = next(
-                    (
-                        c
-                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                        if c in df_gc.columns
-                    ),
-                    None,
+            def update_stoch_progress(current, total):
+                pct = current / total
+                pbar_stoch.progress(pct)
+                pstatus_stoch.text(
+                    f"Scanning Stoch & PSAR: {current}/{total} tickers..."
                 )
-                if ticker_col:
-                    selected_stoch_symbol = str(df_gc.iloc[idx][ticker_col])
-        else:
-            st.info("Tidak ada data / Belum di-scan.")
 
-    with col_dc:
-        st.subheader("🔴 Signal Jual (Dead Cross)")
-        if (
-            "df_dc_data" in st.session_state
-            and not st.session_state["df_dc_data"].empty
-        ):
-            df_dc = st.session_state["df_dc_data"]
-
-            df_dc_display = (
-                df_dc.drop(columns=["Action"], errors="ignore")
-                if "Action" in df_dc.columns
-                else df_dc
-            )
-
-            event_dc = st.dataframe(
-                df_dc_display,
-                use_container_width=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="table_dc",
-            )
-            if event_dc.selection and event_dc.selection["rows"]:
-                idx = event_dc.selection["rows"][0]
-                ticker_col = next(
-                    (
-                        c
-                        for c in ["Ticker", "Saham", "Stock", "Symbol"]
-                        if c in df_dc.columns
-                    ),
-                    None,
+            try:
+                df_gc, df_dc = run_stoch_psar_screener(
+                    tickers=all_stoch_tickers,
+                    progress_callback=update_stoch_progress,
                 )
-                if ticker_col:
-                    selected_stoch_symbol = str(df_dc.iloc[idx][ticker_col])
-        else:
-            st.info("Tidak ada data / Belum di-scan.")
+                pbar_stoch.empty()
+                pstatus_stoch.empty()
 
-    if selected_stoch_symbol:
-        if (
-            not selected_stoch_symbol.endswith(".JK")
-            and "." not in selected_stoch_symbol
-        ):
-            selected_stoch_symbol += ".JK"
-        render_inline_trade_planner(
-            selected_stoch_symbol, key_suffix="stoch_tab"
+                if (
+                    df_gc is not None
+                    and not df_gc.empty
+                    and "Score" in df_gc.columns
+                ):
+                    df_gc = df_gc.sort_values(by="Score", ascending=False)
+                if (
+                    df_dc is not None
+                    and not df_dc.empty
+                    and "Score" in df_dc.columns
+                ):
+                    df_dc = df_dc.sort_values(by="Score", ascending=False)
+
+                st.session_state["df_gc_data"] = (
+                    df_gc if df_gc is not None else pd.DataFrame()
+                )
+                st.session_state["df_dc_data"] = (
+                    df_dc if df_dc is not None else pd.DataFrame()
+                )
+
+                gc_len = len(df_gc) if df_gc is not None else 0
+                dc_len = len(df_dc) if df_dc is not None else 0
+
+                st.session_state["stoch_stats"] = {
+                    "total": total_stoch_tickers,
+                    "matched_gc": gc_len,
+                    "matched_dc": dc_len,
+                    "total_signal": gc_len + dc_len,
+                }
+
+                # Auto select saham teratas
+                if df_gc is not None and not df_gc.empty:
+                    first_row = df_gc.iloc[0]
+                    st.session_state["selected_stoch_ticker"] = first_row.get(
+                        "Ticker", first_row.get("Saham")
+                    )
+                elif df_dc is not None and not df_dc.empty:
+                    first_row = df_dc.iloc[0]
+                    st.session_state["selected_stoch_ticker"] = first_row.get(
+                        "Ticker", first_row.get("Saham")
+                    )
+
+            except Exception as e:
+                pbar_stoch.empty()
+                pstatus_stoch.empty()
+                st.error(f"Terjadi kesalahan: {e}")
+
+        st.markdown(
+            "<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True
         )
+
+        has_results = "stoch_stats" in st.session_state
+
+        if has_results:
+            screener_mode = st.selectbox(
+                "Choose Signal Mode",
+                options=["Golden Cross (Beli)", "Dead Cross (Jual)"],
+                index=0
+                if st.session_state.get("active_stoch_type")
+                == "Golden Cross (Beli)"
+                else 1,
+                key="stoch_screener_mode_select",
+            )
+            st.session_state["active_stoch_type"] = screener_mode
+
+            st.markdown(
+                "<div style='margin-bottom: 6px;'></div>",
+                unsafe_allow_html=True,
+            )
+
+            is_gc_tab = screener_mode == "Golden Cross (Beli)"
+            df_target = (
+                st.session_state.get("df_gc_data", pd.DataFrame())
+                if is_gc_tab
+                else st.session_state.get("df_dc_data", pd.DataFrame())
+            )
+
+            if not df_target.empty:
+                for idx, row in df_target.iterrows():
+                    ticker = str(row.get("Ticker", row.get("Saham", "")))
+                    saham = str(row.get("Saham", ticker.replace(".JK", "")))
+                    score = row.get("Score", 0)
+                    signal_desc = row.get("Signal", row.get("Action", "-"))
+
+                    close_price = row.get("Close", row.get("Close_Price", 0))
+                    change_pct = row.get("Change (%)", row.get("Change_Pct", 0.0))
+
+                    is_selected = (
+                        st.session_state.get("selected_stoch_ticker") == ticker
+                    )
+
+                    change_color = (
+                        "#00E676" if change_pct >= 0 else "#FF5252"
+                    )
+                    change_icon = "📈" if change_pct >= 0 else "📉"
+                    change_str = f"{change_icon} {change_pct:+.2f}%"
+                    price_str = f"{close_price:,.0f}".replace(",", ".")
+
+                    border_style = (
+                        "border: 1.5px solid #00E676; background-color:"
+                        " #0D2B1D;"
+                        if is_selected
+                        else "border: 1px solid #30363D; background-color:"
+                        " #161B22;"
+                    )
+
+                    # Container Kartu Rapi
+                    with st.container():
+                        st.markdown(
+                            f"""
+                            <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                            <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
+                                            <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                                        </div>
+                                        <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {signal_desc}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                        btn_label = (
+                            f"✓ Selected ({saham})"
+                            if is_selected
+                            else f"Select {saham}"
+                        )
+                        btn_type = "primary" if is_selected else "secondary"
+
+                        if st.button(
+                            btn_label,
+                            key=f"select_stoch_btn_{ticker}_{idx}",
+                            use_container_width=True,
+                            type=btn_type,
+                        ):
+                            st.session_state["selected_stoch_ticker"] = ticker
+                            st.rerun()
+
+                        st.markdown(
+                            "<div style='margin-bottom: 10px;'></div>",
+                            unsafe_allow_html=True,
+                        )
+            else:
+                st.info(f"Tidak ada signal {screener_mode} yang terdeteksi.")
+        else:
+            st.info(
+                "Klik **Run Screening** di atas untuk mulai memindai pasar."
+            )
+
+    # =========================================================
+    # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER
+    # =========================================================
+    with col_right:
+        if "stoch_stats" in st.session_state:
+            stats = st.session_state["stoch_stats"]
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.markdown(
+                    f"""<div class="metric-card">
+                        <div class="metric-label">Total Scanned</div>
+                        <div class="metric-value">{stats['total']}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            with m2:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-color: #00E676;">
+                        <div class="metric-label" style="color: #00E676;">Golden Cross</div>
+                        <div class="metric-value" style="color: #00E676;">{stats['matched_gc']}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            with m3:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-color: #FF5252;">
+                        <div class="metric-label" style="color: #FF5252;">Dead Cross</div>
+                        <div class="metric-value" style="color: #FF5252;">{stats['matched_dc']}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            with m4:
+                st.markdown(
+                    f"""<div class="metric-card">
+                        <div class="metric-label">Total Signals</div>
+                        <div class="metric-value">{stats['total_signal']}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            st.markdown(
+                "<div style='margin-bottom: 10px;'></div>",
+                unsafe_allow_html=True,
+            )
+
+        selected_stoch_symbol = st.session_state.get("selected_stoch_ticker")
+
+        if selected_stoch_symbol:
+            if (
+                not selected_stoch_symbol.endswith(".JK")
+                and "." not in selected_stoch_symbol
+            ):
+                selected_stoch_symbol += ".JK"
+
+            st.markdown(
+                f"""
+                <div style="background-color: #0D2B1D; border: 1.5px solid #00E676; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00E676; font-size: 15px; margin-left: 6px;">{selected_stoch_symbol}</strong></span>
+                    <span style="color: #8B949E; font-size: 11px; font-weight: 400;">Interactive Analysis Workspace</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            try:
+                render_inline_trade_planner(
+                    selected_stoch_symbol, key_suffix="stoch_tab"
+                )
+            except KeyError as ke:
+                if "Status Candle" in str(ke):
+                    st.warning(
+                        "Trade Plan rendered with partial data for"
+                        f" {selected_stoch_symbol}."
+                    )
+                else:
+                    st.error(
+                        "Failed to load Trade Plan for"
+                        f" {selected_stoch_symbol}: {ke}"
+                    )
+            except Exception as e:
+                st.error(
+                    f"Failed to load Trade Plan for {selected_stoch_symbol}: {e}"
+                )
+        else:
+            st.markdown(
+                """
+                <div class="empty-card">
+                    <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
+                    <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
+                    <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
+                        Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )

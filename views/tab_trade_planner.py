@@ -550,12 +550,13 @@ def render_tab_trade_planner():
             st.error("❌ File `daftar_saham.txt` not found!")
             return
 
-col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
-with col_info:
-    st.info("💡 **Click Run To Screen All Ticker**")
-with col_batch_btn:
-    if st.button("🚀 Run Screener", type="primary", use_container_width=True):
-        run_batch_execution(all_tickers, cache_key="df_screener_batch")
+        col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
+        with col_info:
+            # 🔒 Teks disederhanakan tanpa menampilkan nama file & total ticker
+            st.info("💡 **Click Run To Screen All Ticker**")
+        with col_batch_btn:
+            if st.button("🚀 Run Screener", type="primary", use_container_width=True):
+                run_batch_execution(all_tickers, cache_key="df_screener_batch")
 
         active_cache_key = "df_screener_batch"
 
@@ -595,7 +596,7 @@ with col_batch_btn:
                 r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
                 with r2c1:
                     f_rr = st.selectbox(
-                        "秤 Min Risk-Reward:",
+                        "⚖️ Min Risk-Reward:",
                         [
                             "ALL RATIOS",
                             "Min 1 : 1.5",

@@ -8,7 +8,7 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
-    # CSS Styling Rapi, Kompak, dan Card Overlay Clickable
+    # CSS Styling Rapi & Metric Card
     st.markdown(
         """
         <style>
@@ -47,118 +47,6 @@ def render_tab_rsi():
             text-align: center;
             color: #8B949E;
         }
-
-        /* Card Overlay Click Container */
-        .card-wrapper {
-            position: relative;
-            margin-bottom: 8px;
-        }
-        .card-inner {
-            background-color: #161B22;
-            border: 1px solid #30363D;
-            border-radius: 8px;
-            padding: 8px 10px;
-            pointer-events: none;
-            transition: all 0.2s ease-in-out;
-        }
-        .card-inner-selected {
-            background-color: #0D1117;
-            border: 1.5px solid #238636 !important;
-            border-radius: 8px;
-            padding: 8px 10px;
-            pointer-events: none;
-        }
-        .card-wrapper:hover .card-inner {
-            border-color: #58A6FF;
-            background-color: #1F242C;
-        }
-
-        /* Elements inside Card */
-        .card-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-        .ticker-symbol {
-            font-size: 14px;
-            font-weight: 700;
-            color: #FFFFFF;
-        }
-        .price-tag {
-            font-size: 12px;
-            font-weight: 600;
-            color: #C9D1D9;
-        }
-        .change-badge-green {
-            color: #3FB950;
-            font-weight: 600;
-            font-size: 11px;
-            margin-left: 4px;
-        }
-        .change-badge-red {
-            color: #F85149;
-            font-weight: 600;
-            font-size: 11px;
-            margin-left: 4px;
-        }
-        .pattern-badge-bull {
-            background-color: rgba(46, 160, 67, 0.15);
-            color: #3FB950;
-            border: 1px solid rgba(46, 160, 67, 0.3);
-            border-radius: 4px;
-            padding: 1px 5px;
-            font-size: 9.5px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 190px;
-        }
-        .pattern-badge-bear {
-            background-color: rgba(248, 81, 73, 0.15);
-            color: #F85149;
-            border: 1px solid rgba(248, 81, 73, 0.3);
-            border-radius: 4px;
-            padding: 1px 5px;
-            font-size: 9.5px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 190px;
-        }
-        .card-details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
-            background-color: #0D1117;
-            border-radius: 4px;
-            padding: 4px 6px;
-            margin-top: 5px;
-            font-size: 9.5px;
-            width: 100%;
-        }
-        .detail-item-title {
-            color: #8B949E;
-            font-weight: 500;
-        }
-        .detail-item-val {
-            color: #C9D1D9;
-            font-weight: 600;
-        }
-
-        /* Invisible Full-Overlay Button Styling */
-        div.stButton > button[key^="overlay_btn_"] {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            z-index: 10;
-            cursor: pointer;
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -175,12 +63,12 @@ def render_tab_rsi():
         st.session_state["selected_rsi_ticker"] = None
 
     # ---------------------------------------------------------
-    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 32% : KANAN 68%)
+    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 35% : KANAN 65%)
     # ---------------------------------------------------------
-    col_left, col_right = st.columns([1.15, 2.85], gap="medium")
+    col_left, col_right = st.columns([1.2, 2.8], gap="medium")
 
     # =========================================================
-    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM (CARD VIEW)
+    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
         # Header Center
@@ -303,7 +191,7 @@ def render_tab_rsi():
             st.session_state["df_rsi_bullish"] = df_rsi_bullish
             st.session_state["df_rsi_bearish"] = df_rsi_bearish
 
-            # Set default selected ticker jika ada hasil
+            # Default selection
             if not df_rsi_bullish.empty:
                 st.session_state["selected_rsi_ticker"] = df_rsi_bullish.iloc[0].get("Ticker", df_rsi_bullish.iloc[0].get("Saham"))
             elif not df_rsi_bearish.empty:
@@ -314,7 +202,6 @@ def render_tab_rsi():
         has_results = "rsi_stats" in st.session_state
 
         if has_results:
-            # Dropdown "Choose Screener Mode" (Default Bullish)
             screener_mode = st.selectbox(
                 "Choose Screener Mode",
                 options=["Bullish", "Bearish"],
@@ -326,13 +213,14 @@ def render_tab_rsi():
             st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 
             is_bull_tab = screener_mode == "Bullish"
-            if is_bull_tab:
-                df_target = st.session_state.get("df_rsi_bullish", pd.DataFrame())
-            else:
-                df_target = st.session_state.get("df_rsi_bearish", pd.DataFrame())
+            df_target = (
+                st.session_state.get("df_rsi_bullish", pd.DataFrame())
+                if is_bull_tab
+                else st.session_state.get("df_rsi_bearish", pd.DataFrame())
+            )
 
             if not df_target.empty:
-                # Rendering Kompak Kartu Clickable Native
+                # Tombol Native Berbentuk List Card Kompak yang 100% Bebas Error
                 for idx, row in df_target.iterrows():
                     ticker = row.get("Ticker", row.get("Saham"))
                     saham = row.get("Saham", ticker.replace(".JK", ""))
@@ -351,47 +239,20 @@ def render_tab_rsi():
 
                     is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
 
-                    badge_class = "pattern-badge-bull" if is_bull_tab else "pattern-badge-bear"
-                    card_inner_class = "card-inner-selected" if is_selected else "card-inner"
-
-                    if change_pct >= 0:
-                        change_html = f'<span class="change-badge-green">+{change_pct:.2f}%</span>'
-                    else:
-                        change_html = f'<span class="change-badge-red">{change_pct:.2f}%</span>'
-
+                    change_str = f"+{change_pct:.2f}%" if change_pct >= 0 else f"{change_pct:.2f}%"
                     price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
+                    
+                    # Label Utama Tombol
+                    btn_label = f"{'🟢' if is_selected else '⚪'} {saham} | {price_str} ({change_str}) | ⭐ {score}\n{pattern} | L: {harga_kiri} (RSI {rsi_kiri}) → R: {harga_kanan} (RSI {rsi_kanan})"
 
-                    # Render UI Kartu
-                    st.html(f"""
-                    <div class="card-wrapper">
-                        <div class="{card_inner_class}">
-                            <div class="card-header-row">
-                                <div>
-                                    <span class="ticker-symbol">{saham}</span>
-                                    {change_html}
-                                </div>
-                                <div class="price-tag">{price_str}</div>
-                            </div>
-                            <div class="card-header-row" style="margin-top: 3px;">
-                                <div class="{badge_class}" title="{pattern}">{pattern}</div>
-                                <div style="font-size: 10.5px; font-weight: 700; color: #E3B341;">⭐ {score}</div>
-                            </div>
-                            <div class="card-details-grid">
-                                <div>
-                                    <div class="detail-item-title">Kiri ({tgl_kiri})</div>
-                                    <div class="detail-item-val">{harga_kiri} | RSI: {rsi_kiri}</div>
-                                </div>
-                                <div>
-                                    <div class="detail-item-title">Kanan ({tgl_kanan})</div>
-                                    <div class="detail-item-val">{harga_kanan} | RSI: {rsi_kanan}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    """)
+                    btn_type = "primary" if is_selected else "secondary"
 
-                    # Overlay Tombol Transparan di atas Kartu
-                    if st.button("", key=f"overlay_btn_{ticker}_{idx}", use_container_width=True):
+                    if st.button(
+                        btn_label,
+                        key=f"card_select_{ticker}_{idx}",
+                        use_container_width=True,
+                        type=btn_type,
+                    ):
                         st.session_state["selected_rsi_ticker"] = ticker
                         st.rerun()
 
@@ -457,7 +318,6 @@ def render_tab_rsi():
                 unsafe_allow_html=True,
             )
 
-            # SAFE RENDERING
             try:
                 render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
             except KeyError as ke:

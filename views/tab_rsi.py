@@ -8,7 +8,7 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def shorten_pattern(pattern_name):
-    """Menyingkat nama pattern agar rapi dan ringkas."""
+    """Menyingkat nama pattern agar rapi."""
     if not pattern_name or pattern_name == "-":
         return "-"
     
@@ -19,13 +19,14 @@ def shorten_pattern(pattern_name):
     res = res.replace("Hidden Bearish Divergence", "Hid Bear Div")
     res = res.replace("Bullish Divergence", "Bull Div")
     res = res.replace("Bearish Divergence", "Bear Div")
+    res = res.replace(" Potensial (Menunggu GC)", " [Potensial]")
     res = res.replace(" Valid (GC Confirmed)", " [GC]")
     res = res.replace(" Valid", "")
     return res
 
 
 def render_tab_rsi():
-    # CSS Custom untuk Styling Kartu Modern mirip Trading Platform
+    # CSS Custom untuk Menyulap st.button Menjadi Card Sesuai Gambar
     st.markdown(
         """
         <style>
@@ -65,32 +66,69 @@ def render_tab_rsi():
             color: #8B949E;
         }
 
-        /* Container Tombol Kartu Custom Modern */
-        div[data-testid="stVerticalBlock"] > div.stock-card-wrapper {
-            position: relative;
-            margin-bottom: 8px;
-        }
-
-        /* Modifikasi st.button agar berbentuk Kartu Modern */
-        div.stButton > button.stock-card-btn {
-            width: 100% !important;
-            min-height: 85px !important;
-            padding: 10px 14px !important;
-            background-color: #161B22 !important;
-            border: 1px solid #30363D !important;
-            border-radius: 10px !important;
+        /* STYLING UTAMA: MENGUBAH ST.BUTTON MENJADI CARD DENGAN KANAN-KIRI LAYOUT */
+        div[data-testid="stColumn"] div.stButton > button {
             text-align: left !important;
-            transition: all 0.2s ease-in-out !important;
+            padding: 10px 14px !important;
+            border-radius: 10px !important;
+            min-height: 80px !important;
+            margin-bottom: 6px !important;
         }
 
-        div.stButton > button.stock-card-btn:hover {
-            border-color: #58A6FF !important;
-            background-color: #1C2128 !important;
+        /* Format Teks Didalam Tombol Kartu */
+        .card-inner-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
         }
-
-        div.stButton > button.stock-card-selected {
-            border: 1.5px solid #00E676 !important;
-            background-color: #0D2B1D !important;
+        .card-left-side {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .card-right-side {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .card-ticker-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #FFFFFF;
+        }
+        .card-badge-score {
+            font-size: 10px;
+            background-color: #21262D;
+            border: 1px solid #30363D;
+            color: #E6BDFB;
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .card-pattern-text {
+            font-size: 11px;
+            color: #8B949E;
+        }
+        .card-date-text {
+            font-size: 10px;
+            color: #6E7681;
+        }
+        .card-price-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        .card-change-pos {
+            font-size: 11px;
+            font-weight: 600;
+            color: #00E676;
+        }
+        .card-change-neg {
+            font-size: 11px;
+            font-weight: 600;
+            color: #FF5252;
         }
         </style>
         """,
@@ -280,64 +318,38 @@ def render_tab_rsi():
 
                     is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
 
-                    change_color = "#00E676" if change_pct >= 0 else "#FF5252"
+                    change_class = "card-change-pos" if change_pct >= 0 else "card-change-neg"
                     change_icon = "📈" if change_pct >= 0 else "📉"
                     change_str = f"{change_icon} {change_pct:+.2f}%"
                     price_str = f"{close_price:,.0f}".replace(",", ".")
 
-                    badge_bg = "#0D2B1D" if is_selected else "#21262D"
-                    badge_border = "#00E676" if is_selected else "#30363D"
-                    
-                    card_border = "1.5px solid #00E676" if is_selected else "1px solid #30363D"
-                    card_bg = "#0D2B1D" if is_selected else "#161B22"
-
-                    # HTML Card Layout Persis Sesuai Gambar
-                    card_html = f"""
-                    <div style="
-                        background-color: {card_bg};
-                        border: {card_border};
-                        border-radius: 8px;
-                        padding: 10px 12px;
-                        margin-bottom: 8px;
-                        cursor: pointer;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    ">
-                        <!-- KIRI: Ticker, Badges, Name, Pattern, Date -->
-                        <div style="flex: 1; padding-right: 10px;">
-                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                                <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
-                                <span style="background-color: {badge_bg}; border: 1px solid {badge_border}; color: #8B949E; font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                    # MEMBUAT SATU KARTU UTUH DALAM 1 ST.BUTTON TANPA TOMBOL "SELECT" TERPISAH
+                    # Teks diformat menjadi HTML yang disuntikkan langsung ke tombol
+                    button_html_label = f"""
+                    <div class="card-inner-container">
+                        <div class="card-left-side">
+                            <div>
+                                <span class="card-ticker-title">{saham}</span>
+                                <span class="card-badge-score">⭐ {score}</span>
                             </div>
-                            <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">
-                                📌 {pattern_short}
-                            </div>
-                            <div style="font-size: 10px; color: #6E7681;">
-                                🗓️ {tgl_kiri} ➔ {tgl_kanan}
-                            </div>
+                            <div class="card-pattern-text">📌 {pattern_short}</div>
+                            <div class="card-date-text">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
                         </div>
-                        <!-- KANAN: Harga & % Change -->
-                        <div style="text-align: right; min-width: 80px;">
-                            <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">
-                                {price_str}
-                            </div>
-                            <div style="font-size: 11px; font-weight: 600; color: {change_color};">
-                                {change_str}
-                            </div>
+                        <div class="card-right-side">
+                            <div class="card-price-value">{price_str}</div>
+                            <div class="{change_class}">{change_str}</div>
                         </div>
                     </div>
                     """
 
-                    st.markdown(card_html, unsafe_allow_html=True)
+                    # Jika dipilih, tombol diberi tipe 'primary' (berwarna hijau highlight)
+                    btn_type = "primary" if is_selected else "secondary"
 
-                    # Button Tersembunyi untuk Memicu Pilihan
-                    btn_label = f"Select {saham}" if not is_selected else f"✓ {saham} Selected"
                     if st.button(
-                        btn_label,
+                        button_html_label,
                         key=f"card_btn_{ticker}_{idx}",
                         use_container_width=True,
-                        type="primary" if is_selected else "secondary",
+                        type=btn_type,
                     ):
                         st.session_state["selected_rsi_ticker"] = ticker
                         st.rerun()

@@ -132,6 +132,46 @@ def _format_val(val):
         return str(val)
 
 
+def _clean_num(val):
+    """Helper konversi string/angka menjadi float murni."""
+    if pd.isna(val) or val is None or val == "" or val == "-":
+        return None
+    try:
+        if isinstance(val, str):
+            val = val.replace(",", "").strip()
+        return float(val)
+    except Exception:
+        return None
+
+
+def calculate_rr_ratios(row):
+    """Menghitung Rasio Risk:Reward (TP1) dan Risk:Reward (TP2) secara matematis."""
+    buy_val = _clean_num(row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))))
+    sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
+    tp1_val = _clean_num(row.get("TP 1", row.get("TP1", row.get("Target 1", None))))
+    tp2_val = _clean_num(row.get("TP 2", row.get("TP2", row.get("Target 2", None))))
+
+    rr_tp1_str = "-"
+    rr_tp2_str = "-"
+
+    if buy_val and sl_val and (buy_val > sl_val):
+        risk = buy_val - sl_val
+        
+        # Risk to Reward Target 1
+        if tp1_val and tp1_val > buy_val:
+            reward1 = tp1_val - buy_val
+            rr1 = reward1 / risk
+            rr_tp1_str = f"1 : {rr1:.1f}"
+            
+        # Risk to Reward Target 2
+        if tp2_val and tp2_val > buy_val:
+            reward2 = tp2_val - buy_val
+            rr2 = reward2 / risk
+            rr_tp2_str = f"1 : {rr2:.1f}"
+
+    return rr_tp1_str, rr_tp2_str
+
+
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     """Helper function untuk merender detail Trade Planner di bawah tabel."""
     st.markdown("---")
@@ -223,34 +263,38 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     )
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # FILTER KOLOM: Buang kolom duplikat & nomor index mentah
-                    skip_cols = [
-                        "No", "no", "index", "RR_Val", "rr_val",
-                        "Type", "Strategy", "Score", "Grade", "Posisi Harga", "Status",
-                        "Range Buy Min", "Buy Min", "Range Buy Max", "Buy Max", "Area Buy",
-                        "Stop Loss", "SL", "TP 1", "TP1", "Target 1", "TP 2", "TP2", "Target 2",
-                        "Warning", "Status Candle"
-                    ]
-                    
-                    extra_cols = [c for c in df_plan.columns if c not in skip_cols]
+                    # Kalkulasi R:R untuk TP1 dan TP2 secara presisi
+                    rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
-                    if extra_cols:
-                        with st.expander(f"📋 Detail Parameter Tambahan #{plan_no} ({plan_type})", expanded=False):
+                    # TAMPILKAN PARAMETER DETAIL (INCL. 2 KOTAK R:R)
+                    with st.expander(f"📋 Detail Lengkap Parameter #{plan_no} ({plan_type})", expanded=True):
+                        # Row 1: Dua Kotak R:R (Target 1 & Target 2)
+                        col_rr1, col_rr2 = st.columns(2)
+                        with col_rr1:
+                            st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
+                        with col_rr2:
+                            st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
+
+                        # Row 2+: Sisa Parameter Tambahan (Polos dari Kolom Mentah)
+                        skip_cols = [
+                            "No", "no", "index", "RR_Val", "rr_val", "Rasio (R:R)", "R:R", "RR",
+                            "Type", "Strategy", "Score", "Grade", "Posisi Harga", "Status",
+                            "Range Buy Min", "Buy Min", "Range Buy Max", "Buy Max", "Area Buy",
+                            "Stop Loss", "SL", "TP 1", "TP1", "Target 1", "TP 2", "TP2", "Target 2",
+                            "Warning", "Status Candle"
+                        ]
+                        
+                        extra_cols = [c for c in df_plan.columns if c not in skip_cols]
+
+                        if extra_cols:
+                            st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
                             cols_per_row = 3
                             for i in range(0, len(extra_cols), cols_per_row):
                                 chunk_cols = extra_cols[i:i + cols_per_row]
                                 ui_cols = st.columns(len(chunk_cols))
                                 for col_idx, c_name in enumerate(chunk_cols):
                                     val = _format_val(row[c_name])
-                                    
-                                    # Rapikan nama label agar ramah pengguna
-                                    label_name = c_name
-                                    if c_name in ["Rasio (R:R)", "R:R", "RR"]:
-                                        label_name = "Risk to Reward Ratio"
-                                    elif c_name == "Pola Candle":
-                                        label_name = "Pola Candlestick"
-                                    
-                                    ui_cols[col_idx].metric(label=label_name, value=val)
+                                    ui_cols[col_idx].metric(label=c_name, value=val)
 
                 # Banner warning jika ada
                 if hasattr(df_plan, "columns") and len(df_plan) > 0:

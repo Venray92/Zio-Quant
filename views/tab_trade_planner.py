@@ -128,8 +128,91 @@ def reset_filters():
     st.session_state["f_candle"] = "SEMUA CANDLE"
 
 
+def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="white"):
+    """Fungsi Reusable Card berdasar Desain Acuan."""
+    badge_html = (
+        f'<span class="zio-badge badge-{variant}">{badge_text}</span>'
+        if badge_text
+        else ""
+    )
+
+    card_html = f"""
+    <div class="zio-card zio-card-{variant}">
+        <div class="zio-card-header">
+            <span class="zio-card-title title-{variant}">{title}</span>
+            {badge_html}
+        </div>
+        <div class="zio-card-value val-{value_color}">{value}</div>
+        <p class="zio-card-subtext">{subtext}</p>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
+
+
+def render_trade_plan_cards(df):
+    """Me-render setiap baris data hasil screener menjadi tampilan Card Grid."""
+    for idx, row in df.iterrows():
+        # Header Info Saham
+        st.markdown(
+            f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #0D111A; border: 1px solid #1E2638; padding: 14px 22px; border-radius: 12px; margin-top: 20px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <span style="font-size: 1.5rem; font-weight: 800; color: #FFFFFF;">{row['Saham']}</span>
+                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 3px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 700;">{row['Strategi']}</span>
+                    <span style="background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 3px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">{row['Grade']} ({row['Score']} pts)</span>
+                </div>
+                <div style="color: #94A3B8; font-size: 0.95rem;">
+                    Harga Last: <strong style="color: #FFFFFF; font-size: 1.1rem;">Rp {row['Harga Last']:,}</strong>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Layout Grid 2 Kolom Card
+        col1, col2 = st.columns(2)
+
+        with col1:
+            draw_card(
+                title="AREA ENTRY",
+                value=str(row["Area Buy"]),
+                subtext=f"Posisi: {row['Posisi Zone']} | Sinyal: {row['Pola Candle']}",
+                badge_text=str(row["Posisi Zone"]),
+                variant="green",
+                value_color="white",
+            )
+
+            draw_card(
+                title="TARGET 1 (TP 1)",
+                value=f"Rp {row['TP 1']:,}",
+                subtext="Ambil profit parsial / amankan gain awal.",
+                badge_text=str(row["Potensi Gain"]),
+                variant="blue",
+                value_color="white",
+            )
+
+        with col2:
+            draw_card(
+                title="STOP LOSS (SL)",
+                value=f"Rp {row['Stop Loss (SL)']:,}",
+                subtext=f"Disiplin cut loss. {row['Catatan Analisis & Warning']}",
+                badge_text=str(row["Risiko SL"]),
+                variant="red",
+                value_color="red",
+            )
+
+            draw_card(
+                title="TARGET 2 (TP 2)",
+                value=f"Rp {row['TP 2']:,}",
+                subtext=f"Target swing utama dengan Risk-to-Reward {row['Rasio (R:R)']}.",
+                badge_text=f"R:R {row['Rasio (R:R)']}",
+                variant="green",
+                value_color="green",
+            )
+
+
 def render_tab_trade_planner():
-    # 🎨 CSS STYLING BERSIH
+    # 🎨 CSS STYLING CARD GRID JIPLAK TOTAL
     st.markdown(
         """
         <style>
@@ -232,6 +315,62 @@ def render_tab_trade_planner():
             border: 1px solid #1E2638 !important;
             border-radius: 12px !important;
         }
+
+        /* CARD COMPONENT DESIGN JIPLAK */
+        .zio-card {
+            background-color: #111622;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            border: 1px solid #1E2638;
+            transition: all 0.2s ease-in-out;
+        }
+        .zio-card-green { border: 1px solid #059669; }
+        .zio-card-red { border: 1px solid #DC2626; }
+        .zio-card-blue { border: 1px solid #1E2638; }
+
+        .zio-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .zio-card-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .title-green { color: #10B981; }
+        .title-red { color: #EF4444; }
+        .title-blue { color: #60A5FA; }
+
+        .zio-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .badge-green { background-color: rgba(16, 185, 129, 0.15); color: #10B981; }
+        .badge-red { background-color: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .badge-blue { background-color: rgba(96, 165, 250, 0.15); color: #60A5FA; }
+
+        .zio-card-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+        .val-white { color: #FFFFFF; }
+        .val-green { color: #10B981; }
+        .val-red { color: #EF4444; }
+
+        .zio-card-subtext {
+            font-size: 0.8rem;
+            color: #94A3B8;
+            line-height: 1.4;
+            margin: 0;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -284,7 +423,7 @@ def render_tab_trade_planner():
         ):
             if st.session_state["screener_mode"] != "single":
                 st.session_state["screener_mode"] = "single"
-                st.session_state.pop("df_screener_raw", None)  # Reset hasil lama
+                st.session_state.pop("df_screener_raw", None)
             st.rerun()
 
     with mode_col2:
@@ -298,7 +437,7 @@ def render_tab_trade_planner():
         ):
             if st.session_state["screener_mode"] != "batch":
                 st.session_state["screener_mode"] = "batch"
-                st.session_state.pop("df_screener_raw", None)  # Reset hasil lama
+                st.session_state.pop("df_screener_raw", None)
             st.rerun()
 
     st.write("")
@@ -350,7 +489,7 @@ def render_tab_trade_planner():
     if "df_screener_raw" in st.session_state:
         df_raw = st.session_state["df_screener_raw"]
 
-        # Filter Parameter HANYA dimunculkan pada mode Batch
+        # Filter Parameter HANYA untuk mode Batch
         if st.session_state["screener_mode"] == "batch":
             st.write("")
             with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
@@ -446,12 +585,11 @@ def render_tab_trade_planner():
             df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
         else:
-            # Single Mode: Langsung pakai data hasil scan tanpa filter
             df = df_raw.copy()
 
         st.write("")
 
-        # Header Tabel & Download Button
+        # Header Hasil & Export Button
         h_left, h_right = st.columns([3, 1], vertical_alignment="center")
         with h_left:
             st.markdown(
@@ -472,34 +610,8 @@ def render_tab_trade_planner():
         if df.empty:
             st.warning("⚠️ Tidak ada data hasil analisis.")
         else:
-            st.dataframe(
-                df,
-                column_config={
-                    "Saham": st.column_config.TextColumn("Saham"),
-                    "Score": st.column_config.ProgressColumn(
-                        "Score",
-                        format="%d pts",
-                        min_value=0,
-                        max_value=100,
-                    ),
-                    "Grade": st.column_config.TextColumn("Grade"),
-                    "Strategi": st.column_config.TextColumn("Strategi"),
-                    "Harga Last": st.column_config.NumberColumn("Harga Last", format="Rp %d"),
-                    "Posisi Zone": st.column_config.TextColumn("Posisi Price"),
-                    "Area Buy": st.column_config.TextColumn("Area Buy (Entry)"),
-                    "Stop Loss (SL)": st.column_config.NumberColumn("SL", format="%d"),
-                    "TP 1": st.column_config.NumberColumn("TP 1", format="%d"),
-                    "TP 2": st.column_config.NumberColumn("TP 2", format="%d"),
-                    "Potensi Gain": st.column_config.TextColumn("Gain TP1"),
-                    "Risiko SL": st.column_config.TextColumn("Risk SL"),
-                    "Rasio (R:R)": st.column_config.TextColumn("R:R Ratio"),
-                    "RR_Val": None,
-                    "Pola Candle": st.column_config.TextColumn("Candle Signal"),
-                    "Catatan Analisis & Warning": st.column_config.TextColumn("Analisis & Warning", width="large"),
-                },
-                hide_index=True,
-                use_container_width=True,
-            )
+            # RENDER MODEL CARD GRID UNTUK SEMUA TAMPILAN HASIL
+            render_trade_plan_cards(df)
 
     # Footer
     st.markdown(

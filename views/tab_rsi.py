@@ -220,40 +220,40 @@ def render_tab_rsi():
             )
 
             if not df_target.empty:
-                # Tombol Native Berbentuk List Card Kompak yang 100% Bebas Error
-                for idx, row in df_target.iterrows():
-                    ticker = row.get("Ticker", row.get("Saham"))
-                    saham = row.get("Saham", ticker.replace(".JK", ""))
-                    score = row.get("Score", 0)
-                    pattern = row.get("Pattern", "-")
-                    close_price = row.get("Close_Price", 0)
-                    change_pct = row.get("Change_Pct", 0.0)
+                # Format Tampilan Tabel Ringkas Berbentuk Card Row
+                df_display = df_target.copy()
+                
+                # Menyiapkan kolom ringkas
+                if "Saham" not in df_display.columns and "Ticker" in df_display.columns:
+                    df_display["Saham"] = df_display["Ticker"].str.replace(".JK", "")
 
-                    tgl_kiri = row.get("Tgl Kiri", "-")
-                    harga_kiri = row.get("Harga Kiri", "-")
-                    rsi_kiri = row.get("RSI Kiri", 0.0)
+                df_display["Price"] = df_display["Close_Price"].apply(lambda x: f"Rp {x:,.0f}" if x > 0 else "-")
+                df_display["Change"] = df_display["Change_Pct"].apply(lambda x: f"+{x:.2f}%" if x >= 0 else f"{x:.2f}%")
+                df_display["Score"] = df_display["Score"].apply(lambda x: f"⭐ {x}")
 
-                    tgl_kanan = row.get("Tgl Kanan", "-")
-                    harga_kanan = row.get("Harga Kanan", "-")
-                    rsi_kanan = row.get("RSI Kanan", 0.0)
+                # Pilih kolom yang ditampilkan saja
+                display_cols = ["Saham", "Price", "Change", "Score", "Pattern"]
+                df_view = df_display[[c for c in display_cols if c in df_display.columns]]
 
-                    is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
+                st.caption("👇 Klik baris saham di bawah untuk memilih:")
+                
+                # Interactive Table (Bisa Langsung Diklik Barisnya)
+                event = st.dataframe(
+                    df_view,
+                    use_container_width=True,
+                    hide_index=True,
+                    selection_mode="single_row",
+                    on_select="rerun",
+                    key="rsi_saham_dataframe"
+                )
 
-                    change_str = f"+{change_pct:.2f}%" if change_pct >= 0 else f"{change_pct:.2f}%"
-                    price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
-                    
-                    # Label Utama Tombol
-                    btn_label = f"{'🟢' if is_selected else '⚪'} {saham} | {price_str} ({change_str}) | ⭐ {score}\n{pattern} | L: {harga_kiri} (RSI {rsi_kiri}) → R: {harga_kanan} (RSI {rsi_kanan})"
-
-                    btn_type = "primary" if is_selected else "secondary"
-
-                    if st.button(
-                        btn_label,
-                        key=f"card_select_{ticker}_{idx}",
-                        use_container_width=True,
-                        type=btn_type,
-                    ):
-                        st.session_state["selected_rsi_ticker"] = ticker
+                # Ambil Ticker dari Baris yang Diklik User
+                selected_rows = event.selection.get("rows", [])
+                if selected_rows:
+                    row_idx = selected_rows[0]
+                    clicked_ticker = df_display.iloc[row_idx].get("Ticker", df_display.iloc[row_idx].get("Saham"))
+                    if clicked_ticker != st.session_state.get("selected_rsi_ticker"):
+                        st.session_state["selected_rsi_ticker"] = clicked_ticker
                         st.rerun()
 
             else:
@@ -334,7 +334,7 @@ def render_tab_rsi():
                     <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
                     <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
                     <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
-                        Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.
+                        Run the screening process, then click any stock row from the left panel to inspect full Trade Planner details.
                     </p>
                 </div>
                 """,

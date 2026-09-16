@@ -129,7 +129,7 @@ def reset_filters():
 
 
 def render_tab_trade_planner():
-    # 🎨 OVERHAUL CSS: STYLING CARD BUTTON MODERN
+    # 🎨 CSS STYLING BERSIH
     st.markdown(
         """
         <style>
@@ -137,16 +137,15 @@ def render_tab_trade_planner():
             background-color: #07090E !important;
         }
 
-        /* Header Style Zio */
+        /* Header Style Minimalis */
         .zio-header-wrapper {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             background-color: #0D111A;
             border: 1px solid #1E2638;
             border-radius: 14px;
             padding: 18px 24px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .zio-header-left {
             display: flex;
@@ -169,63 +168,9 @@ def render_tab_trade_planner():
             font-size: 1.35rem;
             font-weight: 700;
             margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .zio-badge-pill {
-            background-color: rgba(168, 85, 247, 0.15);
-            color: #C084FC;
-            border: 1px solid rgba(168, 85, 247, 0.3);
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 0.72rem;
-            font-weight: 600;
-        }
-        .zio-subtitle-text {
-            color: #64748B;
-            font-size: 0.85rem;
-            margin-top: 2px;
         }
 
-        /* Main Container Box */
-        .zio-card-container {
-            background-color: #0D111A;
-            border: 1px solid #1E2638;
-            border-radius: 14px;
-            padding: 22px;
-            margin-bottom: 20px;
-        }
-
-        /* Status Cards 3 Kolom */
-        .zio-status-card {
-            background-color: #0D111A;
-            border: 1px solid #1E2638;
-            border-radius: 14px;
-            padding: 18px 20px;
-            height: 100%;
-        }
-        .zio-status-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-        .zio-status-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #FFFFFF;
-            margin-bottom: 4px;
-        }
-        .zio-status-desc {
-            font-size: 0.78rem;
-            color: #64748B;
-            line-height: 1.3;
-        }
-
-        /* Form Titles */
+        /* Section Title */
         .zio-form-header {
             color: #FFFFFF;
             font-size: 1.05rem;
@@ -292,26 +237,20 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- HEADER MODEL ZIO ---
+    # --- HEADER BERSIH ---
     st.markdown(
         """
         <div class="zio-header-wrapper">
             <div class="zio-header-left">
                 <div class="zio-icon-square">📊</div>
-                <div>
-                    <div class="zio-title-text">
-                        Smart Execution Screener
-                        <span class="zio-badge-pill">Screener Engine v3.0</span>
-                    </div>
-                    <div class="zio-subtitle-text">Platform pemeringkat & rekomendasi saham berbasis Price Action, Risk-to-Reward Ratio, dan Skoring Otomatis.</div>
-                </div>
+                <div class="zio-title-text">Smart Execution Screener</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Inisialisasi State Filter & Mode Screener
+    # Inisialisasi State
     if "screener_mode" not in st.session_state:
         st.session_state["screener_mode"] = "single"
     if "f_strategi" not in st.session_state:
@@ -325,14 +264,12 @@ def render_tab_trade_planner():
     if "f_candle" not in st.session_state:
         st.session_state["f_candle"] = "SEMUA CANDLE"
 
-    # --- 1. CARD CONTAINER: MODE SCREENER (MODERN CARD SELECTOR) ---
-    st.markdown('<div class="zio-card-container">', unsafe_allow_html=True)
+    # --- PILIH MODE SCREENER ---
     st.markdown(
         '<div class="zio-form-header"><span style="color:#A855F7;">🎯</span> Pilih Mode Eksekusi Screener</div>',
         unsafe_allow_html=True,
     )
 
-    # Modern Card Selector (Tanpa Radio / Checkbox)
     mode_col1, mode_col2 = st.columns(2)
     current_mode = st.session_state["screener_mode"]
 
@@ -340,7 +277,7 @@ def render_tab_trade_planner():
         is_single = current_mode == "single"
         btn_type_single = "primary" if is_single else "secondary"
         if st.button(
-            "⚡ Single / Custom Ticker\n\nAnalisis 1 atau beberapa kode saham tertentu",
+            "⚡ Single / Custom Ticker Analisis 1 atau beberapa kode saham tertentu",
             use_container_width=True,
             type=btn_type_single,
             key="btn_card_single",
@@ -352,7 +289,7 @@ def render_tab_trade_planner():
         is_batch = current_mode == "batch"
         btn_type_batch = "primary" if is_batch else "secondary"
         if st.button(
-            "🚀 Full Batch Screener\n\nScan otomatis 962+ saham dari database",
+            "🚀 Full Batch Screener Scan otomatis 962+ saham dari database",
             use_container_width=True,
             type=btn_type_batch,
             key="btn_card_batch",
@@ -362,7 +299,7 @@ def render_tab_trade_planner():
 
     st.write("")
 
-    # Form Aksi berdasarkan Card yang Dipilih
+    # Form Aksi
     if st.session_state["screener_mode"] == "single":
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
@@ -396,7 +333,6 @@ def render_tab_trade_planner():
         all_tickers = load_daftar_saham("daftar_saham.txt")
         if not all_tickers:
             st.error("❌ File `daftar_saham.txt` tidak ditemukan di folder utama!")
-            st.markdown("</div>", unsafe_allow_html=True)
             return
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
@@ -406,62 +342,12 @@ def render_tab_trade_planner():
             if st.button("🚀 Jalankan Batch", type="primary", use_container_width=True):
                 run_batch_execution(all_tickers)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # --- 2. STATS CARD 3 KOLOM + FILTER PANEL ---
+    # --- HASIL & FILTER ---
     if "df_screener_raw" in st.session_state:
         df_raw = st.session_state["df_screener_raw"]
 
-        c1, c2, c3 = st.columns(3)
-        total_scanned = len(df_raw)
-        in_buy_zone = len(df_raw[df_raw["Posisi Zone"] == "In Buy Zone"])
-        high_grade = len(df_raw[df_raw["Score"] >= 70])
-
-        with c1:
-            st.markdown(
-                f"""
-                <div class="zio-status-card">
-                    <div class="zio-status-title" style="color: #00E676;">
-                        <span>🕒</span> Total Saham Scanned
-                    </div>
-                    <div class="zio-status-value">{total_scanned} Saham</div>
-                    <div class="zio-status-desc">Hasil pemindaian algoritma aktif</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        with c2:
-            st.markdown(
-                f"""
-                <div class="zio-status-card">
-                    <div class="zio-status-title" style="color: #00E676;">
-                        <span>🛡️</span> In Buy Zone
-                    </div>
-                    <div class="zio-status-value" style="color: #00E676;">{in_buy_zone} Saham</div>
-                    <div class="zio-status-desc">Siap dieksekusi masuk area entry</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        with c3:
-            st.markdown(
-                f"""
-                <div class="zio-status-card">
-                    <div class="zio-status-title" style="color: #F59E0B;">
-                        <span>📖</span> High Quality Setup
-                    </div>
-                    <div class="zio-status-value" style="color: #F59E0B;">{high_grade} Grade A/A+</div>
-                    <div class="zio-status-desc">Score analisis &gt;= 70 poin</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
         st.write("")
 
-        # Panel Filter Custom
         with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
             r1c1, r1c2, r1c3 = st.columns(3)
             with r1c1:
@@ -512,7 +398,6 @@ def render_tab_trade_planner():
             with r2c3:
                 st.button("🔄 Reset Filter", on_click=reset_filters, use_container_width=True)
 
-        # Logika Filter
         df = df_raw.copy()
 
         if f_strategi == "Buy On Weakness (BOW)":
@@ -556,7 +441,6 @@ def render_tab_trade_planner():
 
         st.write("")
 
-        # Table Header
         h_left, h_right = st.columns([3, 1], vertical_alignment="center")
         with h_left:
             st.markdown(

@@ -273,24 +273,27 @@ def render_tab_trade_planner():
             }
         }
 
-        /* Banner Header dengan Background Gelap & Glowing Border Cyan Neon */
+        /* Banner Header Ringkas (Background Gelap, Lebar Tetap, Tinggi Ringkas, Rata Tengah) */
         .header-banner {
             border: 1px solid #00F3FF;
             box-shadow: 0 0 14px rgba(0, 243, 255, 0.4), inset 0 0 14px rgba(0, 243, 255, 0.15);
             border-radius: 8px;
-            padding: 22px 24px;
+            padding: 12px 24px;
             margin-bottom: 24px;
-            background: #0d1117; /* Background Gelap / Dark Mode */
+            background: #0d1117;
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-align: center;
+            width: 100%;
         }
 
-        /* Dot Nyala Redup Di Atas Judul Stock Trade Planner */
+        /* Dot Glowing Rata Tengah Di Atas Judul */
         .top-glowing-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             background-color: #00F3FF;
             border-radius: 50%;
             animation: pulseGlow 2.5s infinite ease-in-out;
@@ -298,12 +301,13 @@ def render_tab_trade_planner():
 
         .header-banner h1 {
             margin: 0;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 800;
             background: linear-gradient(135deg, #00F3FF 0%, #10b981 50%, #ec4899 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.5));
+            line-height: 1.2;
         }
 
         /* Styling Judul-Judul Penting + Gradasi + Glowing */
@@ -416,7 +420,7 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- BANNER HEADER (BACKGROUND GELAP + DOT GLOWING DI ATAS) ---
+    # --- BANNER HEADER ---
     st.markdown(
         """
         <div class="header-banner">
@@ -591,7 +595,7 @@ def render_tab_trade_planner():
                 r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
                 with r2c1:
                     f_rr = st.selectbox(
-                        "⚖️ Min Risk-Reward:",
+                        "秤 Min Risk-Reward:",
                         [
                             "ALL RATIOS",
                             "Min 1 : 1.5",
@@ -752,7 +756,7 @@ def render_tab_trade_planner():
                     df_selected_full = df[df["Symbol"].isin(selected_symbols)]
                     render_trade_plan_cards(df_selected_full, is_title_needed=True)
 
-    # --- FOOTER TEKS DIPERBARUI ---
+    # --- FOOTER ---
     st.markdown(
         """
         <br>

@@ -89,9 +89,11 @@ st.markdown(
 
     /* =========================================================
        🎛️ POPOVER BUTTON MAIN (CHOOSE_SCREENER)
+       Perbaikan: Menambahkan Border Cyan Neon Glowing
        ========================================================= */
     div[data-testid="stPopover"] > button {
         background-color: #080a12 !important;
+        /* Menegaskan kembali border warna cyan */
         border: 1.5px solid #00F3FF !important;
         color: #00F3FF !important;
         border-radius: 6px !important;
@@ -99,19 +101,20 @@ st.markdown(
         font-weight: 800 !important;
         font-family: 'Share Tech Mono', monospace !important;
         height: 48px !important;
-        /* Neon Cyan Glow Border & Text */
-        box-shadow: 0 0 12px rgba(0, 243, 255, 0.5), inset 0 0 8px rgba(0, 243, 255, 0.2) !important;
-        text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
+        /* Neon Cyan Glow Border & Text - Diperkuat box-shadow-nya */
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.7), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.9) !important;
         letter-spacing: 1px !important;
         text-transform: uppercase !important;
         transition: all 0.25s ease-in-out !important;
     }
 
+    /* Hover Effect untuk Main Popover Button */
     div[data-testid="stPopover"] > button:hover {
         background-color: #00F3FF !important;
         color: #000000 !important;
         border-color: #00F3FF !important;
-        box-shadow: 0 0 22px #00F3FF, 0 0 10px #00F3FF !important;
+        box-shadow: 0 0 25px #00F3FF, 0 0 10px #00F3FF !important;
         text-shadow: none !important;
     }
 

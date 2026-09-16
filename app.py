@@ -35,7 +35,7 @@ def get_logo_base64(file_path="logo.jpg"):
 
 logo_b64 = get_logo_base64("logo.jpg")
 
-# 3. Custom CSS Cyberpunk & Direct Clickable Brand Header
+# 3. Custom CSS Cyberpunk
 st.markdown(
     """
     <style>
@@ -56,39 +56,17 @@ st.markdown(
         padding-bottom: 2rem !important;
     }
 
-    /* Trik Tombol Klik Logo + Brand Jadi Satu */
-    div.brand-click-wrapper {
-        position: relative;
-        display: inline-block;
-    }
-
-    /* Menjadikan stButton transparan & menutupi visual logo+teks */
-    div.brand-click-wrapper div.stButton > button {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        background: transparent !important;
-        border: none !important;
-        color: transparent !important;
-        z-index: 10 !important;
-        cursor: pointer !important;
-        box-shadow: none !important;
-    }
-
-    /* Container Visual Brand */
-    .brand-container {
-        display: flex;
+    /* Link Brand (Logo + Teks) */
+    .brand-link {
+        display: inline-flex;
         align-items: center;
         gap: 14px;
-        padding: 4px;
-        border-radius: 8px;
-        transition: transform 0.15s ease-in-out, opacity 0.15s ease-in-out;
+        text-decoration: none !important;
+        cursor: pointer;
+        transition: opacity 0.2s ease-in-out;
     }
-    div.brand-click-wrapper:hover .brand-container {
-        opacity: 0.85;
-        transform: scale(1.02);
+    .brand-link:hover {
+        opacity: 0.8;
     }
 
     .brand-logo-img {
@@ -187,7 +165,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 4. Header Bar (Logo + Z-QUANT Bisa Diklik Langsung untuk Home)
+# 4. Header Bar (Logo + Z-QUANT berupa Tag Anchor <a>)
 col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
 with col_brand:
@@ -196,25 +174,16 @@ with col_brand:
     else:
         logo_html = '<span style="font-size: 32px;">⚡</span>'
 
-    st.markdown('<div class="brand-click-wrapper">', unsafe_allow_html=True)
-
-    # Visual Logo + Nama Z-QUANT Sejajar
+    # Render Tag Link <a> langsung mengarah ke "/"
     st.markdown(
         f"""
-        <div class="brand-container">
+        <a href="/" target="_self" class="brand-link">
             {logo_html}
             <span class="brand-title-text">Z-QUANT</span>
-        </div>
+        </a>
         """,
         unsafe_allow_html=True,
     )
-
-    # Button Transparan yang menutupi area Logo & Nama
-    if st.button("HOME_CLICK", key="btn_brand_home"):
-        st.session_state["selected_screener"] = None
-        st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
 with col_popover:
     with st.popover("🎛️ CHOOSE_SCREENER", use_container_width=True):

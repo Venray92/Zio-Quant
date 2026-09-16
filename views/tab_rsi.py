@@ -8,10 +8,10 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def shorten_pattern(pattern_name):
-    """Menyingkat nama pattern agar rapi."""
+    """Menyingkat nama pattern agar rapi di UI."""
     if not pattern_name or pattern_name == "-":
         return "-"
-    
+
     res = str(pattern_name)
     res = res.replace("Regular Bullish Divergence", "Reg Bull Div")
     res = res.replace("Hidden Bullish Divergence", "Hid Bull Div")
@@ -21,8 +21,22 @@ def shorten_pattern(pattern_name):
     res = res.replace("Bearish Divergence", "Bear Div")
     res = res.replace(" Potensial (Menunggu GC)", " [Potensial]")
     res = res.replace(" Valid (GC Confirmed)", " [GC]")
+    res = res.replace(" Valid (DC Confirmed)", " [DC]")
     res = res.replace(" Valid", "")
     return res
+
+
+def fetch_rsi_worker(ticker, max_retries=1):
+    """Worker function independen luar thread context Streamlit."""
+    for attempt in range(max_retries + 1):
+        try:
+            res = detect_rsi_patterns_and_score(ticker)
+            return True, res
+        except Exception:
+            if attempt < max_retries:
+                time.sleep(0.2 * (attempt + 1))
+            else:
+                return False, None
 
 
 def render_tab_rsi():
@@ -129,27 +143,19 @@ def render_tab_rsi():
             success_count = 0
             failed_count = 0
 
-            def fetch_rsi_with_retry(ticker, max_retries=2):
-                if st.session_state.get("stop_rsi_scan", False):
-                    return False, None
-                for attempt in range(max_retries + 1):
-                    try:
-                        res = detect_rsi_patterns_and_score(ticker)
-                        return True, res
-                    except Exception:
-                        if attempt < max_retries:
-                            time.sleep(0.3 * (attempt + 1))
-                        else:
-                            return False, None
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            # Gunakan ThreadPoolExecutor
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=8
+            ) as executor:
                 future_to_ticker = {
-                    executor.submit(fetch_rsi_with_retry, t): t
-                    for t in all_tickers
+                    executor.submit(fetch_rsi_worker, t): t for t in all_tickers
                 }
                 completed = 0
 
-                for future in concurrent.futures.as_completed(future_to_ticker):
+                for future in concurrent.futures.as_completed(
+                    future_to_ticker
+                ):
+                    # Cek flag stop
                     if st.session_state.get("stop_rsi_scan", False):
                         pstatus_rsi.warning("Screening process cancelled.")
                         break
@@ -157,7 +163,9 @@ def render_tab_rsi():
                     completed += 1
                     pct = int((completed / total_tickers) * 100)
                     pbar_rsi.progress(pct)
-                    pstatus_rsi.text(f"Scanning: {completed}/{total_tickers}")
+                    pstatus_rsi.text(
+                        f"Scanning: {completed}/{total_tickers}"
+                    )
 
                     try:
                         is_success, res = future.result()
@@ -178,7 +186,9 @@ def render_tab_rsi():
             )
 
             if not df_rsi_all.empty and "Score" in df_rsi_all.columns:
-                df_rsi_all = df_rsi_all.sort_values(by="Score", ascending=False)
+                df_rsi_all = df_rsi_all.sort_values(
+                    by="Score", ascending=False
+                )
 
             df_rsi_bullish = pd.DataFrame()
             df_rsi_bearish = pd.DataFrame()
@@ -207,12 +217,23 @@ def render_tab_rsi():
             st.session_state["df_rsi_bullish"] = df_rsi_bullish
             st.session_state["df_rsi_bearish"] = df_rsi_bearish
 
+            # Set default terpilih ke saham teratas
             if not df_rsi_bullish.empty:
-                st.session_state["selected_rsi_ticker"] = df_rsi_bullish.iloc[0].get("Ticker", df_rsi_bullish.iloc[0].get("Saham"))
+                st.session_state["selected_rsi_ticker"] = df_rsi_bullish.iloc[
+                    0
+                ].get(
+                    "Ticker", df_rsi_bullish.iloc[0].get("Saham")
+                )
             elif not df_rsi_bearish.empty:
-                st.session_state["selected_rsi_ticker"] = df_rsi_bearish.iloc[0].get("Ticker", df_rsi_bearish.iloc[0].get("Saham"))
+                st.session_state["selected_rsi_ticker"] = df_rsi_bearish.iloc[
+                    0
+                ].get(
+                    "Ticker", df_rsi_bearish.iloc[0].get("Saham")
+                )
 
-        st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True
+        )
 
         has_results = "rsi_stats" in st.session_state
 
@@ -220,12 +241,17 @@ def render_tab_rsi():
             screener_mode = st.selectbox(
                 "Choose Screener Mode",
                 options=["Bullish", "Bearish"],
-                index=0 if st.session_state.get("active_rsi_type") == "Bullish" else 1,
+                index=0
+                if st.session_state.get("active_rsi_type") == "Bullish"
+                else 1,
                 key="rsi_screener_mode_select",
             )
             st.session_state["active_rsi_type"] = screener_mode
 
-            st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='margin-bottom: 6px;'></div>",
+                unsafe_allow_html=True,
+            )
 
             is_bull_tab = screener_mode == "Bullish"
             df_target = (
@@ -236,60 +262,87 @@ def render_tab_rsi():
 
             if not df_target.empty:
                 for idx, row in df_target.iterrows():
-                    ticker = row.get("Ticker", row.get("Saham"))
+                    ticker = row.get("Ticker", row.get("Saham", ""))
                     saham = row.get("Saham", ticker.replace(".JK", ""))
                     score = row.get("Score", 0)
                     pattern_raw = row.get("Pattern", "-")
                     pattern_short = shorten_pattern(pattern_raw)
-                    
+
                     close_price = row.get("Close_Price", 0)
                     change_pct = row.get("Change_Pct", 0.0)
 
                     tgl_kiri = str(row.get("Tgl Kiri", "-"))
                     tgl_kanan = str(row.get("Tgl Kanan", "-"))
 
-                    is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
+                    is_selected = (
+                        st.session_state.get("selected_rsi_ticker") == ticker
+                    )
 
-                    change_color = "#00E676" if change_pct >= 0 else "#FF5252"
+                    change_color = (
+                        "#00E676" if change_pct >= 0 else "#FF5252"
+                    )
                     change_icon = "📈" if change_pct >= 0 else "📉"
                     change_str = f"{change_icon} {change_pct:+.2f}%"
                     price_str = f"{close_price:,.0f}".replace(",", ".")
 
-                    border_style = "border: 1.5px solid #00E676; background-color: #0D2B1D;" if is_selected else "border: 1px solid #30363D; background-color: #161B22;"
+                    border_style = (
+                        "border: 1.5px solid #00E676; background-color:"
+                        " #0D2B1D;"
+                        if is_selected
+                        else "border: 1px solid #30363D; background-color:"
+                        " #161B22;"
+                    )
 
                     # Container Kartu Rapi
                     with st.container():
-                        st.markdown(f"""
-                        <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                                        <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
-                                        <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                        st.markdown(
+                            f"""
+                            <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                            <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
+                                            <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                                        </div>
+                                        <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {pattern_short}</div>
+                                        <div style="font-size: 10px; color: #6E7681;">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
                                     </div>
-                                    <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {pattern_short}</div>
-                                    <div style="font-size: 10px; color: #6E7681;">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">{price_str}</div>
-                                    <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">{price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
-                        btn_label = f"✓ Selected ({saham})" if is_selected else f"Select {saham}"
+                        btn_label = (
+                            f"✓ Selected ({saham})"
+                            if is_selected
+                            else f"Select {saham}"
+                        )
                         btn_type = "primary" if is_selected else "secondary"
-                        
-                        if st.button(btn_label, key=f"select_btn_{ticker}_{idx}", use_container_width=True, type=btn_type):
+
+                        if st.button(
+                            btn_label,
+                            key=f"select_btn_{ticker}_{idx}",
+                            use_container_width=True,
+                            type=btn_type,
+                        ):
                             st.session_state["selected_rsi_ticker"] = ticker
                             st.rerun()
 
-                        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+                        st.markdown(
+                            "<div style='margin-bottom: 10px;'></div>",
+                            unsafe_allow_html=True,
+                        )
             else:
                 st.info(f"No {screener_mode} patterns detected.")
         else:
-            st.info("Click **Run Screening** above to start scanning the market.")
+            st.info(
+                "Click **Run Screening** above to start scanning the market."
+            )
 
     # =========================================================
     # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER
@@ -330,12 +383,18 @@ def render_tab_rsi():
                     </div>""",
                     unsafe_allow_html=True,
                 )
-            st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='margin-bottom: 10px;'></div>",
+                unsafe_allow_html=True,
+            )
 
         selected_rsi_symbol = st.session_state.get("selected_rsi_ticker")
 
         if selected_rsi_symbol:
-            if not selected_rsi_symbol.endswith(".JK") and "." not in selected_rsi_symbol:
+            if (
+                not selected_rsi_symbol.endswith(".JK")
+                and "." not in selected_rsi_symbol
+            ):
                 selected_rsi_symbol += ".JK"
 
             st.markdown(
@@ -349,14 +408,24 @@ def render_tab_rsi():
             )
 
             try:
-                render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
+                render_inline_trade_planner(
+                    selected_rsi_symbol, key_suffix="rsi_tab"
+                )
             except KeyError as ke:
                 if "Status Candle" in str(ke):
-                    st.warning(f"Trade Plan rendered with partial data for {selected_rsi_symbol}.")
+                    st.warning(
+                        "Trade Plan rendered with partial data for"
+                        f" {selected_rsi_symbol}."
+                    )
                 else:
-                    st.error(f"Failed to load Trade Plan for {selected_rsi_symbol}: {ke}")
+                    st.error(
+                        "Failed to load Trade Plan for"
+                        f" {selected_rsi_symbol}: {ke}"
+                    )
             except Exception as e:
-                st.error(f"Failed to load Trade Plan for {selected_rsi_symbol}: {e}")
+                st.error(
+                    f"Failed to load Trade Plan for {selected_rsi_symbol}: {e}"
+                )
         else:
             st.markdown(
                 """

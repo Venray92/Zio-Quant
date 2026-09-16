@@ -142,19 +142,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             if hasattr(planner, "fetch_and_prepare_data"):
                 planner.fetch_and_prepare_data()
 
-            # 1. Direction Market
-            df_dir = _safe_get_method_or_attr(planner, ["get_direction", "direction"])
-            if df_dir is not None and not (hasattr(df_dir, "empty") and df_dir.empty):
-                st.markdown("#### 📌 Direction Market")
-                st.dataframe(df_dir, use_container_width=True)
-                if hasattr(df_dir, "columns") and "Direction" in df_dir.columns and len(df_dir) > 0:
-                    direction_val = df_dir["Direction"].iloc[0]
-                    if direction_val == "BOB":
-                        st.success("Analisis Arah: **BOB (Breakout Buy)**")
-                    else:
-                        st.info("Analisis Arah: **BOW (Buy on Weakness)**")
-
-            # 2. Strategy Trade Plan
+            # 1. Strategy Trade Plan
             df_plan = _safe_get_method_or_attr(planner, ["generate_trade_plan", "get_trade_plan"])
             if df_plan is not None and not (hasattr(df_plan, "empty") and df_plan.empty):
                 st.markdown("#### 🎯 Trade Plan Recommendation")
@@ -169,7 +157,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}"
                         )
 
-            # 3. Support & Resistance Levels (Sembunyikan Total Jika Tidak Ada Data)
+            # 2. Support & Resistance Levels (Tampil jika ada data)
             df_sup = _safe_get_method_or_attr(
                 planner, ["get_strong_support", "get_support_levels", "get_support", "support_levels"]
             )
@@ -192,7 +180,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                         st.markdown("#### 🧱 Resistance Levels")
                         st.dataframe(df_res, use_container_width=True)
 
-            # 4. Swing Points
+            # 3. Swing Points
             df_swing = _safe_get_method_or_attr(planner, ["get_swing_points", "swing_points"])
             if df_swing is not None and not (hasattr(df_swing, "empty") and df_swing.empty):
                 st.markdown("#### 📍 Swing Points & Metpoints")

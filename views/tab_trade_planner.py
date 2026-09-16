@@ -460,7 +460,7 @@ def render_tab_trade_planner():
         is_single = current_mode == "single"
         btn_type_single = "primary" if is_single else "secondary"
         if st.button(
-            "🔍 Single Ticker Analysis\nAnalyze specific stock tickers",
+            "Single Ticker Analysis",
             use_container_width=True,
             type=btn_type_single,
             key="btn_card_single",
@@ -473,7 +473,7 @@ def render_tab_trade_planner():
         is_batch = current_mode == "batch"
         btn_type_batch = "primary" if is_batch else "secondary"
         if st.button(
-            "🚀 Batch Screener\nScan full stock list from database",
+            " Batch Screener\n Analysis",
             use_container_width=True,
             type=btn_type_batch,
             key="btn_card_batch",

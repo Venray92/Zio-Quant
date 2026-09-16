@@ -6,83 +6,140 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_stoch_psar():
-    # Style CSS Khusus Modul Stoch & PSAR
+    # Style CSS Cyberpunk & Neon Futuristic
     st.markdown(
         """
         <style>
-        /* 1. Header Banner Futuristik "STOCHASTIC & PARABOLIC SAR" */
-        .panel-header-center {
-            background: linear-gradient(135deg, rgba(0, 230, 118, 0.15) 0%, rgba(22, 27, 34, 0.95) 100%);
-            border: 1px solid #00E676;
-            border-radius: 10px;
-            padding: 10px 16px;
-            margin-bottom: 14px;
+        /* =========================================================
+           1. CYBERPUNK HEADER BANNER
+           ========================================================= */
+        .cyber-header-container {
+            position: relative;
+            background: linear-gradient(135deg, rgba(255, 0, 127, 0.15) 0%, rgba(0, 243, 255, 0.15) 100%);
+            border: 1px solid #00F3FF;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
             text-align: center;
-            box-shadow: 0 0 15px rgba(0, 230, 118, 0.2);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(255, 0, 127, 0.2);
+            overflow: hidden;
         }
-        .panel-title {
-            color: #00E676;
-            font-weight: 900;
+        .cyber-header-title {
             font-size: 16px;
-            letter-spacing: 1.5px;
-            text-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
+            font-weight: 900;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #FF007F, #00F3FF, #00FF66);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
+            margin: 0;
         }
 
-        /* 2. Custom Style Tombol RUN SCREENING (Hijau Neon Glow) */
+        /* =========================================================
+           2. SECTION LABEL "CHOOSE SIGNAL MODE"
+           ========================================================= */
+        .cyber-section-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #FF007F;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.6);
+            margin-top: 14px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* =========================================================
+           3. STYLING STREAMLIT BUTTONS (CYBERPUNK GLOW)
+           ========================================================= */
+        /* Tombol Run Screening */
         div[data-testid="stColumn"]:has(div[key="btn_run_stoch_screener"]) button {
-            background: linear-gradient(135deg, #00E676 0%, #00B0FF 100%) !important;
-            color: #000000 !important;
-            font-weight: 800 !important;
+            background: linear-gradient(135deg, #00F3FF 0%, #00FF66 100%) !important;
+            color: #050811 !important;
+            font-weight: 900 !important;
+            letter-spacing: 1px !important;
+            text-transform: uppercase !important;
             border: none !important;
-            border-radius: 8px !important;
-            box-shadow: 0 0 12px rgba(0, 230, 118, 0.4) !important;
-            transition: all 0.2s ease-in-out !important;
+            border-radius: 6px !important;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.5) !important;
+            transition: all 0.25s ease-in-out !important;
         }
         div[data-testid="stColumn"]:has(div[key="btn_run_stoch_screener"]) button:hover {
-            transform: translateY(-1px) !important;
-            box-shadow: 0 0 20px rgba(0, 230, 118, 0.7) !important;
+            transform: translateY(-2px) scale(1.02) !important;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.8) !important;
         }
 
-        /* 3. Custom Style Tombol STOP (Merah Neon Glow) */
+        /* Tombol Stop */
         div[data-testid="stColumn"]:has(div[key="btn_stop_stoch_screener"]) button {
-            background: linear-gradient(135deg, #FF1744 0%, #D50000 100%) !important;
+            background: linear-gradient(135deg, #FF007F 0%, #7928CA 100%) !important;
             color: #FFFFFF !important;
-            font-weight: 800 !important;
+            font-weight: 900 !important;
+            letter-spacing: 1px !important;
+            text-transform: uppercase !important;
             border: none !important;
-            border-radius: 8px !important;
-            box-shadow: 0 0 12px rgba(255, 23, 68, 0.4) !important;
-            transition: all 0.2s ease-in-out !important;
+            border-radius: 6px !important;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
+            transition: all 0.25s ease-in-out !important;
         }
         div[data-testid="stColumn"]:has(div[key="btn_stop_stoch_screener"]) button:hover {
-            transform: translateY(-1px) !important;
-            box-shadow: 0 0 20px rgba(255, 23, 68, 0.7) !important;
+            transform: translateY(-2px) scale(1.02) !important;
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
         }
 
-        /* Styling Metric Cards */
+        /* =========================================================
+           4. STYLING SELECTBOX / DROPDOWN (NEON BORDER & TEXT)
+           ========================================================= */
+        div[data-testid="stSelectbox"] > div > div {
+            background-color: #0D1117 !important;
+            border: 1.5px solid #00F3FF !important;
+            border-radius: 6px !important;
+            color: #00F3FF !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2) !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        div[data-testid="stSelectbox"] > div > div:hover {
+            border-color: #FF007F !important;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4) !important;
+        }
+        div[data-testid="stSelectbox"] div[role="button"] {
+            color: #00F3FF !important;
+            font-weight: 700 !important;
+        }
+
+        /* =========================================================
+           5. METRIC CARDS & CONTAINER STYLES
+           ========================================================= */
         .metric-card {
-            background-color: #161B22;
-            border: 1px solid #21262D;
+            background: #161B22;
+            border: 1px solid #30363D;
             border-radius: 8px;
-            padding: 8px 10px;
+            padding: 10px 12px;
             text-align: center;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
         }
         .metric-value {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 800;
             color: #FFFFFF;
         }
         .metric-label {
-            font-size: 9px;
+            font-size: 10px;
             color: #8B949E;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
         .empty-card {
             background-color: #161B22;
             border: 1px dashed #30363D;
-            border-radius: 8px;
-            padding: 40px 20px;
+            border-radius: 10px;
+            padding: 50px 20px;
             text-align: center;
             color: #8B949E;
         }
@@ -95,7 +152,7 @@ def render_tab_stoch_psar():
         st.session_state["stop_stoch_scan"] = False
 
     if "active_stoch_type" not in st.session_state:
-        st.session_state["active_stoch_type"] = "Golden Cross (Beli)"
+        st.session_state["active_stoch_type"] = "Golden Cross (Buy)"
 
     if "selected_stoch_ticker" not in st.session_state:
         st.session_state["selected_stoch_ticker"] = None
@@ -103,14 +160,14 @@ def render_tab_stoch_psar():
     col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
     # =========================================================
-    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
+    # LEFT PANEL: SCREENER CONTROL & STOCK LIST
     # =========================================================
     with col_left:
-        # Header Title Futuristik
+        # Header Banner Cyberpunk
         st.markdown(
             """
-            <div class="panel-header-center">
-                <div class="panel-title">⚡ STOCHASTIC & PARABOLIC SAR</div>
+            <div class="cyber-header-container">
+                <div class="cyber-header-title">⚡ STOCHASTIC & PARABOLIC SAR</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -120,14 +177,16 @@ def render_tab_stoch_psar():
 
         with col_btn_run:
             run_clicked = st.button(
-                "🚀 Run Screening",
+                "▶ Run Screening",
                 key="btn_run_stoch_screener",
                 use_container_width=True,
             )
 
         with col_btn_stop:
             stop_clicked = st.button(
-                "🛑 Stop", key="btn_stop_stoch_screener", use_container_width=True
+                "🛑 Stop",
+                key="btn_stop_stoch_screener",
+                use_container_width=True,
             )
 
         if stop_clicked:
@@ -135,7 +194,7 @@ def render_tab_stoch_psar():
 
         if run_clicked:
             st.session_state["stop_stoch_scan"] = False
-            with st.spinner("Fetching IHSG tickers list..."):
+            with st.spinner("Fetching IHSG Tickers List..."):
                 all_stoch_tickers = get_all_ihsg_tickers()
 
             total_stoch_tickers = len(all_stoch_tickers)
@@ -144,7 +203,7 @@ def render_tab_stoch_psar():
 
             def update_stoch_progress(current, total):
                 if st.session_state.get("stop_stoch_scan", False):
-                    pstatus_stoch.warning("Screening cancelled.")
+                    pstatus_stoch.warning("Screening process cancelled by user.")
                     return
                 pct = current / total if total > 0 else 0
                 pbar_stoch.progress(pct)
@@ -204,32 +263,32 @@ def render_tab_stoch_psar():
             except Exception as e:
                 pbar_stoch.empty()
                 pstatus_stoch.empty()
-                st.error(f"Terjadi kesalahan: {e}")
+                st.error(f"An error occurred: {e}")
 
-        st.markdown(
-            "<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True
-        )
+        st.markdown("<div style='margin-bottom: 4px;'></div>", unsafe_allow_html=True)
 
         has_results = "stoch_stats" in st.session_state
 
         if has_results:
-            screener_mode = st.selectbox(
-                "Choose Signal Mode",
-                options=["Golden Cross (Beli)", "Dead Cross (Jual)"],
-                index=0
-                if st.session_state.get("active_stoch_type")
-                == "Golden Cross (Beli)"
-                else 1,
-                key="stoch_screener_mode_select",
-            )
-            st.session_state["active_stoch_type"] = screener_mode
-
             st.markdown(
-                "<div style='margin-bottom: 6px;'></div>",
+                '<div class="cyber-section-label">⚙ CHOOSE SIGNAL MODE</div>',
                 unsafe_allow_html=True,
             )
 
-            is_gc_tab = screener_mode == "Golden Cross (Beli)"
+            screener_mode = st.selectbox(
+                "Choose Signal Mode",
+                options=["Golden Cross (Buy)", "Dead Cross (Sell)"],
+                index=0
+                if "Buy" in st.session_state.get("active_stoch_type", "Golden Cross (Buy)")
+                else 1,
+                key="stoch_screener_mode_select",
+                label_visibility="collapsed",
+            )
+            st.session_state["active_stoch_type"] = screener_mode
+
+            st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
+
+            is_gc_tab = "Buy" in screener_mode
             df_target = (
                 st.session_state.get("df_gc_data", pd.DataFrame())
                 if is_gc_tab
@@ -242,10 +301,8 @@ def render_tab_stoch_psar():
                     saham = ticker.replace(".JK", "")
                     score = row.get("Score", 0)
 
-                    # Ambil Detail Signal dari dict screener
                     signal_desc = row.get("Detail Signal", "-")
 
-                    # Ambil Harga dan Persentase
                     close_price = row.get("Harga", 0)
                     change_pct = row.get("Change (%)", 0.0)
 
@@ -263,13 +320,13 @@ def render_tab_stoch_psar():
                         st.session_state.get("selected_stoch_ticker") == ticker
                     )
 
-                    change_color = "#00E676" if change_pct >= 0 else "#FF5252"
+                    change_color = "#00FF66" if change_pct >= 0 else "#FF007F"
                     change_icon = "📈" if change_pct >= 0 else "📉"
                     change_str = f"{change_icon} {change_pct:+.2f}%"
                     price_str = f"{close_price:,.0f}".replace(",", ".")
 
                     border_style = (
-                        "border: 1.5px solid #00E676; background-color: #0D2B1D;"
+                        "border: 1.5px solid #00F3FF; background-color: rgba(0, 243, 255, 0.08); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);"
                         if is_selected
                         else "border: 1px solid #30363D; background-color: #161B22;"
                     )
@@ -282,13 +339,13 @@ def render_tab_stoch_psar():
                                     <div>
                                         <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                                             <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
-                                            <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                                            <span style="background-color: rgba(255, 0, 127, 0.2); border: 1px solid #FF007F; color: #FF007F; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">⭐ {score}</span>
                                         </div>
                                         <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {signal_desc}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
-                                        <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                        <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 700; color: {change_color};">{change_str}</div>
                                     </div>
                                 </div>
                             </div>
@@ -317,14 +374,14 @@ def render_tab_stoch_psar():
                             unsafe_allow_html=True,
                         )
             else:
-                st.info(f"Tidak ada signal {screener_mode} yang terdeteksi.")
+                st.info(f"No {screener_mode} signals detected.")
         else:
             st.info(
-                "Klik **Run Screening** di atas untuk mulai memindai pasar."
+                "Click **▶ Run Screening** above to scan the market."
             )
 
     # =========================================================
-    # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER
+    # RIGHT PANEL: WORKSPACE & LIVE TRADE PLANNER
     # =========================================================
     with col_right:
         if "stoch_stats" in st.session_state:
@@ -340,17 +397,17 @@ def render_tab_stoch_psar():
                 )
             with m2:
                 st.markdown(
-                    f"""<div class="metric-card" style="border-color: #00E676;">
-                        <div class="metric-label" style="color: #00E676;">Golden Cross</div>
-                        <div class="metric-value" style="color: #00E676;">{stats['matched_gc']}</div>
+                    f"""<div class="metric-card" style="border-color: #00FF66;">
+                        <div class="metric-label" style="color: #00FF66;">Golden Cross</div>
+                        <div class="metric-value" style="color: #00FF66;">{stats['matched_gc']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
             with m3:
                 st.markdown(
-                    f"""<div class="metric-card" style="border-color: #FF5252;">
-                        <div class="metric-label" style="color: #FF5252;">Dead Cross</div>
-                        <div class="metric-value" style="color: #FF5252;">{stats['matched_dc']}</div>
+                    f"""<div class="metric-card" style="border-color: #FF007F;">
+                        <div class="metric-label" style="color: #FF007F;">Dead Cross</div>
+                        <div class="metric-value" style="color: #FF007F;">{stats['matched_dc']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
@@ -378,9 +435,9 @@ def render_tab_stoch_psar():
 
             st.markdown(
                 f"""
-                <div style="background-color: #0D2B1D; border: 1.5px solid #00E676; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00E676; font-size: 15px; margin-left: 6px;">{selected_stoch_symbol}</strong></span>
-                    <span style="color: #8B949E; font-size: 11px; font-weight: 400;">Interactive Analysis Workspace</span>
+                <div style="background: linear-gradient(135deg, rgba(0, 243, 255, 0.1) 0%, rgba(255, 0, 127, 0.1) 100%); border: 1.5px solid #00F3FF; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);">
+                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00F3FF; font-size: 15px; margin-left: 6px;">{selected_stoch_symbol}</strong></span>
+                    <span style="color: #8B949E; font-size: 11px; font-weight: 500;">Interactive Analysis Workspace</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -409,7 +466,7 @@ def render_tab_stoch_psar():
             st.markdown(
                 """
                 <div class="empty-card">
-                    <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
+                    <div style="font-size: 32px; margin-bottom: 8px;">👈</div>
                     <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
                     <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
                         Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.

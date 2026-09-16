@@ -24,7 +24,7 @@ def load_daftar_saham(filename="daftar_saham.txt"):
 
 
 def process_single_ticker(ticker_code: str):
-    """Single ticker execution processor (pure data, NO Streamlit UI calls)."""
+    """Single ticker execution processor (pure data processing, no Streamlit UI calls)."""
     symbol = ticker_code.strip().upper()
     if not symbol.endswith(".JK"):
         symbol += ".JK"
@@ -83,7 +83,7 @@ def process_single_ticker(ticker_code: str):
 
 
 def run_batch_execution(ticker_list, cache_key):
-    """Multi-threaded execution runner with safe UI updates on the main thread."""
+    """Multi-threaded execution runner with safe main-thread UI updates."""
     total_saham = len(ticker_list)
     if total_saham == 0:
         st.warning("⚠️ Ticker list is empty!")
@@ -107,18 +107,17 @@ def run_batch_execution(ticker_list, cache_key):
 
             completed += 1
             percent = completed / total_saham
-            
-            # UI updates executed safely in the main thread
             progress_bar.progress(percent)
             status_text.markdown(
-                f"⏳ **Screener Progress:** `{completed}/{total_saham}` stocks processed ({int(percent * 100)}%)"
+                f"⏳ <span style='color:#00f3ff; font-family: monospace;'>[SCANNING_GRID]:</span> `{completed}/{total_saham}` stocks processed ({int(percent * 100)}%)",
+                unsafe_allow_html=True,
             )
 
     progress_bar.empty()
     status_text.empty()
     st.toast(
-        f"Successfully analyzed {len(results)} out of {total_saham} stocks!",
-        icon="🚀",
+        f"SYSTEM ONLINE: Analyzed {len(results)} out of {total_saham} stocks!",
+        icon="⚡",
     )
 
     if results:
@@ -138,50 +137,50 @@ def reset_filters():
 def clear_cache(cache_key):
     """Clear specific cache mode."""
     st.session_state.pop(cache_key, None)
-    st.toast("Cache cleared successfully!", icon="🧹")
+    st.toast("CACHE PURGED // MEMORY RESET", icon="🧹")
 
 
-def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="white"):
-    """Reusable Card Component for Trade Plan View."""
+def draw_card(title, value, subtext, badge_text="", variant="cyan", value_color="cyan"):
+    """Reusable Cyberpunk Card Component."""
     badge_html = (
-        f'<span class="zio-badge badge-{variant}">{badge_text}</span>'
+        f'<span class="cp-badge badge-{variant}">{badge_text}</span>'
         if badge_text
         else ""
     )
 
     card_html = f"""
-    <div class="zio-card zio-card-{variant}">
-        <div class="zio-card-header">
-            <span class="zio-card-title title-{variant}">{title}</span>
+    <div class="cp-card cp-card-{variant}">
+        <div class="cp-card-header">
+            <span class="cp-card-title title-{variant}">{title}</span>
             {badge_html}
         </div>
-        <div class="zio-card-value val-{value_color}">{value}</div>
-        <p class="zio-card-subtext">{subtext}</p>
+        <div class="cp-card-value val-{value_color}">{value}</div>
+        <p class="cp-card-subtext">{subtext}</p>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
 
 
 def render_trade_plan_cards(df_data, is_title_needed=True):
-    """Renders Trade Plan Cards for given stocks Dataframe."""
+    """Renders Cyberpunk Trade Plan Cards for given stocks Dataframe."""
     if is_title_needed:
         st.markdown(
-            f"### 🎯 Trade Plans Details <span style='font-size:0.9rem; color:#A855F7;'>({len(df_data)} Stocks)</span>",
+            f"<h3 style='color:#00f3ff; font-family: monospace; text-shadow: 0 0 10px #00f3ff;'>// TRADE_PLANS_TARGETS <span style='font-size:0.9rem; color:#ff0055;'>({len(df_data)} UNITS)</span></h3>",
             unsafe_allow_html=True,
         )
 
     for idx, row in df_data.iterrows():
         st.markdown(
             f"""
-            <div style="background: #0D111A; border: 1px solid #1E2638; padding: 14px 20px; border-radius: 12px; margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <span style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF;">{row['Symbol']}</span>
-                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">STRATEGY: {row['Strategy']}</span>
-                    <span style="background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Grade: {row['Grade']}</span>
-                    <span style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Score: {row['Score']}/100</span>
+            <div style="background: #0d0f18; border: 1px solid #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); padding: 16px 20px; border-radius: 4px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-family: monospace;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span style="font-size: 1.6rem; font-weight: 900; color: #ff0055; text-shadow: 0 0 8px #ff0055; letter-spacing: 2px;">{row['Symbol']}</span>
+                    <span style="background: rgba(0, 243, 255, 0.1); color: #00f3ff; border: 1px solid #00f3ff; padding: 3px 10px; font-size: 0.8rem; font-weight: 700;">STRATEGY: {row['Strategy']}</span>
+                    <span style="background: rgba(255, 230, 0, 0.1); color: #ffe600; border: 1px solid #ffe600; padding: 3px 10px; font-size: 0.8rem; font-weight: 700;">Grade: {row['Grade']}</span>
+                    <span style="background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid #ff0055; padding: 3px 10px; font-size: 0.8rem; font-weight: 700;">Score: {row['Score']}/100</span>
                 </div>
-                <div style="color: #94A3B8; font-size: 0.9rem;">
-                    Last Price: <strong style="color: #FFFFFF; font-size: 1.1rem;">Rp {row['Last Price']:,}</strong>
+                <div style="color: #8a8b98; font-size: 0.9rem;">
+                    LAST_PRICE: <strong style="color: #00f3ff; font-size: 1.2rem; text-shadow: 0 0 5px #00f3ff;">Rp {row['Last Price']:,}</strong>
                 </div>
             </div>
             """,
@@ -191,54 +190,54 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
         col1, col2 = st.columns(2)
         with col1:
             draw_card(
-                title="BUY RANGE (ENTRY AREA)",
+                title="BUY RANGE // ENTRY_ZONE",
                 value=str(row["Buy Range"]),
-                subtext=f"Position Status: {row['Zone Position']}",
+                subtext=f"STATUS: {row['Zone Position']}",
                 badge_text=str(row["Zone Position"]),
-                variant="green",
-                value_color="white",
+                variant="cyan",
+                value_color="cyan",
             )
             draw_card(
-                title="TARGET 1 (TP 1)",
+                title="TARGET 1 // TP_01",
                 value=f"Rp {row['TP 1']:,}",
-                subtext="Initial profit target / partial exit zone.",
+                subtext="Initial profit target / partial exit.",
                 badge_text=str(row["Potential Gain"]),
-                variant="blue",
-                value_color="white",
+                variant="yellow",
+                value_color="yellow",
             )
 
         with col2:
             draw_card(
-                title="STOP LOSS (SL)",
+                title="STOP LOSS // CUT_OFF",
                 value=f"Rp {row['Stop Loss (SL)']:,}",
-                subtext="Risk management boundary / cutloss level.",
+                subtext="Hard boundary risk limit.",
                 badge_text=str(row["SL Risk"]),
-                variant="red",
-                value_color="red",
+                variant="magenta",
+                value_color="magenta",
             )
             draw_card(
-                title="TARGET 2 (TP 2)",
+                title="TARGET 2 // TP_02",
                 value=f"Rp {row['TP 2']:,}",
                 subtext="Main swing target zone.",
                 badge_text=f"R:R {row['Risk-Reward Ratio']}",
-                variant="green",
-                value_color="green",
+                variant="cyan",
+                value_color="cyan",
             )
 
         st.markdown(
             f"""
-            <div style="background: #111622; border: 1px solid #1E2638; border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+            <div style="background: #05060a; border: 1px solid #1e2230; padding: 14px 18px; margin-bottom: 28px; font-family: monospace; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                 <div>
-                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">RISK : REWARD RATIO</span>
-                    <span style="font-size: 0.95rem; color: #F8FAFC; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
+                    <span style="font-size: 0.75rem; color: #5a5c6e; display: block;">RISK : REWARD</span>
+                    <span style="font-size: 0.95rem; color: #00f3ff; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
                 </div>
                 <div>
-                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">CANDLESTICK PATTERN</span>
-                    <span style="font-size: 0.95rem; color: #38BDF8; font-weight: 700;">{row['Candlestick Pattern']}</span>
+                    <span style="font-size: 0.75rem; color: #5a5c6e; display: block;">CANDLE_PATTERN</span>
+                    <span style="font-size: 0.95rem; color: #ffe600; font-weight: 700;">{row['Candlestick Pattern']}</span>
                 </div>
                 <div style="grid-column: span 2;">
-                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">ANALYSIS & RISK WARNING</span>
-                    <span style="font-size: 0.88rem; color: #FCA5A5; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
+                    <span style="font-size: 0.75rem; color: #5a5c6e; display: block;">SYSTEM_ANALYSIS & WARNING</span>
+                    <span style="font-size: 0.88rem; color: #ff0055; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
                 </div>
             </div>
             """,
@@ -247,156 +246,143 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
 
 
 def render_tab_trade_planner():
+    # 🎨 CYBERPUNK CSS STYLING
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        /* Dark Glitch Background */
         .stApp {
-            background-color: #07090E !important;
+            background-color: #030407 !important;
+            color: #c0c5d0 !important;
+            font-family: 'Share Tech Mono', monospace !important;
         }
 
-        .zio-header-wrapper {
+        /* Cyberpunk Header Wrapper */
+        .cp-header-wrapper {
             display: flex;
             align-items: center;
-            background-color: #0D111A;
-            border: 1px solid #1E2638;
-            border-radius: 14px;
+            background: #090b10;
+            border: 2px solid #ff0055;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.3), inset 0 0 15px rgba(255, 0, 85, 0.1);
             padding: 18px 24px;
             margin-bottom: 24px;
+            clip-path: polygon(0 0, 100% 0, 98% 100%, 0 100%);
         }
-        .zio-header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        .zio-icon-square {
-            background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
-        }
-        .zio-title-text {
-            color: #FFFFFF;
-            font-size: 1.35rem;
-            font-weight: 700;
-            margin: 0;
+        .cp-title-text {
+            color: #00f3ff;
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-shadow: 0 0 8px #00f3ff;
+            letter-spacing: 3px;
+            text-transform: uppercase;
         }
 
-        .zio-form-header {
-            color: #FFFFFF;
-            font-size: 1.05rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .zio-label {
-            color: #94A3B8;
-            font-size: 0.82rem;
-            font-weight: 600;
-            margin-bottom: 6px;
-            display: block;
-        }
-
+        /* Inputs Styling */
         div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-            background-color: #07090E !important;
-            border: 1px solid #1E2638 !important;
-            border-radius: 8px !important;
-            color: #F8FAFC !important;
+            background-color: #070910 !important;
+            border: 1px solid #00f3ff !important;
+            color: #00f3ff !important;
+            border-radius: 0px !important;
+            box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
+            font-family: 'Share Tech Mono', monospace !important;
         }
         div[data-baseweb="input"]:focus-within > div, div[data-baseweb="select"]:focus-within > div {
-            border-color: #8B5CF6 !important;
-            box-shadow: 0 0 0 1px #8B5CF6 !important;
+            border-color: #ff0055 !important;
+            box-shadow: 0 0 10px #ff0055 !important;
         }
 
+        /* Neon Cyber Buttons */
         div.stButton > button {
-            background-color: #111625 !important;
-            color: #94A3B8 !important;
-            border: 1px solid #1E2638 !important;
-            border-radius: 12px !important;
-            font-weight: 600 !important;
+            background: #090c15 !important;
+            color: #00f3ff !important;
+            border: 1px solid #00f3ff !important;
+            border-radius: 0px !important;
+            font-weight: 700 !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             padding: 12px 18px !important;
             transition: all 0.2s ease-in-out !important;
-            height: auto !important;
         }
         div.stButton > button:hover {
-            border-color: #8B5CF6 !important;
-            color: #FFFFFF !important;
-            box-shadow: 0 0 12px rgba(139, 92, 246, 0.3) !important;
+            background: #00f3ff !important;
+            color: #000000 !important;
+            box-shadow: 0 0 15px #00f3ff !important;
         }
         div.stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%) !important;
-            color: #FFFFFF !important;
-            border: none !important;
-            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4) !important;
+            background: #ff0055 !important;
+            color: #ffffff !important;
+            border: 1px solid #ff0055 !important;
+            box-shadow: 0 0 12px #ff0055 !important;
+            text-shadow: 0 0 5px #ffffff;
         }
         div.stButton > button[kind="primary"]:hover {
-            box-shadow: 0 6px 22px rgba(139, 92, 246, 0.6) !important;
+            background: #ffffff !important;
+            color: #ff0055 !important;
+            box-shadow: 0 0 20px #ff0055 !important;
         }
 
+        /* Expander */
         div[data-testid="stExpander"] {
-            background-color: #0D111A !important;
-            border: 1px solid #1E2638 !important;
-            border-radius: 12px !important;
+            background-color: #080a10 !important;
+            border: 1px solid #ff0055 !important;
+            border-radius: 0px !important;
+            box-shadow: 0 0 8px rgba(255, 0, 85, 0.2);
         }
 
-        .zio-card {
-            background-color: #111622;
-            border-radius: 12px;
+        /* Cyberpunk Cards */
+        .cp-card {
+            background-color: #080a12;
             padding: 16px 18px;
             margin-bottom: 14px;
-            border: 1px solid #1E2638;
-            transition: all 0.2s ease-in-out;
+            font-family: 'Share Tech Mono', monospace;
+            position: relative;
         }
-        .zio-card-green { border: 1px solid #059669; }
-        .zio-card-red { border: 1px solid #DC2626; }
-        .zio-card-blue { border: 1px solid #1E2638; }
+        .cp-card-cyan { border: 1px solid #00f3ff; box-shadow: 0 0 10px rgba(0, 243, 255, 0.15); }
+        .cp-card-magenta { border: 1px solid #ff0055; box-shadow: 0 0 10px rgba(255, 0, 85, 0.15); }
+        .cp-card-yellow { border: 1px solid #ffe600; box-shadow: 0 0 10px rgba(255, 230, 0, 0.15); }
 
-        .zio-card-header {
+        .cp-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
         }
-        .zio-card-title {
-            font-size: 0.78rem;
+        .cp-card-title {
+            font-size: 0.8rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
             text-transform: uppercase;
         }
-        .title-green { color: #10B981; }
-        .title-red { color: #EF4444; }
-        .title-blue { color: #60A5FA; }
+        .title-cyan { color: #00f3ff; }
+        .title-magenta { color: #ff0055; }
+        .title-yellow { color: #ffe600; }
 
-        .zio-badge {
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 2px 7px;
-            border-radius: 6px;
+        .cp-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 0px;
         }
-        .badge-green { background-color: rgba(16, 185, 129, 0.15); color: #10B981; }
-        .badge-red { background-color: rgba(239, 68, 68, 0.15); color: #EF4444; }
-        .badge-blue { background-color: rgba(96, 165, 250, 0.15); color: #60A5FA; }
+        .badge-cyan { background: rgba(0, 243, 255, 0.1); color: #00f3ff; border: 1px solid #00f3ff; }
+        .badge-magenta { background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid #ff0055; }
+        .badge-yellow { background: rgba(255, 230, 0, 0.1); color: #ffe600; border: 1px solid #ffe600; }
 
-        .zio-card-value {
+        .cp-card-value {
             font-size: 1.4rem;
-            font-weight: 800;
+            font-weight: 900;
             margin-bottom: 4px;
             line-height: 1.2;
         }
-        .val-white { color: #FFFFFF; }
-        .val-green { color: #10B981; }
-        .val-red { color: #EF4444; }
+        .val-cyan { color: #00f3ff; text-shadow: 0 0 5px #00f3ff; }
+        .val-magenta { color: #ff0055; text-shadow: 0 0 5px #ff0055; }
+        .val-yellow { color: #ffe600; text-shadow: 0 0 5px #ffe600; }
 
-        .zio-card-subtext {
+        .cp-card-subtext {
             font-size: 0.78rem;
-            color: #94A3B8;
-            line-height: 1.3;
+            color: #6c7086;
             margin: 0;
         }
         </style>
@@ -404,13 +390,11 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
+    # --- HEADER ---
     st.markdown(
         """
-        <div class="zio-header-wrapper">
-            <div class="zio-header-left">
-                <div class="zio-icon-square">📊</div>
-                <div class="zio-title-text">Smart Execution Screener</div>
-            </div>
+        <div class="cp-header-wrapper">
+            <div class="cp-title-text">⚡ TRADE_PLANNER // CYBER_SCREENER_v2.0</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -430,7 +414,7 @@ def render_tab_trade_planner():
         st.session_state["f_candle"] = "ALL CANDLES"
 
     st.markdown(
-        '<div class="zio-form-header"><span style="color:#A855F7;">🎯</span> Choose Screener Mode</div>',
+        '<div style="color:#ff0055; font-family:monospace; font-weight:bold; margin-bottom:10px;">[SELECT_EXECUTION_MODE]</div>',
         unsafe_allow_html=True,
     )
 
@@ -441,7 +425,7 @@ def render_tab_trade_planner():
         is_single = current_mode == "single"
         btn_type_single = "primary" if is_single else "secondary"
         if st.button(
-            "⚡ Single / Custom Ticker Analysis\nAnalyze specific stock tickers",
+            "⚡ SINGLE_TARGET_SCAN\nAnalyze specific tickers",
             use_container_width=True,
             type=btn_type_single,
             key="btn_card_single",
@@ -454,7 +438,7 @@ def render_tab_trade_planner():
         is_batch = current_mode == "batch"
         btn_type_batch = "primary" if is_batch else "secondary"
         if st.button(
-            "🚀 Full Batch Screener Scan\nAuto-scan database ticker list",
+            "🚀 BATCH_DATABASE_SWEEP\nFull scan ticker list",
             use_container_width=True,
             type=btn_type_batch,
             key="btn_card_batch",
@@ -469,23 +453,23 @@ def render_tab_trade_planner():
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
             st.markdown(
-                '<span class="zio-label">Enter Stock Tickers:</span>',
+                '<span style="color:#00f3ff; font-family:monospace; font-size:0.85rem;">INPUT_TARGET_TICKERS:</span>',
                 unsafe_allow_html=True,
             )
             input_ticker = st.text_input(
                 "Stock Tickers",
                 value="",
-                placeholder="Example: BBCA, BMRI, TLKM, INCO (comma separated)",
+                placeholder="BBCA, BMRI, TLKM, INCO...",
                 label_visibility="collapsed",
             )
         with col_btn:
             btn_single = st.button(
-                "🔍 Analyze Tickers", type="primary", use_container_width=True
+                "🔍 EXECUTE_SCAN", type="primary", use_container_width=True
             )
 
         if btn_single:
             if not input_ticker.strip():
-                st.warning("⚠️ Please enter at least one stock ticker!")
+                st.warning("⚠️ TARGET_INPUT_EMPTY!")
             else:
                 list_to_scan = [
                     t.strip().upper()
@@ -503,30 +487,30 @@ def render_tab_trade_planner():
             h_left, h_right = st.columns([3, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
-                    f"### 🎯 Trade Plan Results <span style='font-size:0.9rem; color:#A855F7;'>({len(df_single_res)} Stocks)</span>",
+                    f"<h3 style='color:#00f3ff; font-family:monospace;'>// SCAN_RESULTS <span style='font-size:0.9rem; color:#ff0055;'>({len(df_single_res)} UNITS)</span></h3>",
                     unsafe_allow_html=True,
                 )
             with h_right:
-                if st.button("🗑️ Clear Result", use_container_width=True, key="btn_clear_single"):
+                if st.button("🗑️ PURGE_DATA", use_container_width=True, key="btn_clear_single"):
                     clear_cache(active_cache_key)
                     st.rerun()
 
             if df_single_res.empty:
-                st.warning("⚠️ No valid data returned for the entered tickers.")
+                st.warning("⚠️ NO_VALID_DATA_RETURNED")
             else:
                 render_trade_plan_cards(df_single_res, is_title_needed=False)
 
     else:
         all_tickers = load_daftar_saham("daftar_saham.txt")
         if not all_tickers:
-            st.error("❌ `daftar_saham.txt` file not found in root folder!")
+            st.error("❌ `daftar_saham.txt` FILE_NOT_FOUND!")
             return
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
         with col_info:
-            st.info(f"📁 Ready to analyze **{len(all_tickers)} stocks** from `daftar_saham.txt` database.")
+            st.info(f"📁 GRID_DATABASE: Ready to scan **{len(all_tickers)} stocks** from `daftar_saham.txt`.")
         with col_batch_btn:
-            if st.button("🚀 Run Batch Scan", type="primary", use_container_width=True):
+            if st.button("🚀 INITIALIZE_SWEEP", type="primary", use_container_width=True):
                 run_batch_execution(all_tickers, cache_key="df_screener_batch")
 
         active_cache_key = "df_screener_batch"
@@ -535,17 +519,17 @@ def render_tab_trade_planner():
             df_raw = st.session_state[active_cache_key]
 
             st.write("")
-            with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
+            with st.expander("🛠️ **CYBER_FILTERS & PARAMETERS**", expanded=True):
                 r1c1, r1c2, r1c3 = st.columns(3)
                 with r1c1:
                     f_strategi = st.selectbox(
-                        "🎯 Trading Strategy:",
+                        "🎯 STRATEGY:",
                         ["ALL STRATEGIES", "Buy On Weakness (BOW)", "Breakout (BOB)"],
                         key="f_strategi",
                     )
                 with r1c2:
                     f_grade = st.selectbox(
-                        "🏆 Setup Grade:",
+                        "🏆 SETUP_GRADE:",
                         [
                             "ALL GRADES",
                             "Grade A / A+ Only (High Quality)",
@@ -555,7 +539,7 @@ def render_tab_trade_planner():
                     )
                 with r1c3:
                     f_zone = st.selectbox(
-                        "📍 Price Zone Position:",
+                        "📍 PRICE_ZONE:",
                         [
                             "ALL POSITIONS",
                             "In Buy Zone (Ready to Execute)",
@@ -567,7 +551,7 @@ def render_tab_trade_planner():
                 r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
                 with r2c1:
                     f_rr = st.selectbox(
-                        "⚖️ Min Risk-to-Reward:",
+                        "⚖️ MIN_RISK_REWARD:",
                         [
                             "ALL RATIOS",
                             "Min 1 : 1.5",
@@ -578,12 +562,12 @@ def render_tab_trade_planner():
                     )
                 with r2c2:
                     f_candle = st.selectbox(
-                        "🕯️ Candlestick Signal:",
+                        "🕯️ CANDLE_PATTERN:",
                         ["ALL CANDLES", "Bullish Signal Only", "Neutral / Doji Only"],
                         key="f_candle",
                     )
                 with r2c3:
-                    st.button("🔄 Reset Filters", on_click=reset_filters, use_container_width=True)
+                    st.button("🔄 RESET_FILTERS", on_click=reset_filters, use_container_width=True)
 
             df = df_raw.copy()
 
@@ -631,11 +615,11 @@ def render_tab_trade_planner():
             h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
-                    f"### 📋 Screener Results <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Stocks)</span>",
+                    f"<h3 style='color:#00f3ff; font-family:monospace;'>// SCREENER_RESULTS <span style='font-size:0.9rem; color:#ff0055;'>({len(df)} UNITS)</span></h3>",
                     unsafe_allow_html=True,
                 )
             with h_center:
-                if st.button("🗑️ Clear Cache", use_container_width=True, key="btn_clear_batch"):
+                if st.button("🗑️ PURGE_CACHE", use_container_width=True, key="btn_clear_batch"):
                     clear_cache(active_cache_key)
                     st.rerun()
 
@@ -643,17 +627,17 @@ def render_tab_trade_planner():
                 if not df.empty:
                     csv_data = df.to_csv(index=False).encode("utf-8")
                     st.download_button(
-                        label="📥 Export CSV",
+                        label="📥 EXPORT_CSV",
                         data=csv_data,
-                        file_name="screener_trade_planner.csv",
+                        file_name="cyber_trade_planner.csv",
                         mime="text/csv",
                         use_container_width=True,
                     )
 
             if df.empty:
-                st.warning("⚠️ No analysis data matching selected filters.")
+                st.warning("⚠️ NO_TARGETS_MATCH_CURRENT_FILTER")
             else:
-                st.info("💡 **Tip:** Check the box next to any stock in the table to display its full **Trade Plan** cards below.")
+                st.info("💡 **SYSTEM_TIP:** Select checkbox on target stock to load visual trade plan cards.")
 
                 display_cols = [
                     "Symbol",
@@ -707,14 +691,14 @@ def render_tab_trade_planner():
                 with col_chk_status:
                     if num_checked > 0:
                         st.markdown(
-                            f"📌 Currently selected: **{num_checked} stocks** for Trade Plan detail view.",
+                            f"📌 SELECTED: **{num_checked} targets** loaded for deep analysis.",
                             unsafe_allow_html=True,
                         )
                 with col_chk_btn:
                     if num_checked > 0:
-                        if st.button("🧹 Clear Selection", use_container_width=True, key="btn_clear_selection"):
+                        if st.button("🧹 CLEAR_SELECTION", use_container_width=True, key="btn_clear_selection"):
                             st.session_state["editor_key_version"] += 1
-                            st.toast("Cleared all checked stocks!", icon="✅")
+                            st.toast("SELECTION_CLEARED", icon="✅")
                             st.rerun()
 
                 if not selected_rows.empty:
@@ -726,9 +710,9 @@ def render_tab_trade_planner():
     st.markdown(
         """
         <br>
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1E2638; padding-top: 12px; color: #475569; font-size: 0.8rem;">
-            <div>Official Trade Planner Screener • Serving traders worldwide</div>
-            <div style="color: #A855F7; font-weight: 600; cursor: pointer;">System Active</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ff0055; padding-top: 12px; color: #5a5c6e; font-family: monospace; font-size: 0.8rem;">
+            <div>SYSTEM // CYBER_TRADE_PLANNER_v2.0</div>
+            <div style="color: #00f3ff; font-weight: 700; text-shadow: 0 0 5px #00f3ff;">[SYSTEM_ONLINE]</div>
         </div>
         """,
         unsafe_allow_html=True,

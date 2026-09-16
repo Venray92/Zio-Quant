@@ -131,91 +131,152 @@ def reset_filters():
 
 
 def render_tab_trade_planner():
-    # 🎨 INJEKSI CSS CUSTOM PREMIUM DASHBOARD
+    # 🎨 OVERHAUL CSS: INJEKSI UI MODERN SESUAI DESAIN GAMBAR
     st.markdown(
         """
         <style>
-        /* Header Title Gradient */
-        .main-header {
-            font-size: 2.2rem !important;
-            font-weight: 800 !important;
-            background: linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0px;
-            letter-spacing: -0.5px;
+        /* Modern Clean Header Styling */
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
         }
-        .sub-header {
+        .header-icon-box {
+            background-color: #6366F1;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+        .header-text {
+            color: #FFFFFF;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+        .pill-badge {
+            background-color: rgba(168, 85, 247, 0.2);
+            color: #C084FC;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .header-subtitle {
             color: #94A3B8;
-            font-size: 0.95rem;
-            margin-bottom: 25px;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            margin-left: 2px;
         }
 
-        /* Container Card styling */
-        div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column"] > div[data-testid="stBlock"] {
-            border-radius: 12px;
+        /* Container Card - Sesuai gaya Gambar */
+        div[data-testid="stForm"], div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column"] > div[data-testid="stBlock"] {
+            border-radius: 14px;
         }
         
-        /* Input Field Styling */
-        div[data-baseweb="input"] {
-            border-radius: 8px !important;
-            border: 1px solid #334155 !important;
-            background-color: #0F172A !important;
+        /* Dark Card Container Custom Class */
+        .zio-card {
+            background-color: #0B101D;
+            border: 1px solid #1E293B;
+            border-radius: 14px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
         }
-        div[data-baseweb="input"]:focus-within {
-            border-color: #38BDF8 !important;
-            box-shadow: 0 0 0 1px #38BDF8 !important;
+        .zio-card-title {
+            color: #FFFFFF;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* Custom Button Styling */
+        /* Inputs & Selectboxes - Dark Navy Solid */
+        div[data-baseweb="input"], div[data-baseweb="select"] > div {
+            background-color: #080C14 !important;
+            border: 1px solid #1E293B !important;
+            border-radius: 10px !important;
+            color: #F8FAFC !important;
+        }
+        div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {
+            border-color: #6366F1 !important;
+            box-shadow: 0 0 0 1px #6366F1 !important;
+        }
+
+        /* Streamlit Button - Custom Dark Solid with Glow */
         div.stButton > button {
-            border-radius: 8px !important;
+            background-color: #111827 !important;
+            color: #F8FAFC !important;
+            border: 1px solid #374151 !important;
+            border-radius: 10px !important;
             font-weight: 600 !important;
-            transition: all 0.2s ease-in-out !important;
-            border: none !important;
+            padding: 8px 16px !important;
+            transition: all 0.2s ease !important;
+        }
+        div.stButton > button:hover {
+            background-color: #1F2937 !important;
+            border-color: #6366F1 !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.3) !important;
         }
         div.stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+            background: linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%) !important;
+            border: none !important;
             color: #FFFFFF !important;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4) !important;
         }
         div.stButton > button[kind="primary"]:hover {
-            background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%) !important;
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5) !important;
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, #4338CA 0%, #2563EB 100%) !important;
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.6) !important;
         }
 
-        /* Radio Group Styling */
+        /* Radio Selector Box Modern Dark */
         div[role="radiogroup"] {
-            gap: 20px;
-            background: #0F172A;
-            padding: 10px 16px;
-            border-radius: 10px;
+            background-color: #080C14;
             border: 1px solid #1E293B;
+            border-radius: 10px;
+            padding: 10px 16px;
+            gap: 20px;
         }
 
-        /* Metric Box Custom */
-        div[data-testid="stMetric"] {
-            background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%);
-            border: 1px solid #334155;
-            padding: 16px;
+        /* Metric KPI Custom Cards */
+        .kpi-card {
+            background-color: #0B101D;
+            border: 1px solid #1E293B;
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 14px 18px;
         }
-        div[data-testid="stMetricLabel"] {
-            color: #94A3B8 !important;
-            font-size: 0.85rem !important;
-            font-weight: 600 !important;
+        .kpi-label {
+            color: #94A3B8;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        div[data-testid="stMetricValue"] {
-            color: #F8FAFC !important;
-            font-weight: 700 !important;
-            font-size: 1.5rem !important;
+        .kpi-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .kpi-sub {
+            font-size: 0.75rem;
+            color: #64748B;
+            margin-top: 2px;
         }
 
-        /* Expander / Filter Box */
+        /* Expander Filter Styling */
         div[data-testid="stExpander"] {
-            background-color: #0F172A !important;
+            background-color: #0B101D !important;
             border: 1px solid #1E293B !important;
             border-radius: 12px !important;
         }
@@ -224,9 +285,20 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- HEADER ---
-    st.markdown('<p class="main-header">⚡ Smart Execution Screener</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Platform pemeringkat saham cerdas berbasis <b>Price Action</b>, <b>Risk-to-Reward Ratio</b>, & <b>Skoring Otomatis</b>.</p>', unsafe_allow_html=True)
+    # --- HEADER MODEL GAMBAR SUPPORT ZIO ---
+    st.markdown(
+        """
+        <div class="header-title-container">
+            <div class="header-icon-box">📊</div>
+            <div class="header-text">
+                Smart Execution Screener
+                <span class="pill-badge">v2.4 Pro</span>
+            </div>
+        </div>
+        <p class="header-subtitle">Platform pemeringkat & rekomendasi saham berbasis Price Action, Risk-to-Reward Ratio, dan Skoring Otomatis.</p>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Inisialisasi state filter jika belum ada
     if "f_strategi" not in st.session_state:
@@ -242,8 +314,7 @@ def render_tab_trade_planner():
 
     # --- 1. PANEL CONTROLLER / MODE ---
     with st.container(border=True):
-        st.markdown("<span style='font-weight:600; color:#E2E8F0; font-size: 0.95rem;'>🎯 Pilih Mode Screener</span>", unsafe_allow_html=True)
-        st.write("")
+        st.markdown('<div class="zio-card-title"><span style="color:#A855F7;">🎯</span> Pilih Mode Screener</div>', unsafe_allow_html=True)
         mode_screener = st.radio(
             "Pilih Mode Screener:",
             [
@@ -251,7 +322,7 @@ def render_tab_trade_planner():
                 "🚀 Full Batch Screener (Daftar Saham 962 Ticker)",
             ],
             horizontal=True,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
         )
         st.write("")
 
@@ -268,7 +339,7 @@ def render_tab_trade_planner():
 
             with col_btn:
                 btn_single = st.button(
-                    "🔍 Analisis Sekarang", type="primary", use_container_width=True
+                    "🔍 Analisis Ticker", type="primary", use_container_width=True
                 )
 
             if btn_single:
@@ -286,48 +357,78 @@ def render_tab_trade_planner():
         else:
             all_tickers = load_daftar_saham("daftar_saham.txt")
             if not all_tickers:
-                st.error("❌ File `daftar_saham.txt` tidak ditemukan di folder utama!")
+                st.error("❌ File `daftar_saham.txt` tidak ditemukan di direktori utama!")
                 return
 
             col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
             with col_info:
-                st.info(f"📁 Siap memindai **{len(all_tickers)} saham** sekaligus dari database `daftar_saham.txt`.")
+                st.info(f"📁 Siap menganalisis **{len(all_tickers)} saham** sekaligus dari `daftar_saham.txt`.")
             with col_batch_btn:
-                if st.button("🚀 Jalankan Batch Screener", type="primary", use_container_width=True):
+                if st.button("🚀 Jalankan Batch", type="primary", use_container_width=True):
                     run_batch_execution(all_tickers)
 
-    # --- 2. STATS KPI DASHBOARD & PANEL FILTER ---
+    # --- 2. METRICS STATS CARDS & PANEL FILTER ---
     if "df_screener_raw" in st.session_state:
         df_raw = st.session_state["df_screener_raw"]
 
         st.write("")
 
-        # KPI Metrics Cards
-        c1, c2, c3, c4 = st.columns(4)
+        # 3 CARD KPI PERSIS MODEL DOKUMENTASI / STATUS SISTEM
+        c1, c2, c3 = st.columns(3)
         total_scanned = len(df_raw)
         in_buy_zone = len(df_raw[df_raw["Posisi Zone"] == "In Buy Zone"])
         high_grade = len(df_raw[df_raw["Score"] >= 70])
-        avg_score = round(df_raw["Score"].mean(), 1) if not df_raw.empty else 0
 
-        c1.metric("TOTAL SAHAM", f"{total_scanned}")
-        c2.metric("IN BUY ZONE", f"{in_buy_zone}", delta=f"{(in_buy_zone/total_scanned*100):.1f}%" if total_scanned else None)
-        c3.metric("GRADE A / A+", f"{high_grade}")
-        c4.metric("AVG SCORE", f"{avg_score} / 100")
+        with c1:
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                    <div class="kpi-label"><span style="color:#00E676;">⏱</span> Total Saham Scanned</div>
+                    <div class="kpi-value" style="color:#FFFFFF;">{total_scanned} Saham</div>
+                    <div class="kpi-sub">Hasil analisis screener aktif</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with c2:
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                    <div class="kpi-label"><span style="color:#00E676;">🛡</span> Status Zone</div>
+                    <div class="kpi-value" style="color:#00E676;">{in_buy_zone} In Buy Zone</div>
+                    <div class="kpi-sub">Siap dieksekusi berdasarkan plan</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with c3:
+            st.markdown(
+                f"""
+                <div class="kpi-card">
+                    <div class="kpi-label"><span style="color:#F59E0B;">📖</span> Setup Quality</div>
+                    <div class="kpi-value" style="color:#F59E0B;">{high_grade} Grade A/A+</div>
+                    <div class="kpi-sub">Score di atas 70 poin</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         st.write("")
 
-        # Panel Filter
-        with st.expander("🎛️ **Filter & Custom Screener Result**", expanded=True):
+        # Expandable Filter Form (Mirip Form Pertanyaan)
+        with st.expander("❓ **Kirim Filter / Custom Screener Parameter**", expanded=True):
             r1c1, r1c2, r1c3 = st.columns(3)
             with r1c1:
                 f_strategi = st.selectbox(
-                    "🎯 Strategi Trading",
+                    "🎯 Strategi Trading:",
                     ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
                     key="f_strategi",
                 )
             with r1c2:
                 f_grade = st.selectbox(
-                    "🏆 Kualitas Setup",
+                    "🏆 Kualitas Setup (Grade):",
                     [
                         "SEMUA GRADE",
                         "Grade A / A+ Only (High Quality)",
@@ -337,7 +438,7 @@ def render_tab_trade_planner():
                 )
             with r1c3:
                 f_zone = st.selectbox(
-                    "📍 Posisi Harga",
+                    "📍 Posisi Harga Saat Ini:",
                     [
                         "SEMUA POSISI",
                         "In Buy Zone (Siap Eksekusi)",
@@ -349,7 +450,7 @@ def render_tab_trade_planner():
             r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
             with r2c1:
                 f_rr = st.selectbox(
-                    "⚖️ Minimal Risk-to-Reward",
+                    "⚖️ Minimal Risk-to-Reward:",
                     [
                         "SEMUA RASIO",
                         "Min 1 : 1.5",
@@ -360,14 +461,14 @@ def render_tab_trade_planner():
                 )
             with r2c2:
                 f_candle = st.selectbox(
-                    "🕯️ Sinyal Candlestick",
+                    "🕯️ Sinyal Candlestick:",
                     ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
                     key="f_candle",
                 )
             with r2c3:
                 st.button("🔄 Reset Filter", on_click=reset_filters, use_container_width=True)
 
-        # Logika Filtering Data
+        # Logika Filter Data
         df = df_raw.copy()
 
         if f_strategi == "Buy On Weakness (BOW)":
@@ -407,15 +508,15 @@ def render_tab_trade_planner():
                 )
             ]
 
-        # Sort berdasarkan Score tertinggi
+        # Urutkan berdasarkan Score
         df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
         st.write("")
 
-        # Header Hasil + Download CSV
+        # Header Hasil + Download CSV Button
         h_left, h_right = st.columns([3, 1], vertical_alignment="center")
         with h_left:
-            st.markdown(f"### 📋 Hasil Screener <span style='font-size:1rem; color:#38BDF8;'>({len(df)} Lolos Filter)</span>", unsafe_allow_html=True)
+            st.markdown(f"### 📋 Hasil Screener <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Lolos Filter)</span>", unsafe_allow_html=True)
         with h_right:
             if not df.empty:
                 csv_data = df.to_csv(index=False).encode("utf-8")
@@ -428,16 +529,15 @@ def render_tab_trade_planner():
                 )
 
         if df.empty:
-            st.warning("⚠️ Tidak ada saham yang sesuai dengan kombinasi filter Anda. Silakan longgarkan kriteria filter.")
+            st.warning("⚠️ Tidak ada saham yang sesuai dengan filter Anda.")
         else:
-            # Dataframe Modern & Interactive
+            # Dataframe Display
             st.dataframe(
                 df,
                 column_config={
                     "Saham": st.column_config.TextColumn("Saham"),
                     "Score": st.column_config.ProgressColumn(
                         "Score (0-100)",
-                        help="Skor Kualitas Setup Saham",
                         format="%d pts",
                         min_value=0,
                         max_value=100,
@@ -460,3 +560,15 @@ def render_tab_trade_planner():
                 hide_index=True,
                 use_container_width=True,
             )
+
+        # FOOTER SESUAI GAMBAR REFERENSI
+        st.markdown(
+            """
+            <br>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1E293B; padding-top: 12px; color: #64748B; font-size: 0.8rem;">
+                <div>Official Screener Module • Melayani trader saham seluruh Indonesia</div>
+                <div style="color: #A855F7; font-weight: 600; cursor: pointer;">System Active</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )

@@ -196,7 +196,7 @@ with col_brand:
     )
 
 with col_popover:
-    with st.popover("🎛️ CHOOSE_SCREENER", use_container_width=True):
+    with st.popover("CHOOSE SCREENER", use_container_width=True):
         st.markdown(
             """
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 2px; font-family: 'Share Tech Mono', monospace;">
@@ -214,7 +214,7 @@ with col_popover:
         badge_rsi = " [ACTIVE] ✔" if curr == "rsi" else ""
         st.markdown(f'<div class="{cls_rsi}">', unsafe_allow_html=True)
         if st.button(
-            f"1. RSI - Divergence{badge_rsi}",
+            f"1. RSI MATRIX{badge_rsi}",
             key="btn_rsi",
             use_container_width=True,
         ):
@@ -227,7 +227,7 @@ with col_popover:
         badge_stoch = " [ACTIVE] ✔" if curr == "stoch_psar" else ""
         st.markdown(f'<div class="{cls_stoch}">', unsafe_allow_html=True)
         if st.button(
-            f"2. Stoch - Psar{badge_stoch}",
+            f"2. STOCH-TREND RADAR{badge_stoch}",
             key="btn_stoch",
             use_container_width=True,
         ):
@@ -240,7 +240,7 @@ with col_popover:
         badge_tp = " [ACTIVE] ✔" if curr == "trade_plan" else ""
         st.markdown(f'<div class="{cls_tp}">', unsafe_allow_html=True)
         if st.button(
-            f"3. Trade Plan - Batch Filter{badge_tp}",
+            f"3. TRADE PLAN ENTRY{badge_tp}",
             key="btn_tp",
             use_container_width=True,
         ):

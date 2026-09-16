@@ -4,110 +4,82 @@ from trade_planner import TradePlanner
 
 
 def inject_custom_css():
-    """Injects Dark Trading / TradingView-style custom CSS into Streamlit."""
+    """Injects Dark Trading / Stockbit-style custom CSS into Streamlit."""
     custom_css = """
     <style>
-    /* 1. Global Dark Backgrounds */
+    /* Global Background */
     .stApp {
         background-color: #0E1117 !important;
         color: #E6EDF3 !important;
     }
     
-    /* 2. Custom Top Header Bar */
+    /* Header Bar Minimalis */
     .zio-header-container {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         background-color: #161B22;
-        padding: 12px 20px;
-        border-radius: 8px;
-        border: 1px solid #30363D;
-        margin-bottom: 20px;
+        padding: 10px 16px;
+        border-radius: 6px;
+        border: 1px solid #21262D;
+        margin-bottom: 15px;
     }
     
     .zio-brand {
-        font-size: 20px;
-        font-weight: 700;
-        color: #00E676;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
     }
 
-    /* 3. Status Badges & Pills */
-    .badge-green {
-        background-color: #0D2B1D;
-        color: #00E676;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        border: 1px solid #00E676;
-        display: inline-block;
-    }
-    
-    .badge-red {
-        background-color: #2D1215;
-        color: #FF5252;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        border: 1px solid #FF5252;
-        display: inline-block;
-    }
-    
-    .badge-info {
-        background-color: #161B22;
-        color: #58A6FF;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        border: 1px solid #30363D;
-        display: inline-block;
+    /* Styling Info Box / Empty State Card */
+    div[data-testid="stAlert"] {
+        background-color: #161B22 !important;
+        color: #8B949E !important;
+        border: 1px solid #21262D !important;
+        border-radius: 6px !important;
+        padding: 12px 16px !important;
     }
 
-    /* 4. Indicator Info Banner (TradingView style) */
-    .indicator-banner {
-        background-color: #0D2B1D;
-        border: 1px solid #00E676;
-        border-radius: 6px;
-        padding: 10px 16px;
-        color: #00E676;
-        font-weight: 600;
-        font-size: 14px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    /* 5. Streamlit Component Styling Overrides */
-    div[data-testid="stMetricValue"] {
-        color: #00E676 !important;
-        font-weight: 700;
-    }
-    
+    /* Styling Tombol Utama (Green Action Button) */
     .stButton > button {
-        background-color: #238636 !important;
-        color: #FFFFFF !important;
-        border: 1px solid #2EA043 !important;
+        background-color: #0D2B1D !important;
+        color: #00E676 !important;
+        border: 1px solid #00E676 !important;
         border-radius: 6px !important;
         font-weight: 600 !important;
-        transition: all 0.2s ease;
+        padding: 6px 16px !important;
+        transition: all 0.2s ease !important;
     }
     
     .stButton > button:hover {
-        background-color: #2EA043 !important;
-        border-color: #3FB950 !important;
-        box-shadow: 0 0 8px rgba(46, 160, 67, 0.4);
+        background-color: #00E676 !important;
+        color: #0E1117 !important;
+        box-shadow: 0 0 10px rgba(0, 230, 118, 0.3) !important;
     }
 
     /* Dataframe Table Styling */
     div[data-testid="stDataFrame"] {
-        border: 1px solid #30363D;
+        border: 1px solid #21262D;
         border-radius: 6px;
         background-color: #161B22;
+    }
+    
+    /* Metric Card Custom Style */
+    div[data-testid="stMetric"] {
+        background-color: #161B22;
+        border: 1px solid #21262D;
+        padding: 10px 15px;
+        border-radius: 6px;
+    }
+    
+    div[data-testid="stMetricValue"] {
+        color: #00E676 !important;
+        font-size: 20px !important;
+        font-weight: 700 !important;
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        color: #8B949E !important;
+        font-size: 12px !important;
     }
     </style>
     """
@@ -135,19 +107,9 @@ def load_daftar_saham(filepath="daftar_saham.txt"):
 
 
 def render_inline_trade_planner(ticker_symbol, key_suffix):
-    """Helper function untuk merender detail Trade Planner di bawah tabel dengan styling TradingView."""
+    """Helper function untuk merender detail Trade Planner di bawah tabel."""
     st.markdown("---")
-
-    # Banner Info Saham
-    st.markdown(
-        f"""
-        <div class="indicator-banner">
-            <span>📈 LIVE TRADE PLAN ANALYSIS: <strong>{ticker_symbol}</strong></span>
-            <span class="badge-green">REAL-TIME</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.subheader(f"📊 Live Trade Plan: **{ticker_symbol}**")
 
     period_selected = st.selectbox(
         "Periode Data Analysis",

@@ -555,7 +555,7 @@ def render_tab_trade_planner():
             # 🔒 Teks disederhanakan tanpa menampilkan nama file & total ticker
             st.info("💡 **Click Run To Screen All Ticker**")
         with col_batch_btn:
-            if st.button("🚀 Run Screener", type="primary", use_container_width=True):
+            if st.button("Run Screener", type="primary", use_container_width=True):
                 run_batch_execution(all_tickers, cache_key="df_screener_batch")
 
         active_cache_key = "df_screener_batch"

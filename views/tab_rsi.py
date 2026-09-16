@@ -1,34 +1,12 @@
 import concurrent.futures
-import os
-import sys
 import time
 import pandas as pd
 import streamlit as st
 
-# 1. Pastikan Root Directory masuk ke sys.path
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
-
-# 2. Impor modul internal secara aman & tampilkan error detail jika ada
-try:
-    from screener_rsi_divergence import detect_rsi_patterns_and_score
-except Exception as e:
-    st.error(f"⚠️ Gagal mengimpor 'screener_rsi_divergence.py': {e}")
-    st.info("Pastikan semua library di `screener_rsi_divergence.py` sudah ada di `requirements.txt`.")
-    detect_rsi_patterns_and_score = None
-
-try:
-    from ihsg_tickers import get_all_ihsg_tickers
-except Exception as e:
-    st.error(f"⚠️ Gagal mengimpor 'ihsg_tickers.py': {e}")
-    get_all_ihsg_tickers = None
-
-try:
-    from utils.ui_helpers import render_inline_trade_planner
-except Exception as e:
-    st.error(f"⚠️ Gagal mengimpor 'utils/ui_helpers.py': {e}")
-    render_inline_trade_planner = None
+# Direct import tanpa penambahan path manual yang rumit
+from ihsg_tickers import get_all_ihsg_tickers
+from screener_rsi_divergence import detect_rsi_patterns_and_score
+from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
@@ -37,10 +15,6 @@ def render_tab_rsi():
         "Screening seluruh saham IHSG yang sedang membentuk Divergence Bullish"
         " maupun Bearish beserta penilaiannya (Score)."
     )
-
-    if detect_rsi_patterns_and_score is None or get_all_ihsg_tickers is None:
-        st.error("Modul screener tidak dapat dimuat. Periksa pesan error di atas.")
-        return
 
     if st.button("Jalankan Screener RSI (Full IHSG)", key="btn_rsi"):
         with st.spinner("Mengambil daftar lengkap saham IHSG..."):
@@ -228,7 +202,7 @@ def render_tab_rsi():
         else:
             st.info("Tidak ada sinyal Bearish / Belum di-scan.")
 
-    if selected_rsi_symbol and render_inline_trade_planner:
+    if selected_rsi_symbol:
         if (
             not selected_rsi_symbol.endswith(".JK")
             and "." not in selected_rsi_symbol

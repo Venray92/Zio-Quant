@@ -135,7 +135,7 @@ def clear_cache(cache_key):
 
 
 def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="white"):
-    """Reusable Card Component with Design Specifications."""
+    """Reusable Card Component for Selected Trade Plan View."""
     badge_html = (
         f'<span class="zio-badge badge-{variant}">{badge_text}</span>'
         if badge_text
@@ -155,30 +155,33 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
     st.markdown(card_html, unsafe_allow_html=True)
 
 
-def render_trade_plan_cards(df):
-    """Renders all stock data into full Card Grid layout in English."""
-    for idx, row in df.iterrows():
-        # 1. Stock Header Bar
+def render_trade_plan_cards(df_selected):
+    """Renders Trade Plan details ONLY for user-checked stocks from table."""
+    st.markdown(
+        f"### 🎯 Selected Trade Plans <span style='font-size:0.9rem; color:#A855F7;'>({len(df_selected)} Active)</span>",
+        unsafe_allow_html=True,
+    )
+
+    for idx, row in df_selected.iterrows():
+        # Stock Header
         st.markdown(
             f"""
-            <div style="background: #0D111A; border: 1px solid #1E2638; padding: 16px 22px; border-radius: 12px; margin-top: 24px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <span style="font-size: 1.6rem; font-weight: 800; color: #FFFFFF;">{row['Symbol']}</span>
-                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 700;">STRATEGY: {row['Strategy']}</span>
-                    <span style="background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">{row['Grade']}</span>
-                    <span style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">Score: {row['Score']}/100</span>
+            <div style="background: #0D111A; border: 1px solid #1E2638; padding: 14px 20px; border-radius: 12px; margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF;">{row['Symbol']}</span>
+                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">STRATEGY: {row['Strategy']}</span>
+                    <span style="background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Grade: {row['Grade']}</span>
+                    <span style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Score: {row['Score']}/100</span>
                 </div>
-                <div style="color: #94A3B8; font-size: 0.95rem;">
-                    Last Price: <strong style="color: #FFFFFF; font-size: 1.15rem;">Rp {row['Last Price']:,}</strong>
+                <div style="color: #94A3B8; font-size: 0.9rem;">
+                    Last Price: <strong style="color: #FFFFFF; font-size: 1.1rem;">Rp {row['Last Price']:,}</strong>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # 2. Main Metric Cards Grid
         col1, col2 = st.columns(2)
-
         with col1:
             draw_card(
                 title="BUY RANGE (ENTRY AREA)",
@@ -188,7 +191,6 @@ def render_trade_plan_cards(df):
                 variant="green",
                 value_color="white",
             )
-
             draw_card(
                 title="TARGET 1 (TP 1)",
                 value=f"Rp {row['TP 1']:,}",
@@ -207,7 +209,6 @@ def render_trade_plan_cards(df):
                 variant="red",
                 value_color="red",
             )
-
             draw_card(
                 title="TARGET 2 (TP 2)",
                 value=f"Rp {row['TP 2']:,}",
@@ -217,10 +218,10 @@ def render_trade_plan_cards(df):
                 value_color="green",
             )
 
-        # 3. Summary Indicator Grid
+        # Summary Grid
         st.markdown(
             f"""
-            <div style="background: #111622; border: 1px solid #1E2638; border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div style="background: #111622; border: 1px solid #1E2638; border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                 <div>
                     <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">RISK : REWARD RATIO</span>
                     <span style="font-size: 0.95rem; color: #F8FAFC; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
@@ -231,7 +232,7 @@ def render_trade_plan_cards(df):
                 </div>
                 <div style="grid-column: span 2;">
                     <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">ANALYSIS & RISK WARNING</span>
-                    <span style="font-size: 0.9rem; color: #FCA5A5; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
+                    <span style="font-size: 0.88rem; color: #FCA5A5; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
                 </div>
             </div>
             """,
@@ -281,7 +282,7 @@ def render_tab_trade_planner():
             margin: 0;
         }
 
-        /* Section Title */
+        /* Form & Label Header */
         .zio-form-header {
             color: #FFFFFF;
             font-size: 1.05rem;
@@ -344,12 +345,12 @@ def render_tab_trade_planner():
             border-radius: 12px !important;
         }
 
-        /* CARD COMPONENT DESIGN */
+        /* CARD COMPONENT DESIGN FOR SELECTED DETAILED VIEW */
         .zio-card {
             background-color: #111622;
             border-radius: 12px;
-            padding: 18px 20px;
-            margin-bottom: 16px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
             border: 1px solid #1E2638;
             transition: all 0.2s ease-in-out;
         }
@@ -361,10 +362,10 @@ def render_tab_trade_planner():
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .zio-card-title {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 700;
             letter-spacing: 0.5px;
             text-transform: uppercase;
@@ -374,9 +375,9 @@ def render_tab_trade_planner():
         .title-blue { color: #60A5FA; }
 
         .zio-badge {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 600;
-            padding: 3px 8px;
+            padding: 2px 7px;
             border-radius: 6px;
         }
         .badge-green { background-color: rgba(16, 185, 129, 0.15); color: #10B981; }
@@ -384,9 +385,9 @@ def render_tab_trade_planner():
         .badge-blue { background-color: rgba(96, 165, 250, 0.15); color: #60A5FA; }
 
         .zio-card-value {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 800;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             line-height: 1.2;
         }
         .val-white { color: #FFFFFF; }
@@ -394,9 +395,9 @@ def render_tab_trade_planner():
         .val-red { color: #EF4444; }
 
         .zio-card-subtext {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #94A3B8;
-            line-height: 1.4;
+            line-height: 1.3;
             margin: 0;
         }
         </style>
@@ -498,7 +499,6 @@ def render_tab_trade_planner():
                 ]
                 run_batch_execution(list_to_scan, cache_key="df_screener_single")
 
-        # Independent Single Cache Data Check
         active_cache_key = "df_screener_single"
 
     else:
@@ -514,7 +514,6 @@ def render_tab_trade_planner():
             if st.button("🚀 Run Batch Scan", type="primary", use_container_width=True):
                 run_batch_execution(all_tickers, cache_key="df_screener_batch")
 
-        # Independent Batch Cache Data Check
         active_cache_key = "df_screener_batch"
 
     # --- RESULTS DISPLAY ---
@@ -647,8 +646,62 @@ def render_tab_trade_planner():
         if df.empty:
             st.warning("⚠️ No analysis data matching selected filters.")
         else:
-            # RENDER CARDS GRID
-            render_trade_plan_cards(df)
+            # 💡 TABLE LAYOUT DENGAN CHECKBOX DI KIRI
+            st.info("💡 **Tip:** Check the box next to any stock in the table to display its full **Trade Plan** cards below.")
+
+            display_cols = [
+                "Symbol",
+                "Score",
+                "Grade",
+                "Strategy",
+                "Last Price",
+                "Zone Position",
+                "Buy Range",
+                "Stop Loss (SL)",
+                "TP 1",
+                "TP 2",
+                "Potential Gain",
+                "SL Risk",
+                "Risk-Reward Ratio",
+                "Candlestick Pattern",
+            ]
+
+            # Inisialisasi kolom 'Select' untuk checkbox
+            df_table = df.copy()
+            df_table.insert(0, "Select", False)
+
+            # Modern Streamlit Data Editor dengan Checkbox
+            edited_df = st.data_editor(
+                df_table[["Select"] + display_cols],
+                column_config={
+                    "Select": st.column_config.CheckboxColumn(
+                        "Select",
+                        help="Check to view detailed Trade Plan cards",
+                        default=False,
+                    ),
+                    "Symbol": st.column_config.TextColumn("Symbol"),
+                    "Score": st.column_config.NumberColumn("Score", format="%d"),
+                    "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
+                    "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
+                    "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
+                    "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
+                },
+                disabled=display_cols,  # Semua kolom selain Checkbox di-lock
+                hide_index=True,
+                use_container_width=True,
+                key=f"editor_{active_cache_key}",
+            )
+
+            # Ambil Saham yang di-checklist oleh User
+            selected_rows = edited_df[edited_df["Select"] == True]
+
+            # RENDER DETAILED TRADE PLAN CARD JIKA ADA YANG DICHECKLIST
+            if not selected_rows.empty:
+                st.write("")
+                # Match dengan dataframe utama
+                selected_symbols = selected_rows["Symbol"].tolist()
+                df_selected_full = df[df["Symbol"].isin(selected_symbols)]
+                render_trade_plan_cards(df_selected_full)
 
     # Footer
     st.markdown(

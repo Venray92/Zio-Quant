@@ -150,33 +150,34 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
 
 
 def render_trade_plan_cards(df):
-    """Me-render setiap baris data hasil screener menjadi tampilan Card Grid."""
+    """Me-render seluruh data dari tabel menjadi tampilan Card Grid Komplit."""
     for idx, row in df.iterrows():
-        # Header Info Saham
+        # 1. Header Informasi Saham
         st.markdown(
             f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #0D111A; border: 1px solid #1E2638; padding: 14px 22px; border-radius: 12px; margin-top: 20px; margin-bottom: 14px;">
-                <div style="display: flex; align-items: center; gap: 14px;">
-                    <span style="font-size: 1.5rem; font-weight: 800; color: #FFFFFF;">{row['Saham']}</span>
-                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 3px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 700;">{row['Strategi']}</span>
-                    <span style="background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 3px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">{row['Grade']} ({row['Score']} pts)</span>
+            <div style="background: #0D111A; border: 1px solid #1E2638; padding: 16px 22px; border-radius: 12px; margin-top: 24px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span style="font-size: 1.6rem; font-weight: 800; color: #FFFFFF;">{row['Saham']}</span>
+                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 700;">STRATEGI: {row['Strategi']}</span>
+                    <span style="background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">{row['Grade']}</span>
+                    <span style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">Score: {row['Score']}/100</span>
                 </div>
                 <div style="color: #94A3B8; font-size: 0.95rem;">
-                    Harga Last: <strong style="color: #FFFFFF; font-size: 1.1rem;">Rp {row['Harga Last']:,}</strong>
+                    Harga Last: <strong style="color: #FFFFFF; font-size: 1.15rem;">Rp {row['Harga Last']:,}</strong>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # Layout Grid 2 Kolom Card
+        # 2. Grid Cards Utama (4 Posisi Kunci)
         col1, col2 = st.columns(2)
 
         with col1:
             draw_card(
-                title="AREA ENTRY",
+                title="AREA BUY (ENTRY)",
                 value=str(row["Area Buy"]),
-                subtext=f"Posisi: {row['Posisi Zone']} | Sinyal: {row['Pola Candle']}",
+                subtext=f"Posisi: {row['Posisi Zone']}",
                 badge_text=str(row["Posisi Zone"]),
                 variant="green",
                 value_color="white",
@@ -185,7 +186,7 @@ def render_trade_plan_cards(df):
             draw_card(
                 title="TARGET 1 (TP 1)",
                 value=f"Rp {row['TP 1']:,}",
-                subtext="Ambil profit parsial / amankan gain awal.",
+                subtext="Target profit awal / persiapan parsial profit.",
                 badge_text=str(row["Potensi Gain"]),
                 variant="blue",
                 value_color="white",
@@ -195,7 +196,7 @@ def render_trade_plan_cards(df):
             draw_card(
                 title="STOP LOSS (SL)",
                 value=f"Rp {row['Stop Loss (SL)']:,}",
-                subtext=f"Disiplin cut loss. {row['Catatan Analisis & Warning']}",
+                subtext="Batas area risiko / disiplin cutloss.",
                 badge_text=str(row["Risiko SL"]),
                 variant="red",
                 value_color="red",
@@ -204,15 +205,36 @@ def render_trade_plan_cards(df):
             draw_card(
                 title="TARGET 2 (TP 2)",
                 value=f"Rp {row['TP 2']:,}",
-                subtext=f"Target swing utama dengan Risk-to-Reward {row['Rasio (R:R)']}.",
+                subtext="Target utama swing plan.",
                 badge_text=f"R:R {row['Rasio (R:R)']}",
                 variant="green",
                 value_color="green",
             )
 
+        # 3. Baris Ringkasan Indikator Tambahan (Candle Signal & Warning)
+        st.markdown(
+            f"""
+            <div style="background: #111622; border: 1px solid #1E2638; border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <div>
+                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">RATIO RISK : REWARD</span>
+                    <span style="font-size: 0.95rem; color: #F8FAFC; font-weight: 700;">1 : {row['Rasio (R:R)']}</span>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">POLA CANDLESTICK</span>
+                    <span style="font-size: 0.95rem; color: #38BDF8; font-weight: 700;">{row['Pola Candle']}</span>
+                </div>
+                <div style="grid-column: span 2;">
+                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">ANALISIS & WARNING</span>
+                    <span style="font-size: 0.9rem; color: #FCA5A5; font-weight: 600;">{row['Catatan Analisis & Warning']}</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
 
 def render_tab_trade_planner():
-    # 🎨 CSS STYLING CARD GRID JIPLAK TOTAL
+    # 🎨 CSS STYLING
     st.markdown(
         """
         <style>
@@ -316,7 +338,7 @@ def render_tab_trade_planner():
             border-radius: 12px !important;
         }
 
-        /* CARD COMPONENT DESIGN JIPLAK */
+        /* CARD COMPONENT DESIGN */
         .zio-card {
             background-color: #111622;
             border-radius: 12px;

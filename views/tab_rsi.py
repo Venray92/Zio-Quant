@@ -8,19 +8,17 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
-    # Overhead Styling khusus untuk Tab RSI Divergence
+    # Overhead Styling untuk layout terpisah & komponen yang rapat
     st.markdown(
         """
         <style>
-        .panel-header {
+        .panel-header-center {
             background-color: #161B22;
             border: 1px solid #21262D;
             border-radius: 8px;
             padding: 10px 14px;
             margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            text-align: center;
         }
         .metric-card {
             background-color: #161B22;
@@ -35,7 +33,7 @@ def render_tab_rsi():
             color: #FFFFFF;
         }
         .metric-label {
-            font-size: 11px;
+            font-size: 10px;
             color: #8B949E;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -53,6 +51,10 @@ def render_tab_rsi():
         """,
         unsafe_allow_html=True,
     )
+
+    # Inisialisasi flag pencetus Stop Screening
+    if "stop_rsi_scan" not in st.session_state:
+        st.session_state["stop_rsi_scan"] = False
 
     # ---------------------------------------------------------
     # LAYOUT UTAMA: SPLIT SCREEN (KIRI 32% : KANAN 68%)
@@ -73,34 +75,46 @@ def render_tab_rsi():
         "RSI Kanan",
     ]
 
-    # Konfigurasi Tampilan Kolom Tabel Streamlit
     column_configuration = {
-        "Saham": st.column_config.TextColumn("Saham", width="small", help="Kode Emiten"),
+        "Saham": st.column_config.TextColumn("Ticker", width="small"),
         "Score": st.column_config.NumberColumn("Score", format="%d ⭐"),
         "Pattern": st.column_config.TextColumn("Pattern"),
-        "Harga Kiri": st.column_config.NumberColumn("Harga Kiri", format="Rp %d"),
-        "Harga Kanan": st.column_config.NumberColumn("Harga Kanan", format="Rp %d"),
-        "RSI Kiri": st.column_config.NumberColumn("RSI Kiri", format="%.1f"),
-        "RSI Kanan": st.column_config.NumberColumn("RSI Kanan", format="%.1f"),
+        "Harga Kiri": st.column_config.NumberColumn("Price L", format="Rp %d"),
+        "Harga Kanan": st.column_config.NumberColumn("Price R", format="Rp %d"),
+        "RSI Kiri": st.column_config.NumberColumn("RSI L", format="%.1f"),
+        "RSI Kanan": st.column_config.NumberColumn("RSI R", format="%.1f"),
     }
 
     # =========================================================
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
+        # Header Center Without Logo
         st.markdown(
             """
-            <div class="panel-header">
-                <span style="color: #00E676; font-weight: 700; font-size: 14px;">📊 RSI Divergence</span>
-                <span style="color: #8B949E; font-size: 11px;">IHSG Screener</span>
+            <div class="panel-header-center">
+                <div style="color: #00E676; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">RSI DIVERGENCE</div>
+                <div style="color: #8B949E; font-size: 11px; margin-top: 2px;">IHSG Market Screener</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # FIXED: KEY DIUBAH AGAR TIDAK BENTROK DENGAN APP.PY
-        if st.button("🚀 Jalankan Screener RSI", key="btn_run_rsi_screener", use_container_width=True):
-            with st.spinner("Mengambil daftar lengkap saham IHSG..."):
+        # Tombol Controls: [Run Screening (Utama)] dan [Stop (Kecil)]
+        col_btn_run, col_btn_stop = st.columns([3.2, 1])
+
+        with col_btn_run:
+            run_clicked = st.button("🚀 Run Screening", key="btn_run_rsi_screener", use_container_width=True)
+
+        with col_btn_stop:
+            stop_clicked = st.button("🛑 Stop", key="btn_stop_rsi_screener", use_container_width=True)
+
+        if stop_clicked:
+            st.session_state["stop_rsi_scan"] = True
+
+        if run_clicked:
+            st.session_state["stop_rsi_scan"] = False
+            with st.spinner("Fetching IHSG tickers list..."):
                 all_tickers = get_all_ihsg_tickers()
 
             total_tickers = len(all_tickers)
@@ -112,13 +126,15 @@ def render_tab_rsi():
             failed_count = 0
 
             def fetch_rsi_with_retry(ticker, max_retries=2):
+                if st.session_state.get("stop_rsi_scan", False):
+                    return False, None
                 for attempt in range(max_retries + 1):
                     try:
                         res = detect_rsi_patterns_and_score(ticker)
                         return True, res
                     except Exception:
                         if attempt < max_retries:
-                            time.sleep(0.5 * (attempt + 1))
+                            time.sleep(0.3 * (attempt + 1))
                         else:
                             return False, None
 
@@ -129,10 +145,14 @@ def render_tab_rsi():
                 completed = 0
 
                 for future in concurrent.futures.as_completed(future_to_ticker):
+                    if st.session_state.get("stop_rsi_scan", False):
+                        pstatus_rsi.warning("Screening process cancelled.")
+                        break
+
                     completed += 1
                     pct = int((completed / total_tickers) * 100)
                     pbar_rsi.progress(pct)
-                    pstatus_rsi.text(f"Scanning RSI: {completed}/{total_tickers}")
+                    pstatus_rsi.text(f"Scanning: {completed}/{total_tickers}")
 
                     try:
                         is_success, res = future.result()
@@ -176,9 +196,9 @@ def render_tab_rsi():
             st.session_state["df_rsi_bullish"] = df_rsi_bullish
             st.session_state["df_rsi_bearish"] = df_rsi_bearish
 
-        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
-        # Tab Pemisah Bullish & Bearish
+        # Tab Pemisah: Bullish di Depan (Default First) & Bearish di Tab Kedua
         sub_tab_bull, sub_tab_bear = st.tabs(["🟢 Bullish Divergence", "🔴 Bearish Divergence"])
 
         with sub_tab_bull:
@@ -208,7 +228,7 @@ def render_tab_rsi():
                         )
                     )
             else:
-                st.info("Belum ada data. Klik **🚀 Jalankan Screener RSI** di atas.")
+                st.info("No data available. Click **🚀 Run Screening** above.")
 
         with sub_tab_bear:
             if (
@@ -237,20 +257,19 @@ def render_tab_rsi():
                         )
                     )
             else:
-                st.info("Belum ada data. Klik **🚀 Jalankan Screener RSI** di atas.")
+                st.info("No data available. Click **🚀 Run Screening** above.")
 
     # =========================================================
     # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER
     # =========================================================
     with col_right:
-        # Ringkasan Stats dengan Tampilan Custom Card
         if "rsi_stats" in st.session_state:
             stats = st.session_state["rsi_stats"]
             m1, m2, m3, m4 = st.columns(4)
             with m1:
                 st.markdown(
                     f"""<div class="metric-card">
-                        <div class="metric-label">Total Scan</div>
+                        <div class="metric-label">Total Scanned</div>
                         <div class="metric-value">{stats['total']}</div>
                     </div>""",
                     unsafe_allow_html=True,
@@ -274,14 +293,13 @@ def render_tab_rsi():
             with m4:
                 st.markdown(
                     f"""<div class="metric-card">
-                        <div class="metric-label">Total Sinyal</div>
+                        <div class="metric-label">Signals Found</div>
                         <div class="metric-value">{stats['matched']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
             st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
-        # Jika Saham Dipilih, Tampilkan Trade Planner
         if selected_rsi_symbol:
             if not selected_rsi_symbol.endswith(".JK") and "." not in selected_rsi_symbol:
                 selected_rsi_symbol += ".JK"
@@ -289,7 +307,7 @@ def render_tab_rsi():
             st.markdown(
                 f"""
                 <div style="background-color: #0D2B1D; border: 1.5px solid #00E676; padding: 10px 16px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>🎯 SAHAM TERPILIH: <strong style="color: #00E676; font-size: 16px; margin-left: 6px;">{selected_rsi_symbol}</strong></span>
+                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00E676; font-size: 16px; margin-left: 6px;">{selected_rsi_symbol}</strong></span>
                     <span style="color: #8B949E; font-size: 12px; font-weight: 400;">Interactive Analysis Workspace</span>
                 </div>
                 """,
@@ -297,14 +315,13 @@ def render_tab_rsi():
             )
             render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
         else:
-            # Display Kosong
             st.markdown(
                 """
                 <div class="empty-card">
                     <div style="font-size: 32px; margin-bottom: 10px;">👈</div>
-                    <h3 style="color: #FFFFFF; font-size: 18px; margin-bottom: 6px;">Pilih Saham di Panel Kiri</h3>
-                    <p style="font-size: 13px; color: #8B949E; max-width: 420px; margin: 0 auto;">
-                        Jalankan screener RSI, lalu klik salah satu baris saham pada tabel di sebelah kiri untuk melihat detail Trade Planner secara otomatis di sini.
+                    <h3 style="color: #FFFFFF; font-size: 18px; margin-bottom: 6px;">Select a Stock from Left Panel</h3>
+                    <p style="font-size: 13px; color: #8B949E; max-width: 440px; margin: 0 auto;">
+                        Run the screening process, then select any stock row from the left table to inspect full Trade Planner details.
                     </p>
                 </div>
                 """,

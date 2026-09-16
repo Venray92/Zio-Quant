@@ -8,54 +8,143 @@ def inject_custom_css():
     """Injects Cyber-Futuristic Dark Trading UI into Streamlit."""
     custom_css = """
     <style>
-    /* Global App Styling */
+    /* Global App Background */
     .stApp {
         background-color: #0B0E14 !important;
         color: #E6EDF3 !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* Subheader & Section Headers */
-    .live-plan-header {
-        background: linear-gradient(90deg, rgba(0, 230, 118, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
+    /* Section Header Card */
+    .indicator-header {
+        background: linear-gradient(135deg, #161B22 0%, #0D1117 100%);
         border-left: 5px solid #00E676;
-        padding: 12px 18px;
-        border-radius: 8px;
-        margin-top: 10px;
+        border: 1px solid #30363D;
+        border-left-width: 5px;
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-top: 15px;
         margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         display: flex;
-        align-items: center;
         justify-content: space-between;
+        align-items: center;
     }
 
-    .live-plan-title {
-        font-size: 20px;
+    .indicator-title {
+        font-size: 18px;
         font-weight: 800;
         color: #FFFFFF;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
-    .live-plan-ticker {
+    .indicator-badge {
+        background: rgba(0, 230, 118, 0.15);
         color: #00E676;
-        background: rgba(0, 230, 118, 0.1);
-        padding: 2px 10px;
-        border-radius: 6px;
         border: 1px solid rgba(0, 230, 118, 0.3);
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
     }
 
+    /* Subheader Section */
     .section-title {
-        font-size: 16px;
-        font-weight: 700;
+        font-size: 14px;
+        font-weight: 800;
         color: #38BDF8;
-        margin-top: 15px;
+        margin-top: 20px;
         margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
         display: flex;
         align-items: center;
         gap: 8px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
     }
 
-    /* Custom Selectbox Dropdown */
+    /* --- STYLED SCREENING BUTTONS --- */
+    /* Run Screening Button (Green Glow) */
+    div.stButton > button[key="btn_run"] {
+        background: linear-gradient(135deg, #00E676 0%, #00B0FF 100%) !important;
+        color: #0B0E14 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 900 !important;
+        font-size: 14px !important;
+        letter-spacing: 0.8px !important;
+        padding: 12px 24px !important;
+        width: 100% !important;
+        box-shadow: 0 0 15px rgba(0, 230, 118, 0.4) !important;
+        transition: all 0.3s ease !important;
+        text-transform: uppercase;
+    }
+
+    div.stButton > button[key="btn_run"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 0 25px rgba(0, 230, 118, 0.7) !important;
+    }
+
+    /* Stop Button (Red Alert Glow) */
+    div.stButton > button[key="btn_stop"] {
+        background: linear-gradient(135deg, #FF5252 0%, #FF1744 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 900 !important;
+        font-size: 14px !important;
+        letter-spacing: 0.8px !important;
+        padding: 12px 24px !important;
+        width: 100% !important;
+        box-shadow: 0 0 15px rgba(255, 82, 82, 0.4) !important;
+        transition: all 0.3s ease !important;
+        text-transform: uppercase;
+    }
+
+    div.stButton > button[key="btn_stop"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 0 25px rgba(255, 82, 82, 0.7) !important;
+    }
+
+    /* --- RADIO BUTTON STYLING (SIGNAL MODE) --- */
+    div[data-testid="stRadio"] > label {
+        color: #8B949E !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+
+    div[data-testid="stRadio"] div[role="radiogroup"] {
+        background: #161B22;
+        border: 1px solid #30363D;
+        padding: 6px;
+        border-radius: 10px;
+        display: flex;
+        gap: 10px;
+    }
+
+    div[data-testid="stRadio"] div[role="radiogroup"] label {
+        background: #0D1117;
+        border: 1px solid #21262D;
+        border-radius: 8px;
+        padding: 8px 16px;
+        color: #C9D1D9 !important;
+        font-weight: 700 !important;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex: 1;
+        text-align: center;
+    }
+
+    div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
+        border-color: #38BDF8;
+        color: #38BDF8 !important;
+    }
+
+    /* Dropdown & Selectbox Styling */
     div[data-baseweb="select"] > div {
         background-color: #161B22 !important;
         border: 1px solid #30363D !important;
@@ -95,6 +184,48 @@ def inject_custom_css():
     </style>
     """
     st.markdown(custom_css, unsafe_allow_html=True)
+
+
+def render_screening_controls():
+    """Renders the styled indicator header, signal mode selector, and screening control buttons."""
+    # 1. Indicator Title Banner
+    st.markdown(
+        '''
+        <div class="indicator-header">
+            <div class="indicator-title">
+                📈 STOCHASTIC & PARABOLIC SAR
+            </div>
+            <div class="indicator-badge">
+                STRATEGY SCANNER
+            </div>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+    # 2. Choose Signal Mode Section
+    st.markdown('<div class="section-title">🎯 Choose Signal Mode</div>', unsafe_allow_html=True)
+    
+    signal_mode = st.radio(
+        label="Signal Selection",
+        options=["GOLDEN CROSS", "DEAD CROSS"],
+        index=0,
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+    st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+
+    # 3. Action Control Buttons (RUN & STOP)
+    col_run, col_stop = st.columns(2)
+    
+    with col_run:
+        run_pressed = st.button("▶ RUNNING SCREENING", key="btn_run")
+        
+    with col_stop:
+        stop_pressed = st.button("⏹ STOP", key="btn_stop")
+
+    return signal_mode, run_pressed, stop_pressed
 
 
 def _format_val(val):
@@ -140,12 +271,12 @@ def calculate_rr_ratios(row):
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     st.markdown("---")
     
-    # 1. HEADER FUTURISTIK (TITLE + PERIODE DATA)
+    # 1. LIVE TRADE PLAN HEADER
     st.markdown(
         f'''
-        <div class="live-plan-header">
-            <div class="live-plan-title">
-                📊 LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
+        <div class="indicator-header">
+            <div class="indicator-title">
+                📊 LIVE TRADE PLAN: <span style="color: #00E676; background: rgba(0,230,118,0.1); padding: 2px 8px; border-radius: 6px;">{ticker_symbol}</span>
             </div>
             <div style="font-size: 12px; color: #8B949E; font-weight: 600;">
                 SYSTEM STATUS: <span style="color: #00E676;">ONLINE</span>
@@ -158,13 +289,13 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
     col_select, col_space = st.columns([1, 2])
     with col_select:
         period_selected = st.selectbox(
-            "⏱️ Periode Data Analysis",
+            "⏱️ Data Analysis Period",
             options=["3mo", "6mo", "1y", "2y"],
             index=0,
             key=f"period_{key_suffix}",
         )
 
-    with st.spinner(f"⚡ Menganalisis & Meng kalkulasi Trade Plan {ticker_symbol}..."):
+    with st.spinner(f"⚡ Analyzing & Calculating Trade Plan for {ticker_symbol}..."):
         try:
             planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
             if hasattr(planner, "fetch_and_prepare_data"):
@@ -182,7 +313,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade = row.get("Grade", "N/A")
                     posisi = row.get("Posisi Harga", row.get("Status", "-"))
 
-                    # Handling Area Buy Range
+                    # Range calculation
                     range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
                     range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
                     area_buy = row.get("Area Buy", None)
@@ -196,7 +327,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade_badge = "🟢" if "A" in str(grade) else ("🟡" if "B" in str(grade) else "⚪")
                     posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
 
-                    # MAIN CARD FUTURISTIK DENGAN NEON BORDER & GRADIENT
+                    # CARD COMPONENT
                     card_html = f'''
                     <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
@@ -209,44 +340,42 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2); box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.05);">
-                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Area Buy</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800; text-transform: uppercase;">Buy Area</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2); box-shadow: inset 0 0 10px rgba(255, 82, 82, 0.05);">
-                                <div style="font-size: 10px; color: #FF5252; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Stop Loss</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2);">
+                                <div style="font-size: 10px; color: #FF5252; font-weight: 800; text-transform: uppercase;">Stop Loss</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2); box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.05);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Target 1 (TP 1)</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase;">Target 1 (TP 1)</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2); box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.05);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Target 2 (TP 2)</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase;">Target 2 (TP 2)</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>
                             </div>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; background-color: #0E1117; padding: 10px 14px; border-radius: 8px; border: 1px solid #21262D;">
-                            <span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>
+                            <span style="color: #8B949E; font-weight: 600;">Current Price Position:</span>
                             <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
                         </div>
                     </div>
                     '''
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # KALKULASI R:R
+                    # R:R Calculation
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
-                    # DETAIL EXPANDER
-                    with st.expander(f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})", expanded=True):
-                        # Row 1: Dua Kotak R:R Sesuai Permintaan
+                    # EXPANDER
+                    with st.expander(f"⚙️ Detailed Parameters & R:R Ratios #{plan_no} ({plan_type})", expanded=True):
                         c1, c2 = st.columns(2)
                         with c1:
                             st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
                         with c2:
                             st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
 
-                        # Row 2+: Sisa Parameter Mentah
                         skip_cols = [
                             "No", "no", "index", "RR_Val", "rr_val", "Rasio (R:R)", "R:R", "RR",
                             "Type", "Strategy", "Score", "Grade", "Posisi Harga", "Status",
@@ -267,4 +396,4 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                                     ui_cols[col_idx].metric(label=c_name, value=val)
 
         except Exception as e:
-            st.error(f"Gagal memuat Trade Plan: {e}")
+            st.error(f"Failed to load Trade Plan: {e}")

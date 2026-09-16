@@ -221,9 +221,8 @@ def render_tab_stoch_psar():
             <div class="cyber-header-container">
                 <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
                     <span class="cyber-status-dot"></span>
-                    <span style="font-size: 10px; font-weight: 800; color: #00F3FF; letter-spacing: 1.5px;">CYBERPUNK ENGINE ACTIVE</span>
-                </div>
-                <div class="cyber-header-title">⚡ STOCHASTIC & PARABOLIC SAR</div>
+                   </div>
+                <div class="cyber-header-title">⚡ STOCH-TREND RADAR</div>
             </div>
             """,
             unsafe_allow_html=True,

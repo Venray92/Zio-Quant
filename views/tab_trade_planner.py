@@ -7,7 +7,7 @@ from trade_planner import TradePlanner
 
 
 def load_daftar_saham(filename="daftar_saham.txt"):
-    """Membaca file daftar_saham.txt."""
+    """Reads ticker list from file."""
     if not os.path.exists(filename):
         return []
     try:
@@ -24,7 +24,7 @@ def load_daftar_saham(filename="daftar_saham.txt"):
 
 
 def process_single_ticker(ticker_code: str):
-    """Proses tunggal screener per ticker saham."""
+    """Single ticker execution processor."""
     symbol = ticker_code.strip().upper()
     if not symbol.endswith(".JK"):
         symbol += ".JK"
@@ -61,29 +61,29 @@ def process_single_ticker(ticker_code: str):
         )
 
         return {
-            "Saham": symbol.replace(".JK", ""),
+            "Symbol": symbol.replace(".JK", ""),
             "Score": int(p["Score"]),
             "Grade": p["Grade"],
-            "Strategi": p["Type"],
-            "Harga Last": curr_close,
-            "Posisi Zone": p["Posisi Harga"],
-            "Area Buy": p["Area Buy"],
+            "Strategy": p["Type"],
+            "Last Price": curr_close,
+            "Zone Position": p["Posisi Harga"],
+            "Buy Range": p["Area Buy"],
             "Stop Loss (SL)": int(p["Stop Loss"]),
             "TP 1": int(p["TP 1"]),
             "TP 2": int(p["TP 2"]),
-            "Potensi Gain": f"+{pot_gain}%",
-            "Risiko SL": f"-{pot_risk}%",
-            "Rasio (R:R)": p["Rasio (R:R)"],
+            "Potential Gain": f"+{pot_gain}%",
+            "SL Risk": f"-{pot_risk}%",
+            "Risk-Reward Ratio": p["Rasio (R:R)"],
             "RR_Val": float(p["RR_Val"]) if "RR_Val" in p else 0.0,
-            "Pola Candle": p["Pola Candle"],
-            "Catatan Analisis & Warning": p["Warning"],
+            "Candlestick Pattern": p["Pola Candle"],
+            "Analysis & Risk Warning": p["Warning"],
         }
     except Exception:
         return None
 
 
-def run_batch_execution(ticker_list):
-    """Fungsi runner eksekusi multi-threading."""
+def run_batch_execution(ticker_list, cache_key):
+    """Multi-threaded execution runner with target cache key saving."""
     total_saham = len(ticker_list)
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -104,32 +104,38 @@ def run_batch_execution(ticker_list):
             percent = completed / total_saham
             progress_bar.progress(percent)
             status_text.markdown(
-                f"⏳ **Progres Screener:** `{completed}/{total_saham}` saham diproses ({int(percent * 100)}%)"
+                f"⏳ **Screener Progress:** `{completed}/{total_saham}` stocks processed ({int(percent * 100)}%)"
             )
 
     progress_bar.empty()
     status_text.empty()
     st.toast(
-        f"Berhasil menganalisis {len(results)} dari {total_saham} saham!",
+        f"Successfully analyzed {len(results)} out of {total_saham} stocks!",
         icon="🚀",
     )
 
     if results:
         df_res = pd.DataFrame(results)
-        st.session_state["df_screener_raw"] = df_res
+        st.session_state[cache_key] = df_res
 
 
 def reset_filters():
-    """Fungsi Callback untuk mereset nilai filter ke pilihan pertama (SEMUA)."""
-    st.session_state["f_strategi"] = "SEMUA STRATEGI"
-    st.session_state["f_grade"] = "SEMUA GRADE"
-    st.session_state["f_zone"] = "SEMUA POSISI"
-    st.session_state["f_rr"] = "SEMUA RASIO"
-    st.session_state["f_candle"] = "SEMUA CANDLE"
+    """Callback function to reset filter choices to defaults."""
+    st.session_state["f_strategi"] = "ALL STRATEGIES"
+    st.session_state["f_grade"] = "ALL GRADES"
+    st.session_state["f_zone"] = "ALL POSITIONS"
+    st.session_state["f_rr"] = "ALL RATIOS"
+    st.session_state["f_candle"] = "ALL CANDLES"
+
+
+def clear_cache(cache_key):
+    """Clear specific cache mode."""
+    st.session_state.pop(cache_key, None)
+    st.toast("Cache cleared successfully!", icon="🧹")
 
 
 def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="white"):
-    """Fungsi Reusable Card berdasar Desain Acuan."""
+    """Reusable Card Component with Design Specifications."""
     badge_html = (
         f'<span class="zio-badge badge-{variant}">{badge_text}</span>'
         if badge_text
@@ -150,35 +156,35 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
 
 
 def render_trade_plan_cards(df):
-    """Me-render seluruh data dari tabel menjadi tampilan Card Grid Komplit."""
+    """Renders all stock data into full Card Grid layout in English."""
     for idx, row in df.iterrows():
-        # 1. Header Informasi Saham
+        # 1. Stock Header Bar
         st.markdown(
             f"""
             <div style="background: #0D111A; border: 1px solid #1E2638; padding: 16px 22px; border-radius: 12px; margin-top: 24px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <span style="font-size: 1.6rem; font-weight: 800; color: #FFFFFF;">{row['Saham']}</span>
-                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 700;">STRATEGI: {row['Strategi']}</span>
+                    <span style="font-size: 1.6rem; font-weight: 800; color: #FFFFFF;">{row['Symbol']}</span>
+                    <span style="background: rgba(139, 92, 246, 0.2); color: #C084FC; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 700;">STRATEGY: {row['Strategy']}</span>
                     <span style="background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">{row['Grade']}</span>
                     <span style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">Score: {row['Score']}/100</span>
                 </div>
                 <div style="color: #94A3B8; font-size: 0.95rem;">
-                    Harga Last: <strong style="color: #FFFFFF; font-size: 1.15rem;">Rp {row['Harga Last']:,}</strong>
+                    Last Price: <strong style="color: #FFFFFF; font-size: 1.15rem;">Rp {row['Last Price']:,}</strong>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # 2. Grid Cards Utama (4 Posisi Kunci)
+        # 2. Main Metric Cards Grid
         col1, col2 = st.columns(2)
 
         with col1:
             draw_card(
-                title="AREA BUY (ENTRY)",
-                value=str(row["Area Buy"]),
-                subtext=f"Posisi: {row['Posisi Zone']}",
-                badge_text=str(row["Posisi Zone"]),
+                title="BUY RANGE (ENTRY AREA)",
+                value=str(row["Buy Range"]),
+                subtext=f"Position Status: {row['Zone Position']}",
+                badge_text=str(row["Zone Position"]),
                 variant="green",
                 value_color="white",
             )
@@ -186,8 +192,8 @@ def render_trade_plan_cards(df):
             draw_card(
                 title="TARGET 1 (TP 1)",
                 value=f"Rp {row['TP 1']:,}",
-                subtext="Target profit awal / persiapan parsial profit.",
-                badge_text=str(row["Potensi Gain"]),
+                subtext="Initial profit target / partial exit zone.",
+                badge_text=str(row["Potential Gain"]),
                 variant="blue",
                 value_color="white",
             )
@@ -196,8 +202,8 @@ def render_trade_plan_cards(df):
             draw_card(
                 title="STOP LOSS (SL)",
                 value=f"Rp {row['Stop Loss (SL)']:,}",
-                subtext="Batas area risiko / disiplin cutloss.",
-                badge_text=str(row["Risiko SL"]),
+                subtext="Risk management boundary / cutloss level.",
+                badge_text=str(row["SL Risk"]),
                 variant="red",
                 value_color="red",
             )
@@ -205,27 +211,27 @@ def render_trade_plan_cards(df):
             draw_card(
                 title="TARGET 2 (TP 2)",
                 value=f"Rp {row['TP 2']:,}",
-                subtext="Target utama swing plan.",
-                badge_text=f"R:R {row['Rasio (R:R)']}",
+                subtext="Main swing target zone.",
+                badge_text=f"R:R {row['Risk-Reward Ratio']}",
                 variant="green",
                 value_color="green",
             )
 
-        # 3. Baris Ringkasan Indikator Tambahan (Candle Signal & Warning)
+        # 3. Summary Indicator Grid
         st.markdown(
             f"""
             <div style="background: #111622; border: 1px solid #1E2638; border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
                 <div>
-                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">RATIO RISK : REWARD</span>
-                    <span style="font-size: 0.95rem; color: #F8FAFC; font-weight: 700;">1 : {row['Rasio (R:R)']}</span>
+                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">RISK : REWARD RATIO</span>
+                    <span style="font-size: 0.95rem; color: #F8FAFC; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
                 </div>
                 <div>
-                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">POLA CANDLESTICK</span>
-                    <span style="font-size: 0.95rem; color: #38BDF8; font-weight: 700;">{row['Pola Candle']}</span>
+                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">CANDLESTICK PATTERN</span>
+                    <span style="font-size: 0.95rem; color: #38BDF8; font-weight: 700;">{row['Candlestick Pattern']}</span>
                 </div>
                 <div style="grid-column: span 2;">
-                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">ANALISIS & WARNING</span>
-                    <span style="font-size: 0.9rem; color: #FCA5A5; font-weight: 600;">{row['Catatan Analisis & Warning']}</span>
+                    <span style="font-size: 0.75rem; color: #64748B; font-weight: 600; display: block;">ANALYSIS & RISK WARNING</span>
+                    <span style="font-size: 0.9rem; color: #FCA5A5; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
                 </div>
             </div>
             """,
@@ -242,7 +248,7 @@ def render_tab_trade_planner():
             background-color: #07090E !important;
         }
 
-        /* Header Style Minimalis */
+        /* Minimalist Header */
         .zio-header-wrapper {
             display: flex;
             align-items: center;
@@ -293,7 +299,7 @@ def render_tab_trade_planner():
             display: block;
         }
 
-        /* Input Custom */
+        /* Custom Inputs */
         div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
             background-color: #07090E !important;
             border: 1px solid #1E2638 !important;
@@ -305,7 +311,7 @@ def render_tab_trade_planner():
             box-shadow: 0 0 0 1px #8B5CF6 !important;
         }
 
-        /* Custom Button Styling */
+        /* Custom Buttons */
         div.stButton > button {
             background-color: #111625 !important;
             color: #94A3B8 !important;
@@ -398,7 +404,7 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- HEADER BERSIH ---
+    # --- HEADER ---
     st.markdown(
         """
         <div class="zio-header-wrapper">
@@ -411,23 +417,23 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # Inisialisasi State
+    # State Initialization
     if "screener_mode" not in st.session_state:
         st.session_state["screener_mode"] = "single"
     if "f_strategi" not in st.session_state:
-        st.session_state["f_strategi"] = "SEMUA STRATEGI"
+        st.session_state["f_strategi"] = "ALL STRATEGIES"
     if "f_grade" not in st.session_state:
-        st.session_state["f_grade"] = "SEMUA GRADE"
+        st.session_state["f_grade"] = "ALL GRADES"
     if "f_zone" not in st.session_state:
-        st.session_state["f_zone"] = "SEMUA POSISI"
+        st.session_state["f_zone"] = "ALL POSITIONS"
     if "f_rr" not in st.session_state:
-        st.session_state["f_rr"] = "SEMUA RASIO"
+        st.session_state["f_rr"] = "ALL RATIOS"
     if "f_candle" not in st.session_state:
-        st.session_state["f_candle"] = "SEMUA CANDLE"
+        st.session_state["f_candle"] = "ALL CANDLES"
 
-    # --- PILIH MODE SCREENER ---
+    # --- MODE SELECTION ---
     st.markdown(
-        '<div class="zio-form-header"><span style="color:#A855F7;">🎯</span> Pilih Mode Eksekusi Screener</div>',
+        '<div class="zio-form-header"><span style="color:#A855F7;">🎯</span> Choose Screener Mode</div>',
         unsafe_allow_html=True,
     )
 
@@ -438,107 +444,111 @@ def render_tab_trade_planner():
         is_single = current_mode == "single"
         btn_type_single = "primary" if is_single else "secondary"
         if st.button(
-            "⚡ Single / Custom Ticker Analisis 1 atau beberapa kode saham tertentu",
+            "⚡ Single / Custom Ticker Analysis\nAnalyze specific stock tickers",
             use_container_width=True,
             type=btn_type_single,
             key="btn_card_single",
         ):
             if st.session_state["screener_mode"] != "single":
                 st.session_state["screener_mode"] = "single"
-                st.session_state.pop("df_screener_raw", None)
             st.rerun()
 
     with mode_col2:
         is_batch = current_mode == "batch"
         btn_type_batch = "primary" if is_batch else "secondary"
         if st.button(
-            "🚀 Full Batch Screener Scan otomatis 962+ saham dari database",
+            "🚀 Full Batch Screener Scan\nAuto-scan database ticker list",
             use_container_width=True,
             type=btn_type_batch,
             key="btn_card_batch",
         ):
             if st.session_state["screener_mode"] != "batch":
                 st.session_state["screener_mode"] = "batch"
-                st.session_state.pop("df_screener_raw", None)
             st.rerun()
 
     st.write("")
 
-    # Form Aksi Berdasarkan Mode
+    # Actions Form based on Mode
     if st.session_state["screener_mode"] == "single":
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
             st.markdown(
-                '<span class="zio-label">Masukkan Kode Saham:</span>',
+                '<span class="zio-label">Enter Stock Tickers:</span>',
                 unsafe_allow_html=True,
             )
             input_ticker = st.text_input(
-                "Kode Saham",
+                "Stock Tickers",
                 value="",
-                placeholder="Contoh: BBCA, BMRI, TLKM, INCO (pisahkan koma)",
+                placeholder="Example: BBCA, BMRI, TLKM, INCO (comma separated)",
                 label_visibility="collapsed",
             )
         with col_btn:
             btn_single = st.button(
-                "🔍 Analisis Ticker", type="primary", use_container_width=True
+                "🔍 Analyze Tickers", type="primary", use_container_width=True
             )
 
         if btn_single:
             if not input_ticker.strip():
-                st.warning("⚠️ Silakan masukkan kode saham terlebih dahulu!")
+                st.warning("⚠️ Please enter at least one stock ticker!")
             else:
                 list_to_scan = [
                     t.strip().upper()
                     for t in input_ticker.split(",")
                     if t.strip()
                 ]
-                run_batch_execution(list_to_scan)
+                run_batch_execution(list_to_scan, cache_key="df_screener_single")
+
+        # Independent Single Cache Data Check
+        active_cache_key = "df_screener_single"
 
     else:
         all_tickers = load_daftar_saham("daftar_saham.txt")
         if not all_tickers:
-            st.error("❌ File `daftar_saham.txt` tidak ditemukan di folder utama!")
+            st.error("❌ `daftar_saham.txt` file not found in root folder!")
             return
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
         with col_info:
-            st.info(f"📁 Siap menganalisis **{len(all_tickers)} saham** dari database `daftar_saham.txt`.")
+            st.info(f"📁 Ready to analyze **{len(all_tickers)} stocks** from `daftar_saham.txt` database.")
         with col_batch_btn:
-            if st.button("🚀 Jalankan Batch", type="primary", use_container_width=True):
-                run_batch_execution(all_tickers)
+            if st.button("🚀 Run Batch Scan", type="primary", use_container_width=True):
+                run_batch_execution(all_tickers, cache_key="df_screener_batch")
 
-    # --- TAMPILAN HASIL ---
-    if "df_screener_raw" in st.session_state:
-        df_raw = st.session_state["df_screener_raw"]
+        # Independent Batch Cache Data Check
+        active_cache_key = "df_screener_batch"
 
-        # Filter Parameter HANYA untuk mode Batch
+    # --- RESULTS DISPLAY ---
+    if active_cache_key in st.session_state:
+        df_raw = st.session_state[active_cache_key]
+
+        # Filters - ONLY active in Batch mode
         if st.session_state["screener_mode"] == "batch":
             st.write("")
             with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
                 r1c1, r1c2, r1c3 = st.columns(3)
                 with r1c1:
                     f_strategi = st.selectbox(
-                        "🎯 Strategi Trading:",
-                        ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
+                        "🎯 Trading Strategy:",
+                        ["ALL STRATEGIES", "Buy On Weakness (BOW)", "Breakout (BOB)"],
                         key="f_strategi",
                     )
                 with r1c2:
                     f_grade = st.selectbox(
-                        "🏆 Kualitas Setup (Grade):",
+                        "🏆 Setup Grade:",
                         [
-                            "SEMUA GRADE",
+                            "ALL GRADES",
                             "Grade A / A+ Only (High Quality)",
-                            "Grade B Kebawah (Moderate/Risk)",
+                            "Grade B or Lower (Moderate/Risk)",
                         ],
                         key="f_grade",
                     )
                 with r1c3:
                     f_zone = st.selectbox(
-                        "📍 Posisi Harga Saat Ini:",
+                        "📍 Price Zone Position:",
                         [
-                            "SEMUA POSISI",
-                            "In Buy Zone (Siap Eksekusi)",
-                            "Near Zone (Dekat Entry)",
+                            "ALL POSITIONS",
+                            "In Buy Zone (Ready to Execute)",
+                            "Near Zone (Approaching Entry)",
                         ],
                         key="f_zone",
                     )
@@ -546,9 +556,9 @@ def render_tab_trade_planner():
                 r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
                 with r2c1:
                     f_rr = st.selectbox(
-                        "⚖️ Minimal Risk-to-Reward:",
+                        "⚖️ Min Risk-to-Reward:",
                         [
-                            "SEMUA RASIO",
+                            "ALL RATIOS",
                             "Min 1 : 1.5",
                             "Min 1 : 2.0 (Pro Standard)",
                             "Min 1 : 3.0 (High Reward)",
@@ -557,30 +567,30 @@ def render_tab_trade_planner():
                     )
                 with r2c2:
                     f_candle = st.selectbox(
-                        "🕯️ Sinyal Candlestick:",
-                        ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
+                        "🕯️ Candlestick Signal:",
+                        ["ALL CANDLES", "Bullish Signal Only", "Neutral / Doji Only"],
                         key="f_candle",
                     )
                 with r2c3:
-                    st.button("🔄 Reset Filter", on_click=reset_filters, use_container_width=True)
+                    st.button("🔄 Reset Filters", on_click=reset_filters, use_container_width=True)
 
-            # Logika Pemfilteran Batch
+            # Filtering logic
             df = df_raw.copy()
 
             if f_strategi == "Buy On Weakness (BOW)":
-                df = df[df["Strategi"] == "BOW"]
+                df = df[df["Strategy"] == "BOW"]
             elif f_strategi == "Breakout (BOB)":
-                df = df[df["Strategi"] == "BOB"]
+                df = df[df["Strategy"] == "BOB"]
 
             if f_grade == "Grade A / A+ Only (High Quality)":
                 df = df[df["Score"] >= 70]
-            elif f_grade == "Grade B Kebawah (Moderate/Risk)":
+            elif f_grade == "Grade B or Lower (Moderate/Risk)":
                 df = df[df["Score"] < 70]
 
-            if f_zone == "In Buy Zone (Siap Eksekusi)":
-                df = df[df["Posisi Zone"] == "In Buy Zone"]
-            elif f_zone == "Near Zone (Dekat Entry)":
-                df = df[df["Posisi Zone"] == "Near Zone"]
+            if f_zone == "In Buy Zone (Ready to Execute)":
+                df = df[df["Zone Position"] == "In Buy Zone"]
+            elif f_zone == "Near Zone (Approaching Entry)":
+                df = df[df["Zone Position"] == "Near Zone"]
 
             if f_rr == "Min 1 : 1.5":
                 df = df[df["RR_Val"] >= 1.5]
@@ -591,7 +601,7 @@ def render_tab_trade_planner():
 
             if f_candle == "Bullish Signal Only":
                 df = df[
-                    df["Pola Candle"].str.contains(
+                    df["Candlestick Pattern"].str.contains(
                         "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
                         case=False,
                         na=False,
@@ -599,7 +609,7 @@ def render_tab_trade_planner():
                 ]
             elif f_candle == "Neutral / Doji Only":
                 df = df[
-                    df["Pola Candle"].str.contains(
+                    df["Candlestick Pattern"].str.contains(
                         "Doji|Spinning|Standard", case=False, na=False
                     )
                 ]
@@ -611,13 +621,18 @@ def render_tab_trade_planner():
 
         st.write("")
 
-        # Header Hasil & Export Button
-        h_left, h_right = st.columns([3, 1], vertical_alignment="center")
+        # Results Header, Export & Clear Cache Buttons
+        h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
         with h_left:
             st.markdown(
-                f"### 📋 Hasil Screener <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Saham)</span>",
+                f"### 📋 Screener Results <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Stocks)</span>",
                 unsafe_allow_html=True,
             )
+        with h_center:
+            if st.button("🗑️ Clear Cache", use_container_width=True, key=f"btn_clear_{active_cache_key}"):
+                clear_cache(active_cache_key)
+                st.rerun()
+
         with h_right:
             if not df.empty:
                 csv_data = df.to_csv(index=False).encode("utf-8")
@@ -630,9 +645,9 @@ def render_tab_trade_planner():
                 )
 
         if df.empty:
-            st.warning("⚠️ Tidak ada data hasil analisis.")
+            st.warning("⚠️ No analysis data matching selected filters.")
         else:
-            # RENDER MODEL CARD GRID UNTUK SEMUA TAMPILAN HASIL
+            # RENDER CARDS GRID
             render_trade_plan_cards(df)
 
     # Footer
@@ -640,7 +655,7 @@ def render_tab_trade_planner():
         """
         <br>
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1E2638; padding-top: 12px; color: #475569; font-size: 0.8rem;">
-            <div>Official Trade Planner Screener • Melayani trader saham seluruh Indonesia</div>
+            <div>Official Trade Planner Screener • Serving traders worldwide</div>
             <div style="color: #A855F7; font-weight: 600; cursor: pointer;">System Active</div>
         </div>
         """,

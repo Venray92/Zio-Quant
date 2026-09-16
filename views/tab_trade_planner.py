@@ -176,15 +176,15 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
     for idx, row in df_data.iterrows():
         st.markdown(
             f"""
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px 20px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <span style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">{row['Symbol']}</span>
-                    <span style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {row['Strategy']}</span>
-                    <span style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
-                    <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
+                    <span style="font-size: 1.5rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
+                    <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {row['Strategy']}</span>
+                    <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
+                    <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
                 </div>
-                <div style="color: #64748b; font-size: 0.9rem;">
-                    Last Price: <strong style="color: #0f172a; font-size: 1.2rem;">Rp {row['Last Price']:,}</strong>
+                <div style="color: #94a3b8; font-size: 0.9rem;">
+                    Last Price: <strong style="color: #00F3FF; font-size: 1.2rem;">Rp {row['Last Price']:,}</strong>
                 </div>
             </div>
             """,
@@ -230,18 +230,18 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
 
         st.markdown(
             f"""
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">RISK : REWARD</span>
-                    <span style="font-size: 0.95rem; color: #0f172a; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
+                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
                 </div>
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">CANDLESTICK PATTERN</span>
-                    <span style="font-size: 0.95rem; color: #0f172a; font-weight: 700;">{row['Candlestick Pattern']}</span>
+                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{row['Candlestick Pattern']}</span>
                 </div>
                 <div style="grid-column: span 2;">
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">ANALYSIS & WARNING</span>
-                    <span style="font-size: 0.88rem; color: #dc2626; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
+                    <span style="font-size: 0.88rem; color: #ef4444; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
                 </div>
             </div>
             """,
@@ -254,26 +254,56 @@ def render_tab_trade_planner():
     st.markdown(
         """
         <style>
-        /* Banner Header dengan Glowing Border Cyan Neon */
+        /* Keyframe Animasi Dot Nyala-Redup (Pulsing Glow) */
+        @keyframes pulseGlow {
+            0% {
+                opacity: 0.3;
+                box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF;
+                transform: scale(0.9);
+            }
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 12px #00F3FF, 0 0 22px #00F3FF, 0 0 32px #10b981;
+                transform: scale(1.15);
+            }
+            100% {
+                opacity: 0.3;
+                box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF;
+                transform: scale(0.9);
+            }
+        }
+
+        /* Banner Header dengan Background Gelap & Glowing Border Cyan Neon */
         .header-banner {
             border: 1px solid #00F3FF;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5), inset 0 0 10px rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 14px rgba(0, 243, 255, 0.4), inset 0 0 14px rgba(0, 243, 255, 0.15);
             border-radius: 8px;
-            padding: 18px 24px;
+            padding: 22px 24px;
             margin-bottom: 24px;
-            background: #ffffff;
+            background: #0d1117; /* Background Gelap / Dark Mode */
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        /* Dot Nyala Redup Di Atas Judul Stock Trade Planner */
+        .top-glowing-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #00F3FF;
+            border-radius: 50%;
+            animation: pulseGlow 2.5s infinite ease-in-out;
         }
 
         .header-banner h1 {
             margin: 0;
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 800;
             background: linear-gradient(135deg, #00F3FF 0%, #10b981 50%, #ec4899 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 6px rgba(0, 243, 255, 0.4));
+            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.5));
         }
 
         /* Styling Judul-Judul Penting + Gradasi + Glowing */
@@ -291,7 +321,7 @@ def render_tab_trade_planner():
             margin-bottom: 10px;
         }
 
-        /* Indikator Dot Cyan */
+        /* Indikator Dot Cyan Biasa */
         .cyan-dot {
             width: 10px;
             height: 10px;
@@ -302,12 +332,26 @@ def render_tab_trade_planner():
             flex-shrink: 0;
         }
 
-        /* Border Glowing Cyan Neon untuk Tombol Mode Screener */
+        /* Custom Styling Tombol (Border & Primary Cyan Neon Glow, Mengganti Warna Merah Default) */
         div.stButton > button {
             border: 1px solid #00F3FF !important;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.4) !important;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
             border-radius: 6px !important;
-            transition: all 0.2s ease-in-out !important;
+            transition: all 0.25s ease-in-out !important;
+        }
+
+        div.stButton > button[data-testid="stBaseButton-primary"] {
+            background: linear-gradient(135deg, #00b4d8 0%, #00f3ff 100%) !important;
+            color: #020617 !important;
+            font-weight: 700 !important;
+            border: 1px solid #00F3FF !important;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.6) !important;
+        }
+
+        div.stButton > button[data-testid="stBaseButton-primary"]:hover {
+            background: linear-gradient(135deg, #00f3ff 0%, #10b981 100%) !important;
+            color: #000000 !important;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.9), 0 0 10px rgba(16, 185, 129, 0.8) !important;
         }
 
         div.stButton > button:hover {
@@ -317,14 +361,14 @@ def render_tab_trade_planner():
 
         /* Card Styling */
         .card {
-            background-color: #ffffff;
+            background-color: #0f172a;
             border-radius: 6px;
             padding: 16px 18px;
             margin-bottom: 14px;
         }
-        .card-blue { border: 1px solid #3b82f6; }
-        .card-red { border: 1px solid #ef4444; }
-        .card-green { border: 1px solid #10b981; }
+        .card-blue { border: 1px solid #0284c7; }
+        .card-red { border: 1px solid #dc2626; }
+        .card-green { border: 1px solid #059669; }
 
         .card-header {
             display: flex;
@@ -338,9 +382,9 @@ def render_tab_trade_planner():
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
-        .title-blue { color: #2563eb; }
-        .title-red { color: #dc2626; }
-        .title-green { color: #059669; }
+        .title-blue { color: #38bdf8; }
+        .title-red { color: #f87171; }
+        .title-green { color: #34d399; }
 
         .card-badge {
             font-size: 0.7rem;
@@ -348,9 +392,9 @@ def render_tab_trade_planner():
             padding: 2px 8px;
             border-radius: 4px;
         }
-        .badge-blue { background: #dbeafe; color: #1d4ed8; }
-        .badge-red { background: #fee2e2; color: #b91c1c; }
-        .badge-green { background: #d1fae5; color: #047857; }
+        .badge-blue { background: #0c4a6e; color: #7dd3fc; }
+        .badge-red { background: #450a0a; color: #fca5a5; }
+        .badge-green { background: #064e3b; color: #6ee7b7; }
 
         .card-value {
             font-size: 1.4rem;
@@ -358,13 +402,13 @@ def render_tab_trade_planner():
             margin-bottom: 4px;
             line-height: 1.2;
         }
-        .val-blue { color: #1e40af; }
-        .val-red { color: #991b1b; }
-        .val-green { color: #065f46; }
+        .val-blue { color: #38bdf8; }
+        .val-red { color: #f87171; }
+        .val-green { color: #34d399; }
 
         .card-subtext {
             font-size: 0.78rem;
-            color: #64748b;
+            color: #94a3b8;
             margin: 0;
         }
         </style>
@@ -372,10 +416,11 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- BANNER HEADER ---
+    # --- BANNER HEADER (BACKGROUND GELAP + DOT GLOWING DI ATAS) ---
     st.markdown(
         """
         <div class="header-banner">
+            <div class="top-glowing-dot"></div>
             <h1>Stock Trade Planner</h1>
         </div>
         """,
@@ -707,11 +752,12 @@ def render_tab_trade_planner():
                     df_selected_full = df[df["Symbol"].isin(selected_symbols)]
                     render_trade_plan_cards(df_selected_full, is_title_needed=True)
 
+    # --- FOOTER TEKS DIPERBARUI ---
     st.markdown(
         """
         <br>
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px; color: #94a3b8; font-size: 0.8rem;">
-            <div>Trade Planner Application v2.0</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1e293b; padding-top: 12px; color: #94a3b8; font-size: 0.8rem;">
+            <div>Trade Planner</div>
             <div style="color: #10b981; font-weight: 600;">Status: Ready</div>
         </div>
         """,

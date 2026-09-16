@@ -252,11 +252,12 @@ def render_tab_rsi():
                     icon = "🎯 " if is_selected else ""
 
                     # Menyusun Text di dalam Kartu
-                    card_label = (
-                        f"{icon}<b>{saham}</b> | {price_str} ({change_str}) | ⭐ {score}\n"
-                        f"📌 {pattern}\n"
-                        f"📊 Kiri: {harga_kiri} (RSI {rsi_kiri}) ➔ Kanan: {harga_kanan} (RSI {rsi_kanan})"
-                    )
+                   # GANTI DENGAN KODE INI:
+card_label = (
+    f"{icon}{saham} | {price_str} ({change_str}) | ⭐ {score}\n"
+    f"📌 {pattern}\n"
+    f"📊 L: {harga_kiri} (RSI {rsi_kiri}) ➔ R: {harga_kanan} (RSI {rsi_kanan})"
+)
 
                     # Jika kartu dipilih, beri warna highlight tombol 'primary'
                     btn_type = "primary" if is_selected else "secondary"

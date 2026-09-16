@@ -8,7 +8,7 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
-    # Overhead Styling untuk layout terpisah & komponen yang rapat
+    # Overhead Styling
     st.markdown(
         """
         <style>
@@ -16,7 +16,7 @@ def render_tab_rsi():
             background-color: #161B22;
             border: 1px solid #21262D;
             border-radius: 8px;
-            padding: 10px 14px;
+            padding: 12px;
             margin-bottom: 12px;
             text-align: center;
         }
@@ -52,9 +52,12 @@ def render_tab_rsi():
         unsafe_allow_html=True,
     )
 
-    # Inisialisasi flag pencetus Stop Screening
+    # State Inisialisasi
     if "stop_rsi_scan" not in st.session_state:
         st.session_state["stop_rsi_scan"] = False
+    
+    if "active_rsi_type" not in st.session_state:
+        st.session_state["active_rsi_type"] = "bullish"  # Default 'bullish' atau 'bearish'
 
     # ---------------------------------------------------------
     # LAYOUT UTAMA: SPLIT SCREEN (KIRI 32% : KANAN 68%)
@@ -89,22 +92,21 @@ def render_tab_rsi():
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
-        # Header Center Without Logo
+        # Header tanpa IHSG Market Screener
         st.markdown(
             """
             <div class="panel-header-center">
-                <div style="color: #00E676; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">RSI DIVERGENCE</div>
-                <div style="color: #8B949E; font-size: 11px; margin-top: 2px;">IHSG Market Screener</div>
+                <div style="color: #00E676; font-weight: 700; font-size: 16px; letter-spacing: 0.5px;">RSI DIVERGENCE</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # Tombol Controls: [Run Screening (Utama)] dan [Stop (Kecil)]
-        col_btn_run, col_btn_stop = st.columns([3.2, 1])
+        # Tombol Run & Stop dengan ukuran setara (1 : 1)
+        col_btn_run, col_btn_stop = st.columns([1, 1])
 
         with col_btn_run:
-            run_clicked = st.button("🚀 Run Screening", key="btn_run_rsi_screener", use_container_width=True)
+            run_clicked = st.button("Run Screening", key="btn_run_rsi_screener", use_container_width=True, type="primary")
 
         with col_btn_stop:
             stop_clicked = st.button("🛑 Stop", key="btn_stop_rsi_screener", use_container_width=True)
@@ -198,66 +200,82 @@ def render_tab_rsi():
 
         st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
-        # Tab Pemisah: Bullish di Depan (Default First) & Bearish di Tab Kedua
-        sub_tab_bull, sub_tab_bear = st.tabs(["🟢 Bullish Divergence", "🔴 Bearish Divergence"])
+        # CONTAINER UNTUK HASIL SCREENING & TOMBOL SWITCH BULLISH/BEARISH
+        with st.container(border=True):
+            col_bull_btn, col_bear_btn = st.columns([1, 1])
 
-        with sub_tab_bull:
-            if (
-                "df_rsi_bullish" in st.session_state
-                and not st.session_state["df_rsi_bullish"].empty
-            ):
-                df_rsi_bullish = st.session_state["df_rsi_bullish"]
-                display_cols = [c for c in target_rsi_cols if c in df_rsi_bullish.columns]
-                df_display_bull = df_rsi_bullish[display_cols] if display_cols else df_rsi_bullish
+            with col_bull_btn:
+                btn_type_bull = "primary" if st.session_state["active_rsi_type"] == "bullish" else "secondary"
+                if st.button("🟢 Bullish Divergence", key="btn_switch_bull", use_container_width=True, type=btn_type_bull):
+                    st.session_state["active_rsi_type"] = "bullish"
+                    st.rerun()
 
-                event_bull = st.dataframe(
-                    df_display_bull,
-                    use_container_width=True,
-                    column_config=column_configuration,
-                    on_select="rerun",
-                    selection_mode="single-row",
-                    key="table_rsi_bullish",
-                    height=480,
-                    hide_index=True,
-                )
-                if event_bull.selection and event_bull.selection["rows"]:
-                    idx = event_bull.selection["rows"][0]
-                    selected_rsi_symbol = str(
-                        df_rsi_bullish.iloc[idx].get(
-                            "Ticker", df_rsi_bullish.iloc[idx].get("Saham")
-                        )
+            with col_bear_btn:
+                btn_type_bear = "primary" if st.session_state["active_rsi_type"] == "bearish" else "secondary"
+                if st.button("🔴 Bearish Divergence", key="btn_switch_bear", use_container_width=True, type=btn_type_bear):
+                    st.session_state["active_rsi_type"] = "bearish"
+                    st.rerun()
+
+            st.markdown("<div style='margin-bottom: 4px;'></div>", unsafe_allow_html=True)
+
+            # Tampilkan data berdasarkan tombol yang aktif
+            if st.session_state["active_rsi_type"] == "bullish":
+                if (
+                    "df_rsi_bullish" in st.session_state
+                    and not st.session_state["df_rsi_bullish"].empty
+                ):
+                    df_rsi_bullish = st.session_state["df_rsi_bullish"]
+                    display_cols = [c for c in target_rsi_cols if c in df_rsi_bullish.columns]
+                    df_display_bull = df_rsi_bullish[display_cols] if display_cols else df_rsi_bullish
+
+                    event_bull = st.dataframe(
+                        df_display_bull,
+                        use_container_width=True,
+                        column_config=column_configuration,
+                        on_select="rerun",
+                        selection_mode="single-row",
+                        key="table_rsi_bullish",
+                        height=460,
+                        hide_index=True,
                     )
-            else:
-                st.info("No data available. Click **🚀 Run Screening** above.")
-
-        with sub_tab_bear:
-            if (
-                "df_rsi_bearish" in st.session_state
-                and not st.session_state["df_rsi_bearish"].empty
-            ):
-                df_rsi_bearish = st.session_state["df_rsi_bearish"]
-                display_cols = [c for c in target_rsi_cols if c in df_rsi_bearish.columns]
-                df_display_bear = df_rsi_bearish[display_cols] if display_cols else df_rsi_bearish
-
-                event_bear = st.dataframe(
-                    df_display_bear,
-                    use_container_width=True,
-                    column_config=column_configuration,
-                    on_select="rerun",
-                    selection_mode="single-row",
-                    key="table_rsi_bearish",
-                    height=480,
-                    hide_index=True,
-                )
-                if event_bear.selection and event_bear.selection["rows"]:
-                    idx = event_bear.selection["rows"][0]
-                    selected_rsi_symbol = str(
-                        df_rsi_bearish.iloc[idx].get(
-                            "Ticker", df_rsi_bearish.iloc[idx].get("Saham")
+                    if event_bull.selection and event_bull.selection["rows"]:
+                        idx = event_bull.selection["rows"][0]
+                        selected_rsi_symbol = str(
+                            df_rsi_bullish.iloc[idx].get(
+                                "Ticker", df_rsi_bullish.iloc[idx].get("Saham")
+                            )
                         )
+                else:
+                    st.info("No Bullish data available. Click **Run Screening** above.")
+
+            else:  # Bearish
+                if (
+                    "df_rsi_bearish" in st.session_state
+                    and not st.session_state["df_rsi_bearish"].empty
+                ):
+                    df_rsi_bearish = st.session_state["df_rsi_bearish"]
+                    display_cols = [c for c in target_rsi_cols if c in df_rsi_bearish.columns]
+                    df_display_bear = df_rsi_bearish[display_cols] if display_cols else df_rsi_bearish
+
+                    event_bear = st.dataframe(
+                        df_display_bear,
+                        use_container_width=True,
+                        column_config=column_configuration,
+                        on_select="rerun",
+                        selection_mode="single-row",
+                        key="table_rsi_bearish",
+                        height=460,
+                        hide_index=True,
                     )
-            else:
-                st.info("No data available. Click **🚀 Run Screening** above.")
+                    if event_bear.selection and event_bear.selection["rows"]:
+                        idx = event_bear.selection["rows"][0]
+                        selected_rsi_symbol = str(
+                            df_rsi_bearish.iloc[idx].get(
+                                "Ticker", df_rsi_bearish.iloc[idx].get("Saham")
+                            )
+                        )
+                else:
+                    st.info("No Bearish data available. Click **Run Screening** above.")
 
     # =========================================================
     # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER

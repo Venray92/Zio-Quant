@@ -8,7 +8,7 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
-    # CSS Custom untuk Mempercantik Tombol Kartu Native Streamlit
+    # CSS Custom untuk Mempercantik Layout & Tombol Kartu Native Streamlit
     st.markdown(
         """
         <style>
@@ -48,7 +48,7 @@ def render_tab_rsi():
             color: #8B949E;
         }
 
-        /* Tampilan khusus untuk tombol yang difungsikan sebagai Card */
+        /* Styling Tombol Kartu agar Teks Rapi */
         div.stButton > button {
             text-align: left !important;
             padding: 10px 12px !important;
@@ -228,7 +228,7 @@ def render_tab_rsi():
             )
 
             if not df_target.empty:
-                # MEREKAP CARD DENGAN BUTTON NATIVE
+                # MEREKAP CARD DENGAN BUTTON NATIVE TANPA TAG HTML
                 for idx, row in df_target.iterrows():
                     ticker = row.get("Ticker", row.get("Saham"))
                     saham = row.get("Saham", ticker.replace(".JK", ""))
@@ -251,15 +251,13 @@ def render_tab_rsi():
                     price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
                     icon = "🎯 " if is_selected else ""
 
-                    # Menyusun Text di dalam Kartu
-                   # GANTI DENGAN KODE INI:
-card_label = (
-    f"{icon}{saham} | {price_str} ({change_str}) | ⭐ {score}\n"
-    f"📌 {pattern}\n"
-    f"📊 L: {harga_kiri} (RSI {rsi_kiri}) ➔ R: {harga_kanan} (RSI {rsi_kanan})"
-)
+                    # Menyusun Text di dalam Kartu tanpa tag <b>
+                    card_label = (
+                        f"{icon}{saham} | {price_str} ({change_str}) | ⭐ {score}\n"
+                        f"📌 {pattern}\n"
+                        f"📊 L: {harga_kiri} (RSI {rsi_kiri}) ➔ R: {harga_kanan} (RSI {rsi_kanan})"
+                    )
 
-                    # Jika kartu dipilih, beri warna highlight tombol 'primary'
                     btn_type = "primary" if is_selected else "secondary"
 
                     if st.button(

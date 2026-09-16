@@ -282,7 +282,9 @@ def render_tab_trade_planner():
             type=btn_type_single,
             key="btn_card_single",
         ):
-            st.session_state["screener_mode"] = "single"
+            if st.session_state["screener_mode"] != "single":
+                st.session_state["screener_mode"] = "single"
+                st.session_state.pop("df_screener_raw", None)  # Reset hasil lama
             st.rerun()
 
     with mode_col2:
@@ -294,12 +296,14 @@ def render_tab_trade_planner():
             type=btn_type_batch,
             key="btn_card_batch",
         ):
-            st.session_state["screener_mode"] = "batch"
+            if st.session_state["screener_mode"] != "batch":
+                st.session_state["screener_mode"] = "batch"
+                st.session_state.pop("df_screener_raw", None)  # Reset hasil lama
             st.rerun()
 
     st.write("")
 
-    # Form Aksi
+    # Form Aksi Berdasarkan Mode
     if st.session_state["screener_mode"] == "single":
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
@@ -342,109 +346,116 @@ def render_tab_trade_planner():
             if st.button("🚀 Jalankan Batch", type="primary", use_container_width=True):
                 run_batch_execution(all_tickers)
 
-    # --- HASIL & FILTER ---
+    # --- TAMPILAN HASIL ---
     if "df_screener_raw" in st.session_state:
         df_raw = st.session_state["df_screener_raw"]
 
+        # Filter Parameter HANYA dimunculkan pada mode Batch
+        if st.session_state["screener_mode"] == "batch":
+            st.write("")
+            with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
+                r1c1, r1c2, r1c3 = st.columns(3)
+                with r1c1:
+                    f_strategi = st.selectbox(
+                        "🎯 Strategi Trading:",
+                        ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
+                        key="f_strategi",
+                    )
+                with r1c2:
+                    f_grade = st.selectbox(
+                        "🏆 Kualitas Setup (Grade):",
+                        [
+                            "SEMUA GRADE",
+                            "Grade A / A+ Only (High Quality)",
+                            "Grade B Kebawah (Moderate/Risk)",
+                        ],
+                        key="f_grade",
+                    )
+                with r1c3:
+                    f_zone = st.selectbox(
+                        "📍 Posisi Harga Saat Ini:",
+                        [
+                            "SEMUA POSISI",
+                            "In Buy Zone (Siap Eksekusi)",
+                            "Near Zone (Dekat Entry)",
+                        ],
+                        key="f_zone",
+                    )
+
+                r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
+                with r2c1:
+                    f_rr = st.selectbox(
+                        "⚖️ Minimal Risk-to-Reward:",
+                        [
+                            "SEMUA RASIO",
+                            "Min 1 : 1.5",
+                            "Min 1 : 2.0 (Pro Standard)",
+                            "Min 1 : 3.0 (High Reward)",
+                        ],
+                        key="f_rr",
+                    )
+                with r2c2:
+                    f_candle = st.selectbox(
+                        "🕯️ Sinyal Candlestick:",
+                        ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
+                        key="f_candle",
+                    )
+                with r2c3:
+                    st.button("🔄 Reset Filter", on_click=reset_filters, use_container_width=True)
+
+            # Logika Pemfilteran Batch
+            df = df_raw.copy()
+
+            if f_strategi == "Buy On Weakness (BOW)":
+                df = df[df["Strategi"] == "BOW"]
+            elif f_strategi == "Breakout (BOB)":
+                df = df[df["Strategi"] == "BOB"]
+
+            if f_grade == "Grade A / A+ Only (High Quality)":
+                df = df[df["Score"] >= 70]
+            elif f_grade == "Grade B Kebawah (Moderate/Risk)":
+                df = df[df["Score"] < 70]
+
+            if f_zone == "In Buy Zone (Siap Eksekusi)":
+                df = df[df["Posisi Zone"] == "In Buy Zone"]
+            elif f_zone == "Near Zone (Dekat Entry)":
+                df = df[df["Posisi Zone"] == "Near Zone"]
+
+            if f_rr == "Min 1 : 1.5":
+                df = df[df["RR_Val"] >= 1.5]
+            elif f_rr == "Min 1 : 2.0 (Pro Standard)":
+                df = df[df["RR_Val"] >= 2.0]
+            elif f_rr == "Min 1 : 3.0 (High Reward)":
+                df = df[df["RR_Val"] >= 3.0]
+
+            if f_candle == "Bullish Signal Only":
+                df = df[
+                    df["Pola Candle"].str.contains(
+                        "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
+                        case=False,
+                        na=False,
+                    )
+                ]
+            elif f_candle == "Neutral / Doji Only":
+                df = df[
+                    df["Pola Candle"].str.contains(
+                        "Doji|Spinning|Standard", case=False, na=False
+                    )
+                ]
+
+            df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
+
+        else:
+            # Single Mode: Langsung pakai data hasil scan tanpa filter
+            df = df_raw.copy()
+
         st.write("")
 
-        with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
-            r1c1, r1c2, r1c3 = st.columns(3)
-            with r1c1:
-                f_strategi = st.selectbox(
-                    "🎯 Strategi Trading:",
-                    ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
-                    key="f_strategi",
-                )
-            with r1c2:
-                f_grade = st.selectbox(
-                    "🏆 Kualitas Setup (Grade):",
-                    [
-                        "SEMUA GRADE",
-                        "Grade A / A+ Only (High Quality)",
-                        "Grade B Kebawah (Moderate/Risk)",
-                    ],
-                    key="f_grade",
-                )
-            with r1c3:
-                f_zone = st.selectbox(
-                    "📍 Posisi Harga Saat Ini:",
-                    [
-                        "SEMUA POSISI",
-                        "In Buy Zone (Siap Eksekusi)",
-                        "Near Zone (Dekat Entry)",
-                    ],
-                    key="f_zone",
-                )
-
-            r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
-            with r2c1:
-                f_rr = st.selectbox(
-                    "⚖️ Minimal Risk-to-Reward:",
-                    [
-                        "SEMUA RASIO",
-                        "Min 1 : 1.5",
-                        "Min 1 : 2.0 (Pro Standard)",
-                        "Min 1 : 3.0 (High Reward)",
-                    ],
-                    key="f_rr",
-                )
-            with r2c2:
-                f_candle = st.selectbox(
-                    "🕯️ Sinyal Candlestick:",
-                    ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
-                    key="f_candle",
-                )
-            with r2c3:
-                st.button("🔄 Reset Filter", on_click=reset_filters, use_container_width=True)
-
-        df = df_raw.copy()
-
-        if f_strategi == "Buy On Weakness (BOW)":
-            df = df[df["Strategi"] == "BOW"]
-        elif f_strategi == "Breakout (BOB)":
-            df = df[df["Strategi"] == "BOB"]
-
-        if f_grade == "Grade A / A+ Only (High Quality)":
-            df = df[df["Score"] >= 70]
-        elif f_grade == "Grade B Kebawah (Moderate/Risk)":
-            df = df[df["Score"] < 70]
-
-        if f_zone == "In Buy Zone (Siap Eksekusi)":
-            df = df[df["Posisi Zone"] == "In Buy Zone"]
-        elif f_zone == "Near Zone (Dekat Entry)":
-            df = df[df["Posisi Zone"] == "Near Zone"]
-
-        if f_rr == "Min 1 : 1.5":
-            df = df[df["RR_Val"] >= 1.5]
-        elif f_rr == "Min 1 : 2.0 (Pro Standard)":
-            df = df[df["RR_Val"] >= 2.0]
-        elif f_rr == "Min 1 : 3.0 (High Reward)":
-            df = df[df["RR_Val"] >= 3.0]
-
-        if f_candle == "Bullish Signal Only":
-            df = df[
-                df["Pola Candle"].str.contains(
-                    "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
-                    case=False,
-                    na=False,
-                )
-            ]
-        elif f_candle == "Neutral / Doji Only":
-            df = df[
-                df["Pola Candle"].str.contains(
-                    "Doji|Spinning|Standard", case=False, na=False
-                )
-            ]
-
-        df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
-
-        st.write("")
-
+        # Header Tabel & Download Button
         h_left, h_right = st.columns([3, 1], vertical_alignment="center")
         with h_left:
             st.markdown(
-                f"### 📋 Hasil Screener <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Lolos Filter)</span>",
+                f"### 📋 Hasil Screener <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Saham)</span>",
                 unsafe_allow_html=True,
             )
         with h_right:
@@ -459,7 +470,7 @@ def render_tab_trade_planner():
                 )
 
         if df.empty:
-            st.warning("⚠️ Tidak ada saham yang sesuai dengan kombinasi filter Anda.")
+            st.warning("⚠️ Tidak ada data hasil analisis.")
         else:
             st.dataframe(
                 df,

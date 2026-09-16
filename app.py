@@ -262,10 +262,10 @@ if st.session_state["selected_screener"] is None:
                 WELCOME TO Z-QUANT TERMINAL
             </h2>
             <p style="color: #8A8B98; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
-                Pilih strategi screening saham IHSG di menu <strong style="color:#00FF66;">🎛️ CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.
+                Pilih strategi screening saham IHSG di menu <strong style="color:#00FF66;">CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.
             </p>
             <div style="display: inline-block; background: rgba(0, 255, 102, 0.05); border: 1px solid #00FF66; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
-                STATUS: <span style="color: #00FF66; font-weight: bold; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT_v2.0]</span>
+                STATUS: <span style="color: #00FF66; font-weight: bold; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT]</span>
             </div>
         </div>
         """,

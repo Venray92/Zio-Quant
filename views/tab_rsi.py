@@ -7,8 +7,33 @@ from screener_rsi_divergence import detect_rsi_patterns_and_score
 from utils.ui_helpers import render_inline_trade_planner
 
 
+def shorten_pattern(pattern_name):
+    """Menyingkat nama pattern agar tidak terlalu panjang/terpotong."""
+    if not pattern_name or pattern_name == "-":
+        return "-"
+    
+    mapping = {
+        "Regular Bullish Divergence": "Reg Bull Div",
+        "Hidden Bullish Divergence": "Hid Bull Div",
+        "Regular Bearish Divergence": "Reg Bear Div",
+        "Hidden Bearish Divergence": "Hid Bear Div",
+        "Bullish Divergence": "Bull Div",
+        "Bearish Divergence": "Bear Div",
+    }
+    
+    res = pattern_name
+    for key, val in mapping.items():
+        if key in res:
+            res = res.replace(key, val)
+            
+    # Hapus imbuhan panjang jika ada
+    res = res.replace(" Valid (GC Confirmed)", " [GC]")
+    res = res.replace(" Valid", "")
+    return res
+
+
 def render_tab_rsi():
-    # CSS Custom untuk Mempercantik Layout & Tombol Kartu Native Streamlit
+    # CSS Custom untuk Styling Tombol Kartu Multi-Baris Native Streamlit
     st.markdown(
         """
         <style>
@@ -48,12 +73,14 @@ def render_tab_rsi():
             color: #8B949E;
         }
 
-        /* Styling Tombol Kartu agar Teks Rapi */
+        /* Styling Kartu Tombol Native agar Memuat Teks Multi-baris Rapi */
         div.stButton > button {
             text-align: left !important;
-            padding: 10px 12px !important;
-            line-height: 1.4 !important;
+            padding: 8px 10px !important;
+            line-height: 1.35 !important;
             white-space: pre-wrap !important;
+            font-size: 11px !important;
+            font-family: monospace, sans-serif !important;
         }
         </style>
         """,
@@ -71,9 +98,9 @@ def render_tab_rsi():
         st.session_state["selected_rsi_ticker"] = None
 
     # ---------------------------------------------------------
-    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 35% : KANAN 65%)
+    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 38% : KANAN 62%)
     # ---------------------------------------------------------
-    col_left, col_right = st.columns([1.2, 2.8], gap="medium")
+    col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
     # =========================================================
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM (CARD VIEW)
@@ -228,20 +255,21 @@ def render_tab_rsi():
             )
 
             if not df_target.empty:
-                # MEREKAP CARD DENGAN BUTTON NATIVE TANPA TAG HTML
                 for idx, row in df_target.iterrows():
                     ticker = row.get("Ticker", row.get("Saham"))
                     saham = row.get("Saham", ticker.replace(".JK", ""))
                     score = row.get("Score", 0)
-                    pattern = row.get("Pattern", "-")
+                    pattern_raw = row.get("Pattern", "-")
+                    pattern_short = shorten_pattern(pattern_raw)
+                    
                     close_price = row.get("Close_Price", 0)
                     change_pct = row.get("Change_Pct", 0.0)
 
-                    tgl_kiri = row.get("Tgl Kiri", "-")
+                    tgl_kiri = str(row.get("Tgl Kiri", "-"))
                     harga_kiri = row.get("Harga Kiri", "-")
                     rsi_kiri = row.get("RSI Kiri", 0.0)
 
-                    tgl_kanan = row.get("Tgl Kanan", "-")
+                    tgl_kanan = str(row.get("Tgl Kanan", "-"))
                     harga_kanan = row.get("Harga Kanan", "-")
                     rsi_kanan = row.get("RSI Kanan", 0.0)
 
@@ -251,12 +279,13 @@ def render_tab_rsi():
                     price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
                     icon = "🎯 " if is_selected else ""
 
-                    # Menyusun Text di dalam Kartu tanpa tag <b>
-                    card_label = (
-                        f"{icon}{saham} | {price_str} ({change_str}) | ⭐ {score}\n"
-                        f"📌 {pattern}\n"
-                        f"📊 L: {harga_kiri} (RSI {rsi_kiri}) ➔ R: {harga_kanan} (RSI {rsi_kanan})"
-                    )
+                    # Sesuai Format yang Diminta:
+                    # Line 1: Ticker + Nama Saham + Score + Pattern Singkat + Harga & %Change di Ujung Kanan
+                    # Line 2: Tanggal & Nilai Kiri -> Kanan (RSI & Harga)
+                    line1 = f"{icon}{saham} | ⭐{score} | 📌 {pattern_short}  ➔  {price_str} ({change_str})"
+                    line2 = f"🗓️ {tgl_kiri} ({harga_kiri} | RSI {rsi_kiri:.1f}) ➔ {tgl_kanan} ({harga_kanan} | RSI {rsi_kanan:.1f})"
+                    
+                    card_label = f"{line1}\n{line2}"
 
                     btn_type = "primary" if is_selected else "secondary"
 

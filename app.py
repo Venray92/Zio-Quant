@@ -8,34 +8,29 @@ from views.tab_trade_planner import render_tab_trade_planner
 
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="Zio - Screener & Quant Dashboard",
+    page_title="Zio - Screener",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# 2. Inject Custom CSS (Dark Trading Theme)
+# 2. Inject Custom CSS
 inject_custom_css()
 
-# 3. Header Aplikasi Pro (TradingView / Stockbit Style)
+# 3. Header Clean & Minimalis
 st.markdown(
     """
     <div class="zio-header-container">
         <div class="zio-brand">
-            <span>📈</span>
-            <span>Zio - Screener</span>
-            <span class="badge-green" style="font-size: 11px; padding: 2px 8px; margin-left: 10px;">PRO QUANT</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span class="badge-info">⚡ RSI • STOCH • PSAR • TRADE PLANNER</span>
-            <span class="badge-green">● IDX LIVE</span>
+            <span style="font-size: 22px;">📈</span>
+            <span style="color: #FFFFFF; font-size: 20px; font-weight: 700;">Zio - Screener</span>
         </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# 4. Navigasi Tab Utama
+# 4. Navigasi Tab
 tab1, tab2, tab3 = st.tabs([
     "🔄 RSI Divergence",
     "⚡ Stochastic & Parabolic SAR",

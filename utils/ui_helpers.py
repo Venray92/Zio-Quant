@@ -12,15 +12,32 @@ def inject_custom_css():
     .stApp {
         background-color: #0B0E14 !important;
         color: #E6EDF3 !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* Subheader & Section Headers */
+    /* Strategy Title Banner */
+    .strategy-banner {
+        background: linear-gradient(135deg, #161B22 0%, #0D1117 100%);
+        border: 1px solid #30363D;
+        border-radius: 10px;
+        padding: 14px 20px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 800;
+        color: #00E676;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        box-shadow: 0 4px 20px rgba(0, 230, 118, 0.1);
+        margin-bottom: 20px;
+    }
+
+    /* Header & Section Titles */
     .live-plan-header {
         background: linear-gradient(90deg, rgba(0, 230, 118, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
         border-left: 5px solid #00E676;
         padding: 12px 18px;
         border-radius: 8px;
-        margin-top: 10px;
+        margin-top: 20px;
         margin-bottom: 20px;
         display: flex;
         align-items: center;
@@ -28,7 +45,7 @@ def inject_custom_css():
     }
 
     .live-plan-title {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 800;
         color: #FFFFFF;
         letter-spacing: 0.5px;
@@ -43,11 +60,11 @@ def inject_custom_css():
     }
 
     .section-title {
-        font-size: 16px;
-        font-weight: 700;
+        font-size: 14px;
+        font-weight: 800;
         color: #38BDF8;
         margin-top: 15px;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -55,12 +72,49 @@ def inject_custom_css():
         letter-spacing: 1px;
     }
 
-    /* Custom Selectbox Dropdown */
+    /* Custom Input Controls & Dropdowns */
     div[data-baseweb="select"] > div {
         background-color: #161B22 !important;
         border: 1px solid #30363D !important;
         border-radius: 8px !important;
         color: #E6EDF3 !important;
+    }
+
+    /* Action Buttons Custom Styling */
+    div.stButton > button[key="btn_run"] {
+        background: linear-gradient(135deg, #00E676 0%, #00B0FF 100%) !important;
+        color: #0B0E14 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 900 !important;
+        font-size: 14px !important;
+        letter-spacing: 0.8px !important;
+        padding: 10px 20px !important;
+        width: 100% !important;
+        box-shadow: 0 0 15px rgba(0, 230, 118, 0.3) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    div.stButton > button[key="btn_run"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 0 25px rgba(0, 230, 118, 0.6) !important;
+    }
+
+    div.stButton > button[key="btn_stop"] {
+        background: linear-gradient(135deg, #21262D 0%, #161B22 100%) !important;
+        color: #FF5252 !important;
+        border: 1px solid #FF5252 !important;
+        border-radius: 8px !important;
+        font-weight: 800 !important;
+        font-size: 14px !important;
+        padding: 10px 20px !important;
+        width: 100% !important;
+        transition: all 0.3s ease !important;
+    }
+
+    div.stButton > button[key="btn_stop"]:hover {
+        background: rgba(255, 82, 82, 0.15) !important;
+        box-shadow: 0 0 15px rgba(255, 82, 82, 0.4) !important;
     }
 
     /* Metric Cards in Expander */
@@ -95,6 +149,36 @@ def inject_custom_css():
     </style>
     """
     st.markdown(custom_css, unsafe_allow_html=True)
+
+
+def render_screener_controls():
+    """Renders the top control panel (Strategy Header, Buttons, Signal Selection)."""
+    # 1. Strategy Title Banner
+    st.markdown(
+        '<div class="strategy-banner">STOCHASTIC & PARABOLIC SAR</div>',
+        unsafe_allow_html=True,
+    )
+
+    # 2. Control Buttons (Run Screening & Stop)
+    col_run, col_stop = st.columns(2)
+    with col_run:
+        run_pressed = st.button("▶ RUN SCREENING", key="btn_run")
+    with col_stop:
+        stop_pressed = st.button("🛑 STOP", key="btn_stop")
+
+    st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
+
+    # 3. Choose Signal Mode Dropdown
+    st.markdown('<div class="section-title">CHOOSE SIGNAL MODE</div>', unsafe_allow_html=True)
+    signal_mode = st.selectbox(
+        "Choose Signal Mode",
+        options=["GOLDEN CROSS", "DEAD CROSS"],
+        index=0,
+        key="select_signal_mode",
+        label_visibility="collapsed",
+    )
+
+    return signal_mode, run_pressed, stop_pressed
 
 
 def _format_val(val):
@@ -139,8 +223,8 @@ def calculate_rr_ratios(row):
 
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     st.markdown("---")
-    
-    # 1. HEADER FUTURISTIK (TITLE + PERIODE DATA)
+
+    # Header section
     st.markdown(
         f'''
         <div class="live-plan-header">
@@ -152,19 +236,19 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             </div>
         </div>
         ''',
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     col_select, col_space = st.columns([1, 2])
     with col_select:
         period_selected = st.selectbox(
-            "⏱️ Periode Data Analysis",
+            "⏱️ Data Analysis Period",
             options=["3mo", "6mo", "1y", "2y"],
             index=0,
             key=f"period_{key_suffix}",
         )
 
-    with st.spinner(f"⚡ Menganalisis & Meng kalkulasi Trade Plan {ticker_symbol}..."):
+    with st.spinner(f"⚡ Analyzing & Calculating Trade Plan for {ticker_symbol}..."):
         try:
             planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
             if hasattr(planner, "fetch_and_prepare_data"):
@@ -182,7 +266,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade = row.get("Grade", "N/A")
                     posisi = row.get("Posisi Harga", row.get("Status", "-"))
 
-                    # Handling Area Buy Range
+                    # Range buy calculations
                     range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
                     range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
                     area_buy = row.get("Area Buy", None)
@@ -196,7 +280,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade_badge = "🟢" if "A" in str(grade) else ("🟡" if "B" in str(grade) else "⚪")
                     posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
 
-                    # MAIN CARD FUTURISTIK DENGAN NEON BORDER & GRADIENT
+                    # MAIN CARD UI
                     card_html = f'''
                     <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
@@ -210,7 +294,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
                             <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2); box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.05);">
-                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Area Buy</div>
+                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Buy Area</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>
                             </div>
                             <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2); box-shadow: inset 0 0 10px rgba(255, 82, 82, 0.05);">
@@ -227,26 +311,24 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             </div>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; background-color: #0E1117; padding: 10px 14px; border-radius: 8px; border: 1px solid #21262D;">
-                            <span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>
+                            <span style="color: #8B949E; font-weight: 600;">Current Price Position:</span>
                             <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
                         </div>
                     </div>
                     '''
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # KALKULASI R:R
+                    # R:R Calculation
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
-                    # DETAIL EXPANDER
-                    with st.expander(f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})", expanded=True):
-                        # Row 1: Dua Kotak R:R Sesuai Permintaan
+                    # Expander Details
+                    with st.expander(f"⚙️ Detailed Parameters & R:R Ratios #{plan_no} ({plan_type})", expanded=True):
                         c1, c2 = st.columns(2)
                         with c1:
                             st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
                         with c2:
                             st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
 
-                        # Row 2+: Sisa Parameter Mentah
                         skip_cols = [
                             "No", "no", "index", "RR_Val", "rr_val", "Rasio (R:R)", "R:R", "RR",
                             "Type", "Strategy", "Score", "Grade", "Posisi Harga", "Status",
@@ -267,4 +349,4 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                                     ui_cols[col_idx].metric(label=c_name, value=val)
 
         except Exception as e:
-            st.error(f"Gagal memuat Trade Plan: {e}")
+            st.error(f"Failed to load Trade Plan: {e}")

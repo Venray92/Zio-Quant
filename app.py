@@ -35,7 +35,7 @@ def get_logo_base64(file_path="logo.jpg"):
 
 logo_b64 = get_logo_base64("logo.jpg")
 
-# 3. Custom CSS Cyberpunk Neon Green Glow (#00FF66)
+# 3. Custom CSS Cyberpunk Neon Green (#00FF66)
 st.markdown(
     """
     <style>
@@ -88,118 +88,88 @@ st.markdown(
     }
 
     /* =========================================================
-       🟢 MAIN POPOVER BUTTON (CHOOSE_SCREENER) - NEON GREEN
+       🟢 MAIN POPOVER BUTTON (CHOOSE_SCREENER)
        ========================================================= */
-    div[data-testid="stPopover"] > button,
-    div[data-testid="stPopover"] button,
-    div[data-testid="stPopover"] button[aria-expanded="true"],
-    div[data-testid="stPopover"] button[aria-expanded="false"] {
+    div[data-testid="stPopover"] > button {
         background-color: #05140B !important;
         border: 2px solid #00FF66 !important;
-        color: #00FF66 !important;
         border-radius: 8px !important;
         padding: 6px 16px !important;
-        font-weight: 900 !important;
-        font-family: 'Share Tech Mono', monospace !important;
         height: 48px !important;
-        
-        /* Multi-layer Neon Green Glow Effect */
-        box-shadow: 0 0 12px #00FF66, 
-                    0 0 25px rgba(0, 255, 102, 0.6), 
-                    inset 0 0 10px rgba(0, 255, 102, 0.4) !important;
-        text-shadow: 0 0 10px #00FF66 !important;
-        letter-spacing: 1px !important;
-        text-transform: uppercase !important;
+        box-shadow: 0 0 15px #00FF66, inset 0 0 8px rgba(0, 255, 102, 0.4) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* Paksa teks & ikon panah di dalam tombol utama jadi Neon Green */
-    div[data-testid="stPopover"] button *,
-    div[data-testid="stPopover"] button p,
-    div[data-testid="stPopover"] button svg {
+    div[data-testid="stPopover"] > button *,
+    div[data-testid="stPopover"] > button p {
         color: #00FF66 !important;
-        fill: #00FF66 !important;
         font-weight: 900 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        text-shadow: 0 0 8px #00FF66 !important;
+        letter-spacing: 1px !important;
     }
 
-    /* Hover State Tombol Utama */
     div[data-testid="stPopover"] > button:hover {
         background-color: #00FF66 !important;
-        border-color: #00FF66 !important;
-        box-shadow: 0 0 35px #00FF66, 0 0 15px #00FF66 !important;
+        box-shadow: 0 0 25px #00FF66 !important;
     }
 
     div[data-testid="stPopover"] > button:hover *,
-    div[data-testid="stPopover"] > button:hover p,
-    div[data-testid="stPopover"] > button:hover svg {
+    div[data-testid="stPopover"] > button:hover p {
         color: #000000 !important;
-        fill: #000000 !important;
         text-shadow: none !important;
     }
 
-    /* Container Popover Dropdown (Kotak Menu Terbuka) */
+    /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #050B08 !important;
         border: 2px solid #00FF66 !important;
-        box-shadow: 0 0 25px rgba(0, 255, 102, 0.6) !important;
+        box-shadow: 0 0 25px rgba(0, 255, 102, 0.5) !important;
         border-radius: 8px !important;
         padding: 12px !important;
     }
 
-    div[data-testid="stPopoverContent"] [data-testid="stVerticalBlock"] {
-        gap: 8px !important;
-    }
-
     /* =========================================================
-       🟢 ITEM BUTTONS INSIDE DROPDOWN - NEON GREEN
+       🟢 TOMBOL ITEM 1, 2, 3 DI DALAM DROPDOWN (FORCED BORDER & GLOW)
        ========================================================= */
-    div[data-testid="stPopoverContent"] div.stButton > button {
-        width: 100% !important;
-        text-align: left !important;
-        padding: 8px 14px !important;
-        min-height: 0px !important;
-        height: 42px !important;
-        border-radius: 6px !important;
-        background-color: #0A1A10 !important;
+    div[data-testid="stPopoverContent"] button {
+        background-color: #081C10 !important;
         border: 1.5px solid #00FF66 !important;
-        color: #00FF66 !important;
-        font-size: 13px !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        font-weight: 800 !important;
-        box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
-        text-shadow: 0 0 8px #00FF66 !important;
+        border-radius: 6px !important;
+        margin: 4px 0 !important;
+        box-shadow: 0 0 10px rgba(0, 255, 102, 0.4), inset 0 0 5px rgba(0, 255, 102, 0.2) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
-    div[data-testid="stPopoverContent"] div.stButton > button *,
-    div[data-testid="stPopoverContent"] div.stButton > button p {
+    /* Paksa teks di dalam tombol 1-3 berwarna Hijau Neon */
+    div[data-testid="stPopoverContent"] button *,
+    div[data-testid="stPopoverContent"] button p,
+    div[data-testid="stPopoverContent"] button span {
         color: #00FF66 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        font-weight: 800 !important;
+        text-shadow: 0 0 6px #00FF66 !important;
     }
 
-    div[data-testid="stPopoverContent"] div.stButton > button:hover {
+    /* Hover Effect Tombol 1-3 */
+    div[data-testid="stPopoverContent"] button:hover {
         background-color: #00FF66 !important;
         border-color: #00FF66 !important;
-        box-shadow: 0 0 25px #00FF66 !important;
+        box-shadow: 0 0 20px #00FF66 !important;
     }
 
-    div[data-testid="stPopoverContent"] div.stButton > button:hover *,
-    div[data-testid="stPopoverContent"] div.stButton > button:hover p {
+    div[data-testid="stPopoverContent"] button:hover *,
+    div[data-testid="stPopoverContent"] button:hover p,
+    div[data-testid="stPopoverContent"] button:hover span {
         color: #000000 !important;
         text-shadow: none !important;
     }
 
-    /* Status Active (Screener Terpilih) */
-    div.btn-active div.stButton > button {
+    /* State Aktif (Tombol Terpilih) */
+    div.btn-active button {
         background-color: rgba(0, 255, 102, 0.25) !important;
         border: 2px solid #00FF66 !important;
-        box-shadow: 0 0 20px #00FF66, inset 0 0 10px rgba(0, 255, 102, 0.5) !important;
-    }
-
-    div.btn-active div.stButton > button *,
-    div.btn-active div.stButton > button p {
-        color: #00FF66 !important;
-        font-weight: 900 !important;
-        text-shadow: 0 0 10px #00FF66 !important;
+        box-shadow: 0 0 18px #00FF66, inset 0 0 8px rgba(0, 255, 102, 0.6) !important;
     }
     </style>
     """,

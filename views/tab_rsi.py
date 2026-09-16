@@ -45,20 +45,20 @@ def render_tab_rsi():
         """
         <style>
         /* =========================================================
-           1. CYBERPUNK HEADER BANNER & STATUS DOT
+           1. CYBERPUNK HEADER BANNER
            ========================================================= */
         .cyber-header-container {
             position: relative;
             background: linear-gradient(135deg, rgba(255, 0, 127, 0.2) 0%, rgba(0, 243, 255, 0.2) 100%);
             border: 1.5px solid #00F3FF;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 14px 16px;
             margin-bottom: 14px;
             text-align: center;
             box-shadow: 0 0 20px rgba(0, 243, 255, 0.35), inset 0 0 12px rgba(255, 0, 127, 0.25);
         }
         .cyber-header-title {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 900;
             letter-spacing: 2.5px;
             text-transform: uppercase;
@@ -67,23 +67,6 @@ def render_tab_rsi():
             -webkit-text-fill-color: transparent;
             text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
             margin: 0;
-        }
-
-        /* Status Dot Cyberpunk Pulsing */
-        .cyber-status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background-color: #FF007F;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #FF007F, 0 0 18px #FF007F;
-            margin-right: 6px;
-            animation: cyberpunk-pulse 1.5s infinite alternate;
-        }
-
-        @keyframes cyberpunk-pulse {
-            0% { transform: scale(0.9); box-shadow: 0 0 6px #FF007F; }
-            100% { transform: scale(1.3); box-shadow: 0 0 15px #00F3FF; background-color: #00F3FF; }
         }
 
         /* =========================================================
@@ -143,7 +126,6 @@ def render_tab_rsi():
         /* =========================================================
            4. STYLING SELECT SAHAM BUTTON (OVERRIDE WARNA MERAH)
            ========================================================= */
-        /* Primary & Secondary Stock Selection Buttons */
         div[data-testid="stColumn"] button[kind="primary"],
         div[data-testid="stColumn"] button[kind="secondary"] {
             transition: all 0.25s ease-in-out !important;
@@ -151,7 +133,6 @@ def render_tab_rsi():
             font-weight: 800 !important;
         }
 
-        /* Primary Button (STATUS SELECTED / DITEKAN) */
         div[data-testid="stColumn"] button[kind="primary"] {
             background: linear-gradient(135deg, #FF007F 0%, #00F3FF 100%) !important;
             color: #FFFFFF !important;
@@ -164,7 +145,6 @@ def render_tab_rsi():
             transform: translateY(-1px) !important;
         }
 
-        /* Secondary Button (STATUS UNSELECTED) */
         div[data-testid="stColumn"] button[kind="secondary"] {
             background-color: #161B22 !important;
             color: #00F3FF !important;
@@ -177,7 +157,7 @@ def render_tab_rsi():
         }
 
         /* =========================================================
-           5. STYLING SELECTBOX / DROPDOWN (NEON BORDER & TEXT)
+           5. STYLING SELECTBOX / DROPDOWN
            ========================================================= */
         div[data-testid="stSelectbox"] > div > div {
             background-color: #0D1117 !important;
@@ -253,14 +233,10 @@ def render_tab_rsi():
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
-        # Header Banner Cyberpunk dengan Glowing Status Dot
+        # Header Banner Clean
         st.markdown(
             """
             <div class="cyber-header-container">
-                <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
-                    <span class="cyber-status-dot"></span>
-                    <span style="font-size: 10px; font-weight: 800; color: #00F3FF; letter-spacing: 1.5px;">CYBERPUNK ENGINE ACTIVE</span>
-                </div>
                 <div class="cyber-header-title">⚡ RSI DIVERGENCE</div>
             </div>
             """,
@@ -297,7 +273,6 @@ def render_tab_rsi():
             success_count = 0
             failed_count = 0
 
-            # Gunakan ThreadPoolExecutor
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=8
             ) as executor:
@@ -309,7 +284,6 @@ def render_tab_rsi():
                 for future in concurrent.futures.as_completed(
                     future_to_ticker
                 ):
-                    # Cek flag stop
                     if st.session_state.get("stop_rsi_scan", False):
                         pstatus_rsi.warning("Screening process cancelled.")
                         break
@@ -371,7 +345,6 @@ def render_tab_rsi():
             st.session_state["df_rsi_bullish"] = df_rsi_bullish
             st.session_state["df_rsi_bearish"] = df_rsi_bearish
 
-            # Set default terpilih ke saham teratas
             if not df_rsi_bullish.empty:
                 st.session_state["selected_rsi_ticker"] = df_rsi_bullish.iloc[
                     0
@@ -459,7 +432,6 @@ def render_tab_rsi():
                         else "border: 1px solid #30363D; background-color: #161B22;"
                     )
 
-                    # Container Kartu Cyberpunk
                     with st.container():
                         st.markdown(
                             f"""

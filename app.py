@@ -1,3 +1,4 @@
+import base64
 import streamlit as st
 
 # Import modul UI Views & Helper
@@ -8,8 +9,8 @@ from views.tab_trade_planner import render_tab_trade_planner
 
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="Z - QUANT // SCREENER",
-    page_icon="⚡",
+    page_title="Z - QUANT",
+    page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -17,95 +18,114 @@ st.set_page_config(
 # 2. Inject Custom CSS
 inject_custom_css()
 
-# Inisialisasi session state (Default None = Home View)
+# Inisialisasi session state
 if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
-# Custom CSS: Cyberpunk Aesthetic (Neon Cyan & Pink/Magenta)
+
+# Helper untuk load gambar lokal ke base64 agar bisa ditampilkan di CSS/HTML
+def get_image_base64(file_path):
+    with open(file_path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+
+# Ganti path ini sesuai lokasi file gambar kamu di project
+logo_b64 = get_image_base64("Gemini_Generated_Image_64qobr64qobr64qo (1).jpg")
+
+# 3. Custom CSS Cyberpunk & Logo Besar
 st.markdown(
-    """
+    f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-    .stApp {
+    .stApp {{
         background-color: #030407 !important;
         color: #C0C5D0 !important;
         font-family: 'Share Tech Mono', monospace !important;
-    }
+    }}
 
-    /* 1. Sembunyikan Top Bar Streamlit & Rapatkan Padding Atas */
-    header[data-testid="stHeader"] {
+    /* Sembunyikan Header bawaan */
+    header[data-testid="stHeader"] {{
         display: none !important;
-    }
-    .block-container {
+    }}
+    .block-container {{
         padding-top: 1rem !important;
         padding-bottom: 2rem !important;
-    }
+    }}
 
-    /* 2. Style Khusus Button Home (Logo + Brand) */
-    div.btn-home-container div.stButton > button {
-        background-color: #090B10 !important;
-        border: 2px solid #FF0055 !important;
-        border-radius: 0px !important;
-        padding: 8px 16px !important;
-        box-shadow: 0 0 15px rgba(255, 0, 85, 0.35) !important;
+    /* Custom Header Brand (Logo Besar + Nama Z - QUANT) */
+    .brand-header {{
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+    }}
+
+    .brand-logo {{
+        width: 70px;
+        height: 70px;
+        border-radius: 8px;
+        object-fit: cover;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+        border: 1px solid #00F3FF;
+    }}
+
+    .brand-title {{
+        color: #00F3FF;
+        font-size: 28px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+        font-family: 'Share Tech Mono', monospace;
+    }}
+
+    /* Tombol Klik Logo/Home */
+    div.btn-home-container div.stButton > button {{
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        box-shadow: none !important;
         height: auto !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    div.btn-home-container div.stButton > button:hover {
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 20px rgba(0, 243, 255, 0.5) !important;
-        background-color: #0D101D !important;
-    }
+    }}
 
-    /* 3. Trigger Popover Button */
-    div[data-testid="stPopover"] > button {
+    /* Popover Menu Styling */
+    div[data-testid="stPopover"] > button {{
         background-color: #090C15 !important;
         border: 1.5px solid #00F3FF !important;
         color: #00F3FF !important;
         border-radius: 0px !important;
-        padding: 4px 14px !important;
+        padding: 6px 16px !important;
         font-weight: 700 !important;
         font-family: 'Share Tech Mono', monospace !important;
-        height: 48px !important;
+        height: 50px !important;
         box-shadow: 0 0 10px rgba(0, 243, 255, 0.2) !important;
         letter-spacing: 1px !important;
         text-transform: uppercase !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    div[data-testid="stPopover"] > button:hover {
+    }}
+    div[data-testid="stPopover"] > button:hover {{
         background-color: #00F3FF !important;
         color: #000000 !important;
-        border-color: #00F3FF !important;
         box-shadow: 0 0 18px #00F3FF !important;
-    }
+    }}
 
-    /* 4. Popover Menu Content Styling */
-    div[data-testid="stPopoverContent"] {
+    div[data-testid="stPopoverContent"] {{
         background-color: #080A10 !important;
-        border: 1px solid #FF0055 !important;
-        box-shadow: 0 0 15px rgba(255, 0, 85, 0.3) !important;
-        border-radius: 0px !important;
-    }
+        border: 1px solid #00F3FF !important;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.3) !important;
+    }}
 
-    div[data-testid="stPopoverContent"] [data-testid="stVerticalBlock"] {
+    div[data-testid="stPopoverContent"] [data-testid="stVerticalBlock"] {{
         gap: 4px !important;
-    }
-    div[data-testid="stPopoverContent"] [data-testid="stVerticalBlockBorderWrapper"] {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    div[data-testid="stPopoverContent"] div.stButton {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
+    }}
 
-    /* Button Item di Popover */
-    div[data-testid="stPopoverContent"] div.stButton > button {
+    div[data-testid="stPopoverContent"] div.stButton > button {{
         width: 100% !important;
         text-align: left !important;
         padding: 6px 12px !important;
-        min-height: 0px !important;
         height: 38px !important;
         border-radius: 0px !important;
         background-color: #0D101D !important;
@@ -113,39 +133,49 @@ st.markdown(
         color: #C0C5D0 !important;
         font-size: 13px !important;
         font-family: 'Share Tech Mono', monospace !important;
-        font-weight: 600 !important;
-        margin: 0 !important;
-        transition: all 0.15s ease-in-out !important;
-    }
+    }}
 
-    div[data-testid="stPopoverContent"] div.stButton > button:hover {
+    div[data-testid="stPopoverContent"] div.stButton > button:hover {{
         border-color: #00F3FF !important;
         color: #00F3FF !important;
         background-color: rgba(0, 243, 255, 0.1) !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.2) !important;
-    }
+    }}
 
-    /* Status Active ketika button dipilih */
-    div.btn-active div.stButton > button {
-        background-color: rgba(255, 0, 85, 0.15) !important;
-        border: 1.5px solid #FF0055 !important;
-        color: #FF0055 !important;
+    div.btn-active div.stButton > button {{
+        background-color: rgba(0, 243, 255, 0.15) !important;
+        border: 1.5px solid #00F3FF !important;
+        color: #00F3FF !important;
         font-weight: 700 !important;
-        box-shadow: 0 0 10px rgba(255, 0, 85, 0.3) !important;
-    }
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# 3. Header Bar & Popover Menu di Kanan Atas
-col_brand, col_popover = st.columns([2.5, 1], vertical_alignment="center")
+# 4. Header Bar (Logo Besar Kiri Atas + Popover Kanan)
+col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
 with col_brand:
     st.markdown('<div class="btn-home-container">', unsafe_allow_html=True)
-    if st.button("⚡ Z - QUANT // SCREENER", key="btn_go_home"):
+    # Tombol klik brand/logo untuk balik ke Home
+    if st.button(
+        f"Z - QUANT",
+        key="btn_go_home",
+    ):
         st.session_state["selected_screener"] = None
         st.rerun()
+
+    # Menampilkan visual Logo + Nama
+    st.markdown(
+        f"""
+        <div class="brand-header" style="margin-top: -45px; pointer-events: none;">
+            <img src="data:image/jpeg;base64,{logo_b64}" class="brand-logo" />
+            <span class="brand-title">Z - QUANT</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_popover:
@@ -153,8 +183,8 @@ with col_popover:
         st.markdown(
             """
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 2px; font-family: 'Share Tech Mono', monospace;">
-                <span style="color: #FF0055; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">PRESET_SCREENER</span>
-                <span style="color: #00F3FF; font-size: 10px; font-weight: 700;">3 AVAILABLE</span>
+                <span style="color: #00F3FF; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">PRESET_SCREENER</span>
+                <span style="color: #00E676; font-size: 10px; font-weight: 700;">3 AVAILABLE</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -202,25 +232,21 @@ with col_popover:
         st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
-    "<hr style='margin-top: 10px; margin-bottom: 24px; border: 0; height: 1px; background: linear-gradient(90deg, #FF0055, #00F3FF, transparent);'>",
+    "<hr style='margin-top: 15px; margin-bottom: 24px; border: 0; height: 1px; background: linear-gradient(90deg, #00F3FF, transparent);'>",
     unsafe_allow_html=True,
 )
 
-# 4. State Default Clean (Home) / Render Screener Terpilih
+# 5. Home View / Render Tab
 if st.session_state["selected_screener"] is None:
     st.markdown(
         """
         <div style="background-color: #080A12; border: 1px solid #00F3FF; box-shadow: 0 0 20px rgba(0, 243, 255, 0.15); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
-            <div style="font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 10px #00F3FF;">⚡</div>
             <h2 style="color: #00F3FF; font-size: 24px; margin-bottom: 8px; text-shadow: 0 0 8px #00F3FF; font-weight: 900; letter-spacing: 2px;">
                 WELCOME TO Z - QUANT TERMINAL
             </h2>
-            <p style="color: #FF0055; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
-                // SYSTEM_READY: Select algorithmic screening strategy from <strong>🎛️ CHOOSE_SCREENER</strong> menu on the top-right corner.
+            <p style="color: #8A8B98; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
+                Pilih strategi screening saham IHSG pada menu <strong>🎛️ CHOOSE_SCREENER</strong> di pojok kanan atas.
             </p>
-            <div style="display: inline-block; background: rgba(0, 243, 255, 0.05); border: 1px solid #00F3FF; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
-                STATUS: <span style="color: #00F3FF; font-weight: bold;">[ONLINE]</span> | ENGINE: <span style="color: #FF0055; font-weight: bold;">[QUANT_v2.0]</span>
-            </div>
         </div>
         """,
         unsafe_allow_html=True,

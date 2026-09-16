@@ -338,6 +338,7 @@ def render_tab_trade_planner():
                     "TP 2": st.column_config.NumberColumn("TP 2", format="%d"),
                     "Potensi Gain": st.column_config.TextColumn("Gain TP1"),
                     "Risiko SL": st.column_config.TextColumn("Risk SL"),
+                    "RR_Val": None,  # Sembunyikan kolom numerik pembantu dari tampilan
                     "Catatan Analisis & Warning": st.column_config.TextColumn(
                         "Rekomendasi & Warning", width="large"
                     ),

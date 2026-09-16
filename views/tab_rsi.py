@@ -48,33 +48,6 @@ def render_tab_rsi():
             color: #8B949E;
         }
 
-        /* Custom Card Button Styling */
-        div.stButton > button[key^="card_btn_"] {
-            width: 100%;
-            background-color: #161B22;
-            border: 1px solid #30363D;
-            border-radius: 8px;
-            padding: 8px 10px;
-            text-align: left;
-            margin-bottom: 8px;
-            transition: all 0.2s ease-in-out;
-            height: auto !important;
-        }
-        div.stButton > button[key^="card_btn_"]:hover {
-            border-color: #58A6FF !important;
-            background-color: #1F242C;
-        }
-        div.stButton > button[key^="card_btn_selected"] {
-            width: 100%;
-            background-color: #0D1117;
-            border: 1.5px solid #238636 !important;
-            border-radius: 8px;
-            padding: 8px 10px;
-            text-align: left;
-            margin-bottom: 8px;
-            height: auto !important;
-        }
-
         /* Card Elements */
         .card-header-row {
             display: flex;
@@ -83,7 +56,7 @@ def render_tab_rsi():
             width: 100%;
         }
         .ticker-symbol {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 700;
             color: #FFFFFF;
         }
@@ -112,10 +85,7 @@ def render_tab_rsi():
             padding: 1px 6px;
             font-size: 10px;
             font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 200px;
+            display: inline-block;
         }
         .pattern-badge-bear {
             background-color: rgba(248, 81, 73, 0.15);
@@ -125,10 +95,7 @@ def render_tab_rsi():
             padding: 1px 6px;
             font-size: 10px;
             font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 200px;
+            display: inline-block;
         }
         .card-details-grid {
             display: grid;
@@ -136,7 +103,7 @@ def render_tab_rsi():
             gap: 4px;
             background-color: #0D1117;
             border-radius: 5px;
-            padding: 5px 8px;
+            padding: 6px 8px;
             margin-top: 6px;
             font-size: 10px;
             width: 100%;
@@ -148,6 +115,11 @@ def render_tab_rsi():
         .detail-item-val {
             color: #C9D1D9;
             font-weight: 600;
+        }
+
+        /* Target Streamlit Container Padding Optimization */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            padding: 0px !important;
         }
         </style>
         """,
@@ -304,59 +276,57 @@ def render_tab_rsi():
         has_results = "rsi_stats" in st.session_state
 
         if has_results:
-            with st.container(border=True):
-                # REVISI 3: Dropdown "Choose Screener Mode" (Default Bullish)
-                screener_mode = st.selectbox(
-                    "Choose Screener Mode",
-                    options=["Bullish", "Bearish"],
-                    index=0 if st.session_state.get("active_rsi_type") == "Bullish" else 1,
-                    key="rsi_screener_mode_select",
-                )
-                st.session_state["active_rsi_type"] = screener_mode
+            # REVISI 3: Dropdown "Choose Screener Mode" (Default Bullish)
+            screener_mode = st.selectbox(
+                "Choose Screener Mode",
+                options=["Bullish", "Bearish"],
+                index=0 if st.session_state.get("active_rsi_type") == "Bullish" else 1,
+                key="rsi_screener_mode_select",
+            )
+            st.session_state["active_rsi_type"] = screener_mode
 
-                st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 
-                is_bull_tab = screener_mode == "Bullish"
-                if is_bull_tab:
-                    df_target = st.session_state.get("df_rsi_bullish", pd.DataFrame())
-                else:
-                    df_target = st.session_state.get("df_rsi_bearish", pd.DataFrame())
+            is_bull_tab = screener_mode == "Bullish"
+            if is_bull_tab:
+                df_target = st.session_state.get("df_rsi_bullish", pd.DataFrame())
+            else:
+                df_target = st.session_state.get("df_rsi_bearish", pd.DataFrame())
 
-                if not df_target.empty:
-                    # Rendering Compact Card untuk Setiap Ticker
-                    for idx, row in df_target.iterrows():
-                        ticker = row.get("Ticker", row.get("Saham"))
-                        saham = row.get("Saham", ticker.replace(".JK", ""))
-                        score = row.get("Score", 0)
-                        pattern = row.get("Pattern", "-")
-                        close_price = row.get("Close_Price", 0)
-                        change_pct = row.get("Change_Pct", 0.0)
+            if not df_target.empty:
+                # Rendering Compact Card menggunakan Container Native Streamlit
+                for idx, row in df_target.iterrows():
+                    ticker = row.get("Ticker", row.get("Saham"))
+                    saham = row.get("Saham", ticker.replace(".JK", ""))
+                    score = row.get("Score", 0)
+                    pattern = row.get("Pattern", "-")
+                    close_price = row.get("Close_Price", 0)
+                    change_pct = row.get("Change_Pct", 0.0)
 
-                        tgl_kiri = row.get("Tgl Kiri", "-")
-                        harga_kiri = row.get("Harga Kiri", "-")
-                        rsi_kiri = row.get("RSI Kiri", 0.0)
+                    tgl_kiri = row.get("Tgl Kiri", "-")
+                    harga_kiri = row.get("Harga Kiri", "-")
+                    rsi_kiri = row.get("RSI Kiri", 0.0)
 
-                        tgl_kanan = row.get("Tgl Kanan", "-")
-                        harga_kanan = row.get("Harga Kanan", "-")
-                        rsi_kanan = row.get("RSI Kanan", 0.0)
+                    tgl_kanan = row.get("Tgl Kanan", "-")
+                    harga_kanan = row.get("Harga Kanan", "-")
+                    rsi_kanan = row.get("RSI Kanan", 0.0)
 
-                        is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
+                    is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
 
-                        badge_style = "pattern-badge-bull" if is_bull_tab else "pattern-badge-bear"
-                        
-                        if change_pct >= 0:
-                            change_html = f'<span class="change-badge-green">+{change_pct:.2f}%</span>'
-                        else:
-                            change_html = f'<span class="change-badge-red">{change_pct:.2f}%</span>'
+                    badge_style = "pattern-badge-bull" if is_bull_tab else "pattern-badge-bear"
+                    
+                    if change_pct >= 0:
+                        change_html = f'<span class="change-badge-green">+{change_pct:.2f}%</span>'
+                    else:
+                        change_html = f'<span class="change-badge-red">{change_pct:.2f}%</span>'
 
-                        price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
+                    price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
 
-                        # REVISI 1 & 2: Seluruh Kartu Menjadi 1 Tombol Interaktif Ringkas
-                        btn_key_prefix = "card_btn_selected" if is_selected else "card_btn"
-                        
-                        # Format Konten Tampilan dalam Button
-                        card_content = f"""
-                        <div style="width: 100%;">
+                    # Container Card yang Kompak
+                    with st.container(border=True):
+                        # HTML Body Card
+                        card_html = f"""
+                        <div style="margin-bottom: 4px;">
                             <div class="card-header-row">
                                 <div>
                                     <span class="ticker-symbol">{saham}</span>
@@ -380,17 +350,25 @@ def render_tab_rsi():
                             </div>
                         </div>
                         """
+                        st.markdown(card_html, unsafe_allow_html=True)
 
+                        # REVISI 1: Tombol aksi langsung di dalam card tanpa teks "Pilih"
+                        btn_label = "✅ Selected" if is_selected else f"Select {saham}"
+                        btn_type = "primary" if is_selected else "secondary"
+                        
                         if st.button(
-                            card_content,
-                            key=f"{btn_key_prefix}_{ticker}_{idx}",
+                            btn_label,
+                            key=f"btn_select_{ticker}_{idx}",
                             use_container_width=True,
+                            type=btn_type,
                         ):
                             st.session_state["selected_rsi_ticker"] = ticker
                             st.rerun()
 
-                else:
-                    st.info(f"No {screener_mode} patterns detected.")
+                    st.markdown("<div style='margin-bottom: 4px;'></div>", unsafe_allow_html=True)
+
+            else:
+                st.info(f"No {screener_mode} patterns detected.")
         else:
             st.info("Click **Run Screening** above to start scanning the market.")
 
@@ -468,7 +446,7 @@ def render_tab_rsi():
                     <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
                     <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
                     <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
-                        Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.
+                        Run the screening process, then select any stock card from the left panel to inspect full Trade Planner details.
                     </p>
                 </div>
                 """,

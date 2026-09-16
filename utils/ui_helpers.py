@@ -125,29 +125,34 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             )
             planner.fetch_and_prepare_data()
 
-            # Direction Market
+            # 1. Direction Market
             st.markdown("#### 📌 Direction Market")
             df_dir = planner.get_direction()
             st.dataframe(df_dir, use_container_width=True)
 
-            direction_val = df_dir["Direction"].iloc[0]
-            if direction_val == "BOB":
-                st.success("Analisis Arah: **BOB (Breakout Buy)**")
-            else:
-                st.info("Analisis Arah: **BOW (Buy on Weakness)**")
+            if not df_dir.empty and "Direction" in df_dir.columns:
+                direction_val = df_dir["Direction"].iloc[0]
+                if direction_val == "BOB":
+                    st.success("Analisis Arah: **BOB (Breakout Buy)**")
+                else:
+                    st.info("Analisis Arah: **BOW (Buy on Weakness)**")
 
-            # Strategy Trade Plan
+            # 2. Strategy Trade Plan
             st.markdown("#### 🎯 Trade Plan Recommendation")
             df_plan = planner.generate_trade_plan()
             st.dataframe(df_plan, use_container_width=True)
 
-            warning_msg = df_plan["Warning"].iloc[0]
-            candle_type = df_plan["Status Candle"].iloc[0]
-            st.warning(
-                f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}"
-            )
+            # SAFE CHECKING: Mencegah KeyError jika kolom 'Status Candle' / 'Warning' tidak ada
+            if not df_plan.empty:
+                warning_msg = df_plan["Warning"].iloc[0] if "Warning" in df_plan.columns else "-"
+                candle_type = df_plan["Status Candle"].iloc[0] if "Status Candle" in df_plan.columns else "-"
+                
+                if candle_type != "-" or warning_msg != "-":
+                    st.warning(
+                        f"**Pola Candle Terdeteksi:** {candle_type} — {warning_msg}"
+                    )
 
-            # Support & Resistance Levels
+            # 3. Support & Resistance Levels
             col_sup, col_res = st.columns(2)
             with col_sup:
                 st.markdown("#### 🛡️ Support Levels")
@@ -160,7 +165,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     planner.get_strong_resistance(), use_container_width=True
                 )
 
-            # Swing Points
+            # 4. Swing Points
             st.markdown("#### 📍 Swing Points & Metpoints")
             st.dataframe(
                 planner.get_swing_points(), use_container_width=True

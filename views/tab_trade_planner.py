@@ -1,3 +1,84 @@
+import streamlit as st
+import pandas as pd
+
+# ==========================================
+# HELPER / DUMMY FUNCTIONS (Safe Fallbacks)
+# ==========================================
+def load_daftar_saham(filename="daftar_saham.txt"):
+    """Load ticker list from file or return default fallback."""
+    try:
+        with open(filename, "r") as f:
+            return [line.strip().upper() for line in f if line.strip()]
+    except Exception:
+        return ["BBCA", "BMRI", "TLKM", "ASII", "INCO", "ANTM"]
+
+def clear_cache(cache_key):
+    """Safely clear session state cache."""
+    if cache_key in st.session_state:
+        del st.session_state[cache_key]
+
+def reset_filters():
+    """Reset selectbox filter states."""
+    st.session_state["f_strategi"] = "ALL STRATEGIES"
+    st.session_state["f_grade"] = "ALL GRADES"
+    st.session_state["f_zone"] = "ALL POSITIONS"
+    st.session_state["f_rr"] = "ALL RATIOS"
+    st.session_state["f_candle"] = "ALL CANDLES"
+
+def run_batch_execution(tickers, cache_key):
+    """Simulate analysis pipeline if backend logic is not present."""
+    data = []
+    for ticker in tickers:
+        data.append({
+            "Symbol": ticker,
+            "Score": 85,
+            "Grade": "A+",
+            "Strategy": "BOW",
+            "Last Price": 7500,
+            "Zone Position": "In Buy Zone",
+            "Buy Range": "7300 - 7500",
+            "Stop Loss (SL)": 7100,
+            "TP 1": 8000,
+            "TP 2": 8500,
+            "Potential Gain": "+13.3%",
+            "SL Risk": "-5.3%",
+            "Risk-Reward Ratio": "1 : 2.5",
+            "RR_Val": 2.5,
+            "Candlestick Pattern": "Bullish Engulfing"
+        })
+    st.session_state[cache_key] = pd.DataFrame(data)
+
+def render_trade_plan_cards(df, is_title_needed=False):
+    """Render HUD style cards for selected assets."""
+    if is_title_needed:
+        st.markdown(
+            "<h3 style='font-family: Orbitron; color: #fcee0a; text-shadow: 0 0 10px #fcee0a;'>"
+            "⚡ HUD TACTICAL TRADE PLAN</h3>",
+            unsafe_allow_html=True
+        )
+    for _, row in df.iterrows():
+        st.markdown(
+            f"""
+            <div class="zio-card zio-card-green">
+                <div class="zio-card-header">
+                    <span class="zio-card-title title-green">[{row.get('Symbol', 'N/A')}] - {row.get('Strategy', 'N/A')}</span>
+                    <span class="zio-badge badge-green">GRADE {row.get('Grade', 'N/A')}</span>
+                </div>
+                <div class="zio-card-value val-green">LAST: Rp {row.get('Last Price', 0):,}</div>
+                <p class="zio-card-subtext">
+                    <b>Buy Range:</b> {row.get('Buy Range', '-')} | 
+                    <b>SL:</b> Rp {row.get('Stop Loss (SL)', 0):,} | 
+                    <b>TP1:</b> Rp {row.get('TP 1', 0):,} | 
+                    <b>Pattern:</b> {row.get('Candlestick Pattern', '-')}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+# ==========================================
+# MAIN TAB FUNCTION
+# ==========================================
 def render_tab_trade_planner():
     # 🎨 CYBERPUNK 2077 CSS STYLING
     st.markdown(
@@ -5,14 +86,12 @@ def render_tab_trade_planner():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap');
 
-        /* Global Cyberpunk Theme */
         .stApp {
             background-color: #05050a !important;
             font-family: 'Rajdhani', sans-serif !important;
             color: #00f0ff !important;
         }
 
-        /* Ambient Cyber Grid & Overlay Effects */
         .stApp::before {
             content: " ";
             display: block;
@@ -24,7 +103,6 @@ def render_tab_trade_planner():
             pointer-events: none;
         }
 
-        /* Cyber Header Panel */
         .zio-header-wrapper {
             display: flex;
             align-items: center;
@@ -65,7 +143,6 @@ def render_tab_trade_planner():
             text-transform: uppercase;
         }
 
-        /* Form Subheader */
         .zio-form-header {
             color: #00f0ff;
             font-family: 'Orbitron', sans-serif;
@@ -90,7 +167,6 @@ def render_tab_trade_planner():
             text-transform: uppercase;
         }
 
-        /* Input Customization */
         div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
             background-color: #080811 !important;
             border: 1px solid #00f0ff !important;
@@ -104,7 +180,6 @@ def render_tab_trade_planner():
             box-shadow: 0 0 12px rgba(255, 0, 60, 0.6) !important;
         }
 
-        /* Cyberpunk Tactical Buttons */
         div.stButton > button {
             background: #0d0e1b !important;
             color: #00f0ff !important;
@@ -135,7 +210,6 @@ def render_tab_trade_planner():
             box-shadow: 0 0 25px #fcee0a !important;
         }
 
-        /* Expander Frame */
         div[data-testid="stExpander"] {
             background-color: rgba(10, 10, 18, 0.9) !important;
             border: 1px solid #00f0ff !important;
@@ -143,7 +217,6 @@ def render_tab_trade_planner():
             box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.1) !important;
         }
 
-        /* CYBER HUD CARD DESIGN */
         .zio-card {
             background: rgba(12, 13, 24, 0.9);
             border-radius: 0px;
@@ -155,8 +228,6 @@ def render_tab_trade_planner():
             clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
         }
         .zio-card-green { border: 1px solid #00ff66; box-shadow: 0 0 10px rgba(0, 255, 102, 0.2); }
-        .zio-card-red { border: 1px solid #ff003c; box-shadow: 0 0 10px rgba(255, 0, 60, 0.2); }
-        .zio-card-blue { border: 1px solid #00f0ff; }
 
         .zio-card-header {
             display: flex;
@@ -172,8 +243,6 @@ def render_tab_trade_planner():
             text-transform: uppercase;
         }
         .title-green { color: #00ff66; text-shadow: 0 0 5px #00ff66; }
-        .title-red { color: #ff003c; text-shadow: 0 0 5px #ff003c; }
-        .title-blue { color: #00f0ff; text-shadow: 0 0 5px #00f0ff; }
 
         .zio-badge {
             font-family: 'Orbitron', sans-serif;
@@ -184,8 +253,6 @@ def render_tab_trade_planner():
             text-transform: uppercase;
         }
         .badge-green { background-color: rgba(0, 255, 102, 0.15); color: #00ff66; border: 1px solid #00ff66; }
-        .badge-red { background-color: rgba(255, 0, 60, 0.15); color: #ff003c; border: 1px solid #ff003c; }
-        .badge-blue { background-color: rgba(0, 240, 255, 0.15); color: #00f0ff; border: 1px solid #00f0ff; }
 
         .zio-card-value {
             font-family: 'Orbitron', sans-serif;
@@ -195,9 +262,7 @@ def render_tab_trade_planner():
             line-height: 1.2;
             letter-spacing: 1px;
         }
-        .val-white { color: #ffffff; text-shadow: 0 0 8px #ffffff; }
         .val-green { color: #00ff66; text-shadow: 0 0 8px #00ff66; }
-        .val-red { color: #ff003c; text-shadow: 0 0 8px #ff003c; }
 
         .zio-card-subtext {
             font-size: 0.82rem;
@@ -307,7 +372,6 @@ def render_tab_trade_planner():
 
         active_cache_key = "df_screener_single"
 
-        # SINGLE MODE RESULT -> HUD CARDS
         if active_cache_key in st.session_state:
             df_single_res = st.session_state[active_cache_key]
 
@@ -337,7 +401,7 @@ def render_tab_trade_planner():
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
         with col_info:
-            st.info(f"📁 DATABASE READY: **{len(all_tickers)} asset nodes** indexed from `daftar_saham.txt`.")
+            st.info(f"📁 DATABASE READY: **{len(all_tickers)} asset nodes** indexed.")
         with col_batch_btn:
             if st.button("🚀 INITIATE BATCH SCAN", type="primary", use_container_width=True):
                 run_batch_execution(all_tickers, cache_key="df_screener_batch")
@@ -347,7 +411,6 @@ def render_tab_trade_planner():
         if active_cache_key in st.session_state:
             df_raw = st.session_state[active_cache_key]
 
-            # Filters
             st.write("")
             with st.expander("🛠️ **CYBER MATRIX FILTER PARAMETERS**", expanded=True):
                 r1c1, r1c2, r1c3 = st.columns(3)
@@ -399,7 +462,6 @@ def render_tab_trade_planner():
                 with r2c3:
                     st.button("🔄 OVERRIDE FILTERS", on_click=reset_filters, use_container_width=True)
 
-            # Filtering logic
             df = df_raw.copy()
 
             if f_strategi == "Buy On Weakness (BOW)":
@@ -443,7 +505,6 @@ def render_tab_trade_planner():
 
             st.write("")
 
-            # Header, Export & Clear Cache
             h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(

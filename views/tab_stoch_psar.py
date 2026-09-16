@@ -6,41 +6,68 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_stoch_psar():
+    # Style CSS Khusus Modul Stoch & PSAR
     st.markdown(
         """
         <style>
+        /* Header Banner Strategi */
         .panel-header-center {
-            background-color: #161B22;
-            border: 1px solid #21262D;
-            border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 10px;
+            background: linear-gradient(135deg, #161B22 0%, #0D1117 100%);
+            border: 1px solid #30363D;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
             text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
+        .panel-title {
+            color: #00E676;
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Styling Metric Cards */
         .metric-card {
             background-color: #161B22;
             border: 1px solid #21262D;
             border-radius: 8px;
-            padding: 8px 10px;
+            padding: 10px 12px;
             text-align: center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
         .metric-value {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 800;
             color: #FFFFFF;
         }
         .metric-label {
-            font-size: 9px;
+            font-size: 10px;
             color: #8B949E;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
+            letter-spacing: 0.6px;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
+
+        /* Custom Section Titles */
+        .section-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #38BDF8;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-top: 14px;
+            margin-bottom: 6px;
+        }
+
+        /* Empty Card State */
         .empty-card {
             background-color: #161B22;
             border: 1px dashed #30363D;
-            border-radius: 8px;
-            padding: 40px 20px;
+            border-radius: 10px;
+            padding: 50px 20px;
             text-align: center;
             color: #8B949E;
         }
@@ -53,7 +80,7 @@ def render_tab_stoch_psar():
         st.session_state["stop_stoch_scan"] = False
 
     if "active_stoch_type" not in st.session_state:
-        st.session_state["active_stoch_type"] = "Golden Cross (Beli)"
+        st.session_state["active_stoch_type"] = "Golden Cross (Buy)"
 
     if "selected_stoch_ticker" not in st.session_state:
         st.session_state["selected_stoch_ticker"] = None
@@ -61,13 +88,14 @@ def render_tab_stoch_psar():
     col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
     # =========================================================
-    # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
+    # LEFT PANEL: SCREENER CONTROL & STOCK LIST
     # =========================================================
     with col_left:
+        # Header Banner
         st.markdown(
             """
             <div class="panel-header-center">
-                <div style="color: #00E676; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">STOCHASTIC & PARABOLIC SAR</div>
+                <div class="panel-title">⚡ STOCHASTIC & PARABOLIC SAR</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -77,7 +105,7 @@ def render_tab_stoch_psar():
 
         with col_btn_run:
             run_clicked = st.button(
-                "Run Screening",
+                "▶ Run Screening",
                 key="btn_run_stoch_screener",
                 use_container_width=True,
                 type="primary",
@@ -85,7 +113,9 @@ def render_tab_stoch_psar():
 
         with col_btn_stop:
             stop_clicked = st.button(
-                "🛑 Stop", key="btn_stop_stoch_screener", use_container_width=True
+                "🛑 Stop",
+                key="btn_stop_stoch_screener",
+                use_container_width=True,
             )
 
         if stop_clicked:
@@ -93,7 +123,7 @@ def render_tab_stoch_psar():
 
         if run_clicked:
             st.session_state["stop_stoch_scan"] = False
-            with st.spinner("Fetching IHSG tickers list..."):
+            with st.spinner("Fetching IHSG Tickers List..."):
                 all_stoch_tickers = get_all_ihsg_tickers()
 
             total_stoch_tickers = len(all_stoch_tickers)
@@ -102,7 +132,7 @@ def render_tab_stoch_psar():
 
             def update_stoch_progress(current, total):
                 if st.session_state.get("stop_stoch_scan", False):
-                    pstatus_stoch.warning("Screening cancelled.")
+                    pstatus_stoch.warning("Screening process cancelled by user.")
                     return
                 pct = current / total if total > 0 else 0
                 pbar_stoch.progress(pct)
@@ -162,32 +192,29 @@ def render_tab_stoch_psar():
             except Exception as e:
                 pbar_stoch.empty()
                 pstatus_stoch.empty()
-                st.error(f"Terjadi kesalahan: {e}")
+                st.error(f"An error occurred: {e}")
 
-        st.markdown(
-            "<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True
-        )
+        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
         has_results = "stoch_stats" in st.session_state
 
         if has_results:
+            st.markdown('<div class="section-label">CHOOSE SIGNAL MODE</div>', unsafe_allow_html=True)
+            
             screener_mode = st.selectbox(
                 "Choose Signal Mode",
-                options=["Golden Cross (Beli)", "Dead Cross (Jual)"],
+                options=["Golden Cross (Buy)", "Dead Cross (Sell)"],
                 index=0
-                if st.session_state.get("active_stoch_type")
-                == "Golden Cross (Beli)"
+                if "Buy" in st.session_state.get("active_stoch_type", "Golden Cross (Buy)")
                 else 1,
                 key="stoch_screener_mode_select",
+                label_visibility="collapsed",
             )
             st.session_state["active_stoch_type"] = screener_mode
 
-            st.markdown(
-                "<div style='margin-bottom: 6px;'></div>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-            is_gc_tab = screener_mode == "Golden Cross (Beli)"
+            is_gc_tab = "Buy" in screener_mode
             df_target = (
                 st.session_state.get("df_gc_data", pd.DataFrame())
                 if is_gc_tab
@@ -200,10 +227,10 @@ def render_tab_stoch_psar():
                     saham = ticker.replace(".JK", "")
                     score = row.get("Score", 0)
 
-                    # Ambil Detail Signal dari dict screener
+                    # Detail Signal
                     signal_desc = row.get("Detail Signal", "-")
 
-                    # Ambil Harga dan Persentase
+                    # Price and Change Percentage
                     close_price = row.get("Harga", 0)
                     change_pct = row.get("Change (%)", 0.0)
 
@@ -240,13 +267,13 @@ def render_tab_stoch_psar():
                                     <div>
                                         <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                                             <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
-                                            <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                                            <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
                                         </div>
                                         <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {signal_desc}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
-                                        <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                        <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 700; color: {change_color};">{change_str}</div>
                                     </div>
                                 </div>
                             </div>
@@ -275,14 +302,14 @@ def render_tab_stoch_psar():
                             unsafe_allow_html=True,
                         )
             else:
-                st.info(f"Tidak ada signal {screener_mode} yang terdeteksi.")
+                st.info(f"No {screener_mode} signals detected.")
         else:
             st.info(
-                "Klik **Run Screening** di atas untuk mulai memindai pasar."
+                "Click **▶ Run Screening** above to scan the market."
             )
 
     # =========================================================
-    # PANEL KANAN: WORKSPACE & LIVE TRADE PLANNER
+    # RIGHT PANEL: WORKSPACE & LIVE TRADE PLANNER
     # =========================================================
     with col_right:
         if "stoch_stats" in st.session_state:
@@ -338,7 +365,7 @@ def render_tab_stoch_psar():
                 f"""
                 <div style="background-color: #0D2B1D; border: 1.5px solid #00E676; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                     <span>🎯 SELECTED SYMBOL: <strong style="color: #00E676; font-size: 15px; margin-left: 6px;">{selected_stoch_symbol}</strong></span>
-                    <span style="color: #8B949E; font-size: 11px; font-weight: 400;">Interactive Analysis Workspace</span>
+                    <span style="color: #8B949E; font-size: 11px; font-weight: 500;">Interactive Analysis Workspace</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -367,7 +394,7 @@ def render_tab_stoch_psar():
             st.markdown(
                 """
                 <div class="empty-card">
-                    <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
+                    <div style="font-size: 32px; margin-bottom: 8px;">👈</div>
                     <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
                     <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
                         Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.

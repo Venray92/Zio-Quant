@@ -237,7 +237,7 @@ def render_tab_rsi():
         st.markdown(
             """
             <div class="cyber-header-container">
-                <div class="cyber-header-title">⚡ RSI DIVERGENCE</div>
+                <div class="cyber-header-title">⚡ RSI MATRIX</div>
             </div>
             """,
             unsafe_allow_html=True,

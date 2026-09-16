@@ -86,7 +86,7 @@ def run_batch_execution(ticker_list, cache_key):
     """Multi-threaded execution runner with safe main-thread UI updates."""
     total_saham = len(ticker_list)
     if total_saham == 0:
-        st.warning("⚠️ Ticker list is empty!")
+        st.warning("⚠️ Daftar ticker saham kosong!")
         return
 
     progress_bar = st.progress(0)
@@ -109,14 +109,14 @@ def run_batch_execution(ticker_list, cache_key):
             percent = completed / total_saham
             progress_bar.progress(percent)
             status_text.markdown(
-                f"⏳ <span style='color:#00f3ff; font-family: monospace;'>[SCANNING_GRID]:</span> `{completed}/{total_saham}` stocks processed ({int(percent * 100)}%)",
+                f"⏳ <span style='color:#00f3ff; font-weight:600;'>[MEMPROSES]:</span> `{completed}/{total_saham}` saham selesai dianalisis ({int(percent * 100)}%)",
                 unsafe_allow_html=True,
             )
 
     progress_bar.empty()
     status_text.empty()
     st.toast(
-        f"SYSTEM ONLINE: Analyzed {len(results)} out of {total_saham} stocks!",
+        f"Analisis Selesai: Berhasil menganalisis {len(results)} dari {total_saham} saham!",
         icon="⚡",
     )
 
@@ -137,50 +137,50 @@ def reset_filters():
 def clear_cache(cache_key):
     """Clear specific cache mode."""
     st.session_state.pop(cache_key, None)
-    st.toast("CACHE PURGED // MEMORY RESET", icon="🧹")
+    st.toast("Cache Berhasil Dibersihkan", icon="🧹")
 
 
 def draw_card(title, value, subtext, badge_text="", variant="cyan", value_color="cyan"):
-    """Reusable Cyberpunk Card Component."""
+    """Reusable Trade Planner Card Component."""
     badge_html = (
-        f'<span class="cp-badge badge-{variant}">{badge_text}</span>'
+        f'<span class="tp-badge badge-{variant}">{badge_text}</span>'
         if badge_text
         else ""
     )
 
     card_html = f"""
-    <div class="cp-card cp-card-{variant}">
-        <div class="cp-card-header">
-            <span class="cp-card-title title-{variant}">{title}</span>
+    <div class="tp-card tp-card-{variant}">
+        <div class="tp-card-header">
+            <span class="tp-card-title title-{variant}"><span class="dot-icon">●</span> {title}</span>
             {badge_html}
         </div>
-        <div class="cp-card-value val-{value_color}">{value}</div>
-        <p class="cp-card-subtext">{subtext}</p>
+        <div class="tp-card-value val-{value_color}">{value}</div>
+        <p class="tp-card-subtext">{subtext}</p>
     </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
 
 
 def render_trade_plan_cards(df_data, is_title_needed=True):
-    """Renders Cyberpunk Trade Plan Cards for given stocks Dataframe."""
+    """Renders Trade Plan Cards for given stocks Dataframe."""
     if is_title_needed:
         st.markdown(
-            f"<h3 style='color:#00f3ff; font-family: monospace; text-shadow: 0 0 10px #00f3ff;'>// TRADE_PLANS_TARGETS <span style='font-size:0.9rem; color:#ff0055;'>({len(df_data)} UNITS)</span></h3>",
+            f"<h3 style='color:#00f3ff; font-weight: 700; text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); margin-top: 25px;'><span style='color:#00f3ff;'>●</span> REKOMENDASI RENCANA TRADING <span style='font-size:0.95rem; color:#ff007f; margin-left:8px;'>({len(df_data)} SAHAM)</span></h3>",
             unsafe_allow_html=True,
         )
 
     for idx, row in df_data.iterrows():
         st.markdown(
             f"""
-            <div style="background: #0d0f18; border: 1px solid #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); padding: 16px 20px; border-radius: 4px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-family: monospace;">
+            <div style="background: #0b0f19; border: 1px solid #00f3ff; box-shadow: 0 0 12px rgba(0, 243, 255, 0.25); padding: 16px 20px; border-radius: 6px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <span style="font-size: 1.6rem; font-weight: 900; color: #ff0055; text-shadow: 0 0 8px #ff0055; letter-spacing: 2px;">{row['Symbol']}</span>
-                    <span style="background: rgba(0, 243, 255, 0.1); color: #00f3ff; border: 1px solid #00f3ff; padding: 3px 10px; font-size: 0.8rem; font-weight: 700;">STRATEGY: {row['Strategy']}</span>
-                    <span style="background: rgba(255, 230, 0, 0.1); color: #ffe600; border: 1px solid #ffe600; padding: 3px 10px; font-size: 0.8rem; font-weight: 700;">Grade: {row['Grade']}</span>
-                    <span style="background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid #ff0055; padding: 3px 10px; font-size: 0.8rem; font-weight: 700;">Score: {row['Score']}/100</span>
+                    <span style="font-size: 1.6rem; font-weight: 900; color: #00f3ff; text-shadow: 0 0 8px rgba(0, 243, 255, 0.6); letter-spacing: 1px;">● {row['Symbol']}</span>
+                    <span style="background: rgba(0, 243, 255, 0.1); color: #00f3ff; border: 1px solid #00f3ff; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; border-radius: 4px;">STRATEGI: {row['Strategy']}</span>
+                    <span style="background: rgba(0, 255, 153, 0.1); color: #00ff99; border: 1px solid #00ff99; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; border-radius: 4px;">Grade: {row['Grade']}</span>
+                    <span style="background: rgba(255, 0, 127, 0.1); color: #ff007f; border: 1px solid #ff007f; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; border-radius: 4px;">Score: {row['Score']}/100</span>
                 </div>
-                <div style="color: #8a8b98; font-size: 0.9rem;">
-                    LAST_PRICE: <strong style="color: #00f3ff; font-size: 1.2rem; text-shadow: 0 0 5px #00f3ff;">Rp {row['Last Price']:,}</strong>
+                <div style="color: #94a3b8; font-size: 0.95rem;">
+                    HARGA TERAKHIR: <strong style="color: #00f3ff; font-size: 1.25rem; text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);">Rp {row['Last Price']:,}</strong>
                 </div>
             </div>
             """,
@@ -190,35 +190,35 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
         col1, col2 = st.columns(2)
         with col1:
             draw_card(
-                title="BUY RANGE // ENTRY_ZONE",
+                title="AREA BELI (BUY RANGE)",
                 value=str(row["Buy Range"]),
-                subtext=f"STATUS: {row['Zone Position']}",
+                subtext=f"Posisi: {row['Zone Position']}",
                 badge_text=str(row["Zone Position"]),
                 variant="cyan",
                 value_color="cyan",
             )
             draw_card(
-                title="TARGET 1 // TP_01",
+                title="TARGET 1 (TP 1)",
                 value=f"Rp {row['TP 1']:,}",
-                subtext="Initial profit target / partial exit.",
+                subtext="Target profit awal / parsial exit.",
                 badge_text=str(row["Potential Gain"]),
-                variant="yellow",
-                value_color="yellow",
+                variant="green",
+                value_color="green",
             )
 
         with col2:
             draw_card(
-                title="STOP LOSS // CUT_OFF",
+                title="STOP LOSS (SL)",
                 value=f"Rp {row['Stop Loss (SL)']:,}",
-                subtext="Hard boundary risk limit.",
+                subtext="Batas toleransi risiko maksimal.",
                 badge_text=str(row["SL Risk"]),
-                variant="magenta",
-                value_color="magenta",
+                variant="pink",
+                value_color="pink",
             )
             draw_card(
-                title="TARGET 2 // TP_02",
+                title="TARGET 2 (TP 2)",
                 value=f"Rp {row['TP 2']:,}",
-                subtext="Main swing target zone.",
+                subtext="Target utama swing trading.",
                 badge_text=f"R:R {row['Risk-Reward Ratio']}",
                 variant="cyan",
                 value_color="cyan",
@@ -226,18 +226,18 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
 
         st.markdown(
             f"""
-            <div style="background: #05060a; border: 1px solid #1e2230; padding: 14px 18px; margin-bottom: 28px; font-family: monospace; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+            <div style="background: #070a12; border: 1px solid #1e293b; padding: 14px 18px; margin-bottom: 28px; border-radius: 6px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                 <div>
-                    <span style="font-size: 0.75rem; color: #5a5c6e; display: block;">RISK : REWARD</span>
+                    <span style="font-size: 0.78rem; color: #64748b; display: block;">RISK : REWARD</span>
                     <span style="font-size: 0.95rem; color: #00f3ff; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
                 </div>
                 <div>
-                    <span style="font-size: 0.75rem; color: #5a5c6e; display: block;">CANDLE_PATTERN</span>
-                    <span style="font-size: 0.95rem; color: #ffe600; font-weight: 700;">{row['Candlestick Pattern']}</span>
+                    <span style="font-size: 0.78rem; color: #64748b; display: block;">POLA CANDLESTICK</span>
+                    <span style="font-size: 0.95rem; color: #00ff99; font-weight: 700;">{row['Candlestick Pattern']}</span>
                 </div>
                 <div style="grid-column: span 2;">
-                    <span style="font-size: 0.75rem; color: #5a5c6e; display: block;">SYSTEM_ANALYSIS & WARNING</span>
-                    <span style="font-size: 0.88rem; color: #ff0055; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
+                    <span style="font-size: 0.78rem; color: #64748b; display: block;">ANALISIS & PERINGATAN RISIKO</span>
+                    <span style="font-size: 0.88rem; color: #ff007f; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
                 </div>
             </div>
             """,
@@ -246,143 +246,155 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
 
 
 def render_tab_trade_planner():
-    # 🎨 CYBERPUNK CSS STYLING
+    # 🎨 TRADE PLANNER CLEAN UI & STYLING
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
-        /* Dark Glitch Background */
+        /* Modern Dark Theme Background */
         .stApp {
-            background-color: #030407 !important;
-            color: #c0c5d0 !important;
-            font-family: 'Share Tech Mono', monospace !important;
+            background-color: #060911 !important;
+            color: #cbd5e1 !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         }
 
-        /* Cyberpunk Header Wrapper */
-        .cp-header-wrapper {
+        /* Header Banner Styling dengan Efek Glowing Neon Cyan Border */
+        .tp-header-wrapper {
             display: flex;
             align-items: center;
-            background: #090b10;
-            border: 2px solid #ff0055;
-            box-shadow: 0 0 15px rgba(255, 0, 85, 0.3), inset 0 0 15px rgba(255, 0, 85, 0.1);
-            padding: 18px 24px;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #0b1120 0%, #070a14 100%);
+            border: 1px solid #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.08);
+            padding: 20px 24px;
             margin-bottom: 24px;
-            clip-path: polygon(0 0, 100% 0, 98% 100%, 0 100%);
+            border-radius: 8px;
         }
-        .cp-title-text {
+
+        .tp-title-text {
             color: #00f3ff;
             font-size: 1.5rem;
-            font-weight: 900;
-            text-shadow: 0 0 8px #00f3ff;
-            letter-spacing: 3px;
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+            letter-spacing: 1.5px;
             text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        /* Inputs Styling */
+        .tp-title-text .dot-indicator {
+            color: #00f3ff;
+            font-size: 1.2rem;
+            text-shadow: 0 0 8px #00f3ff;
+        }
+
+        /* Form Inputs & Select Styling */
         div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-            background-color: #070910 !important;
+            background-color: #090d18 !important;
             border: 1px solid #00f3ff !important;
             color: #00f3ff !important;
-            border-radius: 0px !important;
-            box-shadow: 0 0 5px rgba(0, 243, 255, 0.2);
-            font-family: 'Share Tech Mono', monospace !important;
+            border-radius: 6px !important;
+            box-shadow: 0 0 6px rgba(0, 243, 255, 0.2);
         }
         div[data-baseweb="input"]:focus-within > div, div[data-baseweb="select"]:focus-within > div {
-            border-color: #ff0055 !important;
-            box-shadow: 0 0 10px #ff0055 !important;
+            border-color: #00ff99 !important;
+            box-shadow: 0 0 10px rgba(0, 255, 153, 0.4) !important;
         }
 
-        /* Neon Cyber Buttons */
+        /* Clean Modern Buttons */
         div.stButton > button {
-            background: #090c15 !important;
+            background: #0b1120 !important;
             color: #00f3ff !important;
             border: 1px solid #00f3ff !important;
-            border-radius: 0px !important;
+            border-radius: 6px !important;
             font-weight: 700 !important;
-            font-family: 'Share Tech Mono', monospace !important;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 12px 18px !important;
-            transition: all 0.2s ease-in-out !important;
+            letter-spacing: 0.5px;
+            padding: 10px 20px !important;
+            transition: all 0.25s ease-in-out !important;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
         }
         div.stButton > button:hover {
             background: #00f3ff !important;
-            color: #000000 !important;
-            box-shadow: 0 0 15px #00f3ff !important;
+            color: #060911 !important;
+            box-shadow: 0 0 18px rgba(0, 243, 255, 0.6) !important;
         }
         div.stButton > button[kind="primary"] {
-            background: #ff0055 !important;
-            color: #ffffff !important;
-            border: 1px solid #ff0055 !important;
-            box-shadow: 0 0 12px #ff0055 !important;
-            text-shadow: 0 0 5px #ffffff;
+            background: linear-gradient(90deg, #00f3ff, #00ff99) !important;
+            color: #060911 !important;
+            border: 1px solid #00f3ff !important;
+            box-shadow: 0 0 14px rgba(0, 243, 255, 0.4) !important;
         }
         div.stButton > button[kind="primary"]:hover {
-            background: #ffffff !important;
-            color: #ff0055 !important;
-            box-shadow: 0 0 20px #ff0055 !important;
+            background: linear-gradient(90deg, #00ff99, #00f3ff) !important;
+            box-shadow: 0 0 22px rgba(0, 255, 153, 0.6) !important;
         }
 
         /* Expander */
         div[data-testid="stExpander"] {
-            background-color: #080a10 !important;
-            border: 1px solid #ff0055 !important;
-            border-radius: 0px !important;
-            box-shadow: 0 0 8px rgba(255, 0, 85, 0.2);
+            background-color: #080d1a !important;
+            border: 1px solid #00f3ff !important;
+            border-radius: 6px !important;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.15);
         }
 
-        /* Cyberpunk Cards */
-        .cp-card {
-            background-color: #080a12;
+        /* Trade Planner Cards */
+        .tp-card {
+            background-color: #090d18;
             padding: 16px 18px;
             margin-bottom: 14px;
-            font-family: 'Share Tech Mono', monospace;
+            border-radius: 6px;
             position: relative;
         }
-        .cp-card-cyan { border: 1px solid #00f3ff; box-shadow: 0 0 10px rgba(0, 243, 255, 0.15); }
-        .cp-card-magenta { border: 1px solid #ff0055; box-shadow: 0 0 10px rgba(255, 0, 85, 0.15); }
-        .cp-card-yellow { border: 1px solid #ffe600; box-shadow: 0 0 10px rgba(255, 230, 0, 0.15); }
+        .tp-card-cyan { border: 1px solid #00f3ff; box-shadow: 0 0 10px rgba(0, 243, 255, 0.15); }
+        .tp-card-pink { border: 1px solid #ff007f; box-shadow: 0 0 10px rgba(255, 0, 127, 0.15); }
+        .tp-card-green { border: 1px solid #00ff99; box-shadow: 0 0 10px rgba(0, 255, 153, 0.15); }
 
-        .cp-card-header {
+        .tp-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
         }
-        .cp-card-title {
-            font-size: 0.8rem;
+        .tp-card-title {
+            font-size: 0.82rem;
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
         }
         .title-cyan { color: #00f3ff; }
-        .title-magenta { color: #ff0055; }
-        .title-yellow { color: #ffe600; }
+        .title-pink { color: #ff007f; }
+        .title-green { color: #00ff99; }
 
-        .cp-badge {
-            font-size: 0.7rem;
+        .dot-icon {
+            font-size: 0.8rem;
+            margin-right: 4px;
+            vertical-align: middle;
+            text-shadow: 0 0 6px currentColor;
+        }
+
+        .tp-badge {
+            font-size: 0.72rem;
             font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 0px;
+            padding: 3px 8px;
+            border-radius: 4px;
         }
         .badge-cyan { background: rgba(0, 243, 255, 0.1); color: #00f3ff; border: 1px solid #00f3ff; }
-        .badge-magenta { background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid #ff0055; }
-        .badge-yellow { background: rgba(255, 230, 0, 0.1); color: #ffe600; border: 1px solid #ffe600; }
+        .badge-pink { background: rgba(255, 0, 127, 0.1); color: #ff007f; border: 1px solid #ff007f; }
+        .badge-green { background: rgba(0, 255, 153, 0.1); color: #00ff99; border: 1px solid #00ff99; }
 
-        .cp-card-value {
-            font-size: 1.4rem;
-            font-weight: 900;
+        .tp-card-value {
+            font-size: 1.35rem;
+            font-weight: 800;
             margin-bottom: 4px;
-            line-height: 1.2;
+            line-height: 1.25;
         }
-        .val-cyan { color: #00f3ff; text-shadow: 0 0 5px #00f3ff; }
-        .val-magenta { color: #ff0055; text-shadow: 0 0 5px #ff0055; }
-        .val-yellow { color: #ffe600; text-shadow: 0 0 5px #ffe600; }
+        .val-cyan { color: #00f3ff; text-shadow: 0 0 6px rgba(0, 243, 255, 0.4); }
+        .val-pink { color: #ff007f; text-shadow: 0 0 6px rgba(255, 0, 127, 0.4); }
+        .val-green { color: #00ff99; text-shadow: 0 0 6px rgba(0, 255, 153, 0.4); }
 
-        .cp-card-subtext {
-            font-size: 0.78rem;
-            color: #6c7086;
+        .tp-card-subtext {
+            font-size: 0.8rem;
+            color: #94a3b8;
             margin: 0;
         }
         </style>
@@ -390,330 +402,61 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- HEADER ---
+    # Header Banner
     st.markdown(
         """
-        <div class="cp-header-wrapper">
-            <div class="cp-title-text">⚡ TRADE_PLANNER // CYBER_SCREENER_v2.0</div>
+        <div class="tp-header-wrapper">
+            <div class="tp-title-text">
+                <span class="dot-indicator">●</span> ANALISIS & RENCANA TRADING SAHAM
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if "screener_mode" not in st.session_state:
-        st.session_state["screener_mode"] = "single"
-    if "f_strategi" not in st.session_state:
-        st.session_state["f_strategi"] = "ALL STRATEGIES"
-    if "f_grade" not in st.session_state:
-        st.session_state["f_grade"] = "ALL GRADES"
-    if "f_zone" not in st.session_state:
-        st.session_state["f_zone"] = "ALL POSITIONS"
-    if "f_rr" not in st.session_state:
-        st.session_state["f_rr"] = "ALL RATIOS"
-    if "f_candle" not in st.session_state:
-        st.session_state["f_candle"] = "ALL CANDLES"
+    tickers = load_daftar_saham()
+    cache_key = "trade_planner_data"
 
-    st.markdown(
-        '<div style="color:#ff0055; font-family:monospace; font-weight:bold; margin-bottom:10px;">[SELECT_EXECUTION_MODE]</div>',
-        unsafe_allow_html=True,
-    )
+    col_btn1, col_btn2 = st.columns([3, 1])
+    with col_btn1:
+        if st.button("🚀 JALANKAN ANALISIS SAHAM", type="primary"):
+            run_batch_execution(tickers, cache_key)
+    with col_btn2:
+        if st.button("🧹 BERSIHKAN CACHE"):
+            clear_cache(cache_key)
 
-    mode_col1, mode_col2 = st.columns(2)
-    current_mode = st.session_state["screener_mode"]
+    if cache_key in st.session_state:
+        df_results = st.session_state[cache_key]
 
-    with mode_col1:
-        is_single = current_mode == "single"
-        btn_type_single = "primary" if is_single else "secondary"
-        if st.button(
-            "⚡ SINGLE_TARGET_SCAN\nAnalyze specific tickers",
-            use_container_width=True,
-            type=btn_type_single,
-            key="btn_card_single",
-        ):
-            if st.session_state["screener_mode"] != "single":
-                st.session_state["screener_mode"] = "single"
-            st.rerun()
-
-    with mode_col2:
-        is_batch = current_mode == "batch"
-        btn_type_batch = "primary" if is_batch else "secondary"
-        if st.button(
-            "🚀 BATCH_DATABASE_SWEEP\nFull scan ticker list",
-            use_container_width=True,
-            type=btn_type_batch,
-            key="btn_card_batch",
-        ):
-            if st.session_state["screener_mode"] != "batch":
-                st.session_state["screener_mode"] = "batch"
-            st.rerun()
-
-    st.write("")
-
-    if st.session_state["screener_mode"] == "single":
-        col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
-        with col_input:
-            st.markdown(
-                '<span style="color:#00f3ff; font-family:monospace; font-size:0.85rem;">INPUT_TARGET_TICKERS:</span>',
-                unsafe_allow_html=True,
-            )
-            input_ticker = st.text_input(
-                "Stock Tickers",
-                value="",
-                placeholder="BBCA, BMRI, TLKM, INCO...",
-                label_visibility="collapsed",
-            )
-        with col_btn:
-            btn_single = st.button(
-                "🔍 EXECUTE_SCAN", type="primary", use_container_width=True
-            )
-
-        if btn_single:
-            if not input_ticker.strip():
-                st.warning("⚠️ TARGET_INPUT_EMPTY!")
-            else:
-                list_to_scan = [
-                    t.strip().upper()
-                    for t in input_ticker.split(",")
-                    if t.strip()
-                ]
-                run_batch_execution(list_to_scan, cache_key="df_screener_single")
-
-        active_cache_key = "df_screener_single"
-
-        if active_cache_key in st.session_state:
-            df_single_res = st.session_state[active_cache_key]
-
-            st.write("")
-            h_left, h_right = st.columns([3, 1], vertical_alignment="center")
-            with h_left:
-                st.markdown(
-                    f"<h3 style='color:#00f3ff; font-family:monospace;'>// SCAN_RESULTS <span style='font-size:0.9rem; color:#ff0055;'>({len(df_single_res)} UNITS)</span></h3>",
-                    unsafe_allow_html=True,
+        with st.expander("🔍 FILTRASI RENCANA TRADING", expanded=True):
+            f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+            with f_col1:
+                st.selectbox(
+                    "Strategi",
+                    ["ALL STRATEGIES"] + list(df_results["Strategy"].unique()),
+                    key="f_strategi",
                 )
-            with h_right:
-                if st.button("🗑️ PURGE_DATA", use_container_width=True, key="btn_clear_single"):
-                    clear_cache(active_cache_key)
-                    st.rerun()
-
-            if df_single_res.empty:
-                st.warning("⚠️ NO_VALID_DATA_RETURNED")
-            else:
-                render_trade_plan_cards(df_single_res, is_title_needed=False)
-
-    else:
-        all_tickers = load_daftar_saham("daftar_saham.txt")
-        if not all_tickers:
-            st.error("❌ `daftar_saham.txt` FILE_NOT_FOUND!")
-            return
-
-        col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
-        with col_info:
-            st.info(f"📁 GRID_DATABASE: Ready to scan **{len(all_tickers)} stocks** from `daftar_saham.txt`.")
-        with col_batch_btn:
-            if st.button("🚀 INITIALIZE_SWEEP", type="primary", use_container_width=True):
-                run_batch_execution(all_tickers, cache_key="df_screener_batch")
-
-        active_cache_key = "df_screener_batch"
-
-        if active_cache_key in st.session_state:
-            df_raw = st.session_state[active_cache_key]
-
-            st.write("")
-            with st.expander("🛠️ **CYBER_FILTERS & PARAMETERS**", expanded=True):
-                r1c1, r1c2, r1c3 = st.columns(3)
-                with r1c1:
-                    f_strategi = st.selectbox(
-                        "🎯 STRATEGY:",
-                        ["ALL STRATEGIES", "Buy On Weakness (BOW)", "Breakout (BOB)"],
-                        key="f_strategi",
-                    )
-                with r1c2:
-                    f_grade = st.selectbox(
-                        "🏆 SETUP_GRADE:",
-                        [
-                            "ALL GRADES",
-                            "Grade A / A+ Only (High Quality)",
-                            "Grade B or Lower (Moderate/Risk)",
-                        ],
-                        key="f_grade",
-                    )
-                with r1c3:
-                    f_zone = st.selectbox(
-                        "📍 PRICE_ZONE:",
-                        [
-                            "ALL POSITIONS",
-                            "In Buy Zone (Ready to Execute)",
-                            "Near Zone (Approaching Entry)",
-                        ],
-                        key="f_zone",
-                    )
-
-                r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
-                with r2c1:
-                    f_rr = st.selectbox(
-                        "⚖️ MIN_RISK_REWARD:",
-                        [
-                            "ALL RATIOS",
-                            "Min 1 : 1.5",
-                            "Min 1 : 2.0 (Pro Standard)",
-                            "Min 1 : 3.0 (High Reward)",
-                        ],
-                        key="f_rr",
-                    )
-                with r2c2:
-                    f_candle = st.selectbox(
-                        "🕯️ CANDLE_PATTERN:",
-                        ["ALL CANDLES", "Bullish Signal Only", "Neutral / Doji Only"],
-                        key="f_candle",
-                    )
-                with r2c3:
-                    st.button("🔄 RESET_FILTERS", on_click=reset_filters, use_container_width=True)
-
-            df = df_raw.copy()
-
-            if f_strategi == "Buy On Weakness (BOW)":
-                df = df[df["Strategy"] == "BOW"]
-            elif f_strategi == "Breakout (BOB)":
-                df = df[df["Strategy"] == "BOB"]
-
-            if f_grade == "Grade A / A+ Only (High Quality)":
-                df = df[df["Score"] >= 70]
-            elif f_grade == "Grade B or Lower (Moderate/Risk)":
-                df = df[df["Score"] < 70]
-
-            if f_zone == "In Buy Zone (Ready to Execute)":
-                df = df[df["Zone Position"] == "In Buy Zone"]
-            elif f_zone == "Near Zone (Approaching Entry)":
-                df = df[df["Zone Position"] == "Near Zone"]
-
-            if f_rr == "Min 1 : 1.5":
-                df = df[df["RR_Val"] >= 1.5]
-            elif f_rr == "Min 1 : 2.0 (Pro Standard)":
-                df = df[df["RR_Val"] >= 2.0]
-            elif f_rr == "Min 1 : 3.0 (High Reward)":
-                df = df[df["RR_Val"] >= 3.0]
-
-            if f_candle == "Bullish Signal Only":
-                df = df[
-                    df["Candlestick Pattern"].str.contains(
-                        "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
-                        case=False,
-                        na=False,
-                    )
-                ]
-            elif f_candle == "Neutral / Doji Only":
-                df = df[
-                    df["Candlestick Pattern"].str.contains(
-                        "Doji|Spinning|Standard", case=False, na=False
-                    )
-                ]
-
-            df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
-
-            st.write("")
-
-            h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
-            with h_left:
-                st.markdown(
-                    f"<h3 style='color:#00f3ff; font-family:monospace;'>// SCREENER_RESULTS <span style='font-size:0.9rem; color:#ff0055;'>({len(df)} UNITS)</span></h3>",
-                    unsafe_allow_html=True,
-                )
-            with h_center:
-                if st.button("🗑️ PURGE_CACHE", use_container_width=True, key="btn_clear_batch"):
-                    clear_cache(active_cache_key)
-                    st.rerun()
-
-            with h_right:
-                if not df.empty:
-                    csv_data = df.to_csv(index=False).encode("utf-8")
-                    st.download_button(
-                        label="📥 EXPORT_CSV",
-                        data=csv_data,
-                        file_name="cyber_trade_planner.csv",
-                        mime="text/csv",
-                        use_container_width=True,
-                    )
-
-            if df.empty:
-                st.warning("⚠️ NO_TARGETS_MATCH_CURRENT_FILTER")
-            else:
-                st.info("💡 **SYSTEM_TIP:** Select checkbox on target stock to load visual trade plan cards.")
-
-                display_cols = [
-                    "Symbol",
-                    "Score",
+            with f_col2:
+                st.selectbox(
                     "Grade",
-                    "Strategy",
-                    "Last Price",
-                    "Zone Position",
-                    "Buy Range",
-                    "Stop Loss (SL)",
-                    "TP 1",
-                    "TP 2",
-                    "Potential Gain",
-                    "SL Risk",
-                    "Risk-Reward Ratio",
-                    "Candlestick Pattern",
-                ]
-
-                if "editor_key_version" not in st.session_state:
-                    st.session_state["editor_key_version"] = 0
-
-                current_editor_key = f"batch_editor_v{st.session_state['editor_key_version']}"
-
-                df_table = df.copy()
-                df_table.insert(0, "Select", False)
-
-                edited_df = st.data_editor(
-                    df_table[["Select"] + display_cols],
-                    column_config={
-                        "Select": st.column_config.CheckboxColumn(
-                            "Select",
-                            help="Check to view detailed Trade Plan cards",
-                            default=False,
-                        ),
-                        "Symbol": st.column_config.TextColumn("Symbol"),
-                        "Score": st.column_config.NumberColumn("Score", format="%d"),
-                        "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
-                        "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
-                        "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
-                        "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
-                    },
-                    disabled=display_cols,
-                    use_container_width=True,
-                    key=current_editor_key,
+                    ["ALL GRADES"] + list(df_results["Grade"].unique()),
+                    key="f_grade",
                 )
+            with f_col3:
+                st.selectbox(
+                    "Posisi Harga",
+                    ["ALL POSITIONS"] + list(df_results["Zone Position"].unique()),
+                    key="f_zone",
+                )
+            with f_col4:
+                st.button("RESET FILTER", on_click=reset_filters)
 
-                selected_rows = edited_df[edited_df["Select"] == True]
-                num_checked = len(selected_rows)
+        filtered_df = df_results.copy()
+        if st.session_state.get("f_strategi") != "ALL STRATEGIES":
+            filtered_df = filtered_df[filtered_df["Strategy"] == st.session_state["f_strategi"]]
+        if st.session_state.get("f_grade") != "ALL GRADES":
+            filtered_df = filtered_df[filtered_df["Grade"] == st.session_state["f_grade"]]
+        if st.session_state.get("f_zone") != "ALL POSITIONS":
+            filtered_df = filtered_df[filtered_df["Zone Position"] == st.session_state["f_zone"]]
 
-                col_chk_status, col_chk_btn = st.columns([3, 1], vertical_alignment="center")
-                with col_chk_status:
-                    if num_checked > 0:
-                        st.markdown(
-                            f"📌 SELECTED: **{num_checked} targets** loaded for deep analysis.",
-                            unsafe_allow_html=True,
-                        )
-                with col_chk_btn:
-                    if num_checked > 0:
-                        if st.button("🧹 CLEAR_SELECTION", use_container_width=True, key="btn_clear_selection"):
-                            st.session_state["editor_key_version"] += 1
-                            st.toast("SELECTION_CLEARED", icon="✅")
-                            st.rerun()
-
-                if not selected_rows.empty:
-                    st.write("")
-                    selected_symbols = selected_rows["Symbol"].tolist()
-                    df_selected_full = df[df["Symbol"].isin(selected_symbols)]
-                    render_trade_plan_cards(df_selected_full, is_title_needed=True)
-
-    st.markdown(
-        """
-        <br>
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ff0055; padding-top: 12px; color: #5a5c6e; font-family: monospace; font-size: 0.8rem;">
-            <div>SYSTEM // CYBER_TRADE_PLANNER_v2.0</div>
-            <div style="color: #00f3ff; font-weight: 700; text-shadow: 0 0 5px #00f3ff;">[SYSTEM_ONLINE]</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        render_trade_plan_cards(filtered_df)

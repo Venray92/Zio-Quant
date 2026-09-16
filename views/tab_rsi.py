@@ -45,7 +45,7 @@ def render_tab_rsi():
         """
         <style>
         /* =========================================================
-           1. CYBERPUNK HEADER BANNER
+           1. CYBERPUNK HEADER BANNER & GLOWING STATUS DOT
            ========================================================= */
         .cyber-header-container {
             position: relative;
@@ -67,6 +67,23 @@ def render_tab_rsi():
             -webkit-text-fill-color: transparent;
             text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
             margin: 0;
+        }
+        /* Styling 1 Titik Glowing Cyan di atas Teks */
+        .cyber-status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #00F3FF;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00F3FF, 0 0 20px #00F3FF;
+            display: inline-block;
+            margin-bottom: 6px;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0% { opacity: 0.5; box-shadow: 0 0 5px #00F3FF; }
+            50% { opacity: 1; box-shadow: 0 0 15px #00F3FF, 0 0 25px #00F3FF; }
+            100% { opacity: 0.5; box-shadow: 0 0 5px #00F3FF; }
         }
 
         /* =========================================================
@@ -233,14 +250,14 @@ def render_tab_rsi():
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
-                # Header Banner Cyberpunk dengan Glowing Status Dot
+        # Header Banner Cyberpunk dengan 1 Glowing Status Dot di Atas Teks
         st.markdown(
             """
             <div class="cyber-header-container">
-                <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: center; align-items: center;">
                     <span class="cyber-status-dot"></span>
-                   </div>
-                <div class="cyber-header-title">⚡ RSI  MATRIX</div>
+                </div>
+                <div class="cyber-header-title">⚡ RSI MATRIX</div>
             </div>
             """,
             unsafe_allow_html=True,

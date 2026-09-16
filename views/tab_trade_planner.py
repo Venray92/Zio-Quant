@@ -129,16 +129,15 @@ def reset_filters():
 
 
 def render_tab_trade_planner():
-    # 🎨 INJEKSI CSS DESIGN SYSTEM MODEL GAMBAR ZIO
+    # 🎨 OVERHAUL CSS: STYLING CARD BUTTON MODERN
     st.markdown(
         """
         <style>
-        /* Background & Root Control */
         .stApp {
             background-color: #07090E !important;
         }
 
-        /* Header Style */
+        /* Header Style Zio */
         .zio-header-wrapper {
             display: flex;
             align-items: center;
@@ -182,7 +181,6 @@ def render_tab_trade_planner():
             border-radius: 20px;
             font-size: 0.72rem;
             font-weight: 600;
-            letter-spacing: 0.3px;
         }
         .zio-subtitle-text {
             color: #64748B;
@@ -190,7 +188,7 @@ def render_tab_trade_planner():
             margin-top: 2px;
         }
 
-        /* Card Container (Bentuk Box Zio) */
+        /* Main Container Box */
         .zio-card-container {
             background-color: #0D111A;
             border: 1px solid #1E2638;
@@ -199,7 +197,7 @@ def render_tab_trade_planner():
             margin-bottom: 20px;
         }
 
-        /* 3 Card Status Atas */
+        /* Status Cards 3 Kolom */
         .zio-status-card {
             background-color: #0D111A;
             border: 1px solid #1E2638;
@@ -227,7 +225,7 @@ def render_tab_trade_planner():
             line-height: 1.3;
         }
 
-        /* Custom Labels & Form Header */
+        /* Form Titles */
         .zio-form-header {
             color: #FFFFFF;
             font-size: 1.05rem;
@@ -245,7 +243,7 @@ def render_tab_trade_planner():
             display: block;
         }
 
-        /* Input & Dropdown Styling */
+        /* Input Custom */
         div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
             background-color: #07090E !important;
             border: 1px solid #1E2638 !important;
@@ -257,38 +255,30 @@ def render_tab_trade_planner():
             box-shadow: 0 0 0 1px #8B5CF6 !important;
         }
 
-        /* Button Styling Zio */
+        /* Custom Button Styling */
         div.stButton > button {
             background-color: #111625 !important;
-            color: #A855F7 !important;
-            border: 1px solid rgba(168, 85, 247, 0.4) !important;
-            border-radius: 8px !important;
+            color: #94A3B8 !important;
+            border: 1px solid #1E2638 !important;
+            border-radius: 12px !important;
             font-weight: 600 !important;
-            padding: 8px 16px !important;
+            padding: 12px 18px !important;
             transition: all 0.2s ease-in-out !important;
+            height: auto !important;
         }
         div.stButton > button:hover {
-            background-color: #8B5CF6 !important;
-            color: #FFFFFF !important;
             border-color: #8B5CF6 !important;
-            box-shadow: 0 0 12px rgba(139, 92, 246, 0.4) !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.3) !important;
         }
         div.stButton > button[kind="primary"] {
             background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%) !important;
             color: #FFFFFF !important;
             border: none !important;
-            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3) !important;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4) !important;
         }
         div.stButton > button[kind="primary"]:hover {
-            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5) !important;
-        }
-
-        /* Radio Selector Box */
-        div[role="radiogroup"] {
-            background-color: #07090E;
-            border: 1px solid #1E2638;
-            border-radius: 8px;
-            padding: 8px 14px;
+            box-shadow: 0 6px 22px rgba(139, 92, 246, 0.6) !important;
         }
 
         /* Expander */
@@ -321,7 +311,9 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # Inisialisasi State Filter
+    # Inisialisasi State Filter & Mode Screener
+    if "screener_mode" not in st.session_state:
+        st.session_state["screener_mode"] = "single"
     if "f_strategi" not in st.session_state:
         st.session_state["f_strategi"] = "SEMUA STRATEGI"
     if "f_grade" not in st.session_state:
@@ -333,25 +325,45 @@ def render_tab_trade_planner():
     if "f_candle" not in st.session_state:
         st.session_state["f_candle"] = "SEMUA CANDLE"
 
-    # --- 1. CARD CONTAINER: MODE SCREENER ---
+    # --- 1. CARD CONTAINER: MODE SCREENER (MODERN CARD SELECTOR) ---
     st.markdown('<div class="zio-card-container">', unsafe_allow_html=True)
     st.markdown(
-        '<div class="zio-form-header"><span style="color:#A855F7;">🎯</span> Mode & Mode Eksekusi Screener</div>',
+        '<div class="zio-form-header"><span style="color:#A855F7;">🎯</span> Pilih Mode Eksekusi Screener</div>',
         unsafe_allow_html=True,
     )
 
-    mode_screener = st.radio(
-        "Pilih Mode Screener:",
-        [
-            "⚡ Single / Custom Ticker",
-            "🚀 Full Batch Screener (Daftar Saham 962 Ticker)",
-        ],
-        horizontal=True,
-        label_visibility="collapsed",
-    )
+    # Modern Card Selector (Tanpa Radio / Checkbox)
+    mode_col1, mode_col2 = st.columns(2)
+    current_mode = st.session_state["screener_mode"]
+
+    with mode_col1:
+        is_single = current_mode == "single"
+        btn_type_single = "primary" if is_single else "secondary"
+        if st.button(
+            "⚡ Single / Custom Ticker\n\nAnalisis 1 atau beberapa kode saham tertentu",
+            use_container_width=True,
+            type=btn_type_single,
+            key="btn_card_single",
+        ):
+            st.session_state["screener_mode"] = "single"
+            st.rerun()
+
+    with mode_col2:
+        is_batch = current_mode == "batch"
+        btn_type_batch = "primary" if is_batch else "secondary"
+        if st.button(
+            "🚀 Full Batch Screener\n\nScan otomatis 962+ saham dari database",
+            use_container_width=True,
+            type=btn_type_batch,
+            key="btn_card_batch",
+        ):
+            st.session_state["screener_mode"] = "batch"
+            st.rerun()
+
     st.write("")
 
-    if "⚡ Single" in mode_screener:
+    # Form Aksi berdasarkan Card yang Dipilih
+    if st.session_state["screener_mode"] == "single":
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
             st.markdown(
@@ -449,7 +461,7 @@ def render_tab_trade_planner():
 
         st.write("")
 
-        # Card Panel Filter
+        # Panel Filter Custom
         with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
             r1c1, r1c2, r1c3 = st.columns(3)
             with r1c1:

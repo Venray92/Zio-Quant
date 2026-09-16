@@ -21,74 +21,78 @@ inject_custom_css()
 if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
-# Custom CSS: Sembunyikan Top Bar Streamlit & Rapatkan Gap Popover
+# Custom CSS: Paksa ukuran & gap di dalam popover jadi super compact
 st.markdown(
     """
     <style>
-    /* 1. Sembunyikan Header Bawaan Streamlit (Share, Star, GitHub, dll) */
+    /* 1. Sembunyikan Header Bawaan Streamlit */
     header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* 2. Potong Margin & Padding Kosong di Bagian Paling Atas Halaman */
     .block-container {
         padding-top: 1rem !important;
         padding-bottom: 2rem !important;
     }
 
-    /* 3. Trigger Popover Button Styling */
+    /* 2. Trigger Popover Button Styling */
     div[data-testid="stPopover"] > button {
         background-color: #161B22 !important;
         border: 1.5px solid #21262D !important;
         color: #FFFFFF !important;
         border-radius: 8px !important;
-        padding: 6px 16px !important;
+        padding: 4px 12px !important;
         font-weight: 600 !important;
-        transition: all 0.2s ease-in-out !important;
+        min-height: 0px !important;
+        height: 38px !important;
     }
     div[data-testid="stPopover"] > button:hover {
         border-color: #00E676 !important;
         color: #00E676 !important;
-        box-shadow: 0 0 10px rgba(0, 230, 118, 0.15) !important;
     }
     
-    /* 4. Rapatkan Gap Antar Button di Dalam Popover */
-    div[data-testid="stPopoverContent"] div[data-testid="stVerticalBlock"] {
-        gap: 2px !important; /* Gap sangat kecil antar opsi */
+    /* 3. MATIKAN SEMUA GAP/MARGIN bawaan Streamlit di dalam Popover */
+    div[data-testid="stPopoverContent"] [data-testid="stVerticalBlock"] {
+        gap: 4px !important; /* Jarak antar item cuma 4px */
     }
-    div[data-testid="stPopoverContent"] div.element-container {
-        margin-bottom: 0px !important;
+    
+    div[data-testid="stPopoverContent"] [data-testid="element-container"] {
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    /* Styling Card Button Normal */
-    div.screener-btn-wrapper > button {
+    div[data-testid="stPopoverContent"] div.stButton {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 4. Paksa Tinggi & Padding Button menjadi ringkas/compact */
+    div[data-testid="stPopoverContent"] div.stButton > button {
         width: 100% !important;
         text-align: left !important;
-        padding: 8px 12px !important;
+        padding: 6px 12px !important; /* Padding dalam yang lebih tipis */
+        min-height: 0px !important;
+        height: 34px !important; /* Tinggi button dipangkas */
         border-radius: 6px !important;
         background-color: #161B22 !important;
         border: 1px solid #21262D !important;
         color: #C9D1D9 !important;
-        margin-bottom: 2px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease-in-out !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        transition: all 0.15s ease-in-out !important;
     }
-    div.screener-btn-wrapper > button:hover {
+    
+    div[data-testid="stPopoverContent"] div.stButton > button:hover {
         border-color: #00E676 !important;
         color: #00E676 !important;
         background-color: #1C2128 !important;
     }
-    
-    /* Styling Card Button Active */
-    div.screener-btn-active > button {
-        width: 100% !important;
-        text-align: left !important;
-        padding: 8px 12px !important;
-        border-radius: 6px !important;
+
+    /* Styling saat Active */
+    div.screener-active div.stButton > button {
         background-color: #0D2B1D !important;
         border: 1.5px solid #00E676 !important;
         color: #00E676 !important;
-        margin-bottom: 2px !important;
         font-weight: 700 !important;
     }
     </style>
@@ -114,9 +118,9 @@ with col_popover:
     with st.popover("🎛️ Choose Screener", use_container_width=True):
         st.markdown(
             """
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: #8B949E; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">PRESET SCREENER</span>
-                <span style="color: #00E676; font-size: 11px; font-weight: 700;">3 AVAILABLE</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 2px;">
+                <span style="color: #8B949E; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">PRESET SCREENER</span>
+                <span style="color: #00E676; font-size: 10px; font-weight: 700;">3 AVAILABLE</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -125,46 +129,28 @@ with col_popover:
         curr = st.session_state["selected_screener"]
 
         # 1. RSI - Divergence
-        is_active = curr == "rsi"
-        wrapper_class = "screener-btn-active" if is_active else "screener-btn-wrapper"
-        active_badge = " [Active] ✔️" if is_active else ""
-
-        st.markdown(f'<div class="{wrapper_class}">', unsafe_allow_html=True)
-        if st.button(
-            f"1. RSI - Divergence{active_badge}",
-            key="btn_card_rsi",
-            use_container_width=True,
-        ):
+        cls_rsi = "screener-active" if curr == "rsi" else ""
+        badge_rsi = " [Active] ✔️" if curr == "rsi" else ""
+        st.markdown(f'<div class="{cls_rsi}">', unsafe_allow_html=True)
+        if st.button(f"1. RSI - Divergence{badge_rsi}", key="btn_rsi", use_container_width=True):
             st.session_state["selected_screener"] = "rsi"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
         # 2. Stoch - Psar
-        is_active = curr == "stoch_psar"
-        wrapper_class = "screener-btn-active" if is_active else "screener-btn-wrapper"
-        active_badge = " [Active] ✔️" if is_active else ""
-
-        st.markdown(f'<div class="{wrapper_class}">', unsafe_allow_html=True)
-        if st.button(
-            f"2. Stoch - Psar{active_badge}",
-            key="btn_card_stoch",
-            use_container_width=True,
-        ):
+        cls_stoch = "screener-active" if curr == "stoch_psar" else ""
+        badge_stoch = " [Active] ✔️" if curr == "stoch_psar" else ""
+        st.markdown(f'<div class="{cls_stoch}">', unsafe_allow_html=True)
+        if st.button(f"2. Stoch - Psar{badge_stoch}", key="btn_stoch", use_container_width=True):
             st.session_state["selected_screener"] = "stoch_psar"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
         # 3. Trade Plan - Batch Filter
-        is_active = curr == "trade_plan"
-        wrapper_class = "screener-btn-active" if is_active else "screener-btn-wrapper"
-        active_badge = " [Active] ✔️" if is_active else ""
-
-        st.markdown(f'<div class="{wrapper_class}">', unsafe_allow_html=True)
-        if st.button(
-            f"3. Trade Plan - Batch Filter{active_badge}",
-            key="btn_card_tp",
-            use_container_width=True,
-        ):
+        cls_tp = "screener-active" if curr == "trade_plan" else ""
+        badge_tp = " [Active] ✔️" if curr == "trade_plan" else ""
+        st.markdown(f'<div class="{cls_tp}">', unsafe_allow_html=True)
+        if st.button(f"3. Trade Plan - Batch Filter{badge_tp}", key="btn_tp", use_container_width=True):
             st.session_state["selected_screener"] = "trade_plan"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)

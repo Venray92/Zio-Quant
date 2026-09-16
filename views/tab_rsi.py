@@ -5,21 +5,31 @@ import time
 import pandas as pd
 import streamlit as st
 
-# 1. Daftarkan Root Directory ke sys.path di bagian paling atas
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# 1. Paksa daftarkan Root Directory ke sys.path secara mutlak
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-# 2. Impor modul internal setelah sys.path disesuaikan
+# 2. Impor fungsi dengan penanganan Try-Except multi-level
+try:
+    from screener_rsi_divergence import detect_rsi_patterns_and_score
+except ImportError:
+    try:
+        from ..screener_rsi_divergence import detect_rsi_patterns_and_score
+    except ImportError as e:
+        st.error(f"❌ Gagal memuat modul screener_rsi_divergence: {e}")
+
 try:
     from ihsg_tickers import get_all_ihsg_tickers
-    from screener_rsi_divergence import detect_rsi_patterns_and_score
+except ImportError:
+    from ..ihsg_tickers import get_all_ihsg_tickers
+
+try:
     from utils.ui_helpers import render_inline_trade_planner
 except ImportError:
-    # Fallback untuk eksekusi langsung tanpa hierarki paket
-    from ihsg_tickers import get_all_ihsg_tickers
-    from screener_rsi_divergence import detect_rsi_patterns_and_score
-    from utils.ui_helpers import render_inline_trade_planner
+    from ..utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():

@@ -135,7 +135,7 @@ def clear_cache(cache_key):
 
 
 def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="white"):
-    """Reusable Card Component for Selected Trade Plan View."""
+    """Reusable Card Component for Trade Plan View."""
     badge_html = (
         f'<span class="zio-badge badge-{variant}">{badge_text}</span>'
         if badge_text
@@ -155,15 +155,16 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
     st.markdown(card_html, unsafe_allow_html=True)
 
 
-def render_trade_plan_cards(df_selected):
-    """Renders Trade Plan details ONLY for user-checked stocks from table."""
-    st.markdown(
-        f"### 🎯 Selected Trade Plans <span style='font-size:0.9rem; color:#A855F7;'>({len(df_selected)} Active)</span>",
-        unsafe_allow_html=True,
-    )
+def render_trade_plan_cards(df_data, is_title_needed=True):
+    """Renders Trade Plan Cards for given stocks Dataframe."""
+    if is_title_needed:
+        st.markdown(
+            f"### 🎯 Trade Plans Details <span style='font-size:0.9rem; color:#A855F7;'>({len(df_data)} Stocks)</span>",
+            unsafe_allow_html=True,
+        )
 
-    for idx, row in df_selected.iterrows():
-        # Stock Header
+    for idx, row in df_data.iterrows():
+        # Stock Header Box
         st.markdown(
             f"""
             <div style="background: #0D111A; border: 1px solid #1E2638; padding: 14px 20px; border-radius: 12px; margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -218,7 +219,7 @@ def render_trade_plan_cards(df_selected):
                 value_color="green",
             )
 
-        # Summary Grid
+        # Summary Metrics
         st.markdown(
             f"""
             <div style="background: #111622; border: 1px solid #1E2638; border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
@@ -282,7 +283,7 @@ def render_tab_trade_planner():
             margin: 0;
         }
 
-        /* Form & Label Header */
+        /* Form Header */
         .zio-form-header {
             color: #FFFFFF;
             font-size: 1.05rem;
@@ -300,7 +301,7 @@ def render_tab_trade_planner():
             display: block;
         }
 
-        /* Custom Inputs */
+        /* Inputs */
         div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
             background-color: #07090E !important;
             border: 1px solid #1E2638 !important;
@@ -312,7 +313,7 @@ def render_tab_trade_planner():
             box-shadow: 0 0 0 1px #8B5CF6 !important;
         }
 
-        /* Custom Buttons */
+        /* Buttons */
         div.stButton > button {
             background-color: #111625 !important;
             color: #94A3B8 !important;
@@ -345,7 +346,7 @@ def render_tab_trade_planner():
             border-radius: 12px !important;
         }
 
-        /* CARD COMPONENT DESIGN FOR SELECTED DETAILED VIEW */
+        /* CARD DESIGN FOR SINGLE & SELECTED BATCH */
         .zio-card {
             background-color: #111622;
             border-radius: 12px;
@@ -469,7 +470,7 @@ def render_tab_trade_planner():
 
     st.write("")
 
-    # Actions Form based on Mode
+    # --- SINGLE MODE PROCESSOR ---
     if st.session_state["screener_mode"] == "single":
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
@@ -501,6 +502,29 @@ def render_tab_trade_planner():
 
         active_cache_key = "df_screener_single"
 
+        # SINGLE MODE RESULT -> LANGSUNG KOTAK-KOTAK CARD
+        if active_cache_key in st.session_state:
+            df_single_res = st.session_state[active_cache_key]
+
+            st.write("")
+            h_left, h_right = st.columns([3, 1], vertical_alignment="center")
+            with h_left:
+                st.markdown(
+                    f"### 🎯 Trade Plan Results <span style='font-size:0.9rem; color:#A855F7;'>({len(df_single_res)} Stocks)</span>",
+                    unsafe_allow_html=True,
+                )
+            with h_right:
+                if st.button("🗑️ Clear Result", use_container_width=True, key="btn_clear_single"):
+                    clear_cache(active_cache_key)
+                    st.rerun()
+
+            if df_single_res.empty:
+                st.warning("⚠️ No valid data returned for the entered tickers.")
+            else:
+                # Direct render Trade Plan Cards tanpa table & checkbox
+                render_trade_plan_cards(df_single_res, is_title_needed=False)
+
+    # --- BATCH SCREENER MODE PROCESSOR ---
     else:
         all_tickers = load_daftar_saham("daftar_saham.txt")
         if not all_tickers:
@@ -516,12 +540,10 @@ def render_tab_trade_planner():
 
         active_cache_key = "df_screener_batch"
 
-    # --- RESULTS DISPLAY ---
-    if active_cache_key in st.session_state:
-        df_raw = st.session_state[active_cache_key]
+        if active_cache_key in st.session_state:
+            df_raw = st.session_state[active_cache_key]
 
-        # Filters - ONLY active in Batch mode
-        if st.session_state["screener_mode"] == "batch":
+            # Filters
             st.write("")
             with st.expander("🛠️ **Parameter & Custom Filter Result**", expanded=True):
                 r1c1, r1c2, r1c3 = st.columns(3)
@@ -615,93 +637,110 @@ def render_tab_trade_planner():
 
             df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
-        else:
-            df = df_raw.copy()
+            st.write("")
 
-        st.write("")
+            # Header, Export & Clear Cache
+            h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
+            with h_left:
+                st.markdown(
+                    f"### 📋 Screener Results <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Stocks)</span>",
+                    unsafe_allow_html=True,
+                )
+            with h_center:
+                if st.button("🗑️ Clear Cache", use_container_width=True, key="btn_clear_batch"):
+                    clear_cache(active_cache_key)
+                    st.rerun()
 
-        # Results Header, Export & Clear Cache Buttons
-        h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
-        with h_left:
-            st.markdown(
-                f"### 📋 Screener Results <span style='font-size:0.9rem; color:#A855F7;'>({len(df)} Stocks)</span>",
-                unsafe_allow_html=True,
-            )
-        with h_center:
-            if st.button("🗑️ Clear Cache", use_container_width=True, key=f"btn_clear_{active_cache_key}"):
-                clear_cache(active_cache_key)
-                st.rerun()
+            with h_right:
+                if not df.empty:
+                    csv_data = df.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="📥 Export CSV",
+                        data=csv_data,
+                        file_name="screener_trade_planner.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
 
-        with h_right:
-            if not df.empty:
-                csv_data = df.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="📥 Export CSV",
-                    data=csv_data,
-                    file_name="screener_trade_planner.csv",
-                    mime="text/csv",
+            if df.empty:
+                st.warning("⚠️ No analysis data matching selected filters.")
+            else:
+                # 💡 TIP & CLEAR CHECKBOX BUTTON
+                st.info("💡 **Tip:** Check the box next to any stock in the table to display its full **Trade Plan** cards below.")
+
+                display_cols = [
+                    "Symbol",
+                    "Score",
+                    "Grade",
+                    "Strategy",
+                    "Last Price",
+                    "Zone Position",
+                    "Buy Range",
+                    "Stop Loss (SL)",
+                    "TP 1",
+                    "TP 2",
+                    "Potential Gain",
+                    "SL Risk",
+                    "Risk-Reward Ratio",
+                    "Candlestick Pattern",
+                ]
+
+                # Key dynamic untuk reset state data editor
+                if "editor_key_version" not in st.session_state:
+                    st.session_state["editor_key_version"] = 0
+
+                current_editor_key = f"batch_editor_v{st.session_state['editor_key_version']}"
+
+                # Inisialisasi kolom 'Select' untuk checkbox
+                df_table = df.copy()
+                df_table.insert(0, "Select", False)
+
+                # Modern Streamlit Data Editor
+                edited_df = st.data_editor(
+                    df_table[["Select"] + display_cols],
+                    column_config={
+                        "Select": st.column_config.CheckboxColumn(
+                            "Select",
+                            help="Check to view detailed Trade Plan cards",
+                            default=False,
+                        ),
+                        "Symbol": st.column_config.TextColumn("Symbol"),
+                        "Score": st.column_config.NumberColumn("Score", format="%d"),
+                        "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
+                        "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
+                        "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
+                        "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
+                    },
+                    disabled=display_cols,
+                    hide_index=True,
                     use_container_width=True,
+                    key=current_editor_key,
                 )
 
-        if df.empty:
-            st.warning("⚠️ No analysis data matching selected filters.")
-        else:
-            # 💡 TABLE LAYOUT DENGAN CHECKBOX DI KIRI
-            st.info("💡 **Tip:** Check the box next to any stock in the table to display its full **Trade Plan** cards below.")
+                # TOMBOL CLEAR SELECTION / CLEAR CHECKBOX DI BAWAH TABEL
+                selected_rows = edited_df[edited_df["Select"] == True]
+                num_checked = len(selected_rows)
 
-            display_cols = [
-                "Symbol",
-                "Score",
-                "Grade",
-                "Strategy",
-                "Last Price",
-                "Zone Position",
-                "Buy Range",
-                "Stop Loss (SL)",
-                "TP 1",
-                "TP 2",
-                "Potential Gain",
-                "SL Risk",
-                "Risk-Reward Ratio",
-                "Candlestick Pattern",
-            ]
+                col_chk_status, col_chk_btn = st.columns([3, 1], vertical_alignment="center")
+                with col_chk_status:
+                    if num_checked > 0:
+                        st.markdown(
+                            f"📌 Currently selected: **{num_checked} stocks** for Trade Plan detail view.",
+                            unsafe_allow_html=True,
+                        )
+                with col_chk_btn:
+                    if num_checked > 0:
+                        if st.button("🧹 Clear Selection", use_container_width=True, key="btn_clear_selection"):
+                            st.session_state["editor_key_version"] += 1
+                            st.toast("Cleared all checked stocks!", icon="✅")
+                            st.rerun()
 
-            # Inisialisasi kolom 'Select' untuk checkbox
-            df_table = df.copy()
-            df_table.insert(0, "Select", False)
-
-            # Modern Streamlit Data Editor dengan Checkbox
-            edited_df = st.data_editor(
-                df_table[["Select"] + display_cols],
-                column_config={
-                    "Select": st.column_config.CheckboxColumn(
-                        "Select",
-                        help="Check to view detailed Trade Plan cards",
-                        default=False,
-                    ),
-                    "Symbol": st.column_config.TextColumn("Symbol"),
-                    "Score": st.column_config.NumberColumn("Score", format="%d"),
-                    "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
-                    "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
-                    "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
-                    "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
-                },
-                disabled=display_cols,  # Semua kolom selain Checkbox di-lock
-                hide_index=True,
-                use_container_width=True,
-                key=f"editor_{active_cache_key}",
-            )
-
-            # Ambil Saham yang di-checklist oleh User
-            selected_rows = edited_df[edited_df["Select"] == True]
-
-            # RENDER DETAILED TRADE PLAN CARD JIKA ADA YANG DICHECKLIST
-            if not selected_rows.empty:
-                st.write("")
-                # Match dengan dataframe utama
-                selected_symbols = selected_rows["Symbol"].tolist()
-                df_selected_full = df[df["Symbol"].isin(selected_symbols)]
-                render_trade_plan_cards(df_selected_full)
+                # RENDER DETAILED TRADE PLAN CARD UNTUK SAHAM BATCH YANG DICHECKLIST
+                if not selected_rows.empty:
+                    st.write("")
+                    selected_symbols = selected_rows["Symbol"].tolist()
+                    df_selected_full = df[df["Symbol"].isin(selected_symbols)]
+                    render_trade_plan_cards(df_selected_full, is_title_needed=True)
 
     # Footer
     st.markdown(

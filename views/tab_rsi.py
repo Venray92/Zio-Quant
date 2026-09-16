@@ -233,19 +233,15 @@ def render_tab_rsi():
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
-        # Header Banner Clean
+                # Header Banner Cyberpunk dengan Glowing Status Dot
         st.markdown(
             """
-          
-
-                        <div class="cyber-header-container">
+            <div class="cyber-header-container">
                 <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
                     <span class="cyber-status-dot"></span>
                    </div>
-                <div class="cyber-header-title">⚡ RSI MATRIX</div>
+                <div class="cyber-header-title">⚡ RSI  MATRIX</div>
             </div>
-
-            
             """,
             unsafe_allow_html=True,
         )

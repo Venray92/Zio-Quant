@@ -1,3 +1,12 @@
+import os
+import sys
+
+# Menambahkan root directory ke Python path agar modul utama dapat di-import
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+# Impor modul screener setelah mengatur sys.path
+from screener_rsi_divergence import detect_rsi_patterns_and_score
+
 import concurrent.futures
 import time
 import pandas as pd

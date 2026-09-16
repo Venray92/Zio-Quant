@@ -10,7 +10,7 @@ from views.tab_trade_planner import render_tab_trade_planner
 
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="Z - QUANT",
+    page_title="Z-QUANT",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -19,12 +19,12 @@ st.set_page_config(
 # 2. Inject Custom CSS
 inject_custom_css()
 
-# Inisialisasi session state (Default None = Home View)
+# Inisialisasi session state
 if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
 
-# Helper fungsi untuk load logo.png ke Base64 (Mencegah error path/display)
+# Helper untuk konversi logo.png ke Base64
 def get_logo_base64(file_path="logo.png"):
     if os.path.exists(file_path):
         with open(file_path, "rb") as f:
@@ -35,7 +35,7 @@ def get_logo_base64(file_path="logo.png"):
 
 logo_b64 = get_logo_base64("logo.png")
 
-# 3. Custom CSS Cyberpunk Aesthetic & Header Alignment
+# 3. Custom CSS Cyberpunk & Header Layout
 st.markdown(
     """
     <style>
@@ -47,7 +47,7 @@ st.markdown(
         font-family: 'Share Tech Mono', monospace !important;
     }
 
-    /* Sembunyikan Header bawaan Streamlit */
+    /* Sembunyikan Top Bar Streamlit */
     header[data-testid="stHeader"] {
         display: none !important;
     }
@@ -56,48 +56,51 @@ st.markdown(
         padding-bottom: 2rem !important;
     }
 
-    /* Container Tombol Home (Logo + Title) */
-    div.btn-home-container div.stButton > button {
-        background-color: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        height: auto !important;
-        width: auto !important;
-    }
-
-    /* Brand Container Styling */
-    .brand-box {
+    /* Styling Visual Logo & Brand */
+    .brand-container {
         display: flex;
         align-items: center;
-        gap: 16px;
-        padding: 4px 8px;
-        border-radius: 8px;
-        transition: all 0.2s ease-in-out;
-    }
-    .brand-box:hover {
-        opacity: 0.85;
+        gap: 14px;
+        margin-bottom: 6px;
     }
 
     .brand-logo-img {
-        width: 65px;
-        height: 65px;
+        width: 55px;
+        height: 55px;
         border-radius: 8px;
         object-fit: cover;
         border: 1.5px solid #00F3FF;
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+        box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
     }
 
     .brand-title-text {
         color: #00F3FF;
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 900;
-        letter-spacing: 2px;
+        letter-spacing: 1px;
         text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* Trigger Popover Button */
+    /* Styling Tombol Home */
+    div.btn-home-wrapper div.stButton > button {
+        background-color: #090C15 !important;
+        border: 1px solid #1E2338 !important;
+        color: #00F3FF !important;
+        font-size: 11px !important;
+        padding: 2px 10px !important;
+        height: 28px !important;
+        border-radius: 4px !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    div.btn-home-wrapper div.stButton > button:hover {
+        border-color: #00F3FF !important;
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.4) !important;
+        background-color: rgba(0, 243, 255, 0.1) !important;
+    }
+
+    /* Popover Menu Styling */
     div[data-testid="stPopover"] > button {
         background-color: #090C15 !important;
         border: 1.5px solid #00F3FF !important;
@@ -119,7 +122,6 @@ st.markdown(
         box-shadow: 0 0 18px #00F3FF !important;
     }
 
-    /* Popover Content Menu */
     div[data-testid="stPopoverContent"] {
         background-color: #080A10 !important;
         border: 1px solid #00F3FF !important;
@@ -176,33 +178,31 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 4. Header Bar (Logo Kiri Atas & Popover Kanan)
+# 4. Header Bar (Logo + Z-QUANT Kiri, Popover Kanan)
 col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
 with col_brand:
-    st.markdown('<div class="btn-home-container">', unsafe_allow_html=True)
-
-    # Menyiapkan elemen visual logo & nama
     if logo_b64:
         logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="brand-logo-img" />'
     else:
-        logo_html = '<span style="font-size: 36px;">⚡</span>'
+        logo_html = '<span style="font-size: 32px;">⚡</span>'
 
-    # Single Button interaktif yang mencakup Logo + Nama untuk balik ke Home
-    if st.button("⚡ HOME", key="btn_go_home"):
-        st.session_state["selected_screener"] = None
-        st.rerun()
-
-    # Visual overlay brand
+    # Render Logo + Nama Z-QUANT Sejajar Bersih
     st.markdown(
         f"""
-        <div class="brand-box" style="margin-top: -45px; pointer-events: none;">
+        <div class="brand-container">
             {logo_html}
-            <span class="brand-title-text">Z - QUANT</span>
+            <span class="brand-title-text">Z-QUANT</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    # Tombol Reset ke Home
+    st.markdown('<div class="btn-home-wrapper">', unsafe_allow_html=True)
+    if st.button("🏠 RESET TO HOME", key="btn_go_home"):
+        st.session_state["selected_screener"] = None
+        st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_popover:
@@ -269,7 +269,7 @@ if st.session_state["selected_screener"] is None:
         """
         <div style="background-color: #080A12; border: 1px solid #00F3FF; box-shadow: 0 0 20px rgba(0, 243, 255, 0.15); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
             <h2 style="color: #00F3FF; font-size: 24px; margin-bottom: 8px; text-shadow: 0 0 8px #00F3FF; font-weight: 900; letter-spacing: 2px;">
-                WELCOME TO Z - QUANT TERMINAL
+                WELCOME TO Z-QUANT TERMINAL
             </h2>
             <p style="color: #8A8B98; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
                 Pilih strategi screening saham IHSG di menu <strong>🎛️ CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.

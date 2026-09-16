@@ -40,42 +40,192 @@ def fetch_rsi_worker(ticker, max_retries=1):
 
 
 def render_tab_rsi():
-    # CSS Custom dasar
+    # Style CSS Full Cyberpunk & Neon Futuristic
     st.markdown(
         """
         <style>
-        .panel-header-center {
-            background-color: #161B22;
-            border: 1px solid #21262D;
+        /* =========================================================
+           1. CYBERPUNK HEADER BANNER & STATUS DOT
+           ========================================================= */
+        .cyber-header-container {
+            position: relative;
+            background: linear-gradient(135deg, rgba(255, 0, 127, 0.2) 0%, rgba(0, 243, 255, 0.2) 100%);
+            border: 1.5px solid #00F3FF;
             border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 10px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
             text-align: center;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.35), inset 0 0 12px rgba(255, 0, 127, 0.25);
         }
+        .cyber-header-title {
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #FF007F, #00F3FF, #00FF66);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
+            margin: 0;
+        }
+
+        /* Status Dot Cyberpunk Pulsing */
+        .cyber-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #FF007F;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FF007F, 0 0 18px #FF007F;
+            margin-right: 6px;
+            animation: cyberpunk-pulse 1.5s infinite alternate;
+        }
+
+        @keyframes cyberpunk-pulse {
+            0% { transform: scale(0.9); box-shadow: 0 0 6px #FF007F; }
+            100% { transform: scale(1.3); box-shadow: 0 0 15px #00F3FF; background-color: #00F3FF; }
+        }
+
+        /* =========================================================
+           2. SECTION LABEL "CHOOSE SCREENER MODE"
+           ========================================================= */
+        .cyber-section-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #FF007F;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.6);
+            margin-top: 14px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* =========================================================
+           3. STYLING STREAMLIT BUTTONS (RUN & STOP)
+           ========================================================= */
+        /* Tombol Run Screening */
+        div[data-testid="stColumn"]:has(div[key="btn_run_rsi_screener"]) button {
+            background: linear-gradient(135deg, #00F3FF 0%, #00FF66 100%) !important;
+            color: #050811 !important;
+            font-weight: 900 !important;
+            letter-spacing: 1px !important;
+            text-transform: uppercase !important;
+            border: none !important;
+            border-radius: 6px !important;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.5) !important;
+            transition: all 0.25s ease-in-out !important;
+        }
+        div[data-testid="stColumn"]:has(div[key="btn_run_rsi_screener"]) button:hover {
+            transform: translateY(-2px) scale(1.02) !important;
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.8) !important;
+        }
+
+        /* Tombol Stop */
+        div[data-testid="stColumn"]:has(div[key="btn_stop_rsi_screener"]) button {
+            background: linear-gradient(135deg, #FF007F 0%, #7928CA 100%) !important;
+            color: #FFFFFF !important;
+            font-weight: 900 !important;
+            letter-spacing: 1px !important;
+            text-transform: uppercase !important;
+            border: none !important;
+            border-radius: 6px !important;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
+            transition: all 0.25s ease-in-out !important;
+        }
+        div[data-testid="stColumn"]:has(div[key="btn_stop_rsi_screener"]) button:hover {
+            transform: translateY(-2px) scale(1.02) !important;
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
+        }
+
+        /* =========================================================
+           4. STYLING SELECT SAHAM BUTTON (OVERRIDE WARNA MERAH)
+           ========================================================= */
+        /* Primary & Secondary Stock Selection Buttons */
+        div[data-testid="stColumn"] button[kind="primary"],
+        div[data-testid="stColumn"] button[kind="secondary"] {
+            transition: all 0.25s ease-in-out !important;
+            border-radius: 6px !important;
+            font-weight: 800 !important;
+        }
+
+        /* Primary Button (STATUS SELECTED / DITEKAN) */
+        div[data-testid="stColumn"] button[kind="primary"] {
+            background: linear-gradient(135deg, #FF007F 0%, #00F3FF 100%) !important;
+            color: #FFFFFF !important;
+            border: 1px solid #00F3FF !important;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
+            text-shadow: 0 0 6px rgba(0,0,0,0.8) !important;
+        }
+        div[data-testid="stColumn"] button[kind="primary"]:hover {
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* Secondary Button (STATUS UNSELECTED) */
+        div[data-testid="stColumn"] button[kind="secondary"] {
+            background-color: #161B22 !important;
+            color: #00F3FF !important;
+            border: 1px solid #30363D !important;
+        }
+        div[data-testid="stColumn"] button[kind="secondary"]:hover {
+            border-color: #00F3FF !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        }
+
+        /* =========================================================
+           5. STYLING SELECTBOX / DROPDOWN (NEON BORDER & TEXT)
+           ========================================================= */
+        div[data-testid="stSelectbox"] > div > div {
+            background-color: #0D1117 !important;
+            border: 1.5px solid #00F3FF !important;
+            border-radius: 6px !important;
+            color: #00F3FF !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2) !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        div[data-testid="stSelectbox"] > div > div:hover {
+            border-color: #FF007F !important;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4) !important;
+        }
+        div[data-testid="stSelectbox"] div[role="button"] {
+            color: #00F3FF !important;
+            font-weight: 700 !important;
+        }
+
+        /* =========================================================
+           6. METRIC CARDS & CONTAINER STYLES
+           ========================================================= */
         .metric-card {
-            background-color: #161B22;
-            border: 1px solid #21262D;
+            background: #161B22;
+            border: 1px solid #30363D;
             border-radius: 8px;
-            padding: 8px 10px;
+            padding: 10px 12px;
             text-align: center;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
         }
         .metric-value {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 800;
             color: #FFFFFF;
         }
         .metric-label {
-            font-size: 9px;
+            font-size: 10px;
             color: #8B949E;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
         .empty-card {
             background-color: #161B22;
             border: 1px dashed #30363D;
-            border-radius: 8px;
-            padding: 40px 20px;
+            border-radius: 10px;
+            padding: 50px 20px;
             text-align: center;
             color: #8B949E;
         }
@@ -103,10 +253,15 @@ def render_tab_rsi():
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
+        # Header Banner Cyberpunk dengan Glowing Status Dot
         st.markdown(
             """
-            <div class="panel-header-center">
-                <div style="color: #00E676; font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">RSI DIVERGENCE</div>
+            <div class="cyber-header-container">
+                <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+                    <span class="cyber-status-dot"></span>
+                    <span style="font-size: 10px; font-weight: 800; color: #00F3FF; letter-spacing: 1.5px;">CYBERPUNK ENGINE ACTIVE</span>
+                </div>
+                <div class="cyber-header-title">⚡ RSI DIVERGENCE</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -116,10 +271,9 @@ def render_tab_rsi():
 
         with col_btn_run:
             run_clicked = st.button(
-                "Run Screening",
+                "▶ Run Screening",
                 key="btn_run_rsi_screener",
                 use_container_width=True,
-                type="primary",
             )
 
         with col_btn_stop:
@@ -164,7 +318,7 @@ def render_tab_rsi():
                     pct = int((completed / total_tickers) * 100)
                     pbar_rsi.progress(pct)
                     pstatus_rsi.text(
-                        f"Scanning: {completed}/{total_tickers}"
+                        f"Scanning RSI: {completed}/{total_tickers} tickers..."
                     )
 
                     try:
@@ -232,12 +386,17 @@ def render_tab_rsi():
                 )
 
         st.markdown(
-            "<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True
+            "<div style='margin-bottom: 4px;'></div>", unsafe_allow_html=True
         )
 
         has_results = "rsi_stats" in st.session_state
 
         if has_results:
+            st.markdown(
+                '<div class="cyber-section-label">⚙ CHOOSE SCREENER MODE</div>',
+                unsafe_allow_html=True,
+            )
+
             screener_mode = st.selectbox(
                 "Choose Screener Mode",
                 options=["Bullish", "Bearish"],
@@ -245,11 +404,12 @@ def render_tab_rsi():
                 if st.session_state.get("active_rsi_type") == "Bullish"
                 else 1,
                 key="rsi_screener_mode_select",
+                label_visibility="collapsed",
             )
             st.session_state["active_rsi_type"] = screener_mode
 
             st.markdown(
-                "<div style='margin-bottom: 6px;'></div>",
+                "<div style='margin-bottom: 12px;'></div>",
                 unsafe_allow_html=True,
             )
 
@@ -262,7 +422,7 @@ def render_tab_rsi():
 
             if not df_target.empty:
                 for idx, row in df_target.iterrows():
-                    ticker = row.get("Ticker", row.get("Saham", ""))
+                    ticker = str(row.get("Ticker", row.get("Saham", "")))
                     saham = row.get("Saham", ticker.replace(".JK", ""))
                     score = row.get("Score", 0)
                     pattern_raw = row.get("Pattern", "-")
@@ -271,6 +431,16 @@ def render_tab_rsi():
                     close_price = row.get("Close_Price", 0)
                     change_pct = row.get("Change_Pct", 0.0)
 
+                    try:
+                        close_price = float(close_price)
+                    except (ValueError, TypeError):
+                        close_price = 0.0
+
+                    try:
+                        change_pct = float(change_pct)
+                    except (ValueError, TypeError):
+                        change_pct = 0.0
+
                     tgl_kiri = str(row.get("Tgl Kiri", "-"))
                     tgl_kanan = str(row.get("Tgl Kanan", "-"))
 
@@ -278,38 +448,34 @@ def render_tab_rsi():
                         st.session_state.get("selected_rsi_ticker") == ticker
                     )
 
-                    change_color = (
-                        "#00E676" if change_pct >= 0 else "#FF5252"
-                    )
+                    change_color = "#00FF66" if change_pct >= 0 else "#FF007F"
                     change_icon = "📈" if change_pct >= 0 else "📉"
                     change_str = f"{change_icon} {change_pct:+.2f}%"
                     price_str = f"{close_price:,.0f}".replace(",", ".")
 
                     border_style = (
-                        "border: 1.5px solid #00E676; background-color:"
-                        " #0D2B1D;"
+                        "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
                         if is_selected
-                        else "border: 1px solid #30363D; background-color:"
-                        " #161B22;"
+                        else "border: 1px solid #30363D; background-color: #161B22;"
                     )
 
-                    # Container Kartu Rapi
+                    # Container Kartu Cyberpunk
                     with st.container():
                         st.markdown(
                             f"""
                             <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div>
                                         <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                                             <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
-                                            <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                                            <span style="background-color: rgba(255, 0, 127, 0.2); border: 1px solid #FF007F; color: #FF007F; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">⭐ {score}</span>
                                         </div>
                                         <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {pattern_short}</div>
                                         <div style="font-size: 10px; color: #6E7681;">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">{price_str}</div>
-                                        <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                        <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 700; color: {change_color};">{change_str}</div>
                                     </div>
                                 </div>
                             </div>
@@ -318,15 +484,15 @@ def render_tab_rsi():
                         )
 
                         btn_label = (
-                            f"✓ Selected ({saham})"
+                            f"✓ SELECTED ({saham})"
                             if is_selected
-                            else f"Select {saham}"
+                            else f"SELECT {saham}"
                         )
                         btn_type = "primary" if is_selected else "secondary"
 
                         if st.button(
                             btn_label,
-                            key=f"select_btn_{ticker}_{idx}",
+                            key=f"select_rsi_btn_{ticker}_{idx}",
                             use_container_width=True,
                             type=btn_type,
                         ):
@@ -341,7 +507,7 @@ def render_tab_rsi():
                 st.info(f"No {screener_mode} patterns detected.")
         else:
             st.info(
-                "Click **Run Screening** above to start scanning the market."
+                "Click **▶ Run Screening** above to start scanning the market."
             )
 
     # =========================================================
@@ -361,17 +527,17 @@ def render_tab_rsi():
                 )
             with m2:
                 st.markdown(
-                    f"""<div class="metric-card" style="border-color: #00E676;">
-                        <div class="metric-label" style="color: #00E676;">Bullish</div>
-                        <div class="metric-value" style="color: #00E676;">{stats['bullish_count']}</div>
+                    f"""<div class="metric-card" style="border-color: #00FF66;">
+                        <div class="metric-label" style="color: #00FF66;">Bullish</div>
+                        <div class="metric-value" style="color: #00FF66;">{stats['bullish_count']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
             with m3:
                 st.markdown(
-                    f"""<div class="metric-card" style="border-color: #FF5252;">
-                        <div class="metric-label" style="color: #FF5252;">Bearish</div>
-                        <div class="metric-value" style="color: #FF5252;">{stats['bearish_count']}</div>
+                    f"""<div class="metric-card" style="border-color: #FF007F;">
+                        <div class="metric-label" style="color: #FF007F;">Bearish</div>
+                        <div class="metric-value" style="color: #FF007F;">{stats['bearish_count']}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
@@ -399,9 +565,9 @@ def render_tab_rsi():
 
             st.markdown(
                 f"""
-                <div style="background-color: #0D2B1D; border: 1.5px solid #00E676; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00E676; font-size: 15px; margin-left: 6px;">{selected_rsi_symbol}</strong></span>
-                    <span style="color: #8B949E; font-size: 11px; font-weight: 400;">Interactive Analysis Workspace</span>
+                <div style="background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); border: 1.5px solid #00F3FF; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);">
+                    <span>🎯 SELECTED SYMBOL: <strong style="color: #00F3FF; font-size: 15px; margin-left: 6px;">{selected_rsi_symbol}</strong></span>
+                    <span style="color: #8B949E; font-size: 11px; font-weight: 500;">Interactive Analysis Workspace</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -430,7 +596,7 @@ def render_tab_rsi():
             st.markdown(
                 """
                 <div class="empty-card">
-                    <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
+                    <div style="font-size: 32px; margin-bottom: 8px;">👈</div>
                     <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
                     <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
                         Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.

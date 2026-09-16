@@ -26,7 +26,7 @@ def shorten_pattern(pattern_name):
 
 
 def render_tab_rsi():
-    # CSS Custom untuk Menyulap st.button Menjadi Card Sesuai Gambar
+    # CSS Custom untuk Styling Kartu & Invisible Button Overlay
     st.markdown(
         """
         <style>
@@ -66,69 +66,50 @@ def render_tab_rsi():
             color: #8B949E;
         }
 
-        /* STYLING UTAMA: MENGUBAH ST.BUTTON MENJADI CARD DENGAN KANAN-KIRI LAYOUT */
-        div[data-testid="stColumn"] div.stButton > button {
-            text-align: left !important;
-            padding: 10px 14px !important;
-            border-radius: 10px !important;
-            min-height: 80px !important;
-            margin-bottom: 6px !important;
+        /* Container Kartu Kustom */
+        .card-container {
+            position: relative;
+            background-color: #161B22;
+            border: 1px solid #30363D;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease-in-out;
+        }
+        .card-container:hover {
+            border-color: #58A6FF;
+            background-color: #1C2128;
+        }
+        .card-container.selected {
+            background-color: #0D2B1D;
+            border: 1.5px solid #00E676;
         }
 
-        /* Format Teks Didalam Tombol Kartu */
-        .card-inner-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* Trik Overlay: Menjadikan st.button transparan penuh menutupi HTML Card */
+        .card-wrapper {
+            position: relative;
+            margin-bottom: 8px;
+        }
+        .card-wrapper div.stButton {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+            z-index: 10;
         }
-        .card-left-side {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+        .card-wrapper div.stButton > button {
+            width: 100% !important;
+            height: 100% !important;
+            background: transparent !important;
+            border: none !important;
+            color: transparent !important;
+            box-shadow: none !important;
+            cursor: pointer;
         }
-        .card-right-side {
-            text-align: right;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .card-ticker-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #FFFFFF;
-        }
-        .card-badge-score {
-            font-size: 10px;
-            background-color: #21262D;
-            border: 1px solid #30363D;
-            color: #E6BDFB;
-            padding: 1px 5px;
-            border-radius: 4px;
-            margin-left: 6px;
-        }
-        .card-pattern-text {
-            font-size: 11px;
-            color: #8B949E;
-        }
-        .card-date-text {
-            font-size: 10px;
-            color: #6E7681;
-        }
-        .card-price-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: #FFFFFF;
-        }
-        .card-change-pos {
-            font-size: 11px;
-            font-weight: 600;
-            color: #00E676;
-        }
-        .card-change-neg {
-            font-size: 11px;
-            font-weight: 600;
-            color: #FF5252;
+        .card-wrapper div.stButton > button:hover {
+            background: transparent !important;
+            border: none !important;
         }
         </style>
         """,
@@ -318,39 +299,44 @@ def render_tab_rsi():
 
                     is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
 
-                    change_class = "card-change-pos" if change_pct >= 0 else "card-change-neg"
+                    change_color = "#00E676" if change_pct >= 0 else "#FF5252"
                     change_icon = "📈" if change_pct >= 0 else "📉"
                     change_str = f"{change_icon} {change_pct:+.2f}%"
                     price_str = f"{close_price:,.0f}".replace(",", ".")
 
-                    # MEMBUAT SATU KARTU UTUH DALAM 1 ST.BUTTON TANPA TOMBOL "SELECT" TERPISAH
-                    # Teks diformat menjadi HTML yang disuntikkan langsung ke tombol
-                    button_html_label = f"""
-                    <div class="card-inner-container">
-                        <div class="card-left-side">
-                            <div>
-                                <span class="card-ticker-title">{saham}</span>
-                                <span class="card-badge-score">⭐ {score}</span>
+                    selected_class = "selected" if is_selected else ""
+                    badge_bg = "#0D2B1D" if is_selected else "#21262D"
+                    badge_border = "#00E676" if is_selected else "#30363D"
+
+                    # DENGAN METODE WRAPPER OVERLAY:
+                    # HTML Card di-render di bawah, lalu st.button transparan ditaruh pas di atasnya
+                    card_html = f"""
+                    <div class="card-wrapper">
+                        <div class="card-container {selected_class}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <!-- SISI KIRI -->
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                        <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
+                                        <span style="background-color: {badge_bg}; border: 1px solid {badge_border}; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                                    </div>
+                                    <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {pattern_short}</div>
+                                    <div style="font-size: 10px; color: #6E7681;">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
+                                </div>
+                                <!-- SISI KANAN -->
+                                <div style="text-align: right;">
+                                    <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">{price_str}</div>
+                                    <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
+                                </div>
                             </div>
-                            <div class="card-pattern-text">📌 {pattern_short}</div>
-                            <div class="card-date-text">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
-                        </div>
-                        <div class="card-right-side">
-                            <div class="card-price-value">{price_str}</div>
-                            <div class="{change_class}">{change_str}</div>
                         </div>
                     </div>
                     """
 
-                    # Jika dipilih, tombol diberi tipe 'primary' (berwarna hijau highlight)
-                    btn_type = "primary" if is_selected else "secondary"
+                    st.markdown(card_html, unsafe_allow_html=True)
 
-                    if st.button(
-                        button_html_label,
-                        key=f"card_btn_{ticker}_{idx}",
-                        use_container_width=True,
-                        type=btn_type,
-                    ):
+                    # Tombol Transparan Overlay di atas HTML Kartu
+                    if st.button("", key=f"click_overlay_{ticker}_{idx}"):
                         st.session_state["selected_rsi_ticker"] = ticker
                         st.rerun()
 

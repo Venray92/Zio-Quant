@@ -35,7 +35,7 @@ def get_logo_base64(file_path="logo.jpg"):
 
 logo_b64 = get_logo_base64("logo.jpg")
 
-# 3. Custom CSS Cyberpunk
+# 3. Custom CSS Cyberpunk Neon Glow
 st.markdown(
     """
     <style>
@@ -87,37 +87,45 @@ st.markdown(
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* Popover Menu Styling */
+    /* =========================================================
+       🎛️ POPOVER BUTTON MAIN (CHOOSE_SCREENER)
+       ========================================================= */
     div[data-testid="stPopover"] > button {
-        background-color: #090C15 !important;
+        background-color: #080a12 !important;
         border: 1.5px solid #00F3FF !important;
         color: #00F3FF !important;
-        border-radius: 0px !important;
+        border-radius: 6px !important;
         padding: 6px 16px !important;
-        font-weight: 700 !important;
+        font-weight: 800 !important;
         font-family: 'Share Tech Mono', monospace !important;
         height: 48px !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.2) !important;
+        /* Neon Cyan Glow Border & Text */
+        box-shadow: 0 0 12px rgba(0, 243, 255, 0.5), inset 0 0 8px rgba(0, 243, 255, 0.2) !important;
+        text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
         letter-spacing: 1px !important;
         text-transform: uppercase !important;
-        transition: all 0.2s ease-in-out !important;
+        transition: all 0.25s ease-in-out !important;
     }
+
     div[data-testid="stPopover"] > button:hover {
         background-color: #00F3FF !important;
         color: #000000 !important;
         border-color: #00F3FF !important;
-        box-shadow: 0 0 18px #00F3FF !important;
+        box-shadow: 0 0 22px #00F3FF, 0 0 10px #00F3FF !important;
+        text-shadow: none !important;
     }
 
+    /* Popover Content Box Container */
     div[data-testid="stPopoverContent"] {
         background-color: #080A10 !important;
-        border: 1px solid #00F3FF !important;
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.3) !important;
-        border-radius: 0px !important;
+        border: 1.5px solid #00F3FF !important;
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.4) !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
     }
 
     div[data-testid="stPopoverContent"] [data-testid="stVerticalBlock"] {
-        gap: 4px !important;
+        gap: 8px !important;
     }
     div[data-testid="stPopoverContent"] [data-testid="stVerticalBlockBorderWrapper"] {
         margin: 0 !important;
@@ -128,37 +136,45 @@ st.markdown(
         padding: 0 !important;
     }
 
+    /* =========================================================
+       ITEM BUTTONS INSIDE DROPDOWN (RSI, STOCH, TRADE PLAN)
+       ========================================================= */
     div[data-testid="stPopoverContent"] div.stButton > button {
         width: 100% !important;
         text-align: left !important;
-        padding: 6px 12px !important;
+        padding: 8px 14px !important;
         min-height: 0px !important;
-        height: 38px !important;
-        border-radius: 0px !important;
+        height: 42px !important;
+        border-radius: 6px !important;
         background-color: #0D101D !important;
-        border: 1px solid #1E2338 !important;
-        color: #C0C5D0 !important;
+        border: 1px solid #00F3FF !important;
+        color: #00F3FF !important; /* Warna Tulisan Cyan Neon */
         font-size: 13px !important;
         font-family: 'Share Tech Mono', monospace !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         margin: 0 !important;
-        transition: all 0.15s ease-in-out !important;
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.2) !important;
+        text-shadow: 0 0 5px rgba(0, 243, 255, 0.6) !important;
+        transition: all 0.2s ease-in-out !important;
     }
 
+    /* Hover Effect untuk opsi screener */
     div[data-testid="stPopoverContent"] div.stButton > button:hover {
         border-color: #00F3FF !important;
-        color: #00F3FF !important;
-        background-color: rgba(0, 243, 255, 0.1) !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.2) !important;
+        color: #000000 !important;
+        background-color: #00F3FF !important;
+        box-shadow: 0 0 16px #00F3FF !important;
+        text-shadow: none !important;
     }
 
-    /* Status Active ketika button dipilih */
+    /* Status Active (Screener Terpilih) */
     div.btn-active div.stButton > button {
-        background-color: rgba(0, 243, 255, 0.15) !important;
+        background-color: rgba(0, 243, 255, 0.2) !important;
         border: 1.5px solid #00F3FF !important;
         color: #00F3FF !important;
-        font-weight: 700 !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.6), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        text-shadow: 0 0 10px #00F3FF !important;
     }
     </style>
     """,
@@ -174,7 +190,6 @@ with col_brand:
     else:
         logo_html = '<span style="font-size: 32px;">⚡</span>'
 
-    # Render Tag Link <a> langsung mengarah ke "/"
     st.markdown(
         f"""
         <a href="/" target="_self" class="brand-link">
@@ -189,9 +204,9 @@ with col_popover:
     with st.popover("🎛️ CHOOSE_SCREENER", use_container_width=True):
         st.markdown(
             """
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 2px; font-family: 'Share Tech Mono', monospace;">
-                <span style="color: #00F3FF; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">PRESET_SCREENER</span>
-                <span style="color: #00E676; font-size: 10px; font-weight: 700;">3 AVAILABLE</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 2px; font-family: 'Share Tech Mono', monospace;">
+                <span style="color: #00F3FF; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-shadow: 0 0 5px #00F3FF;">PRESET_SCREENER</span>
+                <span style="color: #00E676; font-size: 11px; font-weight: 800; text-shadow: 0 0 5px #00E676;">3 AVAILABLE</span>
             </div>
             """,
             unsafe_allow_html=True,

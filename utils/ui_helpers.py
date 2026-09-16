@@ -2,10 +2,41 @@ import pandas as pd
 import streamlit as st
 
 
-def render_inline_trade_planner(ticker_symbol, key_suffix=""):
-    """Render Inline Trade Planner dengan Card Futuristik Modern menggantikan tabel."""
+def inject_custom_css():
+    """Inject CSS global untuk styling aplikasi."""
+    st.markdown(
+        """
+        <style>
+        /* Modern Dark Theme Base */
+        .stApp {
+            background-color: #0D1117;
+            color: #C9D1D9;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0D1117;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #21262D;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #30363D;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # Styling khusus untuk Card Futuristik Trade Plan
+
+def render_inline_trade_planner(ticker_symbol, key_suffix=""):
+    """Render Inline Trade Planner dengan Card Futuristik Modern (Tanpa Logo & Tanpa Tabel)."""
+
+    # Inject CSS khusus Card Trade Plan
     st.markdown(
         """
         <style>
@@ -30,12 +61,12 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
             margin-bottom: 12px;
         }
         .tp-badge-type {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 800;
             letter-spacing: 0.5px;
             color: #FFFFFF;
             background: linear-gradient(135deg, #1F6FEB, #238636);
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 6px;
         }
         .tp-badge-grade {
@@ -93,7 +124,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
         unsafe_allow_html=True,
     )
 
-    # Filter/Selectbox Periode Data Analysis
+    # Filter Periode Data Analysis
     period = st.selectbox(
         "Periode Data Analysis",
         options=["1mo", "3mo", "6mo", "1y"],
@@ -101,9 +132,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
         key=f"period_select_{ticker_symbol}_{key_suffix}",
     )
 
-    st.markdown(
-        "<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True
-    )
+    st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
     # 2. Section Subheader Tanpa Logo/Emoji
     st.markdown(
@@ -111,17 +140,13 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
         unsafe_allow_html=True,
     )
 
-    # SIMULASI / FETCH DATA TRADE PLAN
-    # (Di aplikasi kamu, ganti bagian ini dengan fungsi pemanggil trade plan asli kamu)
-    # Contoh data simulasi berdasarkan screenshot kamu:
+    # DATA SIMULASI TRADE PLAN (Sesuaikan dengan data asli kalkulasi kamu jika ada)
     trade_plan_data = [
         {
             "Type": "BOW",
             "Score": 55,
             "Grade": "🟡 Grade B (Moderate)",
             "Posisi Harga": "Running / Away",
-            "Range Buy Min": 655,
-            "Range Buy Max": 675,
             "Area Buy": "655 - 675",
             "Stop Loss": 640,
             "TP 1": 745,
@@ -132,8 +157,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
             "Score": 83,
             "Grade": "🟢 Grade A (Ideal)",
             "Posisi Harga": "In Buy Zone",
-            "Range Buy Min": 745,
-            "Range Buy Max": 760,
             "Area Buy": "745 - 760",
             "Stop Loss": 730,
             "TP 1": 785,
@@ -141,7 +164,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
         },
     ]
 
-    # RENDER BENTUK CARD FUTURISTIK SAMA SEKALI TANPA TABEL
+    # RENDER BENTUK CARD FUTURISTIK (BEBAS TABEL)
     if trade_plan_data:
         for idx, item in enumerate(trade_plan_data):
             tp_type = item.get("Type", "-")
@@ -157,7 +180,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
 
             card_html = f"""
             <div class="tp-card-container">
-                <!-- HEADER CARD -->
                 <div class="tp-card-header">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span class="tp-badge-type">{tp_type}</span>
@@ -170,7 +192,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix=""):
                     </div>
                 </div>
 
-                <!-- BODY CARD: FUTURISTIC METRIC GRID -->
                 <div class="tp-price-grid">
                     <div class="tp-metric-box buy-zone">
                         <div class="tp-metric-title">Area Buy</div>

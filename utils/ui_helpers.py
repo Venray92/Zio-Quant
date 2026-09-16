@@ -186,48 +186,40 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade_badge = "🟢" if "A" in str(grade) else ("🟡" if "B" in str(grade) else "⚪")
                     posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
 
-                    # Single HTML Block
-                    card_html = f"""
-                    <div style="background-color: #161B22; border: 1px solid #21262D; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 8px; margin-bottom: 10px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="background-color: #21262D; color: #38BDF8; font-weight: 800; font-size: 13px; padding: 3px 8px; border-radius: 4px;">
-                                    #{plan_no} {plan_type}
-                                </span>
-                                <span style="font-size: 13px; font-weight: 600; color: #E6EDF3;">
-                                    {grade_badge} {grade}
-                                </span>
-                            </div>
-                            <div style="background-color: rgba(139, 92, 246, 0.15); border: 1px solid #8B5CF6; color: #C084FC; font-weight: 700; padding: 2px 8px; border-radius: 12px; font-size: 11px;">
-                                Score: {score}
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; text-align: center;">
-                            <div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">
-                                <div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">Area Buy</div>
-                                <div style="font-size: 13px; font-weight: 700; color: #38BDF8; margin-top: 2px;">{area_buy}</div>
-                            </div>
-                            <div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">
-                                <div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">Stop Loss</div>
-                                <div style="font-size: 13px; font-weight: 700; color: #FF5252; margin-top: 2px;">{stop_loss}</div>
-                            </div>
-                            <div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">
-                                <div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">TP 1</div>
-                                <div style="font-size: 13px; font-weight: 700; color: #00E676; margin-top: 2px;">{tp1}</div>
-                            </div>
-                            <div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">
-                                <div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">TP 2</div>
-                                <div style="font-size: 13px; font-weight: 700; color: #00E676; margin-top: 2px;">{tp2}</div>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; background-color: #0E1117; padding: 6px 10px; border-radius: 4px;">
-                            <span style="color: #8B949E;">Posisi Harga Saat Ini:</span>
-                            <span style="font-weight: 700; color: {posisi_color};">{posisi}</span>
-                        </div>
-                    </div>
-                    """
+                    # Single Compact HTML String (Mencegah Streamlit mencetak sintaks mentah)
+                    card_html = (
+                        f'<div style="background-color: #161B22; border: 1px solid #21262D; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;">'
+                        f'<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 8px; margin-bottom: 10px;">'
+                        f'<div style="display: flex; align-items: center; gap: 8px;">'
+                        f'<span style="background-color: #21262D; color: #38BDF8; font-weight: 800; font-size: 13px; padding: 3px 8px; border-radius: 4px;">#{plan_no} {plan_type}</span>'
+                        f'<span style="font-size: 13px; font-weight: 600; color: #E6EDF3;">{grade_badge} {grade}</span>'
+                        f'</div>'
+                        f'<div style="background-color: rgba(139, 92, 246, 0.15); border: 1px solid #8B5CF6; color: #C084FC; font-weight: 700; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Score: {score}</div>'
+                        f'</div>'
+                        f'<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; text-align: center;">'
+                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
+                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">Area Buy</div>'
+                        f'<div style="font-size: 13px; font-weight: 700; color: #38BDF8; margin-top: 2px;">{area_buy}</div>'
+                        f'</div>'
+                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
+                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">Stop Loss</div>'
+                        f'<div style="font-size: 13px; font-weight: 700; color: #FF5252; margin-top: 2px;">{stop_loss}</div>'
+                        f'</div>'
+                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
+                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">TP 1</div>'
+                        f'<div style="font-size: 13px; font-weight: 700; color: #00E676; margin-top: 2px;">{tp1}</div>'
+                        f'</div>'
+                        f'<div style="background-color: #0E1117; padding: 8px; border-radius: 6px; border: 1px solid #21262D;">'
+                        f'<div style="font-size: 10px; color: #8B949E; font-weight: 600; text-transform: uppercase;">TP 2</div>'
+                        f'<div style="font-size: 13px; font-weight: 700; color: #00E676; margin-top: 2px;">{tp2}</div>'
+                        f'</div>'
+                        f'</div>'
+                        f'<div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; background-color: #0E1117; padding: 6px 10px; border-radius: 4px;">'
+                        f'<span style="color: #8B949E;">Posisi Harga Saat Ini:</span>'
+                        f'<span style="font-weight: 700; color: {posisi_color};">{posisi}</span>'
+                        f'</div>'
+                        f'</div>'
+                    )
                     st.markdown(card_html, unsafe_allow_html=True)
 
                 if hasattr(df_plan, "columns") and len(df_plan) > 0:

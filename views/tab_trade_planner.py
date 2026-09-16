@@ -109,7 +109,7 @@ def run_batch_execution(ticker_list):
             )
 
     status_text.success(
-        f"✅ Selesai! Berhasil menganalisis {len(results)} saham dari {total_saham} ticker."
+        f"Selesai! Berhasil menganalisis {len(results)} saham dari {total_saham} ticker."
     )
 
     if results:
@@ -128,7 +128,91 @@ def reset_filters():
 
 
 def render_tab_trade_planner():
-    st.header("📊 Smart Execution Screener")
+    # Inject CSS Futuristik
+    st.markdown(
+        """
+        <style>
+        .tp-card-container {
+            background-color: #161B22;
+            border: 1px solid #30363D;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .tp-card-container:hover {
+            border-color: #58A6FF;
+        }
+        .tp-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #21262D;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .tp-badge-type {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #FFFFFF;
+            background: linear-gradient(135deg, #1F6FEB, #238636);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .tp-badge-grade {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background-color: #21262D;
+            border: 1px solid #30363D;
+            color: #C9D1D9;
+        }
+        .tp-price-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+        }
+        .tp-metric-box {
+            background-color: #0D1117;
+            border: 1px solid #21262D;
+            border-radius: 8px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .tp-metric-box.buy-zone {
+            border-color: #0366D6;
+            background-color: rgba(3, 102, 214, 0.1);
+        }
+        .tp-metric-box.stop-loss {
+            border-color: #DA3633;
+            background-color: rgba(218, 54, 51, 0.1);
+        }
+        .tp-metric-box.target-profit {
+            border-color: #238636;
+            background-color: rgba(35, 134, 54, 0.1);
+        }
+        .tp-metric-title {
+            font-size: 10px;
+            color: #8B949E;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .tp-metric-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Header tanpa Logo/Emoji
+    st.header("Smart Execution Screener")
     st.write(
         "Platform pemeringkat saham berbasis **Price Action**, **Risk-to-Reward Ratio**, dan **Skoring Otomatis (0-100)**."
     )
@@ -147,7 +231,7 @@ def render_tab_trade_planner():
 
     # 1. PILIHAN MODE SCREENER
     mode_screener = st.radio(
-        "📌 Pilih Mode Screener:",
+        "Pilih Mode Screener:",
         [
             "1. Single / Custom Ticker",
             "2. Full Batch Screener (Daftar Saham 962 Ticker)",
@@ -170,7 +254,7 @@ def render_tab_trade_planner():
             st.write(" ")  # Spacer vertikal
             st.write(" ")
             btn_single = st.button(
-                "🔍 Run Single Ticker", type="primary", use_container_width=True
+                "Run Single Ticker", type="primary", use_container_width=True
             )
 
         if btn_single:
@@ -189,15 +273,15 @@ def render_tab_trade_planner():
         all_tickers = load_daftar_saham("daftar_saham.txt")
         if not all_tickers:
             st.error(
-                "❌ File 'daftar_saham.txt' tidak ditemukan atau kosong di direktori utama!"
+                "File 'daftar_saham.txt' tidak ditemukan atau kosong di direktori utama!"
             )
             return
 
         st.info(
-            f"📁 Memuat **{len(all_tickers)} saham** dari `daftar_saham.txt`."
+            f"Memuat **{len(all_tickers)} saham** dari `daftar_saham.txt`."
         )
 
-        if st.button("🚀 Jalankan Batch Screener (962 Saham)", type="primary"):
+        if st.button("Jalankan Batch Screener (962 Saham)", type="primary"):
             run_batch_execution(all_tickers)
 
     # ---------------------------------------------------------
@@ -211,11 +295,11 @@ def render_tab_trade_planner():
         # Header Filter + Tombol Clear Filter
         col_title, col_clear = st.columns([3, 1])
         with col_title:
-            st.subheader("🔍 Filter & Sortir Tabel Hasil Screener")
+            st.subheader("Filter & Sortir Hasil Screener")
         with col_clear:
             st.write(" ")  # Alignment
             st.button(
-                "🔄 Clear / Reset Filter",
+                "Clear / Reset Filter",
                 on_click=reset_filters,
                 use_container_width=True,
             )
@@ -223,13 +307,13 @@ def render_tab_trade_planner():
         row1_col1, row1_col2, row1_col3 = st.columns(3)
         with row1_col1:
             f_strategi = st.selectbox(
-                "🎯 Strategi Trading:",
+                "Strategi Trading:",
                 ["SEMUA STRATEGI", "Buy On Weakness (BOW)", "Breakout (BOB)"],
                 key="f_strategi",
             )
         with row1_col2:
             f_grade = st.selectbox(
-                "🏆 Kualitas Setup (Grade):",
+                "Kualitas Setup (Grade):",
                 [
                     "SEMUA GRADE",
                     "Grade A / A+ Only (High Quality)",
@@ -239,7 +323,7 @@ def render_tab_trade_planner():
             )
         with row1_col3:
             f_zone = st.selectbox(
-                "📍 Posisi Harga Saat Ini:",
+                "Posisi Harga Saat Ini:",
                 [
                     "SEMUA POSISI",
                     "In Buy Zone (Siap Eksekusi)",
@@ -251,7 +335,7 @@ def render_tab_trade_planner():
         row2_col1, row2_col2 = st.columns(2)
         with row2_col1:
             f_rr = st.selectbox(
-                "⚖️ Minimal Risk-to-Reward:",
+                "Minimal Risk-to-Reward:",
                 [
                     "SEMUA RASIO",
                     "Min 1 : 1.5",
@@ -262,7 +346,7 @@ def render_tab_trade_planner():
             )
         with row2_col2:
             f_candle = st.selectbox(
-                "🕯️ Sinyal Candlestick:",
+                "Sinyal Candlestick:",
                 ["SEMUA CANDLE", "Bullish Signal Only", "Neutral / Doji Only"],
                 key="f_candle",
             )
@@ -311,38 +395,77 @@ def render_tab_trade_planner():
         df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
         st.subheader(
-            f"📋 Hasil Screener ({len(df)} dari {len(df_raw)} Saham Lolos Filter)"
+            f"Hasil Screener ({len(df)} dari {len(df_raw)} Saham Lolos Filter)"
         )
 
         if df.empty:
             st.warning(
-                "⚠️ Tidak ada saham yang cocok dengan kombinasi filter Anda. Coba longgarkan kriteria filter atau tekan tombol 'Clear / Reset Filter'."
+                "Tidak ada saham yang cocok dengan kombinasi filter Anda. Coba longgarkan kriteria filter atau tekan tombol 'Clear / Reset Filter'."
             )
         else:
-            st.dataframe(
-                df,
-                column_config={
-                    "Saham": st.column_config.TextColumn("Saham"),
-                    "Score": st.column_config.NumberColumn(
-                        "Score (0-100)", format="%d pts"
-                    ),
-                    "Grade": st.column_config.TextColumn("Kualitas Setup"),
-                    "Harga Last": st.column_config.NumberColumn(
-                        "Harga Last", format="Rp %d"
-                    ),
-                    "Area Buy": st.column_config.TextColumn("Area Buy (Entry)"),
-                    "Stop Loss (SL)": st.column_config.NumberColumn(
-                        "SL", format="%d"
-                    ),
-                    "TP 1": st.column_config.NumberColumn("TP 1", format="%d"),
-                    "TP 2": st.column_config.NumberColumn("TP 2", format="%d"),
-                    "Potensi Gain": st.column_config.TextColumn("Gain TP1"),
-                    "Risiko SL": st.column_config.TextColumn("Risk SL"),
-                    "RR_Val": None,  # Sembunyikan kolom numerik pembantu dari tampilan
-                    "Catatan Analisis & Warning": st.column_config.TextColumn(
-                        "Rekomendasi & Warning", width="large"
-                    ),
-                },
-                hide_index=True,
-                use_container_width=True,
-            )
+            # TAMPILAN CARD FUTURISTIK DINAMIS BERDASARKAN DATAFRAME
+            for idx, row in df.iterrows():
+                saham = row.get("Saham", "-")
+                score = row.get("Score", 0)
+                grade = row.get("Grade", "-")
+                strategi = row.get("Strategi", "-")
+                harga_last = row.get("Harga Last", "-")
+                posisi_zone = row.get("Posisi Zone", "-")
+                area_buy = row.get("Area Buy", "-")
+                sl = row.get("Stop Loss (SL)", "-")
+                tp1 = row.get("TP 1", "-")
+                tp2 = row.get("TP 2", "-")
+                gain = row.get("Potensi Gain", "-")
+                risk = row.get("Risiko SL", "-")
+                rr = row.get("Rasio (R:R)", "-")
+                candle = row.get("Pola Candle", "-")
+                warning = row.get("Catatan Analisis & Warning", "")
+
+                posisi_color = "#00E676" if "In Buy Zone" in str(posisi_zone) else "#FFD600"
+
+                card_html = f"""
+                <div class="tp-card-container">
+                    <div class="tp-card-header">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="tp-badge-type">{saham} • {strategi}</span>
+                            <span style="color: #8B949E; font-size: 13px; font-weight: 600;">Score: <strong style="color:#FFFFFF;">{score} pts</strong></span>
+                            <span class="tp-badge-grade">{grade}</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; color: #8B949E;">Posisi: </span>
+                            <span style="font-size: 12px; font-weight: 700; color: {posisi_color};">{posisi_zone}</span>
+                        </div>
+                    </div>
+
+                    <div class="tp-price-grid">
+                        <div class="tp-metric-box">
+                            <div class="tp-metric-title">Harga Last</div>
+                            <div class="tp-metric-value">Rp {harga_last:,}</div>
+                        </div>
+                        <div class="tp-metric-box buy-zone">
+                            <div class="tp-metric-title">Area Buy</div>
+                            <div class="tp-metric-value" style="color: #58A6FF;">{area_buy}</div>
+                        </div>
+                        <div class="tp-metric-box stop-loss">
+                            <div class="tp-metric-title">SL ({risk})</div>
+                            <div class="tp-metric-value" style="color: #FF5252;">{sl}</div>
+                        </div>
+                        <div class="tp-metric-box target-profit">
+                            <div class="tp-metric-title">TP 1 ({gain})</div>
+                            <div class="tp-metric-value" style="color: #00E676;">{tp1}</div>
+                        </div>
+                        <div class="tp-metric-box target-profit">
+                            <div class="tp-metric-title">TP 2</div>
+                            <div class="tp-metric-value" style="color: #00E676;">{tp2}</div>
+                        </div>
+                        <div class="tp-metric-box">
+                            <div class="tp-metric-title">R:R Ratio</div>
+                            <div class="tp-metric-value" style="color: #FFD600;">{rr}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #8B949E;">
+                        <strong>Pola Candle:</strong> {candle} | <strong>Info:</strong> {warning}
+                    </div>
+                </div>
+                """
+                st.markdown(card_html, unsafe_allow_html=True)

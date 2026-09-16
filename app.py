@@ -35,7 +35,7 @@ def get_logo_base64(file_path="logo.jpg"):
 
 logo_b64 = get_logo_base64("logo.jpg")
 
-# 3. Custom CSS Cyberpunk Neon Glow
+# 3. Custom CSS Cyberpunk Neon Green Glow (#00FF66)
 st.markdown(
     """
     <style>
@@ -88,50 +88,60 @@ st.markdown(
     }
 
     /* =========================================================
-       🎛️ POPOVER BUTTON MAIN (CHOOSE_SCREENER)
-       Targeting semua kemungkinan kelas & elemen tombol popover
+       🟢 MAIN POPOVER BUTTON (CHOOSE_SCREENER) - NEON GREEN
        ========================================================= */
     div[data-testid="stPopover"] > button,
     div[data-testid="stPopover"] button,
-    div[data-testid="stPopover"] > button[aria-expanded] {
-        background-color: #080a12 !important;
-        border: 2px solid #00F3FF !important;
-        color: #00F3FF !important;
-        border-radius: 6px !important;
+    div[data-testid="stPopover"] button[aria-expanded="true"],
+    div[data-testid="stPopover"] button[aria-expanded="false"] {
+        background-color: #05140B !important;
+        border: 2px solid #00FF66 !important;
+        color: #00FF66 !important;
+        border-radius: 8px !important;
         padding: 6px 16px !important;
-        font-weight: 800 !important;
+        font-weight: 900 !important;
         font-family: 'Share Tech Mono', monospace !important;
         height: 48px !important;
-        /* Forced Neon Glow Cyan */
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.8), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
-        text-shadow: 0 0 8px rgba(0, 243, 255, 0.9) !important;
+        
+        /* Multi-layer Neon Green Glow Effect */
+        box-shadow: 0 0 12px #00FF66, 
+                    0 0 25px rgba(0, 255, 102, 0.6), 
+                    inset 0 0 10px rgba(0, 255, 102, 0.4) !important;
+        text-shadow: 0 0 10px #00FF66 !important;
         letter-spacing: 1px !important;
         text-transform: uppercase !important;
-        transition: all 0.25s ease-in-out !important;
+        transition: all 0.2s ease-in-out !important;
     }
 
-    /* Memastikan teks/icon di dalam tombol popover juga berwarna cyan */
-    div[data-testid="stPopover"] button * {
-        color: #00F3FF !important;
+    /* Paksa teks & ikon panah di dalam tombol utama jadi Neon Green */
+    div[data-testid="stPopover"] button *,
+    div[data-testid="stPopover"] button p,
+    div[data-testid="stPopover"] button svg {
+        color: #00FF66 !important;
+        fill: #00FF66 !important;
+        font-weight: 900 !important;
     }
 
+    /* Hover State Tombol Utama */
     div[data-testid="stPopover"] > button:hover {
-        background-color: #00F3FF !important;
+        background-color: #00FF66 !important;
+        border-color: #00FF66 !important;
+        box-shadow: 0 0 35px #00FF66, 0 0 15px #00FF66 !important;
+    }
+
+    div[data-testid="stPopover"] > button:hover *,
+    div[data-testid="stPopover"] > button:hover p,
+    div[data-testid="stPopover"] > button:hover svg {
         color: #000000 !important;
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 25px #00F3FF, 0 0 12px #00F3FF !important;
+        fill: #000000 !important;
         text-shadow: none !important;
     }
 
-    div[data-testid="stPopover"] > button:hover * {
-        color: #000000 !important;
-    }
-
-    /* Container Popover Dropdown */
+    /* Container Popover Dropdown (Kotak Menu Terbuka) */
     div[data-testid="stPopoverContent"] {
-        background-color: #080A10 !important;
-        border: 1.5px solid #00F3FF !important;
-        box-shadow: 0 0 20px rgba(0, 243, 255, 0.5) !important;
+        background-color: #050B08 !important;
+        border: 2px solid #00FF66 !important;
+        box-shadow: 0 0 25px rgba(0, 255, 102, 0.6) !important;
         border-radius: 8px !important;
         padding: 12px !important;
     }
@@ -139,17 +149,9 @@ st.markdown(
     div[data-testid="stPopoverContent"] [data-testid="stVerticalBlock"] {
         gap: 8px !important;
     }
-    div[data-testid="stPopoverContent"] [data-testid="stVerticalBlockBorderWrapper"] {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    div[data-testid="stPopoverContent"] div.stButton {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
 
     /* =========================================================
-       ITEM BUTTONS INSIDE DROPDOWN (RSI, STOCH, TRADE PLAN)
+       🟢 ITEM BUTTONS INSIDE DROPDOWN - NEON GREEN
        ========================================================= */
     div[data-testid="stPopoverContent"] div.stButton > button {
         width: 100% !important;
@@ -158,49 +160,53 @@ st.markdown(
         min-height: 0px !important;
         height: 42px !important;
         border-radius: 6px !important;
-        background-color: #0D101D !important;
-        border: 1.5px solid #00F3FF !important;
-        color: #00F3FF !important;
+        background-color: #0A1A10 !important;
+        border: 1.5px solid #00FF66 !important;
+        color: #00FF66 !important;
         font-size: 13px !important;
         font-family: 'Share Tech Mono', monospace !important;
-        font-weight: 700 !important;
-        margin: 0 !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
-        text-shadow: 0 0 6px rgba(0, 243, 255, 0.7) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
+        text-shadow: 0 0 8px #00FF66 !important;
         transition: all 0.2s ease-in-out !important;
     }
 
-    div[data-testid="stPopoverContent"] div.stButton > button * {
-        color: #00F3FF !important;
+    div[data-testid="stPopoverContent"] div.stButton > button *,
+    div[data-testid="stPopoverContent"] div.stButton > button p {
+        color: #00FF66 !important;
     }
 
     div[data-testid="stPopoverContent"] div.stButton > button:hover {
-        border-color: #00F3FF !important;
-        color: #000000 !important;
-        background-color: #00F3FF !important;
-        box-shadow: 0 0 18px #00F3FF !important;
-        text-shadow: none !important;
+        background-color: #00FF66 !important;
+        border-color: #00FF66 !important;
+        box-shadow: 0 0 25px #00FF66 !important;
     }
 
-    div[data-testid="stPopoverContent"] div.stButton > button:hover * {
+    div[data-testid="stPopoverContent"] div.stButton > button:hover *,
+    div[data-testid="stPopoverContent"] div.stButton > button:hover p {
         color: #000000 !important;
+        text-shadow: none !important;
     }
 
     /* Status Active (Screener Terpilih) */
     div.btn-active div.stButton > button {
-        background-color: rgba(0, 243, 255, 0.2) !important;
-        border: 2px solid #00F3FF !important;
-        color: #00F3FF !important;
-        font-weight: 800 !important;
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.7), inset 0 0 10px rgba(0, 243, 255, 0.3) !important;
-        text-shadow: 0 0 10px #00F3FF !important;
+        background-color: rgba(0, 255, 102, 0.25) !important;
+        border: 2px solid #00FF66 !important;
+        box-shadow: 0 0 20px #00FF66, inset 0 0 10px rgba(0, 255, 102, 0.5) !important;
+    }
+
+    div.btn-active div.stButton > button *,
+    div.btn-active div.stButton > button p {
+        color: #00FF66 !important;
+        font-weight: 900 !important;
+        text-shadow: 0 0 10px #00FF66 !important;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# 4. Header Bar (Logo + Z-QUANT berupa Tag Anchor <a>)
+# 4. Header Bar (Logo + Z-QUANT)
 col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
 with col_brand:
@@ -224,8 +230,8 @@ with col_popover:
         st.markdown(
             """
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 2px; font-family: 'Share Tech Mono', monospace;">
-                <span style="color: #00F3FF; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-shadow: 0 0 5px #00F3FF;">PRESET_SCREENER</span>
-                <span style="color: #00E676; font-size: 11px; font-weight: 800; text-shadow: 0 0 5px #00E676;">3 AVAILABLE</span>
+                <span style="color: #00FF66; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-shadow: 0 0 8px #00FF66;">PRESET_SCREENER</span>
+                <span style="color: #00FF66; font-size: 11px; font-weight: 800; text-shadow: 0 0 8px #00FF66;">3 AVAILABLE</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -273,7 +279,7 @@ with col_popover:
         st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
-    "<hr style='margin-top: 15px; margin-bottom: 24px; border: 0; height: 1px; background: linear-gradient(90deg, #00F3FF, transparent);'>",
+    "<hr style='margin-top: 15px; margin-bottom: 24px; border: 0; height: 1px; background: linear-gradient(90deg, #00FF66, transparent);'>",
     unsafe_allow_html=True,
 )
 
@@ -281,15 +287,15 @@ st.markdown(
 if st.session_state["selected_screener"] is None:
     st.markdown(
         """
-        <div style="background-color: #080A12; border: 1px solid #00F3FF; box-shadow: 0 0 20px rgba(0, 243, 255, 0.15); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
-            <h2 style="color: #00F3FF; font-size: 24px; margin-bottom: 8px; text-shadow: 0 0 8px #00F3FF; font-weight: 900; letter-spacing: 2px;">
+        <div style="background-color: #050B08; border: 1px solid #00FF66; box-shadow: 0 0 20px rgba(0, 255, 102, 0.2); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
+            <h2 style="color: #00FF66; font-size: 24px; margin-bottom: 8px; text-shadow: 0 0 10px #00FF66; font-weight: 900; letter-spacing: 2px;">
                 WELCOME TO Z-QUANT TERMINAL
             </h2>
             <p style="color: #8A8B98; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
-                Pilih strategi screening saham IHSG di menu <strong>🎛️ CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.
+                Pilih strategi screening saham IHSG di menu <strong style="color:#00FF66;">🎛️ CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.
             </p>
-            <div style="display: inline-block; background: rgba(0, 243, 255, 0.05); border: 1px solid #00F3FF; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
-                STATUS: <span style="color: #00E676; font-weight: bold;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT_v2.0]</span>
+            <div style="display: inline-block; background: rgba(0, 255, 102, 0.05); border: 1px solid #00FF66; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
+                STATUS: <span style="color: #00FF66; font-weight: bold; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT_v2.0]</span>
             </div>
         </div>
         """,

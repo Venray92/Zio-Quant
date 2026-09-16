@@ -6,7 +6,7 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_stoch_psar():
-    # Style CSS Cyberpunk & Neon Futuristic
+    # Style CSS Full Cyberpunk & Neon Futuristic
     st.markdown(
         """
         <style>
@@ -15,14 +15,13 @@ def render_tab_stoch_psar():
            ========================================================= */
         .cyber-header-container {
             position: relative;
-            background: linear-gradient(135deg, rgba(255, 0, 127, 0.15) 0%, rgba(0, 243, 255, 0.15) 100%);
-            border: 1px solid #00F3FF;
+            background: linear-gradient(135deg, rgba(255, 0, 127, 0.2) 0%, rgba(0, 243, 255, 0.2) 100%);
+            border: 1.5px solid #00F3FF;
             border-radius: 8px;
             padding: 12px 16px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             text-align: center;
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(255, 0, 127, 0.2);
-            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.35), inset 0 0 12px rgba(255, 0, 127, 0.25);
         }
         .cyber-header-title {
             font-size: 16px;
@@ -34,6 +33,23 @@ def render_tab_stoch_psar():
             -webkit-text-fill-color: transparent;
             text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
             margin: 0;
+        }
+
+        /* Status Dot Cyberpunk */
+        .cyber-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #FF007F;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FF007F, 0 0 18px #FF007F;
+            margin-right: 6px;
+            animation: cyberpunk-pulse 1.5s infinite alternate;
+        }
+
+        @keyframes cyberpunk-pulse {
+            0% { transform: scale(0.9); box-shadow: 0 0 6px #FF007F; }
+            100% { transform: scale(1.3); box-shadow: 0 0 15px #00F3FF; background-color: #00F3FF; }
         }
 
         /* =========================================================
@@ -54,7 +70,7 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-           3. STYLING STREAMLIT BUTTONS (CYBERPUNK GLOW)
+           3. STYLING STREAMLIT BUTTONS (RUN & STOP)
            ========================================================= */
         /* Tombol Run Screening */
         div[data-testid="stColumn"]:has(div[key="btn_run_stoch_screener"]) button {
@@ -91,7 +107,43 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-           4. STYLING SELECTBOX / DROPDOWN (NEON BORDER & TEXT)
+           4. STYLING SELECT SAHAM BUTTON (OVERRIDE WARNA MERAH)
+           ========================================================= */
+        /* All Stock Selection Buttons */
+        div[data-testid="stColumn"] button[kind="primary"],
+        div[data-testid="stColumn"] button[kind="secondary"] {
+            transition: all 0.25s ease-in-out !important;
+            border-radius: 6px !important;
+            font-weight: 800 !important;
+        }
+
+        /* Primary Button (Saat STATUS SELECTED / DITEKAN) */
+        div[data-testid="stColumn"] button[kind="primary"] {
+            background: linear-gradient(135deg, #FF007F 0%, #00F3FF 100%) !important;
+            color: #FFFFFF !important;
+            border: 1px solid #00F3FF !important;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
+            text-shadow: 0 0 6px rgba(0,0,0,0.8) !important;
+        }
+        div[data-testid="stColumn"] button[kind="primary"]:hover {
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* Secondary Button (Saat UNSELECTED) */
+        div[data-testid="stColumn"] button[kind="secondary"] {
+            background-color: #161B22 !important;
+            color: #00F3FF !important;
+            border: 1px solid #30363D !important;
+        }
+        div[data-testid="stColumn"] button[kind="secondary"]:hover {
+            border-color: #00F3FF !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        }
+
+        /* =========================================================
+           5. STYLING SELECTBOX / DROPDOWN (NEON BORDER & TEXT)
            ========================================================= */
         div[data-testid="stSelectbox"] > div > div {
             background-color: #0D1117 !important;
@@ -112,7 +164,7 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-           5. METRIC CARDS & CONTAINER STYLES
+           6. METRIC CARDS & CONTAINER STYLES
            ========================================================= */
         .metric-card {
             background: #161B22;
@@ -163,10 +215,14 @@ def render_tab_stoch_psar():
     # LEFT PANEL: SCREENER CONTROL & STOCK LIST
     # =========================================================
     with col_left:
-        # Header Banner Cyberpunk
+        # Header Banner Cyberpunk dengan Glowing Status Dot
         st.markdown(
             """
             <div class="cyber-header-container">
+                <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+                    <span class="cyber-status-dot"></span>
+                    <span style="font-size: 10px; font-weight: 800; color: #00F3FF; letter-spacing: 1.5px;">CYBERPUNK ENGINE ACTIVE</span>
+                </div>
                 <div class="cyber-header-title">⚡ STOCHASTIC & PARABOLIC SAR</div>
             </div>
             """,
@@ -326,7 +382,7 @@ def render_tab_stoch_psar():
                     price_str = f"{close_price:,.0f}".replace(",", ".")
 
                     border_style = (
-                        "border: 1.5px solid #00F3FF; background-color: rgba(0, 243, 255, 0.08); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);"
+                        "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
                         if is_selected
                         else "border: 1px solid #30363D; background-color: #161B22;"
                     )
@@ -354,9 +410,9 @@ def render_tab_stoch_psar():
                         )
 
                         btn_label = (
-                            f"✓ Selected ({saham})"
+                            f"✓ SELECTED ({saham})"
                             if is_selected
-                            else f"Select {saham}"
+                            else f"SELECT {saham}"
                         )
                         btn_type = "primary" if is_selected else "secondary"
 
@@ -435,7 +491,7 @@ def render_tab_stoch_psar():
 
             st.markdown(
                 f"""
-                <div style="background: linear-gradient(135deg, rgba(0, 243, 255, 0.1) 0%, rgba(255, 0, 127, 0.1) 100%); border: 1.5px solid #00F3FF; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);">
+                <div style="background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); border: 1.5px solid #00F3FF; padding: 8px 14px; border-radius: 8px; color: #FFFFFF; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);">
                     <span>🎯 SELECTED SYMBOL: <strong style="color: #00F3FF; font-size: 15px; margin-left: 6px;">{selected_stoch_symbol}</strong></span>
                     <span style="color: #8B949E; font-size: 11px; font-weight: 500;">Interactive Analysis Workspace</span>
                 </div>

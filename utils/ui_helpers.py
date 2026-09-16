@@ -74,13 +74,13 @@ def inject_custom_css():
     
     div[data-testid="stMetricValue"] {
         color: #00E676 !important;
-        font-size: 20px !important;
+        font-size: 18px !important;
         font-weight: 700 !important;
     }
     
     div[data-testid="stMetricLabel"] {
         color: #8B949E !important;
-        font-size: 12px !important;
+        font-size: 11px !important;
     }
     </style>
     """
@@ -160,9 +160,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             if df_plan is not None and not (hasattr(df_plan, "empty") and df_plan.empty):
                 st.markdown("#### 🎯 Trade Plan Recommendation")
 
-                # =========================================================
-                # FUTURISTIC CARD GENERATOR (MEMUAT SELURUH DATA DF)
-                # =========================================================
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
                     plan_type = row.get("Type", row.get("Strategy", f"Plan #{plan_no}"))
@@ -188,7 +185,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade_badge = "🟢" if "A" in str(grade) else ("🟡" if "B" in str(grade) else "⚪")
                     posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
 
-                    # 1. Bikin Main Card UI
+                    # MAIN CARD FUTURISTIK
                     card_html = (
                         f'<div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 4px solid #00E676; border-radius: 12px; padding: 16px; margin-bottom: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">'
                         f'<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 10px; margin-bottom: 12px;">'
@@ -201,20 +198,20 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                         f'</div>'
                         f'</div>'
                         f'<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; text-align: center;">'
-                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #38BDF833; box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.05);">'
-                        f'<div style="font-size: 10px; color: #38BDF8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Area Buy</div>'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #38BDF833;">'
+                        f'<div style="font-size: 10px; color: #38BDF8; font-weight: 700; text-transform: uppercase;">Area Buy</div>'
                         f'<div style="font-size: 14px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>'
                         f'</div>'
-                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #FF525233; box-shadow: inset 0 0 12px rgba(255, 82, 82, 0.05);">'
-                        f'<div style="font-size: 10px; color: #FF5252; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Stop Loss</div>'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #FF525233;">'
+                        f'<div style="font-size: 10px; color: #FF5252; font-weight: 700; text-transform: uppercase;">Stop Loss</div>'
                         f'<div style="font-size: 14px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>'
                         f'</div>'
-                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #00E67633; box-shadow: inset 0 0 12px rgba(0, 230, 118, 0.05);">'
-                        f'<div style="font-size: 10px; color: #00E676; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">TP 1</div>'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #00E67633;">'
+                        f'<div style="font-size: 10px; color: #00E676; font-weight: 700; text-transform: uppercase;">TP 1</div>'
                         f'<div style="font-size: 14px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>'
                         f'</div>'
-                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #00E67633; box-shadow: inset 0 0 12px rgba(0, 230, 118, 0.05);">'
-                        f'<div style="font-size: 10px; color: #00E676; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">TP 2</div>'
+                        f'<div style="background-color: rgba(14, 17, 23, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #00E67633;">'
+                        f'<div style="font-size: 10px; color: #00E676; font-weight: 700; text-transform: uppercase;">TP 2</div>'
                         f'<div style="font-size: 14px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>'
                         f'</div>'
                         f'</div>'
@@ -226,8 +223,9 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     )
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # 2. SELEKSI OTOMATIS SELURUH KOLOM SISANYA DI DATAFRAME
+                    # FILTER KOLOM: Buang kolom duplikat & nomor index mentah
                     skip_cols = [
+                        "No", "no", "index", "RR_Val", "rr_val",
                         "Type", "Strategy", "Score", "Grade", "Posisi Harga", "Status",
                         "Range Buy Min", "Buy Min", "Range Buy Max", "Buy Max", "Area Buy",
                         "Stop Loss", "SL", "TP 1", "TP1", "Target 1", "TP 2", "TP2", "Target 2",
@@ -236,19 +234,25 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     
                     extra_cols = [c for c in df_plan.columns if c not in skip_cols]
 
-                    # Jika ada data tambahan (Risk/Reward, Margin, Catatan, dll) keluarkan semua secara otomatis!
                     if extra_cols:
-                        with st.expander(f"📋 Detail Lengkap Parameter #{plan_no} ({plan_type})", expanded=False):
-                            # Tampilkan dalam bentuk Grid Metric
+                        with st.expander(f"📋 Detail Parameter Tambahan #{plan_no} ({plan_type})", expanded=False):
                             cols_per_row = 3
                             for i in range(0, len(extra_cols), cols_per_row):
                                 chunk_cols = extra_cols[i:i + cols_per_row]
                                 ui_cols = st.columns(len(chunk_cols))
                                 for col_idx, c_name in enumerate(chunk_cols):
                                     val = _format_val(row[c_name])
-                                    ui_cols[col_idx].metric(label=c_name, value=val)
+                                    
+                                    # Rapikan nama label agar ramah pengguna
+                                    label_name = c_name
+                                    if c_name in ["Rasio (R:R)", "R:R", "RR"]:
+                                        label_name = "Risk to Reward Ratio"
+                                    elif c_name == "Pola Candle":
+                                        label_name = "Pola Candlestick"
+                                    
+                                    ui_cols[col_idx].metric(label=label_name, value=val)
 
-                # Warning & Candle Banner jika ada
+                # Banner warning jika ada
                 if hasattr(df_plan, "columns") and len(df_plan) > 0:
                     warning_msg = df_plan["Warning"].iloc[0] if "Warning" in df_plan.columns else "-"
                     candle_type = df_plan["Status Candle"].iloc[0] if "Status Candle" in df_plan.columns else "-"

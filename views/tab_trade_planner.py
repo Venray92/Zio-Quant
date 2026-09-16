@@ -6,9 +6,6 @@ import streamlit as st
 from trade_planner import TradePlanner
 
 
-# ==========================================
-# 1. HELPER FUNCTIONS & DATA PROCESSING
-# ==========================================
 def load_daftar_saham(filename="daftar_saham.txt"):
     """Reads ticker list from file."""
     if not os.path.exists(filename):
@@ -16,17 +13,18 @@ def load_daftar_saham(filename="daftar_saham.txt"):
     try:
         with open(filename, "r") as f:
             lines = f.readlines()
-        return [
+        tickers = [
             line.strip().upper()
             for line in lines
             if line.strip() and not line.startswith("#")
         ]
+        return tickers
     except Exception:
         return []
 
 
 def process_single_ticker(ticker_code: str):
-    """Single ticker execution processor (pure data processing)."""
+    """Single ticker execution processor (pure data processing, no Streamlit UI calls)."""
     symbol = ticker_code.strip().upper()
     if not symbol.endswith(".JK"):
         symbol += ".JK"
@@ -85,7 +83,7 @@ def process_single_ticker(ticker_code: str):
 
 
 def run_batch_execution(ticker_list, cache_key):
-    """Multi-threaded execution runner with UI updates."""
+    """Multi-threaded execution runner with safe main-thread UI updates."""
     total_saham = len(ticker_list)
     if total_saham == 0:
         st.warning("⚠️ Ticker list is empty!")
@@ -123,7 +121,8 @@ def run_batch_execution(ticker_list, cache_key):
     )
 
     if results:
-        st.session_state[cache_key] = pd.DataFrame(results)
+        df_res = pd.DataFrame(results)
+        st.session_state[cache_key] = df_res
 
 
 def reset_filters():
@@ -141,9 +140,6 @@ def clear_cache(cache_key):
     st.toast("CACHE PURGED // MEMORY RESET", icon="🧹")
 
 
-# ==========================================
-# 2. UI COMPONENTS & RENDERING
-# ==========================================
 def draw_card(title, value, subtext, badge_text="", variant="cyan", value_color="cyan"):
     """Reusable Cyberpunk Card Component."""
     badge_html = (
@@ -173,7 +169,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
             unsafe_allow_html=True,
         )
 
-    for _, row in df_data.iterrows():
+    for idx, row in df_data.iterrows():
         st.markdown(
             f"""
             <div style="background: #0d0f18; border: 1px solid #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); padding: 16px 20px; border-radius: 4px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-family: monospace;">
@@ -249,9 +245,6 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
         )
 
 
-# ==========================================
-# 3. MAIN DASHBOARD VIEW
-# ==========================================
 def render_tab_trade_planner():
     # 🎨 CYBERPUNK CSS STYLING
     st.markdown(
@@ -259,12 +252,14 @@ def render_tab_trade_planner():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
+        /* Dark Glitch Background */
         .stApp {
             background-color: #030407 !important;
             color: #c0c5d0 !important;
             font-family: 'Share Tech Mono', monospace !important;
         }
 
+        /* Cyberpunk Header Wrapper */
         .cp-header-wrapper {
             display: flex;
             align-items: center;
@@ -284,6 +279,7 @@ def render_tab_trade_planner():
             text-transform: uppercase;
         }
 
+        /* Inputs Styling */
         div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
             background-color: #070910 !important;
             border: 1px solid #00f3ff !important;
@@ -297,6 +293,7 @@ def render_tab_trade_planner():
             box-shadow: 0 0 10px #ff0055 !important;
         }
 
+        /* Neon Cyber Buttons */
         div.stButton > button {
             background: #090c15 !important;
             color: #00f3ff !important;
@@ -327,6 +324,7 @@ def render_tab_trade_planner():
             box-shadow: 0 0 20px #ff0055 !important;
         }
 
+        /* Expander */
         div[data-testid="stExpander"] {
             background-color: #080a10 !important;
             border: 1px solid #ff0055 !important;
@@ -334,6 +332,7 @@ def render_tab_trade_planner():
             box-shadow: 0 0 8px rgba(255, 0, 85, 0.2);
         }
 
+        /* Cyberpunk Cards */
         .cp-card {
             background-color: #080a12;
             padding: 16px 18px;
@@ -401,19 +400,18 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # State Initializations
-    defaults = {
-        "screener_mode": "single",
-        "f_strategi": "ALL STRATEGIES",
-        "f_grade": "ALL GRADES",
-        "f_zone": "ALL POSITIONS",
-        "f_rr": "ALL RATIOS",
-        "f_candle": "ALL CANDLES",
-        "editor_key_version": 0,
-    }
-    for key, val in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = val
+    if "screener_mode" not in st.session_state:
+        st.session_state["screener_mode"] = "single"
+    if "f_strategi" not in st.session_state:
+        st.session_state["f_strategi"] = "ALL STRATEGIES"
+    if "f_grade" not in st.session_state:
+        st.session_state["f_grade"] = "ALL GRADES"
+    if "f_zone" not in st.session_state:
+        st.session_state["f_zone"] = "ALL POSITIONS"
+    if "f_rr" not in st.session_state:
+        st.session_state["f_rr"] = "ALL RATIOS"
+    if "f_candle" not in st.session_state:
+        st.session_state["f_candle"] = "ALL CANDLES"
 
     st.markdown(
         '<div style="color:#ff0055; font-family:monospace; font-weight:bold; margin-bottom:10px;">[SELECT_EXECUTION_MODE]</div>',
@@ -424,28 +422,33 @@ def render_tab_trade_planner():
     current_mode = st.session_state["screener_mode"]
 
     with mode_col1:
+        is_single = current_mode == "single"
+        btn_type_single = "primary" if is_single else "secondary"
         if st.button(
             "⚡ SINGLE_TARGET_SCAN\nAnalyze specific tickers",
             use_container_width=True,
-            type="primary" if current_mode == "single" else "secondary",
+            type=btn_type_single,
             key="btn_card_single",
         ):
-            st.session_state["screener_mode"] = "single"
+            if st.session_state["screener_mode"] != "single":
+                st.session_state["screener_mode"] = "single"
             st.rerun()
 
     with mode_col2:
+        is_batch = current_mode == "batch"
+        btn_type_batch = "primary" if is_batch else "secondary"
         if st.button(
             "🚀 BATCH_DATABASE_SWEEP\nFull scan ticker list",
             use_container_width=True,
-            type="primary" if current_mode == "batch" else "secondary",
+            type=btn_type_batch,
             key="btn_card_batch",
         ):
-            st.session_state["screener_mode"] = "batch"
+            if st.session_state["screener_mode"] != "batch":
+                st.session_state["screener_mode"] = "batch"
             st.rerun()
 
     st.write("")
 
-    # --- SINGLE SCAN MODE ---
     if st.session_state["screener_mode"] == "single":
         col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
         with col_input:
@@ -460,14 +463,18 @@ def render_tab_trade_planner():
                 label_visibility="collapsed",
             )
         with col_btn:
-            btn_single = st.button("🔍 EXECUTE_SCAN", type="primary", use_container_width=True)
+            btn_single = st.button(
+                "🔍 EXECUTE_SCAN", type="primary", use_container_width=True
+            )
 
         if btn_single:
             if not input_ticker.strip():
                 st.warning("⚠️ TARGET_INPUT_EMPTY!")
             else:
                 list_to_scan = [
-                    t.strip().upper() for t in input_ticker.split(",") if t.strip()
+                    t.strip().upper()
+                    for t in input_ticker.split(",")
+                    if t.strip()
                 ]
                 run_batch_execution(list_to_scan, cache_key="df_screener_single")
 
@@ -493,7 +500,6 @@ def render_tab_trade_planner():
             else:
                 render_trade_plan_cards(df_single_res, is_title_needed=False)
 
-    # --- BATCH SWEEP MODE ---
     else:
         all_tickers = load_daftar_saham("daftar_saham.txt")
         if not all_tickers:
@@ -565,7 +571,6 @@ def render_tab_trade_planner():
 
             df = df_raw.copy()
 
-            # Filter Operations
             if f_strategi == "Buy On Weakness (BOW)":
                 df = df[df["Strategy"] == "BOW"]
             elif f_strategi == "Breakout (BOB)":
@@ -606,6 +611,7 @@ def render_tab_trade_planner():
             df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
             st.write("")
+
             h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
@@ -619,9 +625,10 @@ def render_tab_trade_planner():
 
             with h_right:
                 if not df.empty:
+                    csv_data = df.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="📥 EXPORT_CSV",
-                        data=df.to_csv(index=False).encode("utf-8"),
+                        data=csv_data,
                         file_name="cyber_trade_planner.csv",
                         mime="text/csv",
                         use_container_width=True,
@@ -648,6 +655,9 @@ def render_tab_trade_planner():
                     "Risk-Reward Ratio",
                     "Candlestick Pattern",
                 ]
+
+                if "editor_key_version" not in st.session_state:
+                    st.session_state["editor_key_version"] = 0
 
                 current_editor_key = f"batch_editor_v{st.session_state['editor_key_version']}"
 

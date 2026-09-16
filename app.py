@@ -21,11 +21,22 @@ inject_custom_css()
 if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
-# Custom CSS Styling
+# Custom CSS: Sembunyikan Top Bar Streamlit & Rapatkan Gap Popover
 st.markdown(
     """
     <style>
-    /* Trigger Popover Button */
+    /* 1. Sembunyikan Header Bawaan Streamlit (Share, Star, GitHub, dll) */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    
+    /* 2. Potong Margin & Padding Kosong di Bagian Paling Atas Halaman */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+    }
+
+    /* 3. Trigger Popover Button Styling */
     div[data-testid="stPopover"] > button {
         background-color: #161B22 !important;
         border: 1.5px solid #21262D !important;
@@ -41,16 +52,24 @@ st.markdown(
         box-shadow: 0 0 10px rgba(0, 230, 118, 0.15) !important;
     }
     
+    /* 4. Rapatkan Gap Antar Button di Dalam Popover */
+    div[data-testid="stPopoverContent"] div[data-testid="stVerticalBlock"] {
+        gap: 2px !important; /* Gap sangat kecil antar opsi */
+    }
+    div[data-testid="stPopoverContent"] div.element-container {
+        margin-bottom: 0px !important;
+    }
+
     /* Styling Card Button Normal */
     div.screener-btn-wrapper > button {
         width: 100% !important;
         text-align: left !important;
-        padding: 10px 14px !important;
-        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
         background-color: #161B22 !important;
         border: 1px solid #21262D !important;
         color: #C9D1D9 !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 2px !important;
         font-weight: 600 !important;
         transition: all 0.2s ease-in-out !important;
     }
@@ -64,12 +83,12 @@ st.markdown(
     div.screener-btn-active > button {
         width: 100% !important;
         text-align: left !important;
-        padding: 10px 14px !important;
-        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
         background-color: #0D2B1D !important;
         border: 1.5px solid #00E676 !important;
         color: #00E676 !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 2px !important;
         font-weight: 700 !important;
     }
     </style>
@@ -92,11 +111,10 @@ with col_brand:
     )
 
 with col_popover:
-    # Menggunakan ikon futuristik 🎛️ (Control Panel Slider)
     with st.popover("🎛️ Choose Screener", use_container_width=True):
         st.markdown(
             """
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="color: #8B949E; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">PRESET SCREENER</span>
                 <span style="color: #00E676; font-size: 11px; font-weight: 700;">3 AVAILABLE</span>
             </div>

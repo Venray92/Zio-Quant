@@ -8,7 +8,7 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_rsi():
-    # Styling CSS Rapi, Kompak, & Sleek
+    # CSS Custom untuk Mempercantik Tombol Kartu Native Streamlit
     st.markdown(
         """
         <style>
@@ -48,78 +48,12 @@ def render_tab_rsi():
             color: #8B949E;
         }
 
-        /* Card Elements */
-        .card-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-        .ticker-symbol {
-            font-size: 15px;
-            font-weight: 700;
-            color: #FFFFFF;
-        }
-        .price-tag {
-            font-size: 13px;
-            font-weight: 600;
-            color: #C9D1D9;
-        }
-        .change-badge-green {
-            color: #3FB950;
-            font-weight: 600;
-            font-size: 11px;
-            margin-left: 4px;
-        }
-        .change-badge-red {
-            color: #F85149;
-            font-weight: 600;
-            font-size: 11px;
-            margin-left: 4px;
-        }
-        .pattern-badge-bull {
-            background-color: rgba(46, 160, 67, 0.15);
-            color: #3FB950;
-            border: 1px solid rgba(46, 160, 67, 0.3);
-            border-radius: 4px;
-            padding: 1px 6px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .pattern-badge-bear {
-            background-color: rgba(248, 81, 73, 0.15);
-            color: #F85149;
-            border: 1px solid rgba(248, 81, 73, 0.3);
-            border-radius: 4px;
-            padding: 1px 6px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .card-details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
-            background-color: #0D1117;
-            border-radius: 5px;
-            padding: 6px 8px;
-            margin-top: 6px;
-            font-size: 10px;
-            width: 100%;
-        }
-        .detail-item-title {
-            color: #8B949E;
-            font-weight: 500;
-        }
-        .detail-item-val {
-            color: #C9D1D9;
-            font-weight: 600;
-        }
-
-        /* Target Streamlit Container Padding Optimization */
-        div[data-testid="stVerticalBlockBorderWrapper"] {
-            padding: 0px !important;
+        /* Tampilan khusus untuk tombol yang difungsikan sebagai Card */
+        div.stButton > button {
+            text-align: left !important;
+            padding: 10px 12px !important;
+            line-height: 1.4 !important;
+            white-space: pre-wrap !important;
         }
         </style>
         """,
@@ -137,9 +71,9 @@ def render_tab_rsi():
         st.session_state["selected_rsi_ticker"] = None
 
     # ---------------------------------------------------------
-    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 32% : KANAN 68%)
+    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 35% : KANAN 65%)
     # ---------------------------------------------------------
-    col_left, col_right = st.columns([1.15, 2.85], gap="medium")
+    col_left, col_right = st.columns([1.2, 2.8], gap="medium")
 
     # =========================================================
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM (CARD VIEW)
@@ -155,7 +89,7 @@ def render_tab_rsi():
             unsafe_allow_html=True,
         )
 
-        # Tombol Run & Stop dengan ukuran setara (1 : 1)
+        # Tombol Run & Stop
         col_btn_run, col_btn_stop = st.columns([1, 1])
 
         with col_btn_run:
@@ -265,7 +199,7 @@ def render_tab_rsi():
             st.session_state["df_rsi_bullish"] = df_rsi_bullish
             st.session_state["df_rsi_bearish"] = df_rsi_bearish
 
-            # Set default selected ticker jika ada hasil
+            # Default selection
             if not df_rsi_bullish.empty:
                 st.session_state["selected_rsi_ticker"] = df_rsi_bullish.iloc[0].get("Ticker", df_rsi_bullish.iloc[0].get("Saham"))
             elif not df_rsi_bearish.empty:
@@ -276,7 +210,6 @@ def render_tab_rsi():
         has_results = "rsi_stats" in st.session_state
 
         if has_results:
-            # REVISI 3: Dropdown "Choose Screener Mode" (Default Bullish)
             screener_mode = st.selectbox(
                 "Choose Screener Mode",
                 options=["Bullish", "Bearish"],
@@ -288,13 +221,14 @@ def render_tab_rsi():
             st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 
             is_bull_tab = screener_mode == "Bullish"
-            if is_bull_tab:
-                df_target = st.session_state.get("df_rsi_bullish", pd.DataFrame())
-            else:
-                df_target = st.session_state.get("df_rsi_bearish", pd.DataFrame())
+            df_target = (
+                st.session_state.get("df_rsi_bullish", pd.DataFrame())
+                if is_bull_tab
+                else st.session_state.get("df_rsi_bearish", pd.DataFrame())
+            )
 
             if not df_target.empty:
-                # Rendering Compact Card menggunakan Container Native Streamlit
+                # MEREKAP CARD DENGAN BUTTON NATIVE
                 for idx, row in df_target.iterrows():
                     ticker = row.get("Ticker", row.get("Saham"))
                     saham = row.get("Saham", ticker.replace(".JK", ""))
@@ -313,59 +247,28 @@ def render_tab_rsi():
 
                     is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
 
-                    badge_style = "pattern-badge-bull" if is_bull_tab else "pattern-badge-bear"
-                    
-                    if change_pct >= 0:
-                        change_html = f'<span class="change-badge-green">+{change_pct:.2f}%</span>'
-                    else:
-                        change_html = f'<span class="change-badge-red">{change_pct:.2f}%</span>'
-
+                    change_str = f"+{change_pct:.2f}%" if change_pct >= 0 else f"{change_pct:.2f}%"
                     price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
+                    icon = "🎯 " if is_selected else ""
 
-                    # Container Card yang Kompak
-                    with st.container(border=True):
-                        # HTML Body Card
-                        card_html = f"""
-                        <div style="margin-bottom: 4px;">
-                            <div class="card-header-row">
-                                <div>
-                                    <span class="ticker-symbol">{saham}</span>
-                                    {change_html}
-                                </div>
-                                <div class="price-tag">{price_str}</div>
-                            </div>
-                            <div class="card-header-row" style="margin-top: 3px;">
-                                <div class="{badge_style}" title="{pattern}">{pattern}</div>
-                                <div style="font-size: 11px; font-weight: 700; color: #E3B341;">⭐ {score}</div>
-                            </div>
-                            <div class="card-details-grid">
-                                <div>
-                                    <div class="detail-item-title">Kiri ({tgl_kiri})</div>
-                                    <div class="detail-item-val">{harga_kiri} | RSI: {rsi_kiri}</div>
-                                </div>
-                                <div>
-                                    <div class="detail-item-title">Kanan ({tgl_kanan})</div>
-                                    <div class="detail-item-val">{harga_kanan} | RSI: {rsi_kanan}</div>
-                                </div>
-                            </div>
-                        </div>
-                        """
-                        st.markdown(card_html, unsafe_allow_html=True)
+                    # Menyusun Text di dalam Kartu
+                    card_label = (
+                        f"{icon}<b>{saham}</b> | {price_str} ({change_str}) | ⭐ {score}\n"
+                        f"📌 {pattern}\n"
+                        f"📊 Kiri: {harga_kiri} (RSI {rsi_kiri}) ➔ Kanan: {harga_kanan} (RSI {rsi_kanan})"
+                    )
 
-                        # REVISI 1: Tombol aksi langsung di dalam card tanpa teks "Pilih"
-                        btn_label = "✅ Selected" if is_selected else f"Select {saham}"
-                        btn_type = "primary" if is_selected else "secondary"
-                        
-                        if st.button(
-                            btn_label,
-                            key=f"btn_select_{ticker}_{idx}",
-                            use_container_width=True,
-                            type=btn_type,
-                        ):
-                            st.session_state["selected_rsi_ticker"] = ticker
-                            st.rerun()
+                    # Jika kartu dipilih, beri warna highlight tombol 'primary'
+                    btn_type = "primary" if is_selected else "secondary"
 
-                    st.markdown("<div style='margin-bottom: 4px;'></div>", unsafe_allow_html=True)
+                    if st.button(
+                        card_label,
+                        key=f"card_btn_{ticker}_{idx}",
+                        use_container_width=True,
+                        type=btn_type,
+                    ):
+                        st.session_state["selected_rsi_ticker"] = ticker
+                        st.rerun()
 
             else:
                 st.info(f"No {screener_mode} patterns detected.")
@@ -429,7 +332,6 @@ def render_tab_rsi():
                 unsafe_allow_html=True,
             )
 
-            # SAFE RENDERING: Mencegah crash jika key 'Status Candle' missing
             try:
                 render_inline_trade_planner(selected_rsi_symbol, key_suffix="rsi_tab")
             except KeyError as ke:
@@ -446,7 +348,7 @@ def render_tab_rsi():
                     <div style="font-size: 28px; margin-bottom: 8px;">👈</div>
                     <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
                     <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
-                        Run the screening process, then select any stock card from the left panel to inspect full Trade Planner details.
+                        Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.
                     </p>
                 </div>
                 """,

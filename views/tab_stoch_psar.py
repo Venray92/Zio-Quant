@@ -6,7 +6,6 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def render_tab_stoch_psar():
-    # CSS Custom disamakan dengan tab_rsi
     st.markdown(
         """
         <style>
@@ -50,7 +49,6 @@ def render_tab_stoch_psar():
         unsafe_allow_html=True,
     )
 
-    # Inisialisasi Session State
     if "stop_stoch_scan" not in st.session_state:
         st.session_state["stop_stoch_scan"] = False
 
@@ -60,9 +58,6 @@ def render_tab_stoch_psar():
     if "selected_stoch_ticker" not in st.session_state:
         st.session_state["selected_stoch_ticker"] = None
 
-    # ---------------------------------------------------------
-    # LAYOUT UTAMA: SPLIT SCREEN (KIRI 38% : KANAN 62%)
-    # ---------------------------------------------------------
     col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
     # =========================================================
@@ -153,16 +148,15 @@ def render_tab_stoch_psar():
                     "total_signal": gc_len + dc_len,
                 }
 
-                # Auto-select saham paling atas
                 if df_gc is not None and not df_gc.empty:
                     first_row = df_gc.iloc[0]
                     st.session_state["selected_stoch_ticker"] = first_row.get(
-                        "Ticker", first_row.get("Saham", first_row.get("Symbol", ""))
+                        "Ticker", ""
                     )
                 elif df_dc is not None and not df_dc.empty:
                     first_row = df_dc.iloc[0]
                     st.session_state["selected_stoch_ticker"] = first_row.get(
-                        "Ticker", first_row.get("Saham", first_row.get("Symbol", ""))
+                        "Ticker", ""
                     )
 
             except Exception as e:
@@ -202,42 +196,35 @@ def render_tab_stoch_psar():
 
             if not df_target.empty:
                 for idx, row in df_target.iterrows():
-                    # 1. Ambil Nama Ticker & Saham
-                    ticker = str(
-                        row.get("Ticker", row.get("Saham", row.get("Symbol", row.get("Stock", ""))))
-                    )
-                    saham = str(row.get("Saham", ticker.replace(".JK", "")))
-                    score = row.get("Score", row.get("Skor", 0))
+                    ticker = str(row.get("Ticker", ""))
+                    saham = ticker.replace(".JK", "")
+                    score = row.get("Score", 0)
 
-                    # 2. Ambil Harga Close
-                    close_price = row.get("Close", row.get("Harga", row.get("Close_Price", 0)))
+                    # Ambil Detail Signal dari dict screener
+                    signal_desc = row.get("Detail Signal", "-")
+
+                    # Ambil Harga dan Persentase
+                    close_price = row.get("Harga", 0)
+                    change_pct = row.get("Change (%)", 0.0)
+
                     try:
                         close_price = float(close_price)
-                        price_str = f"Rp {close_price:,.0f}".replace(",", ".")
                     except (ValueError, TypeError):
-                        price_str = f"Rp {close_price}"
+                        close_price = 0.0
 
-                    # 3. Ambil Indikator Khas Stoch & PSAR (K%, D%, PSAR, Status)
-                    stoch_k = row.get("Stoch %K", row.get("%K", row.get("K", "-")))
-                    stoch_d = row.get("Stoch %D", row.get("%D", row.get("D", "-")))
-                    psar_val = row.get("PSAR", row.get("Parabolic SAR", "-"))
-                    status_val = row.get("Status", row.get("Signal", row.get("Action", "-")))
+                    try:
+                        change_pct = float(change_pct)
+                    except (ValueError, TypeError):
+                        change_pct = 0.0
 
-                    # Format string indikator
-                    if isinstance(stoch_k, (int, float)) and isinstance(stoch_d, (int, float)):
-                        stoch_str = f"%K: {stoch_k:.1f} | %D: {stoch_d:.1f}"
-                    else:
-                        stoch_str = f"%K: {stoch_k} | %D: {stoch_d}"
-
-                    if isinstance(psar_val, (int, float)):
-                        psar_str = f"PSAR: {psar_val:,.0f}".replace(",", ".")
-                    else:
-                        psar_str = f"PSAR: {psar_val}"
-
-                    # Selection State
                     is_selected = (
                         st.session_state.get("selected_stoch_ticker") == ticker
                     )
+
+                    change_color = "#00E676" if change_pct >= 0 else "#FF5252"
+                    change_icon = "📈" if change_pct >= 0 else "📉"
+                    change_str = f"{change_icon} {change_pct:+.2f}%"
+                    price_str = f"{close_price:,.0f}".replace(",", ".")
 
                     border_style = (
                         "border: 1.5px solid #00E676; background-color: #0D2B1D;"
@@ -245,26 +232,21 @@ def render_tab_stoch_psar():
                         else "border: 1px solid #30363D; background-color: #161B22;"
                     )
 
-                    # Badge Status Warna
-                    status_color = "#00E676" if is_gc_tab else "#FF5252"
-
-                    # 4. Rendering Kartu Saham dengan Semua Informasi Table
                     with st.container():
                         st.markdown(
                             f"""
                             <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div>
-                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                                             <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
                                             <span style="background-color: #21262D; border: 1px solid #30363D; color: #E6BDFB; font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
                                         </div>
-                                        <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📊 {stoch_str}</div>
-                                        <div style="font-size: 10px; color: #6E7681;">📍 {psar_str}</div>
+                                        <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {signal_desc}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 15px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">{price_str}</div>
-                                        <div style="font-size: 10px; font-weight: 700; color: {status_color}; background-color: #21262D; padding: 2px 6px; border-radius: 4px; display: inline-block;">{status_val}</div>
+                                        <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 600; color: {change_color};">{change_str}</div>
                                     </div>
                                 </div>
                             </div>

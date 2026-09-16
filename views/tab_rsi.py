@@ -8,32 +8,24 @@ from utils.ui_helpers import render_inline_trade_planner
 
 
 def shorten_pattern(pattern_name):
-    """Menyingkat nama pattern agar tidak terlalu panjang/terpotong."""
+    """Menyingkat nama pattern agar rapi dan ringkas."""
     if not pattern_name or pattern_name == "-":
         return "-"
     
-    mapping = {
-        "Regular Bullish Divergence": "Reg Bull Div",
-        "Hidden Bullish Divergence": "Hid Bull Div",
-        "Regular Bearish Divergence": "Reg Bear Div",
-        "Hidden Bearish Divergence": "Hid Bear Div",
-        "Bullish Divergence": "Bull Div",
-        "Bearish Divergence": "Bear Div",
-    }
-    
-    res = pattern_name
-    for key, val in mapping.items():
-        if key in res:
-            res = res.replace(key, val)
-            
-    # Hapus imbuhan panjang jika ada
+    res = str(pattern_name)
+    res = res.replace("Regular Bullish Divergence", "Reg Bull Div")
+    res = res.replace("Hidden Bullish Divergence", "Hid Bull Div")
+    res = res.replace("Regular Bearish Divergence", "Reg Bear Div")
+    res = res.replace("Hidden Bearish Divergence", "Hid Bear Div")
+    res = res.replace("Bullish Divergence", "Bull Div")
+    res = res.replace("Bearish Divergence", "Bear Div")
     res = res.replace(" Valid (GC Confirmed)", " [GC]")
     res = res.replace(" Valid", "")
     return res
 
 
 def render_tab_rsi():
-    # CSS Custom untuk Styling Tombol Kartu Multi-Baris Native Streamlit
+    # CSS Custom untuk Styling Kartu Modern mirip Trading Platform
     st.markdown(
         """
         <style>
@@ -73,14 +65,32 @@ def render_tab_rsi():
             color: #8B949E;
         }
 
-        /* Styling Kartu Tombol Native agar Memuat Teks Multi-baris Rapi */
-        div.stButton > button {
+        /* Container Tombol Kartu Custom Modern */
+        div[data-testid="stVerticalBlock"] > div.stock-card-wrapper {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        /* Modifikasi st.button agar berbentuk Kartu Modern */
+        div.stButton > button.stock-card-btn {
+            width: 100% !important;
+            min-height: 85px !important;
+            padding: 10px 14px !important;
+            background-color: #161B22 !important;
+            border: 1px solid #30363D !important;
+            border-radius: 10px !important;
             text-align: left !important;
-            padding: 8px 10px !important;
-            line-height: 1.35 !important;
-            white-space: pre-wrap !important;
-            font-size: 11px !important;
-            font-family: monospace, sans-serif !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+
+        div.stButton > button.stock-card-btn:hover {
+            border-color: #58A6FF !important;
+            background-color: #1C2128 !important;
+        }
+
+        div.stButton > button.stock-card-selected {
+            border: 1.5px solid #00E676 !important;
+            background-color: #0D2B1D !important;
         }
         </style>
         """,
@@ -266,34 +276,68 @@ def render_tab_rsi():
                     change_pct = row.get("Change_Pct", 0.0)
 
                     tgl_kiri = str(row.get("Tgl Kiri", "-"))
-                    harga_kiri = row.get("Harga Kiri", "-")
-                    rsi_kiri = row.get("RSI Kiri", 0.0)
-
                     tgl_kanan = str(row.get("Tgl Kanan", "-"))
-                    harga_kanan = row.get("Harga Kanan", "-")
-                    rsi_kanan = row.get("RSI Kanan", 0.0)
 
                     is_selected = (st.session_state.get("selected_rsi_ticker") == ticker)
 
-                    change_str = f"+{change_pct:.2f}%" if change_pct >= 0 else f"{change_pct:.2f}%"
-                    price_str = f"Rp {close_price:,.0f}" if close_price > 0 else "-"
-                    icon = "🎯 " if is_selected else ""
+                    change_color = "#00E676" if change_pct >= 0 else "#FF5252"
+                    change_icon = "📈" if change_pct >= 0 else "📉"
+                    change_str = f"{change_icon} {change_pct:+.2f}%"
+                    price_str = f"{close_price:,.0f}".replace(",", ".")
 
-                    # Sesuai Format yang Diminta:
-                    # Line 1: Ticker + Nama Saham + Score + Pattern Singkat + Harga & %Change di Ujung Kanan
-                    # Line 2: Tanggal & Nilai Kiri -> Kanan (RSI & Harga)
-                    line1 = f"{icon}{saham} | ⭐{score} | 📌 {pattern_short}  ➔  {price_str} ({change_str})"
-                    line2 = f"🗓️ {tgl_kiri} ({harga_kiri} | RSI {rsi_kiri:.1f}) ➔ {tgl_kanan} ({harga_kanan} | RSI {rsi_kanan:.1f})"
+                    badge_bg = "#0D2B1D" if is_selected else "#21262D"
+                    badge_border = "#00E676" if is_selected else "#30363D"
                     
-                    card_label = f"{line1}\n{line2}"
+                    card_border = "1.5px solid #00E676" if is_selected else "1px solid #30363D"
+                    card_bg = "#0D2B1D" if is_selected else "#161B22"
 
-                    btn_type = "primary" if is_selected else "secondary"
+                    # HTML Card Layout Persis Sesuai Gambar
+                    card_html = f"""
+                    <div style="
+                        background-color: {card_bg};
+                        border: {card_border};
+                        border-radius: 8px;
+                        padding: 10px 12px;
+                        margin-bottom: 8px;
+                        cursor: pointer;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <!-- KIRI: Ticker, Badges, Name, Pattern, Date -->
+                        <div style="flex: 1; padding-right: 10px;">
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                                <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
+                                <span style="background-color: {badge_bg}; border: 1px solid {badge_border}; color: #8B949E; font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 600;">⭐ {score}</span>
+                            </div>
+                            <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">
+                                📌 {pattern_short}
+                            </div>
+                            <div style="font-size: 10px; color: #6E7681;">
+                                🗓️ {tgl_kiri} ➔ {tgl_kanan}
+                            </div>
+                        </div>
+                        <!-- KANAN: Harga & % Change -->
+                        <div style="text-align: right; min-width: 80px;">
+                            <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">
+                                {price_str}
+                            </div>
+                            <div style="font-size: 11px; font-weight: 600; color: {change_color};">
+                                {change_str}
+                            </div>
+                        </div>
+                    </div>
+                    """
 
+                    st.markdown(card_html, unsafe_allow_html=True)
+
+                    # Button Tersembunyi untuk Memicu Pilihan
+                    btn_label = f"Select {saham}" if not is_selected else f"✓ {saham} Selected"
                     if st.button(
-                        card_label,
+                        btn_label,
                         key=f"card_btn_{ticker}_{idx}",
                         use_container_width=True,
-                        type=btn_type,
+                        type="primary" if is_selected else "secondary",
                     ):
                         st.session_state["selected_rsi_ticker"] = ticker
                         st.rerun()

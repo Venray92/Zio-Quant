@@ -13,14 +13,14 @@ def get_logo_base64(file_path="logo.jpg"):
 
 
 def render_sidebar_nav():
-    """Menampilkan 4 Navigasi Vertikal dengan Ikon Vector SVG di Sidebar Kiri."""
+    """Menampilkan 4 Navigasi Vertikal di Sidebar Kiri."""
     active_nav = st.session_state.get("active_nav", "screener")
 
-    # SVG Icons (Modern Outline Style)
-    svg_screener = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>'
-    svg_markets = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>'
-    svg_stream = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"></path></svg>'
-    svg_support = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>'
+    # SVG Icons Modern Outline
+    svg_screener = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>'
+    svg_markets = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>'
+    svg_stream = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"></path></svg>'
+    svg_support = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>'
 
     nav_items = [
         ("screener", "Screener", svg_screener),
@@ -30,24 +30,21 @@ def render_sidebar_nav():
     ]
 
     with st.sidebar:
-        st.markdown(
-            '<div class="sidebar-nav-container">', unsafe_allow_html=True
-        )
+        st.markdown('<div class="sidebar-wrapper">', unsafe_allow_html=True)
         for key, label, svg in nav_items:
-            is_active = "active" if active_nav == key else ""
-            btn_html = f"""
-            <div class="sidebar-nav-item {is_active}">
-                <div class="nav-icon">{svg}</div>
-                <div class="nav-label">{label}</div>
-            </div>
-            """
-            st.markdown(btn_html, unsafe_allow_html=True)
+            is_active = "active-nav" if active_nav == key else ""
+            btn_label = f"{svg}<span>{label}</span>"
+
+            st.markdown(f'<div class="nav-btn-box {is_active}">', unsafe_allow_html=True)
             if st.button(
-                label, key=f"nav_btn_{key}", use_container_width=True
+                f"{label}",
+                key=f"nav_btn_{key}",
+                use_container_width=True,
             ):
                 st.session_state["active_nav"] = key
                 st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_header():
@@ -144,7 +141,7 @@ def render_header():
 
 
 def render_welcome():
-    """Menampilkan tampilan Welcome Banner saat belum ada screener terpilih."""
+    """Menampilkan tampilan Welcome Banner saat belum mepilih screener."""
     st.markdown(
         """
         <div style="background-color: #242424; border: 1px solid #00FF66; box-shadow: 0 0 20px rgba(0, 255, 102, 0.2); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">

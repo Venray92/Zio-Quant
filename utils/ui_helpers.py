@@ -79,7 +79,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
 
     # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
     col_select, _, col_btn = st.columns([1, 2, 1])
-    
+
     with col_select:
         period_selected = st.selectbox(
             "⏱️ Periode Data Analysis",
@@ -89,36 +89,49 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         )
 
     with col_btn:
-        # Menyamakan tinggi lokasi button dengan dropdown (mengimbangi tinggi label text selectbox)
+        # Menyamakan tinggi lokasi button dengan dropdown
         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        
+
         clean_ticker_code = ticker_symbol.upper().strip()
 
-        # Ekstrak ticker yang sudah ada di watchlist (baik berupa Dict maupun String)
+        # Ekstrak ticker yang sudah ada di watchlist
         existing_list = [
-            x.get("Ticker", x) if isinstance(x, dict) else str(x) 
+            x.get("Ticker", x) if isinstance(x, dict) else str(x)
             for x in st.session_state["watchlist"]
         ]
         is_in_watchlist = clean_ticker_code in existing_list
 
         if is_in_watchlist:
-            st.button("✅ In Watchlist", key=f"btn_add_wl_{key_suffix}", disabled=True, use_container_width=True)
+            st.button(
+                "✅ In Watchlist",
+                key=f"btn_add_wl_{key_suffix}",
+                disabled=True,
+                use_container_width=True,
+            )
         else:
-            if st.button("➕ Add to Watchlist", key=f"btn_add_wl_{key_suffix}", use_container_width=True):
-                # Ambil nama screener aktif dari session_state
-                active_source = st.session_state.get("active_screener_name", "Screener")
+            if st.button(
+                "➕ Add to Watchlist",
+                key=f"btn_add_wl_{key_suffix}",
+                use_container_width=True,
+            ):
+                active_source = st.session_state.get(
+                    "active_screener_name", "Screener"
+                )
 
-                # Simpan dalam bentuk Dictionary dengan label asal screener
-                st.session_state["watchlist"].append({
-                    "Ticker": clean_ticker_code,
-                    "Notes": active_source
-                })
+                st.session_state["watchlist"].append(
+                    {"Ticker": clean_ticker_code, "Notes": active_source}
+                )
 
-                st.toast(f"🚀 **{clean_ticker_code}** ({active_source}) berhasil ditambahkan ke Watchlist!", icon="📌")
+                st.toast(
+                    f"🚀 **{clean_ticker_code}** ({active_source}) berhasil ditambahkan ke Watchlist!",
+                    icon="📌",
+                )
                 st.rerun()
 
     # 3. TRADINGVIEW WIDGET
-    clean_ticker = ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
+    clean_ticker = (
+        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
+    )
     tv_symbol = f"IDX:{clean_ticker}"
 
     tv_html = f"""
@@ -158,31 +171,54 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
     # 4. TRADE PLAN RECOMMENDATION
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
-            planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
+            planner = TradePlanner(
+                ticker=ticker_symbol.upper(), period=period_selected
+            )
             if hasattr(planner, "fetch_and_prepare_data"):
                 planner.fetch_and_prepare_data()
 
-            df_plan = planner.generate_trade_plan() if hasattr(planner, "generate_trade_plan") else None
+            df_plan = (
+                planner.generate_trade_plan()
+                if hasattr(planner, "generate_trade_plan")
+                else None
+            )
 
             if df_plan is not None and not df_plan.empty:
-                st.markdown('<div class="section-title">🎯 Trade Plan Recommendation</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="section-title">🎯 Trade Plan Recommendation</div>',
+                    unsafe_allow_html=True,
+                )
 
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
-                    plan_type = row.get("Type", row.get("Strategy", f"Plan #{plan_no}"))
+                    plan_type = row.get(
+                        "Type", row.get("Strategy", f"Plan #{plan_no}")
+                    )
                     score = row.get("Score", 0)
                     grade = row.get("Grade", "N/A")
                     posisi = row.get("Posisi Harga", row.get("Status", "-"))
 
-                    range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
-                    range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
-                    area_buy = f"{range_min} - {range_max}" if range_min != "-" and range_max != "-" else range_min
+                    range_min = _format_val(
+                        row.get("Range Buy Min", row.get("Buy Min", "-"))
+                    )
+                    range_max = _format_val(
+                        row.get("Range Buy Max", row.get("Buy Max", "-"))
+                    )
+                    area_buy = (
+                        f"{range_min} - {range_max}"
+                        if range_min != "-" and range_max != "-"
+                        else range_min
+                    )
 
-                    stop_loss = _format_val(row.get("Stop Loss", row.get("SL", "-")))
+                    stop_loss = _format_val(
+                        row.get("Stop Loss", row.get("SL", "-"))
+                    )
                     tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
                     tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
 
-                    posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
+                    posisi_color = (
+                        "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
+                    )
 
                     card_html = f"""
                     <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
@@ -224,12 +260,19 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     # KALKULASI R:R
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
-                    with st.expander(f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})", expanded=True):
+                    with st.expander(
+                        f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
+                        expanded=True,
+                    ):
                         c1, c2 = st.columns(2)
                         with c1:
-                            st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
+                            st.metric(
+                                label="R:R ( Target 1 )", value=rr_tp1_val
+                            )
                         with c2:
-                            st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
+                            st.metric(
+                                label="R:R ( Target 2 )", value=rr_tp2_val
+                            )
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan: {e}")

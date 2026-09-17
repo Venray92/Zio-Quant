@@ -24,7 +24,7 @@ def inject_custom_css():
     }
     .block-container {
         padding-top: 1rem !important;
-        padding-bottom: 2rem !important;
+        padding-bottom: 1rem !important;
     }
 
     /* Header Bar Styling */
@@ -41,8 +41,8 @@ def inject_custom_css():
     }
 
     .brand-logo-img {
-        width: 55px;
-        height: 55px;
+        width: 50px;
+        height: 50px;
         border-radius: 8px;
         object-fit: cover;
         border: 1.5px solid #00F3FF;
@@ -51,49 +51,52 @@ def inject_custom_css():
 
     .brand-title-text {
         color: #00F3FF;
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 900;
         letter-spacing: 1px;
         text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* TOP NAV DUMMY BUTTONS STYLING */
+    /* DUMMY BUTTONS STYLING - UKURAN KECIL, NEMPEL GARIS PEMBATAS, ALIGN KIRI */
     div[data-testid="stColumn"] > div > div > button {
         background-color: #242424 !important;
         border: 1px solid #30363D !important;
-        border-radius: 6px !important;
+        border-radius: 4px !important;
         color: #8A8B98 !important;
         font-family: 'Share Tech Mono', monospace !important;
-        font-size: 12px !important;
+        font-size: 11px !important;
         font-weight: 700 !important;
-        height: 38px !important;
-        margin-top: 10px !important;
+        height: 30px !important;
+        padding: 2px 8px !important;
+        margin-top: 15px !important;
+        margin-bottom: -10px !important;
         transition: all 0.2s ease-in-out !important;
     }
     div[data-testid="stColumn"] > div > div > button:hover {
         border-color: #00F3FF !important;
         color: #00F3FF !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
     }
 
-    /* MAIN POPOVER BUTTON (CHOOSE SCREENER - FORCE CYAN TEXT) */
+    /* MAIN POPOVER BUTTON (CHOOSE SCREENER - FORCE CYAN TEXT DI SEMUA TAB) */
     div[data-testid="stPopover"] > button {
         background-color: #242424 !important;
         border: 2px solid #00F3FF !important;
         border-radius: 6px !important;
         padding: 4px 16px !important;
-        height: 44px !important;
+        height: 42px !important;
         width: 100% !important;
         box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* DUA SELECTOR INI UNTUK MEMASTIKAN TEKS CHOOSE SCREENER SELALU CYAN */
-    div[data-testid="stPopover"] > button *,
-    div[data-testid="stPopover"] > button p,
-    div[data-testid="stPopover"] > button div,
-    div[data-testid="stPopover"] > button span {
+    /* PAKSA WARNA CYAN UNTUK SEMUA ELEMENT INSIDE POPOVER BUTTON */
+    div[data-testid="stPopover"] button *,
+    div[data-testid="stPopover"] button p,
+    div[data-testid="stPopover"] button div,
+    div[data-testid="stPopover"] button span,
+    div[data-testid="stPopover"] button svg {
         color: #00F3FF !important;
         font-weight: 900 !important;
         font-family: 'Share Tech Mono', monospace !important;
@@ -111,7 +114,8 @@ def inject_custom_css():
     div[data-testid="stPopover"] > button:hover *,
     div[data-testid="stPopover"] > button:hover p,
     div[data-testid="stPopover"] > button:hover div,
-    div[data-testid="stPopover"] > button:hover span {
+    div[data-testid="stPopover"] > button:hover span,
+    div[data-testid="stPopover"] > button:hover svg {
         color: #000000 !important;
         text-shadow: none !important;
         fill: #000000 !important;
@@ -126,7 +130,7 @@ def inject_custom_css():
         padding: 12px !important;
     }
 
-    /* TOMBOL ITEM 1, 2, 3 DI DALAM DROPDOWN */
+    /* ITEM DROPDOWN MENU */
     div[data-testid="stPopoverContent"] button {
         background-color: #1E1E1E !important;
         border: 1.5px solid #00F3FF !important;

@@ -55,15 +55,10 @@ def clear_search_callback():
 
 
 def render_page_watchlist():
-    # CSS Custom: Desain macOS / Apple UI & Kustomisasi Komponen
+    # CSS Custom: Sembunyikan Panah Popover, Rapatkan Tombol ke Kanan
     st.markdown(
         """
         <style>
-        /* Tipografi Standar Apple System */
-        html, body, [class*="st-"] {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-        }
-
         /* Hilangkan panah dropdown bawaan popover Streamlit */
         div[data-testid="stPopover"] div[aria-expanded="false"] svg,
         div[data-testid="stPopover"] div[aria-expanded="true"] svg {
@@ -76,28 +71,27 @@ def render_page_watchlist():
             margin-bottom: 0px !important;
         }
         
-        /* Styling Popover Header ala Apple Widget (Rounded & Clean) */
+        /* Styling Popover Header: Rata Tengah & Mentok Kanan */
         div[data-testid="stPopover"] > button {
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
             width: 100% !important;
-            background: #1e1e1e !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            background: #161B22 !important;
+            border: 1px solid #30363D !important;
             padding: 4px 0px !important;
-            color: #d2d2d7 !important;
+            color: #9ECBFF !important;
             font-size: 14px !important;
-            font-weight: 600 !important;
-            border-radius: 8px !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-            transition: all 0.2s ease !important;
+            font-weight: 700 !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
         }
         
         div[data-testid="stPopover"] > button:hover {
-            color: #ffffff !important;
-            background: #2c2c2e !important;
-            border-color: rgba(255, 255, 255, 0.25) !important;
+            color: #00E676 !important;
+            border-color: #00E676 !important;
+            background: #21262D !important;
         }
 
         /* Layout Input Search & Clear Button */
@@ -106,7 +100,7 @@ def render_page_watchlist():
             margin-bottom: 0px !important;
         }
 
-        /* Checkbox Warna & Align Tengah */
+        /* Checkbox Warna Hijau & Align Tengah */
         div[data-testid="stCheckbox"] {
             display: flex !important;
             justify-content: center !important;
@@ -116,20 +110,8 @@ def render_page_watchlist():
         }
         
         div[data-testid="stCheckbox"] input[type="checkbox"]:checked {
-            background-color: #34c759 !important;
-            border-color: #34c759 !important;
-        }
-
-        /* Efek Tombol Umum ala Apple */
-        .stButton > button {
-            border-radius: 8px !important;
-            font-weight: 600 !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            transition: all 0.2s ease-in-out !important;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-1px);
+            background-color: #00E676 !important;
+            border-color: #00E676 !important;
         }
         </style>
         """,
@@ -138,7 +120,7 @@ def render_page_watchlist():
 
     # 1. Header Halaman Watchlist
     st.markdown("### 📌 Stock Watchlist")
-    st.caption("Pantau daftar saham pilihan Anda secara real-time dengan antarmuka modern.")
+    st.caption("Pantau daftar saham pilihan Anda secara real-time.")
 
     # 2. Inisialisasi Session State & Versi Form
     if "watchlist_data" not in st.session_state:
@@ -177,8 +159,8 @@ def render_page_watchlist():
         with h_col1:
             st.markdown(
                 """
-                <span style="background: rgba(52, 199, 89, 0.15); color: #34c759; border: 1px solid rgba(52, 199, 89, 0.3); 
-                             padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; display: inline-block;">
+                <span style="background: #064E3B; color: #00E676; border: 1px solid #10B981; 
+                             padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; display: inline-block;">
                     Watchlist
                 </span>
                 """,
@@ -309,7 +291,7 @@ def render_page_watchlist():
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0))
 
-        # Container Scroll Kartu Saham (Fixed Height dengan gaya macOS Card)
+        # Container Scroll Kartu Saham (Fixed Height)
         with st.container(height=420):
             if display_list:
                 for idx, item in enumerate(display_list):
@@ -319,15 +301,15 @@ def render_page_watchlist():
                     pct_change = item.get("Change Pct", 0.0)
 
                     if pct_change > 0:
-                        chg_color = "#34c759"
+                        chg_color = "#00E676"
                         arrow_icon = "📈 "
                         chg_prefix = "+"
                     elif pct_change < 0:
-                        chg_color = "#ff453a"
+                        chg_color = "#FF5252"
                         arrow_icon = "📉 "
                         chg_prefix = ""
                     else:
-                        chg_color = "#8e8e93"
+                        chg_color = "#8B949E"
                         arrow_icon = ""
                         chg_prefix = ""
 
@@ -352,21 +334,21 @@ def render_page_watchlist():
                     with c_card:
                         card_html = f"""
                         <div style="display: flex; align-items: center; justify-content: space-between; 
-                                    background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 10px; 
-                                    margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                                    background: #0D1117; padding: 6px 10px; border-radius: 6px; 
+                                    margin-bottom: 4px; border-bottom: 1px solid #21262D;">
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="background: rgba(10, 132, 255, 0.15); color: #0a84ff; 
-                                            font-size: 9px; font-weight: 800; padding: 3px 6px; 
-                                            border-radius: 6px; border: 1px solid rgba(10, 132, 255, 0.3);">
+                                <div style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; 
+                                            font-size: 9px; font-weight: 800; padding: 3px 5px; 
+                                            border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">
                                     IDX
                                 </div>
                                 <div>
-                                    <div style="font-size: 13px; font-weight: 700; color: #f5f5f7;">{clean_ticker}</div>
+                                    <div style="font-size: 13px; font-weight: 800; color: #F0F6FC;">{clean_ticker}</div>
                                 </div>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-size: 12px; font-weight: 700; color: #f5f5f7;">{price_str}</div>
-                                <div style="font-size: 10px; font-weight: 600; color: {chg_color};">{pct_str}</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #F0F6FC;">{price_str}</div>
+                                <div style="font-size: 10px; font-weight: 700; color: {chg_color};">{pct_str}</div>
                             </div>
                         </div>
                         """

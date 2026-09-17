@@ -414,87 +414,89 @@ def render_tab_rsi():
             )
 
             if not df_target.empty:
-                for idx, row in df_target.iterrows():
-                    ticker = str(row.get("Ticker", row.get("Saham", "")))
-                    saham = row.get("Saham", ticker.replace(".JK", ""))
-                    score = row.get("Score", 0)
-                    pattern_raw = row.get("Pattern", "-")
-                    pattern_short = shorten_pattern(pattern_raw)
+                # BUNGKUS DENGAN SCROLLABLE CONTAINER (550px)
+                with st.container(height=550, border=False):
+                    for idx, row in df_target.iterrows():
+                        ticker = str(row.get("Ticker", row.get("Saham", "")))
+                        saham = row.get("Saham", ticker.replace(".JK", ""))
+                        score = row.get("Score", 0)
+                        pattern_raw = row.get("Pattern", "-")
+                        pattern_short = shorten_pattern(pattern_raw)
 
-                    close_price = row.get("Close_Price", 0)
-                    change_pct = row.get("Change_Pct", 0.0)
+                        close_price = row.get("Close_Price", 0)
+                        change_pct = row.get("Change_Pct", 0.0)
 
-                    try:
-                        close_price = float(close_price)
-                    except (ValueError, TypeError):
-                        close_price = 0.0
+                        try:
+                            close_price = float(close_price)
+                        except (ValueError, TypeError):
+                            close_price = 0.0
 
-                    try:
-                        change_pct = float(change_pct)
-                    except (ValueError, TypeError):
-                        change_pct = 0.0
+                        try:
+                            change_pct = float(change_pct)
+                        except (ValueError, TypeError):
+                            change_pct = 0.0
 
-                    tgl_kiri = str(row.get("Tgl Kiri", "-"))
-                    tgl_kanan = str(row.get("Tgl Kanan", "-"))
+                        tgl_kiri = str(row.get("Tgl Kiri", "-"))
+                        tgl_kanan = str(row.get("Tgl Kanan", "-"))
 
-                    is_selected = (
-                        st.session_state.get("selected_rsi_ticker") == ticker
-                    )
+                        is_selected = (
+                            st.session_state.get("selected_rsi_ticker") == ticker
+                        )
 
-                    change_color = "#00FF66" if change_pct >= 0 else "#FF007F"
-                    change_icon = "📈" if change_pct >= 0 else "📉"
-                    change_str = f"{change_icon} {change_pct:+.2f}%"
-                    price_str = f"{close_price:,.0f}".replace(",", ".")
+                        change_color = "#00FF66" if change_pct >= 0 else "#FF007F"
+                        change_icon = "📈" if change_pct >= 0 else "📉"
+                        change_str = f"{change_icon} {change_pct:+.2f}%"
+                        price_str = f"{close_price:,.0f}".replace(",", ".")
 
-                    border_style = (
-                        "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
-                        if is_selected
-                        else "border: 1px solid #30363D; background-color: #161B22;"
-                    )
+                        border_style = (
+                            "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
+                            if is_selected
+                            else "border: 1px solid #30363D; background-color: #161B22;"
+                        )
 
-                    with st.container():
-                        st.markdown(
-                            f"""
-                            <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <div>
-                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                                            <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
-                                            <span style="background-color: rgba(255, 0, 127, 0.2); border: 1px solid #FF007F; color: #FF007F; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">⭐ {score}</span>
+                        with st.container():
+                            st.markdown(
+                                f"""
+                                <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                        <div>
+                                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                                <span style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{saham}</span>
+                                                <span style="background-color: rgba(255, 0, 127, 0.2); border: 1px solid #FF007F; color: #FF007F; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">⭐ {score}</span>
+                                            </div>
+                                            <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {pattern_short}</div>
+                                            <div style="font-size: 10px; color: #6E7681;">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
                                         </div>
-                                        <div style="font-size: 11px; color: #8B949E; margin-bottom: 2px;">📌 {pattern_short}</div>
-                                        <div style="font-size: 10px; color: #6E7681;">🗓️ {tgl_kiri} ➔ {tgl_kanan}</div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
-                                        <div style="font-size: 11px; font-weight: 700; color: {change_color};">{change_str}</div>
+                                        <div style="text-align: right;">
+                                            <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px;">Rp {price_str}</div>
+                                            <div style="font-size: 11px; font-weight: 700; color: {change_color};">{change_str}</div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
+                                """,
+                                unsafe_allow_html=True,
+                            )
 
-                        btn_label = (
-                            f"✓ SELECTED ({saham})"
-                            if is_selected
-                            else f"SELECT {saham}"
-                        )
-                        btn_type = "primary" if is_selected else "secondary"
+                            btn_label = (
+                                f"✓ SELECTED ({saham})"
+                                if is_selected
+                                else f"SELECT {saham}"
+                            )
+                            btn_type = "primary" if is_selected else "secondary"
 
-                        if st.button(
-                            btn_label,
-                            key=f"select_rsi_btn_{ticker}_{idx}",
-                            use_container_width=True,
-                            type=btn_type,
-                        ):
-                            st.session_state["selected_rsi_ticker"] = ticker
-                            st.rerun()
+                            if st.button(
+                                btn_label,
+                                key=f"select_rsi_btn_{ticker}_{idx}",
+                                use_container_width=True,
+                                type=btn_type,
+                            ):
+                                st.session_state["selected_rsi_ticker"] = ticker
+                                st.rerun()
 
-                        st.markdown(
-                            "<div style='margin-bottom: 10px;'></div>",
-                            unsafe_allow_html=True,
-                        )
+                            st.markdown(
+                                "<div style='margin-bottom: 10px;'></div>",
+                                unsafe_allow_html=True,
+                            )
             else:
                 st.info(f"No {screener_mode} patterns detected.")
         else:

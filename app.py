@@ -8,6 +8,9 @@ from views.tab_rsi import render_tab_rsi
 from views.tab_stoch_psar import render_tab_stoch_psar
 from views.tab_trade_planner import render_tab_trade_planner
 
+# Import modul halaman baru
+from views.watchlist import render_page_watchlist
+
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
     page_title="Z-QUANT",
@@ -48,8 +51,7 @@ if page == "home":
         render_tab_trade_planner()
 
 elif page == "watchlist":
-    st.title("📌 Watchlist")
-    st.info("Halaman Watchlist siap dihubungkan ke file baru.")
+    render_page_watchlist()
 
 elif page == "money_management":
     st.title("🛡️ Money Management")

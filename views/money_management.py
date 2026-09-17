@@ -1,8 +1,9 @@
 import math
-import plotly.graph_objects as go
 import streamlit as st
 
-# Import TradePlanner dari file backend kamu
+# Import helper visualisasi & TradePlanner
+from ui_helpers import render_portfolio_pie_chart, render_risk_gauge_chart
+
 try:
     from engines.trade_planner import TradePlanner
 except ImportError:
@@ -10,68 +11,74 @@ except ImportError:
 
 
 def render_page_money_management():
-    # --- INJECT CUSTOM CSS FOR MODERN CARDS & METRICS ---
+    # --- INJECT STYLES & CONFIG ---
     st.markdown(
         """
         <style>
         .mm-card {
-            background-color: #1E222D;
+            background: linear-gradient(135deg, #161B22 0%, #0D1117 100%);
             border-radius: 12px;
             padding: 20px;
-            border: 1px solid #2A2E39;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #30363D;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
             margin-bottom: 20px;
         }
         .mm-badge-green {
-            background-color: rgba(38, 166, 154, 0.2);
-            color: #26a69a;
+            background-color: rgba(0, 230, 118, 0.15);
+            color: #00E676;
             padding: 4px 12px;
             border-radius: 20px;
             font-weight: 700;
-            font-size: 14px;
-            border: 1px solid #26a69a;
+            font-size: 13px;
+            border: 1px solid #00E676;
+            display: inline-block;
         }
         .mm-badge-red {
-            background-color: rgba(239, 83, 80, 0.2);
-            color: #ef5350;
+            background-color: rgba(255, 82, 82, 0.15);
+            color: #FF5252;
             padding: 4px 12px;
             border-radius: 20px;
             font-weight: 700;
-            font-size: 14px;
-            border: 1px solid #ef5350;
+            font-size: 13px;
+            border: 1px solid #FF5252;
+            display: inline-block;
         }
         .mm-badge-yellow {
-            background-color: rgba(255, 179, 0, 0.2);
-            color: #ffb300;
+            background-color: rgba(255, 179, 0, 0.15);
+            color: #FFB300;
             padding: 4px 12px;
             border-radius: 20px;
             font-weight: 700;
-            font-size: 14px;
-            border: 1px solid #ffb300;
+            font-size: 13px;
+            border: 1px solid #FFB300;
+            display: inline-block;
         }
         .metric-label {
-            color: #8E94A0;
-            font-size: 13px;
-            font-weight: 600;
+            color: #8B949E;
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .metric-value {
             font-size: 24px;
             font-weight: 800;
-            color: #FFFFFF;
+            color: #E6EDF3;
+            margin: 6px 0;
+            font-family: 'Share Tech Mono', monospace;
         }
         .chart-custom-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
-            color: #FFFFFF;
+            color: #E6EDF3;
             text-align: center;
             margin-bottom: 2px;
         }
         .chart-custom-subtitle {
             font-size: 12px;
-            color: #8E94A0;
+            color: #8B949E;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         </style>
         """,
@@ -189,36 +196,54 @@ def render_page_money_management():
                         f"Mengambil data Trade Plan {full_ticker}..."
                     ):
                         planner = TradePlanner(ticker=full_ticker)
-                        planner.fetch_and_prepare_data()
-                        df_plan = planner.generate_trade_plan()
+                        if hasattr(planner, "fetch_and_prepare_data"):
+                            planner.fetch_and_prepare_data()
 
-                        matched = df_plan[df_plan["Type"] == plan_type]
-                        if matched.empty:
-                            matched = df_plan
-
-                        row = matched.iloc[0]
-
-                        st.session_state["input_entry_price"] = float(
-                            row["Range Buy Min"]
+                        df_plan = (
+                            planner.generate_trade_plan()
+                            if hasattr(planner, "generate_trade_plan")
+                            else None
                         )
-                        st.session_state["input_sl_price"] = float(
-                            row["Stop Loss"]
-                        )
-                        st.session_state["input_tp1_price"] = float(row["TP 1"])
-                        st.session_state["input_tp2_price"] = float(row["TP 2"])
 
-                        st.session_state["last_synced_ticker"] = (
-                            clean_ticker_code
-                        )
-                        st.session_state["last_synced_type"] = plan_type
-                        return True
+                        if df_plan is not None and not df_plan.empty:
+                            matched = df_plan[df_plan["Type"] == plan_type]
+                            if matched.empty:
+                                matched = df_plan
+
+                            row = matched.iloc[0]
+
+                            st.session_state["input_entry_price"] = float(
+                                row.get(
+                                    "Range Buy Min", row.get("Buy Min", 100.0)
+                                )
+                            )
+                            st.session_state["input_sl_price"] = float(
+                                row.get("Stop Loss", row.get("SL", 95.0))
+                            )
+                            st.session_state["input_tp1_price"] = float(
+                                row.get("TP 1", row.get("TP1", 110.0))
+                            )
+                            st.session_state["input_tp2_price"] = float(
+                                row.get("TP 2", row.get("TP2", 120.0))
+                            )
+
+                            st.session_state["last_synced_ticker"] = (
+                                clean_ticker_code
+                            )
+                            st.session_state["last_synced_type"] = plan_type
+                            return True
+                        else:
+                            st.warning(
+                                f"Trade Plan untuk {clean_ticker_code} tidak ditemukan."
+                            )
+                            return False
                 except Exception as e:
                     st.error(
                         f"Gagal mengambil Trade Plan {clean_ticker_code}: {e}"
                     )
                     return False
 
-            c_btn1, c_btn2 = st.columns([1.5, 1])
+            c_btn1, _ = st.columns([1.5, 1])
             with c_btn1:
                 if st.button("🔄 Sync Trade Plan", use_container_width=True):
                     if fetch_trade_plan_values():
@@ -304,7 +329,9 @@ def render_page_money_management():
         )
 
         # 3. Lot Berdasarkan Toleransi Risiko
-        raw_shares_by_risk = max_risk_allowed_idr / total_risk_per_share_with_fee
+        raw_shares_by_risk = (
+            max_risk_allowed_idr / total_risk_per_share_with_fee
+        )
         lot_by_risk = math.floor(raw_shares_by_risk / 100)
 
         # 4. Lot Berdasarkan Alokasi Profil
@@ -333,10 +360,9 @@ def render_page_money_management():
 
         # Risk Reward Ratio (RRR)
         reward_tp1 = tp1_price - entry_price
-        rrr_tp1 = reward_tp1 / risk_per_share_raw if risk_per_share_raw > 0 else 0
-
-        reward_tp2 = tp2_price - entry_price
-        rrr_tp2 = reward_tp2 / risk_per_share_raw if risk_per_share_raw > 0 else 0
+        rrr_tp1 = (
+            reward_tp1 / risk_per_share_raw if risk_per_share_raw > 0 else 0
+        )
 
         is_capped = (lot_by_cap < lot_by_risk) and (lot_by_risk > 0)
 
@@ -345,24 +371,24 @@ def render_page_money_management():
         with m1:
             st.markdown(
                 f"""
-            <div class="mm-card">
-                <div class="metric-label">Rekomendasi Size</div>
-                <div class="metric-value" style="color:#26a69a;">{final_lot:,} LOT</div>
-                <div style="font-size: 12px; color: #8E94A0;">({final_shares:,} Lembar)</div>
-            </div>
-            """,
+                <div class="mm-card">
+                    <div class="metric-label">Rekomendasi Size</div>
+                    <div class="metric-value" style="color:#00E676;">{final_lot:,} LOT</div>
+                    <div style="font-size: 12px; color: #8B949E;">({final_shares:,} Lembar)</div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
         with m2:
             st.markdown(
                 f"""
-            <div class="mm-card">
-                <div class="metric-label">Total Nilai Pembelian</div>
-                <div class="metric-value">Rp {total_buy_value:,.0f}</div>
-                <div style="font-size: 12px; color: #8E94A0;">Porsi: { (total_buy_value/capital)*100:.1f}% Modal</div>
-            </div>
-            """,
+                <div class="mm-card">
+                    <div class="metric-label">Total Nilai Pembelian</div>
+                    <div class="metric-value">Rp {total_buy_value:,.0f}</div>
+                    <div style="font-size: 12px; color: #8B949E;">Porsi: { (total_buy_value/capital)*100:.1f}% Modal</div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
@@ -372,14 +398,19 @@ def render_page_money_management():
                 if rrr_tp1 >= 2.0
                 else ("mm-badge-yellow" if rrr_tp1 >= 1.5 else "mm-badge-red")
             )
+            rrr_text = (
+                "EXCELLENT"
+                if rrr_tp1 >= 2.0
+                else ("ACCEPTABLE" if rrr_tp1 >= 1.5 else "POOR")
+            )
             st.markdown(
                 f"""
-            <div class="mm-card">
-                <div class="metric-label">Risk to Reward (TP1)</div>
-                <div class="metric-value">1 : {rrr_tp1:.2f}</div>
-                <span class="{rrr_badge}">{"EXCELLENT" if rrr_tp1>=2 else ("ACCEPTABLE" if rrr_tp1>=1.5 else "POOR")}</span>
-            </div>
-            """,
+                <div class="mm-card">
+                    <div class="metric-label">Risk to Reward (TP1)</div>
+                    <div class="metric-value">1 : {rrr_tp1:.2f}</div>
+                    <span class="{rrr_badge}">{rrr_text}</span>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
@@ -408,28 +439,28 @@ def render_page_money_management():
         with sc1:
             st.markdown(
                 f"""
-            <div class="mm-card">
-                <h4 style="margin:0; color:#26a69a;">Tahap 1: Sell 50% Lot @ TP1</h4>
-                <p style="margin:5px 0; font-size:14px;"><b>Jual {lot_tp1:,} Lot</b> di harga <b>Rp {tp1_price:,.0f}</b></p>
-                <p style="margin:0; font-size:13px; color:#8E94A0;">Profit Diamankan: <b style="color:#26a69a;">+Rp {p_tp1:,.0f}</b></p>
-                <hr style="margin:10px 0; border-color:#2A2E39;">
-                <span style="font-size:12px; color:#ffb300;">📌 Action: Geser SL sisa lot ke harga BEP (Rp {entry_price:,.0f})</span>
-            </div>
-            """,
+                <div class="mm-card">
+                    <h4 style="margin:0; color:#00E676;">Tahap 1: Sell 50% Lot @ TP1</h4>
+                    <p style="margin:8px 0; font-size:14px; color:#E6EDF3;"><b>Jual {lot_tp1:,} Lot</b> di harga <b>Rp {tp1_price:,.0f}</b></p>
+                    <p style="margin:0; font-size:13px; color:#8B949E;">Profit Diamankan: <b style="color:#00E676;">+Rp {p_tp1:,.0f}</b></p>
+                    <hr style="margin:12px 0; border-color:#21262D;">
+                    <span style="font-size:12px; color:#FFB300;">📌 Action: Geser SL sisa lot ke harga BEP (Rp {entry_price:,.0f})</span>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
         with sc2:
             st.markdown(
                 f"""
-            <div class="mm-card">
-                <h4 style="margin:0; color:#26a69a;">Tahap 2: Sell 50% Lot @ TP2</h4>
-                <p style="margin:5px 0; font-size:14px;"><b>Jual {lot_tp2:,} Lot</b> di harga <b>Rp {tp2_price:,.0f}</b></p>
-                <p style="margin:0; font-size:13px; color:#8E94A0;">Profit Diamankan: <b style="color:#26a69a;">+Rp {p_tp2:,.0f}</b></p>
-                <hr style="margin:10px 0; border-color:#2A2E39;">
-                <span style="font-size:12px; color:#26a69a;">💰 Total Potensi Profit Maksimal: <b>+Rp {total_potential_profit:,.0f}</b></span>
-            </div>
-            """,
+                <div class="mm-card">
+                    <h4 style="margin:0; color:#00E676;">Tahap 2: Sell 50% Lot @ TP2</h4>
+                    <p style="margin:8px 0; font-size:14px; color:#E6EDF3;"><b>Jual {lot_tp2:,} Lot</b> di harga <b>Rp {tp2_price:,.0f}</b></p>
+                    <p style="margin:0; font-size:13px; color:#8B949E;">Profit Diamankan: <b style="color:#00E676;">+Rp {p_tp2:,.0f}</b></p>
+                    <hr style="margin:12px 0; border-color:#21262D;">
+                    <span style="font-size:12px; color:#00E676;">💰 Total Potensi Profit Maksimal: <b>+Rp {total_potential_profit:,.0f}</b></span>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
@@ -440,7 +471,6 @@ def render_page_money_management():
         v1, v2 = st.columns(2)
 
         with v1:
-            # Menggunakan Streamlit Markdown untuk judul & subjudul agar tidak terpotong oleh Plotly Canvas
             st.markdown(
                 f'<div class="chart-custom-title">Risiko Posisi Saat Ini vs Target ({risk_pct}%)</div>',
                 unsafe_allow_html=True,
@@ -450,53 +480,8 @@ def render_page_money_management():
                 unsafe_allow_html=True,
             )
 
-            fig_gauge = go.Figure(
-                go.Indicator(
-                    mode="gauge+number+delta",
-                    value=actual_risk_pct,
-                    number={"suffix": "%", "valueformat": ".2f"},
-                    delta={
-                        "reference": risk_pct,
-                        "relative": False,
-                        "position": "top",
-                    },
-                    domain={"x": [0, 1], "y": [0, 1]},
-                    gauge={
-                        "axis": {
-                            "range": [0, max(10.0, risk_pct * 1.2)],
-                            "tickwidth": 1,
-                        },
-                        "bar": {
-                            "color": (
-                                "#26a69a"
-                                if actual_risk_pct <= risk_pct
-                                else "#ef5350"
-                            )
-                        },
-                        "steps": [
-                            {
-                                "range": [0, risk_pct],
-                                "color": "rgba(38, 166, 154, 0.2)",
-                            },
-                            {
-                                "range": [risk_pct, 10.0],
-                                "color": "rgba(239, 83, 80, 0.2)",
-                            },
-                        ],
-                        "threshold": {
-                            "line": {"color": "gold", "width": 4},
-                            "thickness": 0.75,
-                            "value": risk_pct,
-                        },
-                    },
-                )
-            )
-            fig_gauge.update_layout(
-                height=220,
-                margin=dict(l=20, r=20, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                font={"color": "white"},
-            )
+            # Memanggil helper Plotly Gauge Chart dari ui_helpers
+            fig_gauge = render_risk_gauge_chart(actual_risk_pct, risk_pct)
             st.plotly_chart(fig_gauge, use_container_width=True)
 
         with v2:
@@ -509,25 +494,8 @@ def render_page_money_management():
                 unsafe_allow_html=True,
             )
 
-            cash_left = max(0.0, capital - total_cost_with_fee)
-            fig_donut = go.Figure(
-                data=[
-                    go.Pie(
-                        labels=[
-                            f"Posisi {clean_ticker_code}",
-                            "Sisa Cash Modal",
-                        ],
-                        values=[total_cost_with_fee, cash_left],
-                        hole=0.6,
-                        marker_colors=["#26a69a", "#2A2E39"],
-                    )
-                ]
-            )
-            fig_donut.update_layout(
-                height=220,
-                margin=dict(l=10, r=10, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                font={"color": "white"},
-                showlegend=True,
+            # Memanggil helper Plotly Donut Chart dari ui_helpers
+            fig_donut = render_portfolio_pie_chart(
+                clean_ticker_code, total_cost_with_fee, capital
             )
             st.plotly_chart(fig_donut, use_container_width=True)

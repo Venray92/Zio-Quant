@@ -35,14 +35,15 @@ def get_logo_base64(file_path="logo.jpg"):
 
 logo_b64 = get_logo_base64("logo.jpg")
 
-# 3. Custom CSS Cyberpunk Neon Green (#00FF66)
+# 3. Custom CSS (Background Abu Gelap #1A1A1A + Cyberpunk Neon Green #00FF66)
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
+    /* BACKGROUND UTAMA APLIKASI (ABU GELAP) */
     .stApp {
-        background-color: #030407 !important;
+        background-color: #1A1A1A !important;
         color: #C0C5D0 !important;
         font-family: 'Share Tech Mono', monospace !important;
     }
@@ -91,7 +92,7 @@ st.markdown(
        🟢 MAIN POPOVER BUTTON (CHOOSE_SCREENER)
        ========================================================= */
     div[data-testid="stPopover"] > button {
-        background-color: #05140B !important;
+        background-color: #242424 !important;
         border: 2px solid #00FF66 !important;
         border-radius: 8px !important;
         padding: 6px 16px !important;
@@ -122,7 +123,7 @@ st.markdown(
 
     /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
-        background-color: #050B08 !important;
+        background-color: #242424 !important;
         border: 2px solid #00FF66 !important;
         box-shadow: 0 0 25px rgba(0, 255, 102, 0.5) !important;
         border-radius: 8px !important;
@@ -133,7 +134,7 @@ st.markdown(
        🟢 TOMBOL ITEM 1, 2, 3 DI DALAM DROPDOWN (FORCED BORDER & GLOW)
        ========================================================= */
     div[data-testid="stPopoverContent"] button {
-        background-color: #081C10 !important;
+        background-color: #1E1E1E !important;
         border: 1.5px solid #00FF66 !important;
         border-radius: 6px !important;
         margin: 4px 0 !important;
@@ -257,7 +258,7 @@ st.markdown(
 if st.session_state["selected_screener"] is None:
     st.markdown(
         """
-        <div style="background-color: #050B08; border: 1px solid #00FF66; box-shadow: 0 0 20px rgba(0, 255, 102, 0.2); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
+        <div style="background-color: #242424; border: 1px solid #00FF66; box-shadow: 0 0 20px rgba(0, 255, 102, 0.2); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
             <h2 style="color: #00FF66; font-size: 24px; margin-bottom: 8px; text-shadow: 0 0 10px #00FF66; font-weight: 900; letter-spacing: 2px;">
                 WELCOME TO Z-QUANT TERMINAL
             </h2>

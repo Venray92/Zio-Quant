@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-from trade_planner import TradePlanner
+from engines.trade_planner import TradePlanner
 
 
 def load_daftar_saham(filename="daftar_saham.txt"):

@@ -22,7 +22,7 @@ def fetch_stock_quote(ticker_symbol):
 
 
 def render_page_watchlist():
-    # CSS Custom: Sembunyikan Panah Dropdown Popover & Rapikan Layout
+    # CSS Custom: Sembunyikan Panah Popover, Rata Tengah Teks Button & Custom Green Checkbox
     st.markdown(
         """
         <style>
@@ -38,23 +38,46 @@ def render_page_watchlist():
             margin-bottom: 0px !important;
         }
         
-        /* Transparan & Minimalis untuk Tombol Icon Popover Header */
+        /* Paksa semua button & popover button rata tengah (align-center) */
+        div[data-testid="stButton"] > button,
         div[data-testid="stPopover"] > button {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            width: 100% !important;
             border: none !important;
             background: transparent !important;
-            padding: 0px 2px !important;
+            padding: 2px 4px !important;
             color: #9ECBFF !important;
             font-size: 16px !important;
             box-shadow: none !important;
         }
+        
+        div[data-testid="stButton"] > button:hover,
         div[data-testid="stPopover"] > button:hover {
             color: #00E676 !important;
         }
         
-        /* Layout Input Search & Clear Button */
+        /* Layout Input Search & Button Clear */
         div[data-testid="stTextInput"] {
             margin-top: 0px !important;
             margin-bottom: 0px !important;
+        }
+
+        /* Checkbox Warna Hijau & Align Tengah */
+        div[data-testid="stCheckbox"] {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            margin: 0px auto !important;
+            padding-top: 8px !important;
+        }
+        
+        /* Custom Accent Color Hijau untuk Streamlit Checkbox */
+        div[data-testid="stCheckbox"] input[type="checkbox"]:checked {
+            background-color: #00E676 !important;
+            border-color: #00E676 !important;
         }
         </style>
         """,
@@ -89,10 +112,10 @@ def render_page_watchlist():
         st.session_state["selected_cards"] = set()
     if "quick_add_count" not in st.session_state:
         st.session_state["quick_add_count"] = 1
-    if "search_input_val" not in st.session_state:
-        st.session_state["search_input_val"] = ""
-    if "delete_mode" not in st.session_state:
-        st.session_state["delete_mode"] = "Delete Single"
+    if "search_query" not in st.session_state:
+        st.session_state["search_query"] = ""
+    if "enable_batch_delete" not in st.session_state:
+        st.session_state["enable_batch_delete"] = False
 
     # Fetch Real-time Data
     for item in st.session_state["watchlist_data"]:
@@ -122,9 +145,9 @@ def render_page_watchlist():
             )
             
         with h_col2:
-            # Popover Icon Tambah (+) - Multi Dynamic Input + Auto Reset
+            # Popover Icon Tambah (+) - Multi Dynamic Input + Auto Reset Form
             with st.popover("＋", help="Tambah Saham"):
-                st.markdown("**Tambah Saham Quick**")
+                st.markdown("<div style='text-align:center;'><b>Tambah Saham Quick</b></div>", unsafe_allow_html=True)
                 
                 inputs = []
                 for i in range(st.session_state["quick_add_count"]):
@@ -151,7 +174,7 @@ def render_page_watchlist():
                                         "Target Price": 0
                                     })
                                     added_count += 1
-                            # Reset input count & clear form
+                            # Reset baris input
                             st.session_state["quick_add_count"] = 1
                             st.toast(f"{added_count} Saham berhasil ditambahkan!", icon="🚀")
                             st.rerun()
@@ -159,18 +182,18 @@ def render_page_watchlist():
                             st.warning("Masukkan kode saham!")
 
         with h_col3:
-            # Popover Menu Hapus (🗑️) Dropdown: Delete Single vs Batch Delete
+            # Popover Menu Hapus (🗑️) dengan Checkbox Hijau Rata Tengah
             with st.popover("🗑️", help="Menu Hapus"):
-                st.markdown("**Pilihan Mode Hapus**")
-                mode = st.radio(
-                    "Pilih Mode", 
-                    ["Delete Single", "Batch Delete"], 
-                    index=0 if st.session_state["delete_mode"] == "Delete Single" else 1,
-                    key="radio_del_mode"
+                st.markdown("<div style='text-align:center;'><b>Pengaturan Hapus</b></div>", unsafe_allow_html=True)
+                
+                # Checkbox Hijau untuk Mengaktifkan Batch Delete
+                st.session_state["enable_batch_delete"] = st.checkbox(
+                    "Aktifkan Batch Delete", 
+                    value=st.session_state["enable_batch_delete"],
+                    key="chk_enable_batch_del"
                 )
-                st.session_state["delete_mode"] = mode
 
-                if mode == "Batch Delete":
+                if st.session_state["enable_batch_delete"]:
                     if st.button("Hapus Tercentang", key="btn_execute_batch_delete", use_container_width=True):
                         if st.session_state["selected_cards"]:
                             to_remove = list(st.session_state["selected_cards"])
@@ -191,32 +214,41 @@ def render_page_watchlist():
         with h_col4:
             # Popover Icon Filter (🎛️)
             with st.popover("🎛️", help="Filter & Urutkan"):
-                st.markdown("**Filter & Urutkan**")
+                st.markdown("<div style='text-align:center;'><b>Filter & Urutkan</b></div>", unsafe_allow_html=True)
                 st.session_state["sort_filter"] = st.selectbox(
                     "Urutkan", 
                     ["Default", "Gainers (% High)", "Losers (% Low)", "Price High", "Price Low"]
                 )
 
-        # Search Bar + Tombol Clear (X)
-        c_search, c_clear = st.columns([3.3, 0.7])
+        # Baris Pencarian Saham + Tombol Clear (X) Kondisional
+        if st.session_state["search_query"]:
+            c_search, c_clear = st.columns([3.3, 0.7])
+        else:
+            c_search = st.container()
+            c_clear = None
+
         with c_search:
-            search_input = st.text_input(
-                "Cari", 
-                value=st.session_state["search_input_val"], 
+            search_val = st.text_input(
+                "Cari Kode", 
+                value=st.session_state["search_query"], 
                 placeholder="🔍 Cari kode saham...", 
                 label_visibility="collapsed",
-                key="input_search_ticker"
+                key="input_search_ticker_field"
             )
-            st.session_state["search_input_val"] = search_input
-        
-        with c_clear:
-            if st.button("❌", key="btn_clear_search", help="Bersihkan Pencarian", use_container_width=True):
-                st.session_state["search_input_val"] = ""
+            if search_val != st.session_state["search_query"]:
+                st.session_state["search_query"] = search_val
                 st.rerun()
+
+        # Tombol Clear (❌) Hanya Muncul saat Teks Pencarian Terisi
+        if c_clear is not None:
+            with c_clear:
+                if st.button("❌", key="btn_clear_search_act", help="Bersihkan Pencarian", use_container_width=True):
+                    st.session_state["search_query"] = ""
+                    st.rerun()
 
         # Filter List Saham
         display_list = list(st.session_state["watchlist_data"])
-        search_kw = st.session_state["search_input_val"].strip().upper()
+        search_kw = st.session_state["search_query"].strip().upper()
         if search_kw:
             display_list = [x for x in display_list if search_kw in x["Ticker"]]
 
@@ -229,7 +261,7 @@ def render_page_watchlist():
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0))
 
-        # Container Scroll (Fixed Height)
+        # Container Scroll Kartu Saham (Fixed Height)
         with st.container(height=420):
             if display_list:
                 for idx, item in enumerate(display_list):
@@ -254,13 +286,13 @@ def render_page_watchlist():
                     price_str = f"{int(last_price):,}" if last_price else "-"
                     pct_str = f"{arrow_icon}{chg_prefix}{pct_change:.2f}%" if last_price else "-"
 
-                    # Jika Mode Batch Delete Aktif -> Tampilkan Checkbox
-                    if st.session_state["delete_mode"] == "Batch Delete":
+                    # Jika Checkbox Batch Delete Diaktifkan di Top Menu
+                    if st.session_state["enable_batch_delete"]:
                         c_chk, c_card = st.columns([0.4, 3.6])
                         with c_chk:
                             is_checked = st.checkbox(
                                 "", 
-                                key=f"chk_{clean_ticker}_{idx}",
+                                key=f"card_chk_{clean_ticker}_{idx}",
                                 value=ticker_raw in st.session_state["selected_cards"]
                             )
                             if is_checked:
@@ -268,7 +300,6 @@ def render_page_watchlist():
                             else:
                                 st.session_state["selected_cards"].discard(ticker_raw)
                     else:
-                        # Single Delete Mode -> Tanpa Checkbox
                         c_card = st.container()
 
                     with c_card:
@@ -339,7 +370,7 @@ def render_page_watchlist():
                 hide_index=True
             )
             
-            if st.button("🗑️ Hapus Semua Watchlist", type="secondary"):
+            if st.button("🗑️ Hapus Semua Watchlist", type="secondary", use_container_width=True):
                 st.session_state["watchlist_data"] = []
                 st.session_state["watchlist"] = []
                 st.session_state["selected_cards"].clear()

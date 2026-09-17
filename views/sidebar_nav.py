@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Sidebar Navigasi dengan Kontainer Bersih dan Tombol Dijamin Muncul."""
+    """Sidebar Navigasi Ringkas (Ikon + Teks Vertikal) dengan Fitur Collapse."""
 
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = "screener"
@@ -11,79 +11,84 @@ def render_sidebar_nav():
 
     sidebar_css = """
     <style>
-    /* Hilangkan secara spesifik tombol collapse bawaan sidebar tanpa merusak tombol lain */
-    button[data-testid="baseButton-header"], 
-    [data-testid="collapsedControl"] {
-        display: none !important;
+    /* 1. Atur Lebar Sidebar agar Ringkas Mirip TradingView */
+    [data-testid="stSidebar"] {
+        min-width: 85px !important;
+        max-width: 85px !important;
+        background-color: #0D0E12 !important;
+        border-right: 1px solid #1E222D !important;
     }
 
-    /* Kontainer Sidebar Utama */
-    .clean-sidebar-box {
-        background-color: #0D0E12;
-        border-right: 2px solid #00FF66;
-        border-radius: 6px;
-        padding: 12px 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 10px;
+    /* Padding Kontainer Dalam Sidebar */
+    [data-testid="stSidebarUserContent"] {
+        padding: 10px 6px !important;
     }
 
-    /* Styling Tombol Menu agar Muncul Sempurna */
-    .clean-sidebar-box div.stButton > button {
-        background-color: #161B22 !important;
-        border: 1.5px solid #30363D !important;
-        color: #C9D1D9 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        height: 48px !important;
+    /* 2. Style Dasar Semua Tombol Navigasi */
+    [data-testid="stSidebar"] div.stButton > button {
+        background-color: transparent !important;
+        border: none !important;
+        color: #787B86 !important;
+        font-family: 'Share Tech Mono', monospace, sans-serif !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        height: 65px !important;
         width: 100% !important;
         border-radius: 6px !important;
+        
+        /* Layout Vertikal: Ikon di Atas, Teks di Bawah */
         display: flex !important;
+        flex-direction: column !important;
         align-items: center !important;
-        justify-content: flex-start !important;
-        padding-left: 12px !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        padding: 4px 0px !important;
+        white-space: pre-line !important; /* Agar \n membuat baris baru */
+        line-height: 1.2 !important;
         box-shadow: none !important;
     }
 
-    .clean-sidebar-box div.stButton > button:hover {
+    /* Hover Effect */
+    [data-testid="stSidebar"] div.stButton > button:hover {
         color: #00FF66 !important;
-        border-color: #00FF66 !important;
-        background-color: rgba(0, 255, 102, 0.08) !important;
+        background-color: rgba(0, 255, 102, 0.05) !important;
     }
 
-    /* State Aktif */
-    .btn-active-menu div.stButton > button {
-        color: #00FF66 !important;
-        background-color: rgba(0, 255, 102, 0.15) !important;
-        border: 1.5px solid #00FF66 !important;
-        box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
-    }
+    /* 3. Style Khusus untuk Tombol yang Sedang Aktif */
+    /* Targetkan tombol berdasarkan key yang aktif */
     </style>
     """
-    st.markdown(sidebar_css, unsafe_allow_html=True)
 
+    # Buat CSS Dinamis untuk Menandai Menu Aktif dengan Indikator Hijau
+    active_css = f"""
+    <style>
+    [data-testid="stSidebar"] div.stButton > button[key="nav_btn_{active_nav}"] {{
+        color: #00FF66 !important;
+        background-color: rgba(0, 255, 102, 0.1) !important;
+        border-left: 3px solid #00FF66 !important;
+        border-radius: 0px 6px 6px 0px !important;
+    }}
+    </style>
+    """
+
+    st.markdown(sidebar_css + active_css, unsafe_allow_html=True)
+
+    # Item Navigasi: format label menggunakan '\n' agar Ikon di Atas & Teks di Bawah
     nav_items = [
-        ("screener", "⚡ Screener"),
-        ("markets", "📈 Markets"),
-        ("stream", "📡 Stream"),
-        ("support", "🎧 Support"),
+        ("screener", "⚙️\nScreener"),
+        ("markets", "📈\nMarkets"),
+        ("stream", "📡\nStream"),
+        ("support", "🎧\nSupport"),
     ]
 
-    # Render menggunakan st.sidebar dengan pembungkus yang aman
+    # Render Komponen Langsung di Dalam Sidebar
     with st.sidebar:
-        st.markdown('<div class="clean-sidebar-box">', unsafe_allow_html=True)
-
         for key, label in nav_items:
-            active_class = "btn-active-menu" if active_nav == key else ""
-
-            st.markdown(f'<div class="{active_class}">', unsafe_allow_html=True)
             if st.button(
-                label, key=f"clean_btn_{key}", use_container_width=True
+                label,
+                key=f"nav_btn_{key}",
+                use_container_width=True,
             ):
-                st.session_state["active_nav"] = key
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
+                if st.session_state["active_nav"] != key:
+                    st.session_state["active_nav"] = key
+                    st.rerun()

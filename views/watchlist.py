@@ -21,8 +21,13 @@ def fetch_stock_quote(ticker_symbol):
     return None, None
 
 
+def clear_search_callback():
+    """Callback untuk mengosongkan input pencarian secara instant"""
+    st.session_state["input_search_ticker_field"] = ""
+
+
 def render_page_watchlist():
-    # CSS Custom: Sembunyikan Panah Popover, Rata Tengah Teks Button & Custom Green Checkbox
+    # CSS Custom: Panah Popover, Alignment, & Ukuran Tombol
     st.markdown(
         """
         <style>
@@ -38,28 +43,37 @@ def render_page_watchlist():
             margin-bottom: 0px !important;
         }
         
-        /* Paksa semua button & popover button rata tengah (align-center) */
-        div[data-testid="stButton"] > button,
+        /* Styling Button & Popover Header (Membuat Button Panjang & Rata Tengah) */
         div[data-testid="stPopover"] > button {
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
             width: 100% !important;
-            border: none !important;
-            background: transparent !important;
-            padding: 2px 4px !important;
+            background: #161B22 !important;
+            border: 1px solid #30363D !important;
+            padding: 4px 8px !important;
             color: #9ECBFF !important;
-            font-size: 16px !important;
+            font-size: 15px !important;
+            border-radius: 6px !important;
             box-shadow: none !important;
         }
         
-        div[data-testid="stButton"] > button:hover,
         div[data-testid="stPopover"] > button:hover {
             color: #00E676 !important;
+            border-color: #00E676 !important;
+            background: #21262D !important;
+        }
+
+        div[data-testid="stButton"] > button {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            border-radius: 6px !important;
         }
         
-        /* Layout Input Search & Button Clear */
+        /* Layout Input Search & Clear Button */
         div[data-testid="stTextInput"] {
             margin-top: 0px !important;
             margin-bottom: 0px !important;
@@ -74,7 +88,6 @@ def render_page_watchlist():
             padding-top: 8px !important;
         }
         
-        /* Custom Accent Color Hijau untuk Streamlit Checkbox */
         div[data-testid="stCheckbox"] input[type="checkbox"]:checked {
             background-color: #00E676 !important;
             border-color: #00E676 !important;
@@ -112,10 +125,10 @@ def render_page_watchlist():
         st.session_state["selected_cards"] = set()
     if "quick_add_count" not in st.session_state:
         st.session_state["quick_add_count"] = 1
-    if "search_query" not in st.session_state:
-        st.session_state["search_query"] = ""
     if "enable_batch_delete" not in st.session_state:
         st.session_state["enable_batch_delete"] = False
+    if "input_search_ticker_field" not in st.session_state:
+        st.session_state["input_search_ticker_field"] = ""
 
     # Fetch Real-time Data
     for item in st.session_state["watchlist_data"]:
@@ -130,14 +143,14 @@ def render_page_watchlist():
     # KIRI: DAFTAR SAHAM
     # ==========================================
     with col_left:
-        # Header Row: Badge "Watchlist" + (+) Add + (🗑️) Delete Dropdown + (🎛️) Filter
-        h_col1, h_col2, h_col3, h_col4 = st.columns([2.0, 0.4, 0.4, 0.4])
+        # Header Row: Badge "Watchlist" + 3 Button yang diperpanjang porsinya (0.7, 0.7, 0.7)
+        h_col1, h_col2, h_col3, h_col4 = st.columns([1.4, 0.7, 0.7, 0.7])
         
         with h_col1:
             st.markdown(
                 """
                 <span style="background: #064E3B; color: #00E676; border: 1px solid #10B981; 
-                             padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700;">
+                             padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-block; margin-top: 3px;">
                     Watchlist
                 </span>
                 """,
@@ -145,7 +158,7 @@ def render_page_watchlist():
             )
             
         with h_col2:
-            # Popover Icon Tambah (+) - Multi Dynamic Input + Auto Reset Form
+            # Popover Icon Tambah (+) - Multi Dynamic Input
             with st.popover("＋", help="Tambah Saham"):
                 st.markdown("<div style='text-align:center;'><b>Tambah Saham Quick</b></div>", unsafe_allow_html=True)
                 
@@ -174,7 +187,6 @@ def render_page_watchlist():
                                         "Target Price": 0
                                     })
                                     added_count += 1
-                            # Reset baris input
                             st.session_state["quick_add_count"] = 1
                             st.toast(f"{added_count} Saham berhasil ditambahkan!", icon="🚀")
                             st.rerun()
@@ -182,11 +194,10 @@ def render_page_watchlist():
                             st.warning("Masukkan kode saham!")
 
         with h_col3:
-            # Popover Menu Hapus (🗑️) dengan Checkbox Hijau Rata Tengah
+            # Popover Menu Hapus (🗑️)
             with st.popover("🗑️", help="Menu Hapus"):
                 st.markdown("<div style='text-align:center;'><b>Pengaturan Hapus</b></div>", unsafe_allow_html=True)
                 
-                # Checkbox Hijau untuk Mengaktifkan Batch Delete
                 st.session_state["enable_batch_delete"] = st.checkbox(
                     "Aktifkan Batch Delete", 
                     value=st.session_state["enable_batch_delete"],
@@ -220,37 +231,37 @@ def render_page_watchlist():
                     ["Default", "Gainers (% High)", "Losers (% Low)", "Price High", "Price Low"]
                 )
 
-        # Baris Pencarian Saham + Tombol Clear (X) Kondisional
-        if st.session_state["search_query"]:
+        # Baris Pencarian Saham & Clear Button (❌)
+        search_val = st.session_state["input_search_ticker_field"].strip().upper()
+
+        if search_val:
             c_search, c_clear = st.columns([3.3, 0.7])
         else:
             c_search = st.container()
             c_clear = None
 
         with c_search:
-            search_val = st.text_input(
+            st.text_input(
                 "Cari Kode", 
-                value=st.session_state["search_query"], 
                 placeholder="🔍 Cari kode saham...", 
                 label_visibility="collapsed",
                 key="input_search_ticker_field"
             )
-            if search_val != st.session_state["search_query"]:
-                st.session_state["search_query"] = search_val
-                st.rerun()
 
-        # Tombol Clear (❌) Hanya Muncul saat Teks Pencarian Terisi
         if c_clear is not None:
             with c_clear:
-                if st.button("❌", key="btn_clear_search_act", help="Bersihkan Pencarian", use_container_width=True):
-                    st.session_state["search_query"] = ""
-                    st.rerun()
+                st.button(
+                    "❌", 
+                    key="btn_clear_search_act", 
+                    help="Bersihkan Pencarian", 
+                    use_container_width=True,
+                    on_click=clear_search_callback
+                )
 
         # Filter List Saham
         display_list = list(st.session_state["watchlist_data"])
-        search_kw = st.session_state["search_query"].strip().upper()
-        if search_kw:
-            display_list = [x for x in display_list if search_kw in x["Ticker"]]
+        if search_val:
+            display_list = [x for x in display_list if search_val in x["Ticker"]]
 
         if st.session_state["sort_filter"] == "Gainers (% High)":
             display_list.sort(key=lambda x: x.get("Change Pct", 0), reverse=True)
@@ -286,7 +297,6 @@ def render_page_watchlist():
                     price_str = f"{int(last_price):,}" if last_price else "-"
                     pct_str = f"{arrow_icon}{chg_prefix}{pct_change:.2f}%" if last_price else "-"
 
-                    # Jika Checkbox Batch Delete Diaktifkan di Top Menu
                     if st.session_state["enable_batch_delete"]:
                         c_chk, c_card = st.columns([0.4, 3.6])
                         with c_chk:

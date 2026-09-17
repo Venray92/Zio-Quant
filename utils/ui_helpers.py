@@ -7,7 +7,7 @@ from engines.trade_planner import TradePlanner
 
 def inject_custom_css():
     """Injects Cyber-Futuristic Dark Trading UI & Custom CSS into Streamlit."""
-    custom_css = """
+    custom_css = "rsi.css""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 

@@ -250,7 +250,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
 
 
 def render_tab_trade_planner():
-    # 🎨 CUSTOM CSS STYLING
+    # 🎨 CUSTOM CSS STYLING (LOKAL KHUSUS CARD & HEADER)
     st.markdown(
         """
         <style>
@@ -273,7 +273,7 @@ def render_tab_trade_planner():
             }
         }
 
-        /* Banner Header Ringkas (Background Gelap, Lebar Tetap, Tinggi Ringkas, Rata Tengah) */
+        /* Banner Header Ringkas */
         .header-banner {
             border: 1px solid #00F3FF;
             box-shadow: 0 0 14px rgba(0, 243, 255, 0.4), inset 0 0 14px rgba(0, 243, 255, 0.15);
@@ -334,33 +334,6 @@ def render_tab_trade_planner():
             display: inline-block;
             box-shadow: 0 0 8px #00F3FF, 0 0 12px #00F3FF;
             flex-shrink: 0;
-        }
-
-        /* Custom Styling Tombol (Border & Primary Cyan Neon Glow, Mengganti Warna Merah Default) */
-        div.stButton > button {
-            border: 1px solid #00F3FF !important;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
-            border-radius: 6px !important;
-            transition: all 0.25s ease-in-out !important;
-        }
-
-        div.stButton > button[data-testid="stBaseButton-primary"] {
-            background: linear-gradient(135deg, #00b4d8 0%, #00f3ff 100%) !important;
-            color: #020617 !important;
-            font-weight: 700 !important;
-            border: 1px solid #00F3FF !important;
-            box-shadow: 0 0 12px rgba(0, 243, 255, 0.6) !important;
-        }
-
-        div.stButton > button[data-testid="stBaseButton-primary"]:hover {
-            background: linear-gradient(135deg, #00f3ff 0%, #10b981 100%) !important;
-            color: #000000 !important;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.9), 0 0 10px rgba(16, 185, 129, 0.8) !important;
-        }
-
-        div.stButton > button:hover {
-            border-color: #00F3FF !important;
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.8) !important;
         }
 
         /* Card Styling */
@@ -552,7 +525,6 @@ def render_tab_trade_planner():
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
         with col_info:
-            # 🔒 Teks disederhanakan tanpa menampilkan nama file & total ticker
             st.info("💡 **Click Run To Screen All Ticker**")
         with col_batch_btn:
             if st.button("Run Screener", type="primary", use_container_width=True):

@@ -9,7 +9,7 @@ def inject_custom_css():
     """Injects Cyber-Futuristic Dark Trading UI & Custom CSS into Streamlit."""
     custom_css = """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech-Mono&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
     /* Global App Styling */
     .stApp {
@@ -58,67 +58,25 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* =========================================================
-       Z-QUANT UNIFORM BUTTON STYLING (SEMUA TAB & HALAMAN)
-       ========================================================= */
-
-    /* Force SEMUA Tombol Utama & Sekunder di Seluruh Aplikasi */
-    div.stButton > button,
-    div[data-testid="stColumn"] .stButton > button,
-    button[kind="primary"],
-    button[kind="secondary"],
-    button[data-testid="baseButton-primary"],
-    button[data-testid="baseButton-secondary"] {
-        background-color: #161B22 !important;
-        color: #00F3FF !important;
-        border: 1.5px solid #00F3FF !important;
-        border-radius: 6px !important;
+    /* DUMMY BUTTONS STYLING - UKURAN KECIL, NEMPEL GARIS PEMBATAS, ALIGN KIRI */
+    div[data-testid="stColumn"] > div > div > button {
+        background-color: #242424 !important;
+        border: 1px solid #30363D !important;
+        border-radius: 4px !important;
+        color: #8A8B98 !important;
         font-family: 'Share Tech Mono', monospace !important;
-        font-size: 13px !important;
-        font-weight: 800 !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.25) !important;
-        transition: all 0.25s ease-in-out !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        height: 30px !important;
+        padding: 2px 8px !important;
+        margin-top: 15px !important;
+        margin-bottom: -10px !important;
+        transition: all 0.2s ease-in-out !important;
     }
-
-    /* Target Teks di Dalam Tombol agar Ikut Berwarna Neon Cyan */
-    div.stButton > button p,
-    div[data-testid="stColumn"] .stButton > button p,
-    button[data-testid="baseButton-primary"] p,
-    button[data-testid="baseButton-secondary"] p {
+    div[data-testid="stColumn"] > div > div > button:hover {
+        border-color: #00F3FF !important;
         color: #00F3FF !important;
-        font-weight: 800 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        text-shadow: 0 0 6px rgba(0, 243, 255, 0.6) !important;
-    }
-
-    /* HOVER STATE: Efek Glow dan Teks Berubah Hitam saat Kursor Di Atas Tombol */
-    div.stButton > button:hover,
-    div[data-testid="stColumn"] .stButton > button:hover,
-    button[kind="primary"]:hover,
-    button[kind="secondary"]:hover,
-    button[data-testid="baseButton-primary"]:hover,
-    button[data-testid="baseButton-secondary"]:hover {
-        background-color: #00F3FF !important;
-        color: #000000 !important;
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 20px #00F3FF !important;
-        transform: translateY(-1px) !important;
-    }
-
-    div.stButton > button:hover p,
-    div[data-testid="stColumn"] .stButton > button:hover p,
-    button[data-testid="baseButton-primary"]:hover p,
-    button[data-testid="baseButton-secondary"]:hover p {
-        color: #000000 !important;
-        text-shadow: none !important;
-    }
-
-    /* FOCUS / CLICKED STATE */
-    button:focus:not(:focus-visible),
-    button[kind="primary"]:focus,
-    button[kind="secondary"]:focus {
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 12px rgba(0, 243, 255, 0.6) !important;
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
     }
 
     /* MAIN POPOVER BUTTON CONTAINER */
@@ -137,7 +95,7 @@ def inject_custom_css():
         gap: 8px !important;
     }
 
-    /* PENGATURAN TEKS LABEL POPOVER */
+    /* PENGATURAN TEKS LABEL TOMBOL (DIPISAH DARI ICON) */
     div[data-testid="stPopover"] button p,
     div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
         color: #00F3FF !important;
@@ -150,7 +108,7 @@ def inject_custom_css():
         white-space: nowrap !important;
     }
 
-    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT */
+    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT (JANGAN UBAH FONT-FAMILY) */
     div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
     div[data-testid="stPopover"] button i,
     div[data-testid="stPopover"] button svg {
@@ -160,7 +118,7 @@ def inject_custom_css():
         margin: 0 !important;
     }
 
-    /* POPOVER HOVER STATE */
+    /* HOVER STATE */
     div[data-testid="stPopover"] > button:hover {
         background-color: #00F3FF !important;
         box-shadow: 0 0 20px #00F3FF !important;
@@ -178,7 +136,6 @@ def inject_custom_css():
         color: #000000 !important;
         fill: #000000 !important;
     }
-
     /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #242424 !important;
@@ -188,7 +145,7 @@ def inject_custom_css():
         padding: 12px !important;
     }
 
-    /* ITEM DROPDOWN MENU POPOVER */
+    /* ITEM DROPDOWN MENU */
     div[data-testid="stPopoverContent"] button {
         background-color: #1E1E1E !important;
         border: 1.5px solid #00F3FF !important;

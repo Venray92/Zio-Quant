@@ -2,8 +2,11 @@ import os
 import pandas as pd
 import streamlit as st
 
-# Import visualisasi helper dari ui_helpers
-from ui_helpers import render_portfolio_pie_chart, render_risk_gauge_chart
+# Mengimpor visualisasi helper dengan paket relatif/absolute yang benar
+from utils.ui_helpers import (
+    render_portfolio_pie_chart,
+    render_risk_gauge_chart,
+)
 
 try:
     from engines.trade_planner import TradePlanner
@@ -35,7 +38,6 @@ def render_money_management_page():
         unsafe_allow_html=True,
     )
 
-    # State Sync dari Trade Plan
     if "mm_buy_price" not in st.session_state:
         st.session_state["mm_buy_price"] = 1000.0
     if "mm_sl_price" not in st.session_state:
@@ -49,9 +51,6 @@ def render_money_management_page():
 
     col_input, col_output = st.columns([1, 1], gap="large")
 
-    # =========================================================================
-    # KOLOM KIRI: INPUT PARAMETER & PROFIL RISIKO
-    # =========================================================================
     with col_input:
         st.markdown("### 📥 Parameter Transaksi")
 
@@ -153,7 +152,6 @@ def render_money_management_page():
                 / 100.0
             )
 
-        # FITUR SINKRONISASI DARI TRADE PLANNER
         st.markdown("---")
         with st.expander("🔄 Import Parameter dari Trade Plan", expanded=False):
             st.caption(
@@ -233,30 +231,20 @@ def render_money_management_page():
                     else:
                         st.warning("Modul `TradePlanner` tidak tersedia.")
 
-    # =========================================================================
-    # KALKULASI MONEY MANAGEMENT LOGIC
-    # =========================================================================
-    # 1. Toleransi Risiko Nominal
+    # LOGIKA MONEY MANAGEMENT
     max_risk_amount = capital * (risk_pct / 100.0)
-
-    # 2. Maksimal Alokasi Kapital Nominal
     max_alloc_amount = capital * (max_alloc_pct / 100.0)
 
-    # 3. Jarak Stop Loss per Lembar & Persentase Kerugian per Lembar
     sl_distance = max(0.0, buy_price - sl_price)
     sl_pct = (sl_distance / buy_price) * 100.0 if buy_price > 0 else 0.0
 
-    # 4. Kalkulasi Lot Maksimal Berdasarkan Risk Limit vs Allocation Limit
     if sl_distance > 0:
-        # Lot ideal berdasarkan toleransi risiko nominal
         shares_by_risk = max_risk_amount / (sl_distance * (1 + fee_buy_pct))
         lot_by_risk = shares_by_risk // 100
 
-        # Lot ideal berdasarkan alokasi kapital maksimal
         shares_by_alloc = max_alloc_amount / (buy_price * (1 + fee_buy_pct))
         lot_by_alloc = shares_by_alloc // 100
 
-        # Mengambil lot terkecil agar aman dari kedua batas limit
         final_lot = int(max(0, min(lot_by_risk, lot_by_alloc)))
     else:
         final_lot = 0
@@ -266,7 +254,6 @@ def render_money_management_page():
     total_buy_fee = total_cost_raw * fee_buy_pct
     total_cost_with_fee = total_cost_raw + total_buy_fee
 
-    # 5. Potensi Risiko Riil (Rupiah & Persentase terhadap Modal)
     actual_loss_raw = total_shares * sl_distance
     actual_sell_fee_sl = (total_shares * sl_price) * fee_sell_pct
     actual_risk_amount = actual_loss_raw + total_buy_fee + actual_sell_fee_sl
@@ -274,7 +261,6 @@ def render_money_management_page():
         (actual_risk_amount / capital) * 100.0 if capital > 0 else 0.0
     )
 
-    # 6. Potensi Gain TP1 & TP2 (Bersih Fee)
     tp1_distance = max(0.0, tp1_price - buy_price)
     tp1_gain_raw = total_shares * tp1_distance
     tp1_sell_fee = (total_shares * tp1_price) * fee_sell_pct
@@ -285,17 +271,12 @@ def render_money_management_page():
     tp2_sell_fee = (total_shares * tp2_price) * fee_sell_pct
     tp2_net_gain = max(0.0, tp2_gain_raw - total_buy_fee - tp2_sell_fee)
 
-    # 7. Risk-to-Reward Ratio (R:R)
     rr_tp1 = (tp1_distance / sl_distance) if sl_distance > 0 else 0.0
     rr_tp2 = (tp2_distance / sl_distance) if sl_distance > 0 else 0.0
 
-    # =========================================================================
-    # KOLOM KANAN: OUTPUT PERHITUNGAN & VISUALISASI
-    # =========================================================================
     with col_output:
         st.markdown("### 📊 Rekomendasi Eksekusi & Ringkasan Risk")
 
-        # HTML Cards Ringkasan Eksekusi
         m1 = f"""
         <div style="background: linear-gradient(135deg, #0D1117 0%, #161B22 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 10px; padding: 16px; margin-bottom: 15px;">
             <div style="font-size: 12px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Rekomendasi Posisi Maksimal</div>
@@ -324,7 +305,6 @@ def render_money_management_page():
         st.markdown(m2, unsafe_allow_html=True)
         st.markdown(m3, unsafe_allow_html=True)
 
-        # DETAIL MATRIX PARAMETER (EXPANDER)
         with st.expander("📌 Rincian Potensi Profit & Rasio Risk/Reward", expanded=True):
             r1, r2 = st.columns(2)
             with r1:
@@ -344,7 +324,6 @@ def render_money_management_page():
                 f"Jarak ke Stop Loss: **-{sl_pct:.2f}%** | Jarak ke TP1: **+{((tp1_distance/buy_price)*100):.2f}%** | Jarak ke TP2: **+{((tp2_distance/buy_price)*100):.2f}%**"
             )
 
-        # GRAFIK VISUALISASI PLOTLY
         st.markdown("---")
         st.markdown("#### 📈 Visualisasi Profil Risk & Portofolio")
 

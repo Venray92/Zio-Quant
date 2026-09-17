@@ -117,8 +117,7 @@ def calculate_rr_ratios(row):
 
 def render_trade_plan_only(ticker_symbol, key_suffix):
     """Merender Trade Plan Recommendation tanpa Chart TradingView"""
-    st.markdown("---")
-
+    # Menampilkan Header Live Plan langsung sejajar dengan tombol kiri
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -133,7 +132,6 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # Periode di-default ke 3mo tanpa menampilkan selectbox
     period_selected = "3mo"
 
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
@@ -277,7 +275,6 @@ def render_page_watchlist():
             chg if chg is not None else item.get("Change Pct", 0.0)
         )
 
-    # JUDUL DENGAN UKURAN LEBIH KECIL DAN TANPA ICON
     st.markdown(
         "<h3 style='margin-bottom: 20px; font-weight: 700;"
         " color: #E6EDF3;'>WATCHLIST</h3>",
@@ -503,7 +500,6 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
-                        # RENDER KARTU SAHAM HTML (Border disamarkan menggunakan #21262D)
                         st.markdown(
                             f"""
                             <div style="
@@ -536,7 +532,6 @@ def render_page_watchlist():
                             unsafe_allow_html=True,
                         )
 
-                        # TOMBOL TRADE PLAN
                         is_active = (
                             st.session_state["selected_watchlist_ticker"]
                             == ticker_raw

@@ -59,7 +59,7 @@ def inject_custom_css():
     }
 
     /* TOP NAV DUMMY BUTTONS STYLING */
-    div[data-testid="stColumn"] button {
+    div[data-testid="stColumn"] > div > div > button {
         background-color: #242424 !important;
         border: 1px solid #30363D !important;
         border-radius: 6px !important;
@@ -67,53 +67,61 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace !important;
         font-size: 12px !important;
         font-weight: 700 !important;
-        height: 42px !important;
+        height: 38px !important;
+        margin-top: 10px !important;
         transition: all 0.2s ease-in-out !important;
     }
-    div[data-testid="stColumn"] button:hover {
+    div[data-testid="stColumn"] > div > div > button:hover {
         border-color: #00F3FF !important;
         color: #00F3FF !important;
         box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
     }
 
-    /* MAIN POPOVER BUTTON (CHOOSE SCREENER - RINGKAS DI KANAN) */
+    /* MAIN POPOVER BUTTON (CHOOSE SCREENER - FORCE CYAN TEXT) */
     div[data-testid="stPopover"] > button {
         background-color: #242424 !important;
-        border: 2px solid #00FF66 !important;
+        border: 2px solid #00F3FF !important;
         border-radius: 6px !important;
         padding: 4px 16px !important;
-        height: 42px !important;
-        min-width: 180px !important;
-        box-shadow: 0 0 12px #00FF66, inset 0 0 6px rgba(0, 255, 102, 0.3) !important;
+        height: 44px !important;
+        width: 100% !important;
+        box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
+    /* DUA SELECTOR INI UNTUK MEMASTIKAN TEKS CHOOSE SCREENER SELALU CYAN */
     div[data-testid="stPopover"] > button *,
-    div[data-testid="stPopover"] > button p {
-        color: #00FF66 !important;
+    div[data-testid="stPopover"] > button p,
+    div[data-testid="stPopover"] > button div,
+    div[data-testid="stPopover"] > button span {
+        color: #00F3FF !important;
         font-weight: 900 !important;
         font-family: 'Share Tech Mono', monospace !important;
-        text-shadow: 0 0 8px #00FF66 !important;
+        text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
         font-size: 12px !important;
         letter-spacing: 0.5px !important;
+        fill: #00F3FF !important;
     }
 
     div[data-testid="stPopover"] > button:hover {
-        background-color: #00FF66 !important;
-        box-shadow: 0 0 20px #00FF66 !important;
+        background-color: #00F3FF !important;
+        box-shadow: 0 0 20px #00F3FF !important;
     }
 
     div[data-testid="stPopover"] > button:hover *,
-    div[data-testid="stPopover"] > button:hover p {
+    div[data-testid="stPopover"] > button:hover p,
+    div[data-testid="stPopover"] > button:hover div,
+    div[data-testid="stPopover"] > button:hover span {
         color: #000000 !important;
         text-shadow: none !important;
+        fill: #000000 !important;
     }
 
     /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #242424 !important;
-        border: 2px solid #00FF66 !important;
-        box-shadow: 0 0 25px rgba(0, 255, 102, 0.5) !important;
+        border: 2px solid #00F3FF !important;
+        box-shadow: 0 0 25px rgba(0, 243, 255, 0.4) !important;
         border-radius: 8px !important;
         padding: 12px !important;
     }
@@ -121,26 +129,26 @@ def inject_custom_css():
     /* TOMBOL ITEM 1, 2, 3 DI DALAM DROPDOWN */
     div[data-testid="stPopoverContent"] button {
         background-color: #1E1E1E !important;
-        border: 1.5px solid #00FF66 !important;
+        border: 1.5px solid #00F3FF !important;
         border-radius: 6px !important;
         margin: 4px 0 !important;
-        box-shadow: 0 0 10px rgba(0, 255, 102, 0.4), inset 0 0 5px rgba(0, 255, 102, 0.2) !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
     div[data-testid="stPopoverContent"] button *,
     div[data-testid="stPopoverContent"] button p,
     div[data-testid="stPopoverContent"] button span {
-        color: #00FF66 !important;
+        color: #00F3FF !important;
         font-family: 'Share Tech Mono', monospace !important;
         font-weight: 800 !important;
-        text-shadow: 0 0 6px #00FF66 !important;
+        text-shadow: 0 0 6px #00F3FF !important;
     }
 
     div[data-testid="stPopoverContent"] button:hover {
-        background-color: #00FF66 !important;
-        border-color: #00FF66 !important;
-        box-shadow: 0 0 20px #00FF66 !important;
+        background-color: #00F3FF !important;
+        border-color: #00F3FF !important;
+        box-shadow: 0 0 20px #00F3FF !important;
     }
 
     div[data-testid="stPopoverContent"] button:hover *,
@@ -152,9 +160,9 @@ def inject_custom_css():
 
     /* State Aktif Preset Screener */
     div.btn-active button {
-        background-color: rgba(0, 255, 102, 0.25) !important;
-        border: 2px solid #00FF66 !important;
-        box-shadow: 0 0 18px #00FF66, inset 0 0 8px rgba(0, 255, 102, 0.6) !important;
+        background-color: rgba(0, 243, 255, 0.2) !important;
+        border: 2px solid #00F3FF !important;
+        box-shadow: 0 0 18px #00F3FF, inset 0 0 8px rgba(0, 243, 255, 0.5) !important;
     }
 
     /* Subheader & Section Headers */

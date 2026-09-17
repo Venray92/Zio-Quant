@@ -1,19 +1,15 @@
 import streamlit as st
 
-# Set konfigurasi halaman di paling atas
-st.set_page_config(
-    page_title="IDX Screener", layout="wide", initial_sidebar_state="expanded"
-)
-
 
 def render_sidebar_nav():
-    """Sidebar Navigasi Ringkas dengan Ikon + Teks Vertikal."""
+    """Sidebar Navigasi Vertikal Ringkas (Ikon + Teks) - Tanpa Error Multiline."""
 
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = "screener"
 
     active_nav = st.session_state["active_nav"]
 
+    # Definisi menu navigasi
     nav_items = [
         ("screener", "Screener", "⚙️"),
         ("markets", "Markets", "📈"),
@@ -21,27 +17,32 @@ def render_sidebar_nav():
         ("support", "Support", "🎧"),
     ]
 
-    # Style CSS sederhana & aman
+    # CSS untuk menyusun Ikon & Teks secara vertikal tanpa menggunakan \n
     sidebar_css = """
     <style>
-    /* Styling tombol di sidebar */
+    /* Paksa tombol menyusun konten di dalamnya secara vertikal */
     [data-testid="stSidebar"] button {
         background-color: #161B22 !important;
         border: 1px solid #30363D !important;
         color: #C9D1D9 !important;
         height: 60px !important;
         border-radius: 6px !important;
-        margin-bottom: 8px !important;
+        margin-bottom: 6px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
     [data-testid="stSidebar"] button p {
-        font-size: 12px !important;
+        font-size: 11px !important;
         font-weight: 600 !important;
-        line-height: 1.2 !important;
-        white-space: pre-line !important;
+        line-height: 1.3 !important;
         text-align: center !important;
+        margin: 0 !important;
     }
 
+    /* Styling saat hover */
     [data-testid="stSidebar"] button:hover {
         color: #00FF66 !important;
         border-color: #00FF66 !important;
@@ -53,19 +54,13 @@ def render_sidebar_nav():
 
     # Render di Sidebar
     with st.sidebar:
-        st.write("### NAVIGASI")
         for key, label, icon in nav_items:
             is_active = active_nav == key
-            button_text = f"► {icon}\n{label}" if is_active else f"{icon}\n{label}"
 
-            if st.button(button_text, key=f"nav_{key}", use_container_width=True):
-                st.session_state["active_nav"] = key
-                st.rerun()
+            # Gabungkan ikon dan label dengan spasi biasa (bukan \n)
+            button_label = f"{icon} {label}" if not is_active else f"► {icon} {label}"
 
-
-# --- WAJIB DIPANGGIL DI FILE UTAMA ---
-render_sidebar_nav()
-
-# Tampilan Konten Utama
-st.title(f"Halaman: {st.session_state['active_nav'].upper()}")
-st.write("Jika teks ini muncul dan sidebar di kiri ada, berarti fungsi berhasil.")
+            if st.button(button_label, key=f"nav_{key}", use_container_width=True):
+                if st.session_state["active_nav"] != key:
+                    st.session_state["active_nav"] = key
+                    st.rerun()

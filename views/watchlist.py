@@ -34,12 +34,12 @@ def load_watchlist_from_file():
     return [
         {
             "Ticker": "BBCA.JK",
-            "Notes": "Pantau area support 9800",
+            "Notes": "Manual Added",
             "Target Price": 10500,
         },
         {
             "Ticker": "TLKM.JK",
-            "Notes": "Tunggu konfirmasi breakout",
+            "Notes": "Manual Added",
             "Target Price": 3200,
         },
     ]
@@ -133,11 +133,11 @@ def calculate_rr_ratios(row):
 def render_trade_plan_only(ticker_symbol, key_suffix):
     st.markdown(
         f"""
-        <div class="live-plan-header">
-            <div class="live-plan-title">
+        <div class="live-plan-header" style="padding: 8px 12px; margin-bottom: 10px;">
+            <div class="live-plan-title" style="font-size: 14px;">
                 📊 LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
             </div>
-            <div style="font-size: 12px; color: #8B949E; font-weight: 600;">
+            <div style="font-size: 11px; color: #8B949E; font-weight: 600;">
                 SYSTEM STATUS: <span style="color: #00E676;">ONLINE</span>
             </div>
         </div>
@@ -163,7 +163,8 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
             if df_plan is not None and not df_plan.empty:
                 st.markdown(
-                    '<div class="section-title">🎯 TRADE PLAN'
+                    '<div class="section-title" style="font-size: 13px;'
+                    ' margin-bottom: 8px;">🎯 TRADE PLAN'
                     " RECOMMENDATION</div>",
                     unsafe_allow_html=True,
                 )
@@ -200,35 +201,35 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                     )
 
                     card_html = f"""
-                    <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
+                    <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 4px solid #00E676; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 8px; margin-bottom: 10px;">
                             <div>
-                                <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
-                                <span style="font-size: 13px; font-weight: 700; color: #E6EDF3; margin-left: 8px;">{grade}</span>
+                                <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 11px; padding: 2px 8px; border-radius: 4px;">#{plan_no} {plan_type}</span>
+                                <span style="font-size: 12px; font-weight: 700; color: #E6EDF3; margin-left: 6px;">{grade}</span>
                             </div>
-                            <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
+                            <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 2px 10px; border-radius: 12px; font-size: 11px;">
                                 SCORE: {score}
                             </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800;">Area Buy</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; text-align: center;">
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                                <div style="font-size: 9px; color: #38BDF8; font-weight: 800;">Area Buy</div>
+                                <div style="font-size: 13px; font-weight: 800; color: #38BDF8; margin-top: 2px;">{area_buy}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2);">
-                                <div style="font-size: 10px; color: #FF5252; font-weight: 800;">Stop Loss</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(255, 82, 82, 0.2);">
+                                <div style="font-size: 9px; color: #FF5252; font-weight: 800;">Stop Loss</div>
+                                <div style="font-size: 13px; font-weight: 800; color: #FF5252; margin-top: 2px;">{stop_loss}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 1</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                <div style="font-size: 9px; color: #00E676; font-weight: 800;">Target 1</div>
+                                <div style="font-size: 13px; font-weight: 800; color: #00E676; margin-top: 2px;">{tp1}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 2</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                <div style="font-size: 9px; color: #00E676; font-weight: 800;">Target 2</div>
+                                <div style="font-size: 13px; font-weight: 800; color: #00E676; margin-top: 2px;">{tp2}</div>
                             </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; background-color: #0E1117; padding: 10px 14px; border-radius: 8px; border: 1px solid #21262D;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; background-color: #0E1117; padding: 6px 10px; border-radius: 6px; border: 1px solid #21262D;">
                             <span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>
                             <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
                         </div>
@@ -240,7 +241,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                     with st.expander(
                         f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no}"
                         f" ({plan_type})",
-                        expanded=True,
+                        expanded=False,
                     ):
                         c1, c2 = st.columns(2)
                         with c1:
@@ -277,7 +278,7 @@ def render_page_watchlist():
                 st.session_state["watchlist_data"].append(
                     {
                         "Ticker": formatted,
-                        "Notes": "Dari Stoch-Trend Radar",
+                        "Notes": "Stoch-Trend Radar",
                         "Target Price": 0,
                     }
                 )
@@ -311,12 +312,12 @@ def render_page_watchlist():
             item["Change Pct"] = chg
 
     st.markdown(
-        "<h3 style='margin-bottom: 20px; font-weight: 700;"
-        " color: #E6EDF3;'>WATCHLIST</h3>",
+        "<h4 style='margin-bottom: 12px; font-weight: 700;"
+        " color: #E6EDF3;'>WATCHLIST</h4>",
         unsafe_allow_html=True,
     )
 
-    col_left, col_right = st.columns([1.2, 1.8], gap="large")
+    col_left, col_right = st.columns([1.2, 1.8], gap="medium")
 
     # ==========================================
     # KIRI: DAFTAR KARTU SAHAM
@@ -497,7 +498,7 @@ def render_page_watchlist():
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0) or 0)
 
-        with st.container(height=550):
+        with st.container(height=580):
             if display_list:
                 if not st.session_state["selected_watchlist_ticker"]:
                     st.session_state["selected_watchlist_ticker"] = display_list[0]["Ticker"]
@@ -505,64 +506,62 @@ def render_page_watchlist():
                 for idx, item in enumerate(display_list):
                     ticker_raw = item["Ticker"]
                     clean_ticker = ticker_raw.replace(".JK", "").upper()
-                    notes_tag = item.get("Notes", "")
+                    notes_tag = item.get("Notes", "Manual Added")
                     last_price = item.get("Last Price", None)
                     pct_change = item.get("Change Pct", None)
 
-                    if pct_change is not None and pct_change > 0:
-                        prefix = "+"
-                    else:
-                        prefix = ""
-
-                    price_str = (
-                        f"Rp {int(last_price):,}"
-                        if last_price is not None
-                        else "-"
-                    )
-                    pct_str = (
-                        f"{prefix}{pct_change:.2f}%"
-                        if pct_change is not None
-                        else "-"
-                    )
+                    prefix = "+" if (pct_change is not None and pct_change > 0) else ""
+                    price_str = f"Rp {int(last_price):,}" if last_price is not None else "-"
+                    pct_str = f"{prefix}{pct_change:.2f}%" if pct_change is not None else "-"
 
                     if enable_batch_delete:
-                        c_chk, c_card = st.columns([0.4, 3.6])
+                        c_chk, c_card = st.columns([0.3, 3.7])
                         with c_chk:
                             is_checked = st.checkbox(
                                 "",
                                 key=f"card_chk_{clean_ticker}_{idx}_v{del_ver}",
-                                value=ticker_raw
-                                in st.session_state["selected_cards"],
+                                value=ticker_raw in st.session_state["selected_cards"],
                             )
                             if is_checked:
-                                st.session_state["selected_cards"].add(
-                                    ticker_raw
-                                )
+                                st.session_state["selected_cards"].add(ticker_raw)
                             else:
-                                st.session_state["selected_cards"].discard(
-                                    ticker_raw
-                                )
+                                st.session_state["selected_cards"].discard(ticker_raw)
                     else:
                         c_card = st.container()
 
-                    # MURNI LAYOUT STREAMLIT TANPA HTML MANUAL SENSITIF
                     with c_card:
                         with st.container(border=True):
-                            col_info, col_price = st.columns([1.5, 1])
+                            # Baris Atas: Ticker & Harga (Ringkas)
+                            col_info, col_price = st.columns([1.3, 1])
 
                             with col_info:
-                                st.subheader(clean_ticker)
-                                if "Stoch-Trend Radar" in notes_tag:
-                                    st.caption("🔹 Stoch-Trend Radar")
+                                st.markdown(
+                                    f"<div style='font-size: 15px; font-weight: 800; color: #E6EDF3;'>{clean_ticker}</div>",
+                                    unsafe_allow_html=True,
+                                )
+                                # Label Sumber Tambah
+                                st.caption(f"🔹 {notes_tag}")
 
                             with col_price:
-                                st.write(f"**{price_str}**")
+                                st.markdown(
+                                    f"<div style='text-align: right; font-size: 13px; font-weight: 700;'>{price_str}</div>",
+                                    unsafe_allow_html=True,
+                                )
                                 if pct_change is not None and pct_change > 0:
-                                    st.caption(f":green[{pct_str}]")
+                                    st.markdown(
+                                        f"<div style='text-align: right; font-size: 11px; color: #00C853; font-weight: 700;'>{pct_str}</div>",
+                                        unsafe_allow_html=True,
+                                    )
                                 elif pct_change is not None and pct_change < 0:
-                                    st.caption(f":red[{pct_str}]")
+                                    st.markdown(
+                                        f"<div style='text-align: right; font-size: 11px; color: #D50000; font-weight: 700;'>{pct_str}</div>",
+                                        unsafe_allow_html=True,
+                                    )
                                 else:
-                                    st.caption(pct_str)
+                                    st.markdown(
+                                        f"<div style='text-align: right; font-size: 11px; color: #757575; font-weight: 700;'>{pct_str}</div>",
+                                        unsafe_allow_html=True,
+                                    )
 
                             is_active = (
                                 st.session_state["selected_watchlist_ticker"]

@@ -296,13 +296,12 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             key=f"period_{key_suffix}",
         )
 
-    # 3. TRADINGVIEW WIDGET (DENGAN LOCAL STORAGE STORAGE & FIXED CONTAINER)
+    # 3. TRADINGVIEW WIDGET ADVANCED (AUTOSAVE & DRAWING TOOLBAR)
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
     )
     tv_symbol = f"IDX:{clean_ticker}"
 
-    # Menggunakan TradingView Widget Advanced dengan autosave layout & localstorage
     tv_html = f"""
     <div class="tradingview-widget-container" style="height:550px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-top: 10px; margin-bottom: 24px;">
       <div id="tv_chart_container_{clean_ticker}" style="height:100%; width:100%;"></div>
@@ -319,7 +318,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             "locale": "en",
             "toolbar_bg": "#1A1A1A",
             "enable_publishing": false,
-            "hide_side_toolbar": false,     // Tampilkan toolbar garis di kiri
+            "hide_side_toolbar": false,
             "allow_symbol_change": true,
             "save_image": true,
             "container_id": "tv_chart_container_{clean_ticker}",
@@ -330,8 +329,8 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
       </script>
     </div>
     """
-    # Key unik per ticker agar Streamlit tidak memusnahkan DOM iframe saat ganti saham
-    components.html(tv_html, height=560, key=f"tv_widget_{clean_ticker}")
+    # Dipanggil tanpa argumen 'key' karena st.components.v1.html tidak mendukungnya
+    components.html(tv_html, height=560)
 
     # 4. TRADE PLAN RECOMMENDATION
     with st.spinner(
@@ -405,7 +404,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                         "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
                     )
 
-                    # MAIN CARD FUTURISTIK DENGAN NEON BORDER & GRADIENT
                     card_html = f"""
                     <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">

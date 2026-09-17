@@ -2,16 +2,29 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Sidebar Navigasi Bersih dengan 4 Tombol Normal."""
+    """Sidebar Navigasi Bersih dengan 4 Tombol Normal Tanpa Kotak Hitam di Atas."""
 
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = "screener"
 
     active_nav = st.session_state["active_nav"]
 
-    # CSS sederhana untuk kontainer dasar dan tombol normal
     sidebar_css = """
     <style>
+    /* HILANGKAN KOTAK HITAM / TOMBOL BAWAAN DI BAGIAN ATAS SIDEBAR */
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-header"],
+    section[data-testid="stSidebar"] button[kind="header"],
+    [data-testid="collapsedControl"],
+    header[data-testid="stHeader"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Rapikan padding atas sidebar agar tombol langsung mepet ke atas */
+    section[data-testid="stSidebar"] > div:first-child {
+        padding-top: 1rem !important;
+    }
+
     .clean-sidebar-box {
         background-color: #0D0E12;
         border-right: 2px solid #00FF66;
@@ -24,7 +37,7 @@ def render_sidebar_nav():
 
     .clean-sidebar-box div.stButton > button {
         background-color: #161B22 !important;
-        border: 1px solid #30363D !important;
+        border: 1.5px solid #30363D !important;
         color: #C9D1D9 !important;
         font-family: 'Share Tech Mono', monospace !important;
         font-size: 13px !important;
@@ -48,7 +61,6 @@ def render_sidebar_nav():
     """
     st.markdown(sidebar_css, unsafe_allow_html=True)
 
-    # Daftar 4 menu utama
     nav_items = [
         ("screener", "⚡ Screener"),
         ("markets", "📈 Markets"),
@@ -56,12 +68,15 @@ def render_sidebar_nav():
         ("support", "🎧 Support"),
     ]
 
-    # Render Kontainer & Tombol
-    st.markdown('<div class="clean-sidebar-box">', unsafe_allow_html=True)
+    # Jika lo menggunakan st.sidebar, bungkus kodenya di sini:
+    with st.sidebar:
+        st.markdown('<div class="clean-sidebar-box">', unsafe_allow_html=True)
 
-    for key, label in nav_items:
-        if st.button(label, key=f"clean_btn_{key}", use_container_width=True):
-            st.session_state["active_nav"] = key
-            st.rerun()
+        for key, label in nav_items:
+            if st.button(
+                label, key=f"clean_btn_{key}", use_container_width=True
+            ):
+                st.session_state["active_nav"] = key
+                st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)

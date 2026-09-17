@@ -129,11 +129,21 @@ def render_page_money_management():
 
         # Section 2: Trade Plan Parameters (Auto-Sync & Format Ticker)
         with st.expander("📊 Parameter Transaksi Saham", expanded=True):
+            # Inisialisasi default nilai di session_state jika belum ada
+            if "input_entry_price" not in st.session_state:
+                st.session_state["input_entry_price"] = 10000.0
+            if "input_sl_price" not in st.session_state:
+                st.session_state["input_sl_price"] = 9600.0
+            if "input_tp1_price" not in st.session_state:
+                st.session_state["input_tp1_price"] = 10800.0
+            if "input_tp2_price" not in st.session_state:
+                st.session_state["input_tp2_price"] = 11600.0
+
             # Input ticker tanpa .JK
             raw_ticker_default = (
                 st.session_state.get("mm_ticker", "BBCA")
+                .upper()
                 .replace(".JK", "")
-                .replace(".jk", "")
             )
             ticker_input = st.text_input(
                 "Ticker Saham (Tanpa .JK)",
@@ -141,12 +151,7 @@ def render_page_money_management():
                 key="mm_raw_ticker_input",
             ).strip()
 
-            clean_ticker_code = (
-                ticker_input.upper()
-                .replace(".JK", "")
-                .replace(".JK", "")
-                .strip()
-            )
+            clean_ticker_code = ticker_input.upper().replace(".JK", "").strip()
             full_ticker = (
                 f"{clean_ticker_code}.JK" if clean_ticker_code else "BBCA.JK"
             )
@@ -162,8 +167,8 @@ def render_page_money_management():
             # Fungsi pembantu untuk fetch dari TradePlanner
             def fetch_trade_plan_values():
                 if not TradePlanner:
-                    st.error("Modul `trade_planner.py` tidak ditemukan.")
-                    return
+                    st.error("Modul `TradePlanner` tidak dapat dimuat.")
+                    return False
                 try:
                     with st.spinner(
                         f"Mengambil data Trade Plan {full_ticker}..."
@@ -179,49 +184,40 @@ def render_page_money_management():
 
                         row = matched.iloc[0]
 
-                        # Injeksi ke session state
-                        st.session_state["mm_entry"] = float(
+                        # Update KEY widget secara langsung di session_state
+                        st.session_state["input_entry_price"] = float(
                             row["Range Buy Min"]
                         )
-                        st.session_state["mm_sl"] = float(row["Stop Loss"])
-                        st.session_state["mm_tp1"] = float(row["TP 1"])
-                        st.session_state["mm_tp2"] = float(row["TP 2"])
+                        st.session_state["input_sl_price"] = float(
+                            row["Stop Loss"]
+                        )
+                        st.session_state["input_tp1_price"] = float(row["TP 1"])
+                        st.session_state["input_tp2_price"] = float(row["TP 2"])
+
                         st.session_state["last_synced_ticker"] = (
                             clean_ticker_code
                         )
                         st.session_state["last_synced_type"] = plan_type
+                        return True
                 except Exception as e:
                     st.error(
                         f"Gagal mengambil Trade Plan {clean_ticker_code}: {e}"
                     )
+                    return False
 
-            # Sync otomatis saat ticker / tipe setup berubah
-            need_auto_sync = (
-                st.session_state.get("last_synced_ticker") != clean_ticker_code
-                or st.session_state.get("last_synced_type") != plan_type
-                or "mm_entry" not in st.session_state
-            )
-
+            # Tombol Sync Trade Plan
             c_btn1, c_btn2 = st.columns([1.5, 1])
             with c_btn1:
-                if st.button(
-                    "🔄 Sync Trade Plan", use_container_width=True
-                ) or (need_auto_sync and clean_ticker_code):
-                    fetch_trade_plan_values()
+                if st.button("🔄 Sync Trade Plan", use_container_width=True):
+                    if fetch_trade_plan_values():
+                        st.rerun()
 
-            # Nilai fallback jika session_state belum ada
-            val_entry = float(st.session_state.get("mm_entry", 10000.0))
-            val_sl = float(st.session_state.get("mm_sl", 9600.0))
-            val_tp1 = float(st.session_state.get("mm_tp1", 10800.0))
-            val_tp2 = float(st.session_state.get("mm_tp2", 11600.0))
-
-            # Render Form Inputs
+            # Render Form Inputs (Membaca langsung dari session_state via key)
             c_entry, c_sl = st.columns(2)
             with c_entry:
                 entry_price = st.number_input(
                     "Harga Beli (Entry)",
                     min_value=1.0,
-                    value=val_entry,
                     step=5.0,
                     key="input_entry_price",
                 )
@@ -229,7 +225,6 @@ def render_page_money_management():
                 sl_price = st.number_input(
                     "Harga Cut Loss (SL)",
                     min_value=1.0,
-                    value=val_sl,
                     step=5.0,
                     key="input_sl_price",
                 )
@@ -239,7 +234,6 @@ def render_page_money_management():
                 tp1_price = st.number_input(
                     "Target Price 1 (TP1)",
                     min_value=1.0,
-                    value=val_tp1,
                     step=5.0,
                     key="input_tp1_price",
                 )
@@ -247,7 +241,6 @@ def render_page_money_management():
                 tp2_price = st.number_input(
                     "Target Price 2 (TP2)",
                     min_value=1.0,
-                    value=val_tp2,
                     step=5.0,
                     key="input_tp2_price",
                 )

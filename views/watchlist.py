@@ -376,12 +376,18 @@ def render_page_watchlist():
                                         else f"{ticker}.JK"
                                     )
                                     if formatted not in existing_tickers:
+                                        # Langsung ambil harga awal saat ditambahkan
+                                        init_lp, init_chg = fetch_stock_quote(
+                                            formatted
+                                        )
                                         st.session_state[
                                             "watchlist_data"
                                         ].append({
                                             "Ticker": formatted,
                                             "Notes": "Quick Added",
                                             "Target Price": 0,
+                                            "Last Price": init_lp or 0.0,
+                                            "Change Pct": init_chg or 0.0,
                                         })
                                         added_count += 1
 
@@ -519,16 +525,15 @@ def render_page_watchlist():
                         color_code = "#757575"
                         prefix = ""
 
-                    price_str = (
-                        f"Rp {int(last_price):,}"
-                        if last_price is not None
-                        else "-"
-                    )
-                    pct_str = (
-                        f"{prefix}{pct_change:.2f}%"
-                        if pct_change is not None
-                        else "-"
-                    )
+                    if last_price and last_price > 0:
+                        price_str = f"Rp {int(last_price):,}"
+                    else:
+                        price_str = "-"
+
+                    if pct_change is not None and last_price:
+                        pct_str = f"{prefix}{pct_change:.2f}%"
+                    else:
+                        pct_str = "-"
 
                     source_badge = ""
                     if "Stoch-Trend Radar" in notes_tag:
@@ -561,36 +566,32 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
-                        card_html = f"""
-                        <div style="
-                            border: 1px solid #21262D; 
-                            border-left: 4px solid {color_code}; 
-                            border-radius: 8px 8px 0px 0px; 
-                            padding: 10px 14px; 
-                            display: flex; 
-                            justify-content: space-between; 
-                            align-items: center;
-                            background-color: #161B22;">
-                            <div>
-                                <span style="font-weight: bold; font-size: 16px; color: #E6EDF3;">{clean_ticker}</span>
-                                <span style="font-size: 10px; color: #8B949E; margin-left: 3px;">IDX</span>
-                                {source_badge}
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-weight: bold; font-size: 14px; color: #E6EDF3;">{price_str}</div>
-                                <div style="
-                                    font-size: 11px; 
-                                    font-weight: bold; 
-                                    color: {color_code}; 
-                                    padding: 2px 6px; 
-                                    border-radius: 4px; 
-                                    display: inline-block;">
-                                    {pct_str}
+                        card_style = (
+                            "border: 1px solid #21262D; border-left: 4px solid"
+                            f" {color_code}; border-radius: 8px; padding: 10px"
+                            " 14px; margin-bottom: 6px; background-color:"
+                            " #161B22;"
+                        )
+
+                        # Render Kartu Tampilan dengan HTML Terisolasi
+                        st.markdown(
+                            f"""
+                            <div style="{card_style}">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-weight: bold; font-size: 16px; color: #E6EDF3;">{clean_ticker}</span>
+                                        <span style="font-size: 10px; color: #8B949E; margin-left: 3px;">IDX</span>
+                                        {source_badge}
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-weight: bold; font-size: 14px; color: #E6EDF3;">{price_str}</div>
+                                        <div style="font-size: 11px; font-weight: bold; color: {color_code}; border-radius: 4px;">{pct_str}</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        """
-                        st.markdown(card_html, unsafe_allow_html=True)
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
                         is_active = (
                             st.session_state["selected_watchlist_ticker"]

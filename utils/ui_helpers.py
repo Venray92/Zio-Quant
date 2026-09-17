@@ -27,7 +27,7 @@ def inject_custom_css():
         padding-bottom: 2rem !important;
     }
 
-    /* Header Bar & Popover Styling */
+    /* Header Bar Styling */
     .brand-link {
         display: inline-flex;
         align-items: center;
@@ -58,13 +58,16 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* MAIN POPOVER BUTTON */
+    /* MAIN POPOVER BUTTON (Disesuaikan untuk Top Nav) */
     div[data-testid="stPopover"] > button {
         background-color: #242424 !important;
         border: 2px solid #00FF66 !important;
         border-radius: 8px !important;
         padding: 6px 16px !important;
         height: 48px !important;
+        width: 100% !important;
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
         box-shadow: 0 0 15px #00FF66, inset 0 0 8px rgba(0, 255, 102, 0.4) !important;
         transition: all 0.2s ease-in-out !important;
     }

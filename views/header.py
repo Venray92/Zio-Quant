@@ -19,23 +19,24 @@ def render_header():
     col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
     with col_brand:
-        if logo_b64:
-            logo_html = f'<img src="data:image/jpeg;base64,{logo_b64}" class="brand-logo-img" style="vertical-align: middle; margin-right: 8px;" />'
-        else:
-            logo_html = '<span style="font-size: 24px; vertical-align: middle; margin-right: 8px;">⚡</span>'
+        # Gunakan sub-columns internal untuk menyejajarkan Logo + Tombol Teks
+        col_img, col_txt = st.columns([0.15, 0.85], vertical_alignment="center")
 
-        # Label kombinasi Logo + Teks Brand
-        button_label = f"{logo_html}<span class='brand-title-text' style='vertical-align: middle;'>Z-QUANT</span>"
+        with col_img:
+            if logo_b64:
+                st.image("logo.jpg", width=40)
+            else:
+                st.markdown("<span style='font-size: 24px;'>⚡</span>", unsafe_allow_html=True)
 
-        # Tombol Home Native Streamlit (Aman dari bug click & mereset state screener ke Home)
-        if st.button(
-            button_label,
-            key="btn_home_brand",
-            type="tertiary",
-            use_container_width=False,
-        ):
-            st.session_state["selected_screener"] = None
-            st.rerun()
+        with col_txt:
+            # Tombol Teks Brand yang responsif mereset ke Welcome Screen
+            if st.button(
+                "Z-QUANT",
+                key="btn_home_brand",
+                type="tertiary",
+            ):
+                st.session_state["selected_screener"] = None
+                st.rerun()
 
     with col_popover:
         with st.popover("CHOOSE SCREENER", use_container_width=True):

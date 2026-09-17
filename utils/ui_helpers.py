@@ -58,6 +58,10 @@ def calculate_rr_ratios(row):
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     st.markdown("---")
 
+    # Inisialisasi session state watchlist jika belum ada
+    if "watchlist" not in st.session_state:
+        st.session_state["watchlist"] = []
+
     # 1. HEADER FUTURISTIK
     st.markdown(
         f"""
@@ -73,8 +77,9 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE
-    col_select, _ = st.columns([1, 2])
+    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
+    col_select, col_btn, _ = st.columns([1.5, 1.2, 1.3])
+    
     with col_select:
         period_selected = st.selectbox(
             "⏱️ Periode Data Analysis",
@@ -82,6 +87,21 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             index=0,
             key=f"period_{key_suffix}",
         )
+
+    with col_btn:
+        # Memberikan spacer vertical agar tombol sejajar dengan dropdown
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        
+        clean_ticker_code = ticker_symbol.upper().strip()
+        is_in_watchlist = clean_ticker_code in st.session_state["watchlist"]
+
+        if is_in_watchlist:
+            st.button("✅ In Watchlist", key=f"btn_add_wl_{key_suffix}", disabled=True, use_container_width=True)
+        else:
+            if st.button("➕ Add to Watchlist", key=f"btn_add_wl_{key_suffix}", use_container_width=True):
+                st.session_state["watchlist"].append(clean_ticker_code)
+                st.toast(f"🚀 **{clean_ticker_code}** berhasil ditambahkan ke Watchlist!", icon="📌")
+                st.rerun()
 
     # 3. TRADINGVIEW WIDGET
     clean_ticker = ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()

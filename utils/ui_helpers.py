@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from trade_planner import TradePlanner
 
 
@@ -241,10 +242,18 @@ def _clean_num(val):
 
 
 def calculate_rr_ratios(row):
-    buy_val = _clean_num(row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))))
+    buy_val = _clean_num(
+        row.get(
+            "Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))
+        )
+    )
     sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
-    tp1_val = _clean_num(row.get("TP 1", row.get("TP1", row.get("Target 1", None))))
-    tp2_val = _clean_num(row.get("TP 2", row.get("TP2", row.get("Target 2", None))))
+    tp1_val = _clean_num(
+        row.get("TP 1", row.get("TP1", row.get("Target 1", None)))
+    )
+    tp2_val = _clean_num(
+        row.get("TP 2", row.get("TP2", row.get("Target 2", None)))
+    )
 
     rr_tp1_str = "-"
     rr_tp2_str = "-"
@@ -261,10 +270,10 @@ def calculate_rr_ratios(row):
 
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     st.markdown("---")
-    
+
     # 1. HEADER FUTURISTIK (TITLE + PERIODE DATA)
     st.markdown(
-        f'''
+        f"""
         <div class="live-plan-header">
             <div class="live-plan-title">
                 📊 LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
@@ -273,9 +282,44 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                 SYSTEM STATUS: <span style="color: #00E676;">ONLINE</span>
             </div>
         </div>
-        ''',
-        unsafe_allow_html=True
+        """,
+        unsafe_allow_html=True,
     )
+
+    # -------------------------------------------------------------
+    # 2. INTEGRASI TRADINGVIEW ADVANCED CHART (DENGAN DRAWING TOOLS)
+    # -------------------------------------------------------------
+    # Format ticker IHSG ke prefix TradingView ("IDX:AYAM")
+    clean_ticker = (
+        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
+    )
+    tv_symbol = f"IDX:{clean_ticker}"
+
+    tv_html = f"""
+    <div class="tradingview-widget-container" style="height:520px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-bottom: 20px;">
+      <div id="tradingview_chart_{key_suffix}" style="height:100%; width:100%;"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+      new TradingView.widget({{
+        "autosize": true,
+        "symbol": "{tv_symbol}",
+        "interval": "D",
+        "timezone": "Asia/Jakarta",
+        "theme": "dark",
+        "style": "1",
+        "locale": "en",
+        "toolbar_bg": "#1A1A1A",
+        "enable_publishing": false,
+        "hide_side_toolbar": false,   // AKTIFKAN PANEL TOOLS TARIK GARIS DI KIRI
+        "allow_symbol_change": true,
+        "save_image": true,
+        "container_id": "tradingview_chart_{key_suffix}"
+      }});
+      </script>
+    </div>
+    """
+    components.html(tv_html, height=530)
+    # -------------------------------------------------------------
 
     col_select, col_space = st.columns([1, 2])
     with col_select:
@@ -286,40 +330,79 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             key=f"period_{key_suffix}",
         )
 
-    with st.spinner(f"⚡ Menganalisis & Meng kalkulasi Trade Plan {ticker_symbol}..."):
+    with st.spinner(
+        f"⚡ Menganalisis & Meng kalkulasi Trade Plan {ticker_symbol}..."
+    ):
         try:
-            planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
+            planner = TradePlanner(
+                ticker=ticker_symbol.upper(), period=period_selected
+            )
             if hasattr(planner, "fetch_and_prepare_data"):
                 planner.fetch_and_prepare_data()
 
-            df_plan = planner.generate_trade_plan() if hasattr(planner, "generate_trade_plan") else None
+            df_plan = (
+                planner.generate_trade_plan()
+                if hasattr(planner, "generate_trade_plan")
+                else None
+            )
 
-            if df_plan is not None and not (hasattr(df_plan, "empty") and df_plan.empty):
-                st.markdown('<div class="section-title">🎯 Trade Plan Recommendation</div>', unsafe_allow_html=True)
+            if df_plan is not None and not (
+                hasattr(df_plan, "empty") and df_plan.empty
+            ):
+                st.markdown(
+                    '<div class="section-title">🎯 Trade Plan Recommendation</div>',
+                    unsafe_allow_html=True,
+                )
 
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
-                    plan_type = row.get("Type", row.get("Strategy", f"Plan #{plan_no}"))
+                    plan_type = row.get(
+                        "Type", row.get("Strategy", f"Plan #{plan_no}")
+                    )
                     score = row.get("Score", 0)
                     grade = row.get("Grade", "N/A")
                     posisi = row.get("Posisi Harga", row.get("Status", "-"))
 
                     # Handling Area Buy Range
-                    range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
-                    range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
+                    range_min = _format_val(
+                        row.get("Range Buy Min", row.get("Buy Min", "-"))
+                    )
+                    range_max = _format_val(
+                        row.get("Range Buy Max", row.get("Buy Max", "-"))
+                    )
                     area_buy = row.get("Area Buy", None)
                     if not area_buy or area_buy == "-":
-                        area_buy = f"{range_min} - {range_max}" if range_min != "-" and range_max != "-" else (range_min if range_min != "-" else range_max)
+                        area_buy = (
+                            f"{range_min} - {range_max}"
+                            if range_min != "-" and range_max != "-"
+                            else (range_min if range_min != "-" else range_max)
+                        )
 
-                    stop_loss = _format_val(row.get("Stop Loss", row.get("SL", "-")))
-                    tp1 = _format_val(row.get("TP 1", row.get("TP1", row.get("Target 1", "-"))))
-                    tp2 = _format_val(row.get("TP 2", row.get("TP2", row.get("Target 2", "-"))))
+                    stop_loss = _format_val(
+                        row.get("Stop Loss", row.get("SL", "-"))
+                    )
+                    tp1 = _format_val(
+                        row.get(
+                            "TP 1", row.get("TP1", row.get("Target 1", "-"))
+                        )
+                    )
+                    tp2 = _format_val(
+                        row.get(
+                            "TP 2", row.get("TP2", row.get("Target 2", "-"))
+                        )
+                    )
 
-                    grade_badge = "🟢" if "A" in str(grade) else ("🟡" if "B" in str(grade) else "⚪")
-                    posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
+                    grade_badge = (
+                        "🟢"
+                        if "A" in str(grade)
+                        else ("🟡" if "B" in str(grade) else "⚪")
+                    )
+                    posisi_color = (
+                        "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
+                    )
 
                     # MAIN CARD FUTURISTIK DENGAN NEON BORDER & GRADIENT
-                    card_html = f'''
+                    card_html = f"""
                     <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
@@ -353,40 +436,78 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
                         </div>
                     </div>
-                    '''
+                    """
                     st.markdown(card_html, unsafe_allow_html=True)
 
                     # KALKULASI R:R
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
                     # DETAIL EXPANDER
-                    with st.expander(f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})", expanded=True):
+                    with st.expander(
+                        f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
+                        expanded=True,
+                    ):
                         # Row 1: Dua Kotak R:R Sesuai Permintaan
                         c1, c2 = st.columns(2)
                         with c1:
-                            st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
+                            st.metric(
+                                label="R:R ( Target 1 )", value=rr_tp1_val
+                            )
                         with c2:
-                            st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
+                            st.metric(
+                                label="R:R ( Target 2 )", value=rr_tp2_val
+                            )
 
                         # Row 2+: Sisa Parameter Mentah
                         skip_cols = [
-                            "No", "no", "index", "RR_Val", "rr_val", "Rasio (R:R)", "R:R", "RR",
-                            "Type", "Strategy", "Score", "Grade", "Posisi Harga", "Status",
-                            "Range Buy Min", "Buy Min", "Range Buy Max", "Buy Max", "Area Buy",
-                            "Stop Loss", "SL", "TP 1", "TP1", "Target 1", "TP 2", "TP2", "Target 2",
-                            "Warning", "Status Candle"
+                            "No",
+                            "no",
+                            "index",
+                            "RR_Val",
+                            "rr_val",
+                            "Rasio (R:R)",
+                            "R:R",
+                            "RR",
+                            "Type",
+                            "Strategy",
+                            "Score",
+                            "Grade",
+                            "Posisi Harga",
+                            "Status",
+                            "Range Buy Min",
+                            "Buy Min",
+                            "Range Buy Max",
+                            "Buy Max",
+                            "Area Buy",
+                            "Stop Loss",
+                            "SL",
+                            "TP 1",
+                            "TP1",
+                            "Target 1",
+                            "TP 2",
+                            "TP2",
+                            "Target 2",
+                            "Warning",
+                            "Status Candle",
                         ]
-                        extra_cols = [c for c in df_plan.columns if c not in skip_cols]
+                        extra_cols = [
+                            c for c in df_plan.columns if c not in skip_cols
+                        ]
 
                         if extra_cols:
-                            st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+                            st.markdown(
+                                "<div style='margin-top: 10px;'></div>",
+                                unsafe_allow_html=True,
+                            )
                             cols_per_row = 3
                             for i in range(0, len(extra_cols), cols_per_row):
-                                chunk_cols = extra_cols[i:i + cols_per_row]
+                                chunk_cols = extra_cols[i : i + cols_per_row]
                                 ui_cols = st.columns(len(chunk_cols))
                                 for col_idx, c_name in enumerate(chunk_cols):
                                     val = _format_val(row[c_name])
-                                    ui_cols[col_idx].metric(label=c_name, value=val)
+                                    ui_cols[col_idx].metric(
+                                        label=c_name, value=val
+                                    )
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan: {e}")

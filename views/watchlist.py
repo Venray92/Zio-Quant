@@ -1,6 +1,35 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
+import json
+import os
+
+STORAGE_FILE = "watchlist_storage.json"
+
+# ==========================================
+# FUNGSIONALITAS SIMPAN & BACA PERMANEN (FILE JSON)
+# ==========================================
+def load_watchlist_from_file():
+    """Membaca data watchlist dari file JSON agar tahan refresh."""
+    if os.path.exists(STORAGE_FILE):
+        try:
+            with open(STORAGE_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # Default data jika file belum ada
+    return [
+        {"Ticker": "BBCA.JK", "Notes": "Pantau area support 9800", "Target Price": 10500},
+        {"Ticker": "TLKM.JK", "Notes": "Tunggu konfirmasi breakout", "Target Price": 3200},
+    ]
+
+def save_watchlist_to_file(data):
+    """Menyimpan data watchlist ke file JSON."""
+    try:
+        with open(STORAGE_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        st.error(f"Gagal menyimpan data: {e}")
 
 @st.cache_data(ttl=60)
 def fetch_stock_quote(ticker_symbol):
@@ -22,12 +51,12 @@ def fetch_stock_quote(ticker_symbol):
 
 
 def clear_search_callback():
-    """Callback untuk mengosongkan input pencarian secara instant"""
+    """Callback untuk mengosongkan input pencarian"""
     st.session_state["input_search_ticker_field"] = ""
 
 
 def render_page_watchlist():
-    # CSS Custom: Menyembunyikan panah popover & membuat tombol berbasis teks lebih lebar dan rapi
+    # CSS Custom: Sembunyikan Panah Popover, Rapatkan Button ke Kanan
     st.markdown(
         """
         <style>
@@ -43,7 +72,7 @@ def render_page_watchlist():
             margin-bottom: 0px !important;
         }
         
-        /* Styling Popover Header: Teks Rata Tengah, Lebih Lebar & Berbentuk Button Card */
+        /* Styling Popover Header: Rata Tengah, Berdempetan & Mentok Kanan */
         div[data-testid="stPopover"] > button {
             display: flex !important;
             justify-content: center !important;
@@ -52,7 +81,7 @@ def render_page_watchlist():
             width: 100% !important;
             background: #161B22 !important;
             border: 1px solid #30363D !important;
-            padding: 5px 2px !important;
+            padding: 4px 0px !important;
             color: #9ECBFF !important;
             font-size: 12px !important;
             font-weight: 600 !important;
@@ -66,14 +95,6 @@ def render_page_watchlist():
             background: #21262D !important;
         }
 
-        div[data-testid="stButton"] > button {
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            text-align: center !important;
-            border-radius: 6px !important;
-        }
-        
         /* Layout Input Search & Clear Button */
         div[data-testid="stTextInput"] {
             margin-top: 0px !important;
@@ -102,23 +123,9 @@ def render_page_watchlist():
     st.markdown("### 📌 Stock Watchlist")
     st.caption("Pantau daftar saham pilihan Anda secara real-time.")
 
-    # 2. Inisialisasi Session State
+    # 2. Inisialisasi Session State & Muat Data Permanen
     if "watchlist_data" not in st.session_state:
-        st.session_state["watchlist_data"] = [
-            {"Ticker": "BBCA.JK", "Notes": "Pantau area support 9800", "Target Price": 10500},
-            {"Ticker": "TLKM.JK", "Notes": "Tunggu konfirmasi breakout", "Target Price": 3200},
-        ]
-
-    if "watchlist" in st.session_state and st.session_state["watchlist"]:
-        existing_tickers = [item["Ticker"] for item in st.session_state["watchlist_data"]]
-        for t in st.session_state["watchlist"]:
-            formatted_t = t if t.endswith(".JK") else f"{t}.JK"
-            if formatted_t not in existing_tickers and len(st.session_state["watchlist_data"]) < 50:
-                st.session_state["watchlist_data"].append({
-                    "Ticker": formatted_t,
-                    "Notes": "Added from Trade Planner",
-                    "Target Price": 0
-                })
+        st.session_state["watchlist_data"] = load_watchlist_from_file()
 
     if "sort_filter" not in st.session_state:
         st.session_state["sort_filter"] = "Default"
@@ -144,14 +151,14 @@ def render_page_watchlist():
     # KIRI: DAFTAR SAHAM
     # ==========================================
     with col_left:
-        # Header Row: Badge "Watchlist" + 3 Tombol Popover Berteks (Tambah, Hapus, Filter)
-        h_col1, h_col2, h_col3, h_col4 = st.columns([1.0, 1.0, 1.0, 1.0])
+        # Header Row: Badge "Watchlist" + 3 Tombol (Tambah, Hapus, Filter) Mentok Kanan
+        h_col1, h_col2, h_col3, h_col4 = st.columns([1.8, 0.7, 0.7, 0.7])
         
         with h_col1:
             st.markdown(
                 """
                 <span style="background: #064E3B; color: #00E676; border: 1px solid #10B981; 
-                             padding: 5px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; display: block; text-align: center;">
+                             padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; display: inline-block;">
                     Watchlist
                 </span>
                 """,
@@ -165,7 +172,11 @@ def render_page_watchlist():
                 
                 inputs = []
                 for i in range(st.session_state["quick_add_count"]):
-                    val = st.text_input(f"Kode Saham #{i+1}", key=f"quick_t_{i}", placeholder="Contoh: BBRI").strip().upper()
+                    val = st.text_input(
+                        f"Kode Saham #{i+1}", 
+                        key=f"quick_t_{i}", 
+                        placeholder="Contoh: BBRI"
+                    ).strip().upper()
                     if val:
                         inputs.append(val)
 
@@ -179,19 +190,29 @@ def render_page_watchlist():
                     if st.button("Simpan", key="btn_quick_add_save", use_container_width=True):
                         if inputs:
                             added_count = 0
+                            existing_tickers = [x["Ticker"] for x in st.session_state["watchlist_data"]]
+                            
                             for ticker in inputs:
                                 if len(st.session_state["watchlist_data"]) < 50:
                                     formatted = ticker if ticker.endswith(".JK") else f"{ticker}.JK"
-                                    # Tambahkan jika belum ada di list
-                                    existing = [x["Ticker"] for x in st.session_state["watchlist_data"]]
-                                    if formatted not in existing:
+                                    if formatted not in existing_tickers:
                                         st.session_state["watchlist_data"].append({
                                             "Ticker": formatted,
                                             "Notes": "Quick Added",
                                             "Target Price": 0
                                         })
                                         added_count += 1
-                            # Catatan: Kolom tidak di-clear/reset agar data tetap ada
+                            
+                            # Simpan Perubahan ke File Permanen
+                            save_watchlist_to_file(st.session_state["watchlist_data"])
+                            
+                            # HAPUS EKSPLISIT DARI SESSION STATE UNTUK AUTO-CLEAR INPUT
+                            for i in range(st.session_state["quick_add_count"]):
+                                k = f"quick_t_{i}"
+                                if k in st.session_state:
+                                    del st.session_state[k]
+                            
+                            st.session_state["quick_add_count"] = 1
                             st.toast(f"{added_count} Saham berhasil ditambahkan!", icon="🚀")
                             st.rerun()
                         else:
@@ -215,11 +236,10 @@ def render_page_watchlist():
                             st.session_state["watchlist_data"] = [
                                 x for x in st.session_state["watchlist_data"] if x["Ticker"] not in to_remove
                             ]
-                            if "watchlist" in st.session_state:
-                                st.session_state["watchlist"] = [
-                                    x for x in st.session_state["watchlist"] 
-                                    if f"{x}.JK" not in to_remove and x not in to_remove
-                                ]
+                            
+                            # Simpan Perubahan ke File Permanen
+                            save_watchlist_to_file(st.session_state["watchlist_data"])
+                            
                             st.session_state["selected_cards"].clear()
                             st.toast("Saham terpilih berhasil dihapus!", icon="🗑️")
                             st.rerun()
@@ -366,6 +386,7 @@ def render_page_watchlist():
                             "Notes": new_notes,
                             "Target Price": new_target
                         })
+                        save_watchlist_to_file(st.session_state["watchlist_data"])
                         st.success(f"{formatted_t} berhasil ditambahkan!")
                         st.rerun()
                     else:
@@ -386,8 +407,8 @@ def render_page_watchlist():
             
             if st.button("🗑️ Hapus Semua Watchlist", type="secondary", use_container_width=True):
                 st.session_state["watchlist_data"] = []
-                st.session_state["watchlist"] = []
+                save_watchlist_to_file([])
                 st.session_state["selected_cards"].clear()
                 st.rerun()
         else:
-            st.info("Watchlist Anda masih kosong. Tambahkan saham menggunakan tombol (+) atau form di atas.")
+            st.info("Watchlist Anda masih kosong. Tambahkan saham menggunakan tombol di atas.")

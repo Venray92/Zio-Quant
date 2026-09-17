@@ -11,7 +11,7 @@ def inject_custom_css():
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-    /* Global App Styling (Abu Gelap & Cyber Font) */
+    /* Global App Styling */
     .stApp {
         background-color: #1A1A1A !important;
         color: #C0C5D0 !important;
@@ -58,17 +58,33 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* MAIN POPOVER BUTTON (Disesuaikan untuk Top Nav) */
+    /* TOP NAV DUMMY BUTTONS STYLING */
+    div[data-testid="stColumn"] button {
+        background-color: #242424 !important;
+        border: 1px solid #30363D !important;
+        border-radius: 6px !important;
+        color: #8A8B98 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        height: 42px !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    div[data-testid="stColumn"] button:hover {
+        border-color: #00F3FF !important;
+        color: #00F3FF !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+    }
+
+    /* MAIN POPOVER BUTTON (CHOOSE SCREENER - RINGKAS DI KANAN) */
     div[data-testid="stPopover"] > button {
         background-color: #242424 !important;
         border: 2px solid #00FF66 !important;
-        border-radius: 8px !important;
-        padding: 6px 16px !important;
-        height: 48px !important;
-        width: 100% !important;
-        margin-top: 4px !important;
-        margin-bottom: 4px !important;
-        box-shadow: 0 0 15px #00FF66, inset 0 0 8px rgba(0, 255, 102, 0.4) !important;
+        border-radius: 6px !important;
+        padding: 4px 16px !important;
+        height: 42px !important;
+        min-width: 180px !important;
+        box-shadow: 0 0 12px #00FF66, inset 0 0 6px rgba(0, 255, 102, 0.3) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
@@ -78,12 +94,13 @@ def inject_custom_css():
         font-weight: 900 !important;
         font-family: 'Share Tech Mono', monospace !important;
         text-shadow: 0 0 8px #00FF66 !important;
-        letter-spacing: 1px !important;
+        font-size: 12px !important;
+        letter-spacing: 0.5px !important;
     }
 
     div[data-testid="stPopover"] > button:hover {
         background-color: #00FF66 !important;
-        box-shadow: 0 0 25px #00FF66 !important;
+        box-shadow: 0 0 20px #00FF66 !important;
     }
 
     div[data-testid="stPopover"] > button:hover *,

@@ -2,11 +2,17 @@ import os
 import pandas as pd
 import streamlit as st
 
-# Mengimpor visualisasi helper dengan paket relatif/absolute yang benar
-from utils.ui_helpers import (
-    render_portfolio_pie_chart,
-    render_risk_gauge_chart,
-)
+# Import visualisasi helper
+try:
+    from utils.ui_helpers import (
+        render_portfolio_pie_chart,
+        render_risk_gauge_chart,
+    )
+except ImportError:
+    from ui_helpers import (
+        render_portfolio_pie_chart,
+        render_risk_gauge_chart,
+    )
 
 try:
     from engines.trade_planner import TradePlanner
@@ -25,7 +31,7 @@ def _clean_num(val):
         return None
 
 
-def render_page_money_management():
+def render_money_management_page():
     st.markdown(
         """
         <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 20px; border-radius: 12px; border-left: 6px solid #10B981; margin-bottom: 25px;">
@@ -38,6 +44,7 @@ def render_page_money_management():
         unsafe_allow_html=True,
     )
 
+    # Inisialisasi Session State
     if "mm_buy_price" not in st.session_state:
         st.session_state["mm_buy_price"] = 1000.0
     if "mm_sl_price" not in st.session_state:
@@ -51,15 +58,13 @@ def render_page_money_management():
 
     col_input, col_output = st.columns([1, 1], gap="large")
 
+    # =========================================================================
+    # KOLOM KIRI: INPUT PARAMETER & PROFIL RISIKO
+    # =========================================================================
     with col_input:
-        st.markdown("### 📥 Parameter Transaksi")
+        st.markdown("### 📥 Parameter Modal & Portofolio")
 
-        ticker = st.text_input(
-            "Ticker Saham",
-            value=st.session_state["mm_ticker"],
-            key="input_mm_ticker",
-        ).upper()
-
+        # Layout Modal Trading
         capital = st.number_input(
             "Total Modal Trading (IDR)",
             min_value=100_000,
@@ -92,7 +97,18 @@ def render_page_money_management():
             )
 
         st.markdown("---")
-        st.markdown("#### 📈 Target Harga & Level Risiko")
+        # LAYOUT BARU: TICKER DISATUKAN DENGAN TARGET HARGA
+        st.markdown("#### 📈 Ticker Saham & Target Harga")
+
+        ticker_input = st.text_input(
+            "Ticker Saham",
+            value=st.session_state["mm_ticker"],
+            key="input_mm_ticker",
+        ).upper()
+
+        # Update session state ticker langsung saat diisi
+        st.session_state["mm_ticker"] = ticker_input
+        ticker = ticker_input
 
         c_buy, c_sl = st.columns(2)
         with c_buy:
@@ -102,6 +118,7 @@ def render_page_money_management():
                 value=float(st.session_state["mm_buy_price"]),
                 step=1.0,
             )
+            st.session_state["mm_buy_price"] = buy_price
         with c_sl:
             sl_price = st.number_input(
                 "Stop Loss (SL)",
@@ -109,6 +126,7 @@ def render_page_money_management():
                 value=float(st.session_state["mm_sl_price"]),
                 step=1.0,
             )
+            st.session_state["mm_sl_price"] = sl_price
 
         c_tp1, c_tp2 = st.columns(2)
         with c_tp1:
@@ -118,6 +136,7 @@ def render_page_money_management():
                 value=float(st.session_state["mm_tp1_price"]),
                 step=1.0,
             )
+            st.session_state["mm_tp1_price"] = tp1_price
         with c_tp2:
             tp2_price = st.number_input(
                 "Target Profit 2 (TP 2)",
@@ -125,6 +144,7 @@ def render_page_money_management():
                 value=float(st.session_state["mm_tp2_price"]),
                 step=1.0,
             )
+            st.session_state["mm_tp2_price"] = tp2_price
 
         st.markdown("---")
         st.markdown("#### 💸 Transaksi Fee Sekuritas")
@@ -152,10 +172,13 @@ def render_page_money_management():
                 / 100.0
             )
 
+        # FITUR SINKRONISASI DARI TRADE PLANNER
         st.markdown("---")
-        with st.expander("🔄 Import Parameter dari Trade Plan", expanded=False):
+        with st.expander(
+            f"🔄 Import Target Harga {ticker} dari Trade Plan", expanded=True
+        ):
             st.caption(
-                "Tarik rekomendasi level harga terbaru berdasarkan Trade Planner otomatis."
+                f"Tarik otomatis rekomendasi harga beli, SL, & TP untuk saham **{ticker}**."
             )
             col_sp_btn, col_sp_sel = st.columns([1, 1])
             with col_sp_sel:
@@ -168,8 +191,10 @@ def render_page_money_management():
                 if st.button(
                     "⚡ Sync Trade Plan", use_container_width=True
                 ):
-                    if TradePlanner is not None:
-                        with st.spinner("Mengambil data Trade Plan..."):
+                    if TradePlanner is not None and ticker:
+                        with st.spinner(
+                            f"Mengambil data Trade Plan {ticker}..."
+                        ):
                             try:
                                 tp = TradePlanner(
                                     ticker=ticker, period=sync_period
@@ -217,21 +242,23 @@ def render_page_money_management():
                                         st.session_state["mm_tp2_price"] = (
                                             tp2_val
                                         )
-                                    st.session_state["mm_ticker"] = ticker
+
                                     st.success(
-                                        f"Berhasil mengimpor rekomendasi Trade Plan #{1} ({best_plan.get('Type', 'Plan')})!"
+                                        f"Berhasil sinkronisasi harga untuk {ticker}!"
                                     )
                                     st.rerun()
                                 else:
                                     st.warning(
-                                        "Tidak ada data Trade Plan yang valid."
+                                        f"Tidak ada data Trade Plan yang valid untuk {ticker}."
                                     )
                             except Exception as ex:
                                 st.error(f"Gagal memuat Trade Plan: {ex}")
                     else:
-                        st.warning("Modul `TradePlanner` tidak tersedia.")
+                        st.warning("Masukkan Ticker Saham terlebih dahulu.")
 
-    # LOGIKA MONEY MANAGEMENT
+    # =========================================================================
+    # KALKULASI MONEY MANAGEMENT LOGIC
+    # =========================================================================
     max_risk_amount = capital * (risk_pct / 100.0)
     max_alloc_amount = capital * (max_alloc_pct / 100.0)
 
@@ -274,6 +301,9 @@ def render_page_money_management():
     rr_tp1 = (tp1_distance / sl_distance) if sl_distance > 0 else 0.0
     rr_tp2 = (tp2_distance / sl_distance) if sl_distance > 0 else 0.0
 
+    # =========================================================================
+    # KOLOM KANAN: OUTPUT PERHITUNGAN & VISUALISASI
+    # =========================================================================
     with col_output:
         st.markdown("### 📊 Rekomendasi Eksekusi & Ringkasan Risk")
 

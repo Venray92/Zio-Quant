@@ -12,9 +12,50 @@ def get_logo_base64(file_path="logo.jpg"):
     return None
 
 
+def render_sidebar_nav():
+    """Menampilkan 4 Navigasi Vertikal dengan Ikon Vector SVG di Sidebar Kiri."""
+    active_nav = st.session_state.get("active_nav", "screener")
+
+    # SVG Icons (Modern Outline Style)
+    svg_screener = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>'
+    svg_markets = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>'
+    svg_stream = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"></path></svg>'
+    svg_support = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>'
+
+    nav_items = [
+        ("screener", "Screener", svg_screener),
+        ("markets", "Markets", svg_markets),
+        ("stream", "Stream", svg_stream),
+        ("support", "Support", svg_support),
+    ]
+
+    with st.sidebar:
+        st.markdown(
+            '<div class="sidebar-nav-container">', unsafe_allow_html=True
+        )
+        for key, label, svg in nav_items:
+            is_active = "active" if active_nav == key else ""
+            btn_html = f"""
+            <div class="sidebar-nav-item {is_active}">
+                <div class="nav-icon">{svg}</div>
+                <div class="nav-label">{label}</div>
+            </div>
+            """
+            st.markdown(btn_html, unsafe_allow_html=True)
+            if st.button(
+                label, key=f"nav_btn_{key}", use_container_width=True
+            ):
+                st.session_state["active_nav"] = key
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 def render_header():
     """Menampilkan Header Bar & Popover Menu Screener."""
-    
+
+    # Render Sidebar Navigasi Kiri
+    render_sidebar_nav()
+
     # Cek apakah ada query param reset dari klik logo/home
     if st.query_params.get("reset") == "true":
         st.session_state["selected_screener"] = None
@@ -31,7 +72,6 @@ def render_header():
         else:
             logo_html = '<span style="font-size: 32px;">⚡</span>'
 
-        # Link menggunakan ?reset=true agar Streamlit membaca event reset secara native
         st.markdown(
             f"""
             <div class="brand-container" style="position: relative; z-index: 999999; pointer-events: auto;">

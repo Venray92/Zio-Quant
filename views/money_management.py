@@ -4,7 +4,7 @@ import streamlit as st
 
 # Import TradePlanner dari file backend kamu
 try:
-    from trade_planner import TradePlanner
+    from engines.trade_planner import TradePlanner
 except ImportError:
     TradePlanner = None
 

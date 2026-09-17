@@ -4,17 +4,6 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Mendaftarkan seluruh fungsi secara eksplisit agar terbaca oleh file lain
-__all__ = [
-    "inject_custom_css",
-    "calculate_rr_ratios",
-    "render_metric_card",
-    "render_scaling_card",
-    "render_risk_gauge_chart",
-    "render_portfolio_pie_chart",
-    "render_inline_trade_planner",
-]
-
 try:
     from engines.trade_planner import TradePlanner
 except ImportError:
@@ -80,63 +69,6 @@ def calculate_rr_ratios(row):
 # ==========================================================================
 # 2. MONEY MANAGEMENT VISUALIZATION HELPERS
 # ==========================================================================
-def render_metric_card(
-    label: str,
-    value: str,
-    subtext: str = "",
-    badge_text: str = "",
-    badge_type: str = "green",
-    val_color: str = "#E6EDF3",
-):
-    """Render komponen card metric ringkas untuk modul Money Management."""
-    badge_html = (
-        f'<span class="mm-badge-{badge_type}">{badge_text}</span>'
-        if badge_text
-        else ""
-    )
-    sub_html = (
-        f'<div style="font-size: 12px; color: #8B949E; margin-top: 4px;">{subtext}</div>'
-        if subtext
-        else ""
-    )
-
-    st.markdown(
-        f"""
-        <div style="background: #161B22; border: 1px solid #30363D; border-radius: 10px; padding: 14px; margin-bottom: 10px;">
-            <div style="font-size: 12px; color: #8B949E; font-weight: 600; margin-bottom: 4px;">{label}</div>
-            <div style="font-size: 20px; font-weight: 800; color: {val_color};">{value}</div>
-            {sub_html}
-            {badge_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_scaling_card(
-    title: str,
-    lot: int,
-    price: float,
-    profit: float,
-    footer_text: str,
-    footer_color: str = "green",
-):
-    """Render card rencana scaling out / partial profit taking."""
-    footer_c = "#00E676" if footer_color == "green" else "#FFB300"
-    st.markdown(
-        f"""
-        <div style="background: #161B22; border: 1px solid #30363D; border-radius: 10px; padding: 16px; margin-bottom: 10px;">
-            <h4 style="margin: 0 0 10px 0; color: #00E676; font-size: 15px;">{title}</h4>
-            <p style="margin: 6px 0; font-size: 13px; color: #E6EDF3;"><b>Jual {lot:,} Lot</b> di harga <b>Rp {price:,.0f}</b></p>
-            <p style="margin: 0; font-size: 13px; color: #8B949E;">Profit Diamankan: <b style="color: #00E676;">+Rp {profit:,.0f}</b></p>
-            <hr style="margin: 10px 0; border: 0; border-top: 1px solid #21262D;">
-            <span style="font-size: 12px; color: {footer_c}; font-weight: 600;">{footer_text}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def render_risk_gauge_chart(actual_risk_pct, risk_pct):
     """Membentuk Plotly Gauge Chart untuk mengukur Toleransi Risiko vs Risiko Riil."""
     max_range = max(10.0, float(risk_pct) * 1.2)
@@ -216,9 +148,11 @@ def render_inline_trade_planner(
 ):
     st.markdown("---")
 
+    # Inisialisasi session state watchlist jika belum ada
     if "watchlist" not in st.session_state:
         st.session_state["watchlist"] = []
 
+    # 1. HEADER FUTURISTIK
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -233,6 +167,7 @@ def render_inline_trade_planner(
         unsafe_allow_html=True,
     )
 
+    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
     col_select, _, col_btn = st.columns([1, 2, 1], vertical_alignment="bottom")
 
     with col_select:
@@ -245,6 +180,8 @@ def render_inline_trade_planner(
 
     with col_btn:
         clean_ticker_code = ticker_symbol.upper().strip()
+
+        # Ekstrak ticker yang sudah ada di watchlist
         existing_list = [
             x.get("Ticker", x) if isinstance(x, dict) else str(x)
             for x in st.session_state["watchlist"]
@@ -283,6 +220,7 @@ def render_inline_trade_planner(
                 )
                 st.rerun()
 
+    # 3. TRADINGVIEW WIDGET
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
     )
@@ -323,6 +261,7 @@ def render_inline_trade_planner(
         unsafe_allow_html=True,
     )
 
+    # 4. TRADE PLAN RECOMMENDATION
     if TradePlanner is None:
         st.warning("Module `TradePlanner` tidak dapat diimpor.")
         return
@@ -415,6 +354,7 @@ def render_inline_trade_planner(
                     """
                     st.markdown(card_html, unsafe_allow_html=True)
 
+                    # KALKULASI R:R
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
                     with st.expander(

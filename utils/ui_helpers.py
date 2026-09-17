@@ -1,22 +1,15 @@
 import os
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
-
-try:
-    from engines.trade_planner import TradePlanner
-except ImportError:
-    TradePlanner = None
+from engines.trade_planner import TradePlanner
 
 
-# ==========================================================================
-# 1. CORE CSS & FORMATTING HELPER
-# ==========================================================================
-def inject_custom_css(file_path=os.path.join("assets", "style.css")):
-    """Mengimpor style CSS eksternal (default: assets/style.css)."""
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
+def inject_custom_css():
+    """Mengimpor style CSS eksternal dari assets/style.css"""
+    css_path = os.path.join("assets", "style.css")
+    if os.path.exists(css_path):
+        with open(css_path, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
@@ -46,12 +39,8 @@ def calculate_rr_ratios(row):
         row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None)))
     )
     sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
-    tp1_val = _clean_num(
-        row.get("TP 1", row.get("TP1", row.get("Target 1", None)))
-    )
-    tp2_val = _clean_num(
-        row.get("TP 2", row.get("TP2", row.get("Target 2", None)))
-    )
+    tp1_val = _clean_num(row.get("TP 1", row.get("TP1", row.get("Target 1", None))))
+    tp2_val = _clean_num(row.get("TP 2", row.get("TP2", row.get("Target 2", None))))
 
     rr_tp1_str = "-"
     rr_tp2_str = "-"
@@ -66,91 +55,14 @@ def calculate_rr_ratios(row):
     return rr_tp1_str, rr_tp2_str
 
 
-# ==========================================================================
-# 2. MONEY MANAGEMENT VISUALIZATION HELPERS
-# ==========================================================================
-def render_risk_gauge_chart(actual_risk_pct, risk_pct):
-    """Membentuk Plotly Gauge Chart untuk mengukur Toleransi Risiko vs Risiko Riil."""
-    max_range = max(10.0, float(risk_pct) * 1.2)
-    fig_gauge = go.Figure(
-        go.Indicator(
-            mode="gauge+number+delta",
-            value=actual_risk_pct,
-            number={"suffix": "%", "valueformat": ".2f"},
-            delta={
-                "reference": risk_pct,
-                "relative": False,
-                "position": "top",
-            },
-            domain={"x": [0, 1], "y": [0, 1]},
-            gauge={
-                "axis": {"range": [0, max_range], "tickwidth": 1},
-                "bar": {
-                    "color": (
-                        "#00E676" if actual_risk_pct <= risk_pct else "#FF5252"
-                    )
-                },
-                "steps": [
-                    {
-                        "range": [0, risk_pct],
-                        "color": "rgba(0, 230, 118, 0.15)",
-                    },
-                    {
-                        "range": [risk_pct, max_range],
-                        "color": "rgba(255, 82, 82, 0.15)",
-                    },
-                ],
-                "threshold": {
-                    "line": {"color": "#00F3FF", "width": 4},
-                    "thickness": 0.75,
-                    "value": risk_pct,
-                },
-            },
-        )
-    )
-    fig_gauge.update_layout(
-        height=220,
-        margin=dict(l=20, r=20, t=10, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#C0C5D0", "family": "Share Tech Mono"},
-    )
-    return fig_gauge
-
-
-def render_portfolio_pie_chart(ticker, total_cost_with_fee, capital):
-    """Membentuk Plotly Donut Chart untuk simulasi Alokasi Kapital Saham vs Cash."""
-    cash_left = max(0.0, capital - total_cost_with_fee)
-    fig_donut = go.Figure(
-        data=[
-            go.Pie(
-                labels=[f"Posisi {ticker}", "Sisa Cash"],
-                values=[total_cost_with_fee, cash_left],
-                hole=0.6,
-                marker_colors=["#00E676", "#21262D"],
-            )
-        ]
-    )
-    fig_donut.update_layout(
-        height=220,
-        margin=dict(l=10, r=10, t=10, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#C0C5D0", "family": "Share Tech Mono"},
-        showlegend=True,
-    )
-    return fig_donut
-
-
-# ==========================================================================
-# 3. LIVE TRADE PLANNER & TRADINGVIEW WIDGET
-# ==========================================================================
-def render_inline_trade_planner(
-    ticker_symbol, key_suffix, screener_name="Screener"
-):
+def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screener"):
     st.markdown("---")
 
+    # Inisialisasi session state watchlist jika belum ada
     if "watchlist" not in st.session_state:
         st.session_state["watchlist"] = []
 
+    # 1. HEADER FUTURISTIK
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -165,6 +77,7 @@ def render_inline_trade_planner(
         unsafe_allow_html=True,
     )
 
+    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST (Menggunakan vertical_alignment)
     col_select, _, col_btn = st.columns([1, 2, 1], vertical_alignment="bottom")
 
     with col_select:
@@ -178,6 +91,7 @@ def render_inline_trade_planner(
     with col_btn:
         clean_ticker_code = ticker_symbol.upper().strip()
 
+        # Ekstrak ticker yang sudah ada di watchlist
         existing_list = [
             x.get("Ticker", x) if isinstance(x, dict) else str(x)
             for x in st.session_state["watchlist"]
@@ -198,13 +112,8 @@ def render_inline_trade_planner(
                 use_container_width=True,
             ):
                 active_source = screener_name
-                if (
-                    active_source == "Screener"
-                    and "active_screener_name" in st.session_state
-                ):
-                    active_source = st.session_state.get(
-                        "active_screener_name", "Screener"
-                    )
+                if active_source == "Screener" and "active_screener_name" in st.session_state:
+                    active_source = st.session_state.get("active_screener_name", "Screener")
 
                 st.session_state["watchlist"].append(
                     {"Ticker": clean_ticker_code, "Notes": active_source}
@@ -216,6 +125,7 @@ def render_inline_trade_planner(
                 )
                 st.rerun()
 
+    # 3. TRADINGVIEW WIDGET
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
     )
@@ -256,10 +166,7 @@ def render_inline_trade_planner(
         unsafe_allow_html=True,
     )
 
-    if TradePlanner is None:
-        st.warning("Module `TradePlanner` tidak dapat diimpor.")
-        return
-
+    # 4. TRADE PLAN RECOMMENDATION
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
             planner = TradePlanner(
@@ -348,6 +255,7 @@ def render_inline_trade_planner(
                     """
                     st.markdown(card_html, unsafe_allow_html=True)
 
+                    # KALKULASI R:R
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
                     with st.expander(
@@ -364,9 +272,7 @@ def render_inline_trade_planner(
                                 label="R:R ( Target 2 )", value=rr_tp2_val
                             )
             else:
-                st.info(
-                    f"Tidak ada Trade Plan yang tersedia untuk **{ticker_symbol}** pada periode ini."
-                )
+                st.info(f"Tidak ada Trade Plan yang tersedia untuk **{ticker_symbol}** pada periode ini.")
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan: {e}")

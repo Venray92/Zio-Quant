@@ -2,7 +2,7 @@ import concurrent.futures
 import time
 import pandas as pd
 import streamlit as st
-from ihsg_tickers import get_all_ihsg_tickers
+from data.ihsg_tickers import get_all_ihsg_tickers
 from screener_rsi_divergence import detect_rsi_patterns_and_score
 from utils.ui_helpers import render_inline_trade_planner
 

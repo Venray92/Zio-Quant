@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Menampilkan Navigasi Vertikal Ramping dengan Tombol Toggle Melayang di Garis Pembatas."""
+    """Menampilkan Navigasi Vertikal dengan Tombol Toggle Tepat di Tengah Garis Kanan."""
 
     if "nav_collapsed" not in st.session_state:
         st.session_state["nav_collapsed"] = False
@@ -10,56 +10,65 @@ def render_sidebar_nav():
     is_collapsed = st.session_state["nav_collapsed"]
     active_nav = st.session_state.get("active_nav", "screener")
 
-    # Dynamic CSS
+    # CSS Khusus untuk merapikan ukuran tombol & posisi tombol toggle di tengah garis
     nav_css = """
     <style>
-    /* Hilangkan background default & border kaku tombol Streamlit di sidebar nav */
-    div[data-testid="stColumn"] div.stButton > button {
-        background-color: transparent !important;
-        border: 1px solid #21262D !important;
-        color: #8A8B98 !important;
+    /* Hilangkan padding default kolom agar rapat */
+    div[data-testid="stColumn"] {
+        padding: 0px !important;
+    }
+
+    /* Style Tombol Navigasi Utama */
+    div.nav-main-col div.stButton > button {
+        background-color: #161B22 !important;
+        border: 1px solid #30363D !important;
+        color: #C9D1D9 !important;
         font-family: 'Share Tech Mono', monospace !important;
-        font-size: 11px !important;
+        font-size: 12px !important;
         font-weight: 700 !important;
-        height: 50px !important;
+        height: 52px !important;
+        width: 100% !important;
         border-radius: 6px !important;
         transition: all 0.2s ease-in-out !important;
         box-shadow: none !important;
     }
 
-    /* Hover State Navigation Buttons */
-    div[data-testid="stColumn"] div.stButton > button:hover {
+    /* Hover & Active State Navigasi */
+    div.nav-main-col div.stButton > button:hover {
         color: #00FF66 !important;
         border-color: #00FF66 !important;
         background-color: rgba(0, 255, 102, 0.08) !important;
-        box-shadow: 0 0 10px rgba(0, 255, 102, 0.2) !important;
     }
 
-    /* Tombol Toggle Collapse khusus (Tombol Panah Ramping) */
-    div.toggle-container div.stButton > button {
+    /* Tombol Toggle persis di tengah garis pembatas */
+    div.nav-toggle-col {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        height: 100%;
+        min-height: 280px; /* Menyesuaikan tinggi agar pas di tengah vertikal */
+    }
+
+    div.nav-toggle-col div.stButton > button {
         background-color: #161B22 !important;
         border: 1px solid #30363D !important;
+        border-left: none !important;
         color: #00FF66 !important;
         font-size: 14px !important;
         font-weight: 900 !important;
-        height: 40px !important;
+        height: 55px !important;
+        width: 16px !important;
+        min-width: 16px !important;
         padding: 0 !important;
-        border-radius: 4px !important;
-        margin-top: 10px !important;
+        border-radius: 0px 6px 6px 0px !important;
+        transition: all 0.2s ease-in-out !important;
     }
 
-    div.toggle-container div.stButton > button:hover {
+    div.nav-toggle-col div.stButton > button:hover {
         background-color: #00FF66 !important;
         color: #000000 !important;
-        box-shadow: 0 0 10px #00FF66 !important;
-    }
-
-    /* Styling Container Utama Navigasi */
-    .sidebar-inner-box {
-        background-color: #0D0E12;
-        border-right: 1px solid #21262D;
-        padding: 10px 4px;
-        border-radius: 8px;
+        border-color: #00FF66 !important;
+        box-shadow: 2px 0 10px rgba(0, 255, 102, 0.4) !important;
     }
     </style>
     """
@@ -72,18 +81,19 @@ def render_sidebar_nav():
         ("support", "Support"),
     ]
 
-    # Bagi kontainer navigasi kiri menjadi 2 sub-kolom: Menu Navigasi & Tombol Toggle
-    col_menu, col_toggle = st.columns([4, 1])
+    # Menggunakan rasio kolom yang pas agar teks tidak kepotong
+    # Kolom kiri untuk tombol menu, kolom kanan sangat kecil khusus untuk tombol toggle melayang di garis
+    col_menu, col_toggle = st.columns([5, 1], gap="small")
 
     with col_menu:
-        st.markdown('<div class="sidebar-inner-box">', unsafe_allow_html=True)
+        st.markdown('<div class="nav-main-col">', unsafe_allow_html=True)
         for key, label in nav_items:
-            # Jika dalam keadaan collapsed, tampilkan label singkat/ikon saja
-            display_label = label[0] if is_collapsed else label
-            is_active_badge = " ▪" if active_nav == key else ""
+            # Jika state collapsed, singkat hurufnya agar rapi
+            display_label = label[:1] if is_collapsed else label
+            is_active_indicator = " •" if active_nav == key else ""
 
             if st.button(
-                f"{display_label}{is_active_badge}",
+                f"{display_label}{is_active_indicator}",
                 key=f"nav_btn_{key}",
                 use_container_width=True,
             ):
@@ -92,7 +102,7 @@ def render_sidebar_nav():
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_toggle:
-        st.markdown('<div class="toggle-container">', unsafe_allow_html=True)
+        st.markdown('<div class="nav-toggle-col">', unsafe_allow_html=True)
         toggle_icon = "›" if is_collapsed else "‹"
         if st.button(
             toggle_icon, key="btn_nav_toggle", use_container_width=True

@@ -2,9 +2,10 @@ import streamlit as st
 
 
 def render_top_nav():
-    """Menampilkan 5 Button Dummy Navigasi di bawah header, tepat di atas garis pembatas."""
+    """Menampilkan 5 Button Dummy Navigasi ukuran ringkas & rapat di sebelah kiri."""
 
-    cols = st.columns(5)
+    # 5 kolom pertama untuk tombol dummy (lebar disesuaikan), 1 kolom sisa kosong
+    cols = st.columns([0.85, 0.85, 0.85, 0.85, 0.85, 3])
 
     with cols[0]:
         st.button("🌐 OVERVIEW", key="nav_overview", use_container_width=True)

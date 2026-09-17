@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+/* ==========================================================================
+   1. GLOBAL APP STYLING
+   ========================================================================== */
+.stApp {
+    background-color: #1A1A1A !important;
+    color: #C0C5D0 !important;
+    font-family: 'Share Tech Mono', monospace !important;
+}
+
+header[data-testid="stHeader"] {
+    display: none !important;
+}
+
+.block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* Header & Brand Logo Styling */
+.brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
+}
+.brand-link:hover { opacity: 0.8; }
+
+.brand-logo-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1.5px solid #00F3FF;
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+}
+
+.brand-title-text {
+    color: #00F3FF;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+}
+
+/* Top Navigation / Dropdown Popover */
+div[data-testid="stPopover"] > button {
+    background-color: #242424 !important;
+    border: 2px solid #00F3FF !important;
+    border-radius: 6px !important;
+    padding: 4px 16px !important;
+    height: 42px !important;
+    width: 100% !important;
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
+}
+
+div[data-testid="stPopoverContent"] {
+    background-color: #242424 !important;
+    border: 2px solid #00F3FF !important;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.4) !important;
+    border-radius: 8px !important;
+}
+
+/* ==========================================================================
+   2. TAB RSI STYLING
+   ========================================================================== */
+/* Warna dan Border khusus komponen Indikator RSI */
+.rsi-badge-overbought {
+    background-color: rgba(255, 82, 82, 0.15) !important;
+    border: 1px solid #FF5252 !important;
+    color: #FF5252 !important;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.rsi-badge-oversold {
+    background-color: rgba(0, 230, 118, 0.15) !important;
+    border: 1px solid #00E676 !important;
+    color: #00E676 !important;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* ==========================================================================
+   3. TAB STOCHASTIC & PSAR STYLING
+   ========================================================================== */
+/* Warna dan Border khusus komponen Stoch & Parabolic SAR */
+.stoch-card-bullish {
+    background: #161B22 !important;
+    border-left: 4px solid #00E676 !important;
+    border-top: 1px solid #30363D !important;
+    border-right: 1px solid #30363D !important;
+    border-bottom: 1px solid #30363D !important;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.stoch-card-bearish {
+    background: #161B22 !important;
+    border-left: 4px solid #FF5252 !important;
+    border-top: 1px solid #30363D !important;
+    border-right: 1px solid #30363D !important;
+    border-bottom: 1px solid #30363D !important;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* ==========================================================================
+   4. TAB TRADE PLANNER STYLING
+   ========================================================================== */
+/* Header Live Trade Plan */
+.live-plan-header {
+    background: linear-gradient(90deg, rgba(0, 230, 118, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
+    border-left: 5px solid #00E676;
+    padding: 12px 18px;
+    border-radius: 8px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.live-plan-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #FFFFFF;
+}
+
+.live-plan-ticker {
+    color: #00E676;
+    background: rgba(0, 230, 118, 0.1);
+    padding: 2px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 230, 118, 0.3);
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #38BDF8;
+    margin-top: 15px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+/* Metric Cards & Expander */
+div[data-testid="stMetric"] {
+    background: linear-gradient(180deg, #161B22 0%, #0D1117 100%);
+    border: 1px solid #21262D;
+    padding: 12px 16px;
+    border-radius: 10px;
+}
+
+div[data-testid="stMetricValue"] {
+    color: #00E676 !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+}
+
+div[data-testid="stExpander"] {
+    background-color: #161B22 !important;
+    border: 1px solid #30363D !important;
+    border-radius: 10px !important;
+}

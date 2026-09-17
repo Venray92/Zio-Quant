@@ -221,7 +221,7 @@ def render_tab_stoch_psar():
             <div class="cyber-header-container">
                 <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
                     <span class="cyber-status-dot"></span>
-                   </div>
+                </div>
                 <div class="cyber-header-title">⚡ STOCH-TREND RADAR</div>
             </div>
             """,
@@ -351,42 +351,46 @@ def render_tab_stoch_psar():
             )
 
             if not df_target.empty:
-                for idx, row in df_target.iterrows():
-                    ticker = str(row.get("Ticker", ""))
-                    saham = ticker.replace(".JK", "")
-                    score = row.get("Score", 0)
+                # =========================================================
+                # BUNGKUS DENGAN CONTAINER UNTUK SCROLLING (MAX HEIGHT)
+                # =========================================================
+                with st.container(height=520, border=False):
+                    for idx, row in df_target.iterrows():
+                        ticker = str(row.get("Ticker", ""))
+                        saham = ticker.replace(".JK", "")
+                        score = row.get("Score", 0)
 
-                    signal_desc = row.get("Detail Signal", "-")
+                        signal_desc = row.get("Detail Signal", "-")
 
-                    close_price = row.get("Harga", 0)
-                    change_pct = row.get("Change (%)", 0.0)
+                        close_price = row.get("Harga", 0)
+                        change_pct = row.get("Change (%)", 0.0)
 
-                    try:
-                        close_price = float(close_price)
-                    except (ValueError, TypeError):
-                        close_price = 0.0
+                        try:
+                            close_price = float(close_price)
+                        except (ValueError, TypeError):
+                            close_price = 0.0
 
-                    try:
-                        change_pct = float(change_pct)
-                    except (ValueError, TypeError):
-                        change_pct = 0.0
+                        try:
+                            change_pct = float(change_pct)
+                        except (ValueError, TypeError):
+                            change_pct = 0.0
 
-                    is_selected = (
-                        st.session_state.get("selected_stoch_ticker") == ticker
-                    )
+                        is_selected = (
+                            st.session_state.get("selected_stoch_ticker") == ticker
+                        )
 
-                    change_color = "#00FF66" if change_pct >= 0 else "#FF007F"
-                    change_icon = "📈" if change_pct >= 0 else "📉"
-                    change_str = f"{change_icon} {change_pct:+.2f}%"
-                    price_str = f"{close_price:,.0f}".replace(",", ".")
+                        change_color = "#00FF66" if change_pct >= 0 else "#FF007F"
+                        change_icon = "📈" if change_pct >= 0 else "📉"
+                        change_str = f"{change_icon} {change_pct:+.2f}%"
+                        price_str = f"{close_price:,.0f}".replace(",", ".")
 
-                    border_style = (
-                        "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
-                        if is_selected
-                        else "border: 1px solid #30363D; background-color: #161B22;"
-                    )
+                        border_style = (
+                            "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
+                            if is_selected
+                            else "border: 1px solid #30363D; background-color: #161B22;"
+                        )
 
-                    with st.container():
+                        # Render Kartu Saham
                         st.markdown(
                             f"""
                             <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">

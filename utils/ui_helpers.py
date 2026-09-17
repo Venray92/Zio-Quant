@@ -4,6 +4,17 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
+# Mendaftarkan seluruh fungsi secara eksplisit agar terbaca oleh file lain
+__all__ = [
+    "inject_custom_css",
+    "calculate_rr_ratios",
+    "render_metric_card",
+    "render_scaling_card",
+    "render_risk_gauge_chart",
+    "render_portfolio_pie_chart",
+    "render_inline_trade_planner",
+]
+
 try:
     from engines.trade_planner import TradePlanner
 except ImportError:

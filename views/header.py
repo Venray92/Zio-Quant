@@ -14,6 +14,13 @@ def get_logo_base64(file_path="logo.jpg"):
 
 def render_header():
     """Menampilkan Header Bar & Popover Menu Screener."""
+    
+    # Cek apakah ada query param reset dari klik logo/home
+    if st.query_params.get("reset") == "true":
+        st.session_state["selected_screener"] = None
+        st.query_params.clear()
+        st.rerun()
+
     logo_b64 = get_logo_base64("logo.jpg")
 
     col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
@@ -24,13 +31,13 @@ def render_header():
         else:
             logo_html = '<span style="font-size: 32px;">⚡</span>'
 
-        # Menggunakan inline-flex + pointer-events: auto + z-index tinggi agar pasti bisa diklik 100%
+        # Link menggunakan ?reset=true agar Streamlit membaca event reset secara native
         st.markdown(
             f"""
-            <div style="position: relative; z-index: 99999; pointer-events: auto; display: inline-block;">
-                <a href="/" target="_self" class="brand-link" style="display: inline-flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; pointer-events: auto;">
+            <div class="brand-container" style="position: relative; z-index: 999999; pointer-events: auto;">
+                <a href="/?reset=true" target="_self" class="brand-link" style="display: inline-flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer;">
                     {logo_html}
-                    <span class="brand-title-text" style="cursor: pointer; pointer-events: auto;">Z-QUANT</span>
+                    <span class="brand-title-text" style="cursor: pointer;">Z-QUANT</span>
                 </a>
             </div>
             """,

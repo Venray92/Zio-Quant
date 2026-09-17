@@ -58,41 +58,47 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* DUMMY BUTTONS STYLING - KONSISTEN DI SEMUA TAB (TIDAK NYALA BORDER SAAT ACTIVE) */
+    /* DUMMY BUTTONS STYLING - OPSI A (KONSISTEN DI SEMUA TAB) */
     .dummy-nav-wrapper button,
-    div[data-testid="stColumn"] button {
-        background-color: #242424 !important;
-        border: 1px solid #30363D !important;
-        border-radius: 4px !important;
-        color: #8A8B98 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        height: 30px !important;
-        padding: 2px 8px !important;
-        margin-top: 15px !important;
-        margin-bottom: -10px !important;
+    div[data-testid="stColumn"] button,
+    div[data-testid="stColumn"] button:focus,
+    div[data-testid="stColumn"] button:active,
+    div[data-testid="stColumn"] button[aria-selected="true"] {
+        background-color: #1E222D !important;
+        border: 1px solid #2A2E39 !important;
+        border-radius: 6px !important;
         box-shadow: none !important;
+        outline: none !important;
+        height: 36px !important;
+        padding: 2px 12px !important;
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* HOVER STATE DUMMY BUTTONS */
+    /* TEKS DUMMY BUTTONS - SELALU CYAN NYALA */
+    .dummy-nav-wrapper button p,
+    div[data-testid="stColumn"] button p,
+    div[data-testid="stColumn"] button div[data-testid="stMarkdownContainer"] p {
+        color: #00F3FF !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px !important;
+        text-shadow: 0 0 6px rgba(0, 243, 255, 0.6) !important;
+        margin: 0 !important;
+    }
+
+    /* HOVER STATE - BORDER BARU MENYALA CYAN SAAT DI-HOVER */
     .dummy-nav-wrapper button:hover,
     div[data-testid="stColumn"] button:hover {
         border-color: #00F3FF !important;
-        color: #00F3FF !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.4) !important;
+        background-color: #242B35 !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
     }
 
-    /* RESET FOCUS & ACTIVE STATE DUMMY BUTTONS */
-    .dummy-nav-wrapper button:focus,
-    .dummy-nav-wrapper button:active,
-    div[data-testid="stColumn"] button:focus,
-    div[data-testid="stColumn"] button:active {
-        border-color: #30363D !important;
-        color: #8A8B98 !important;
-        box-shadow: none !important;
-        outline: none !important;
+    .dummy-nav-wrapper button:hover p,
+    div[data-testid="stColumn"] button:hover p {
+        color: #00F3FF !important;
+        text-shadow: 0 0 10px #00F3FF !important;
     }
 
     /* MAIN POPOVER BUTTON CONTAINER */

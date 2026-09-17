@@ -31,78 +31,60 @@ def inject_custom_css():
     /* SIDEBAR VERTICAL NAVIGATION STYLING (4 TOMBOL KIRI MODERN)    */
     /* ------------------------------------------------------------- */
     section[data-testid="stSidebar"] {
-        width: 90px !important;
+        width: 110px !important;
         background-color: #0D0E12 !important;
         border-right: 1px solid #21262D !important;
-    }
-    
-    section[data-testid="stSidebar"] > div {
-        padding-top: 2rem !important;
-        padding-left: 0.4rem !important;
-        padding-right: 0.4rem !important;
+        display: block !important;
+        visibility: visible !important;
     }
 
-    .sidebar-nav-container {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        align-items: center;
-        margin-top: 10px;
+    section[data-testid="stSidebar"] > div:first-child {
+        width: 110px !important;
+        padding: 1.5rem 0.2rem !important;
     }
 
-    .sidebar-nav-item {
+    .sidebar-wrapper {
         display: flex;
         flex-direction: column;
+        gap: 16px;
         align-items: center;
-        justify-content: center;
-        color: #6E7681;
-        gap: 6px;
-        transition: all 0.2s ease-in-out;
-        cursor: pointer;
-        position: relative;
+    }
+
+    .nav-btn-box {
         width: 100%;
-        padding: 8px 0;
     }
 
-    .sidebar-nav-item .nav-icon {
-        stroke: #6E7681;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .sidebar-nav-item .nav-label {
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-    }
-
-    /* Hover & Active State (Neon Green Accent) */
-    .sidebar-nav-item:hover, .sidebar-nav-item.active {
-        color: #00FF66 !important;
-    }
-
-    .sidebar-nav-item:hover .nav-icon, .sidebar-nav-item.active .nav-icon {
-        stroke: #00FF66 !important;
-        filter: drop-shadow(0 0 6px #00FF66);
-    }
-
-    .sidebar-nav-item.active::after {
-        content: '';
-        position: absolute;
-        right: -8px;
-        top: 15%;
-        height: 70%;
-        width: 3px;
-        background-color: #00FF66;
-        box-shadow: 0 0 8px #00FF66;
-        border-radius: 2px;
-    }
-
-    /* Menjadikan Tombol Native Streamlit Transparan di atas HTML Nav */
+    /* Tombol Navigasi Sidebar Native */
     div[data-testid="stSidebar"] button[key^="nav_btn_"] {
-        margin-top: -65px !important;
-        height: 60px !important;
-        opacity: 0 !important;
-        cursor: pointer !important;
+        background: transparent !important;
+        border: none !important;
+        color: #6E7681 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 65px !important;
+        border-radius: 8px !important;
+        padding: 6px 0 !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    /* Hover State */
+    div[data-testid="stSidebar"] button[key^="nav_btn_"]:hover {
+        color: #00FF66 !important;
+        background-color: rgba(0, 255, 102, 0.05) !important;
+    }
+
+    /* Active State (Glow Neon Green) */
+    .nav-btn-box.active-nav button {
+        color: #00FF66 !important;
+        background-color: rgba(0, 255, 102, 0.12) !important;
+        border-right: 3px solid #00FF66 !important;
+        box-shadow: inset -3px 0 8px rgba(0, 255, 102, 0.3) !important;
+        text-shadow: 0 0 8px #00FF66 !important;
     }
 
     /* ------------------------------------------------------------- */

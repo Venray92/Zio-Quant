@@ -2,13 +2,19 @@ import streamlit as st
 
 
 def render_top_nav():
+    # Inject CSS langsung menyasar tombol navigasi
     st.markdown(
         """
         <style>
-        /* Target langsung tombol di dalam container khusus */
-        .nav-btn-container div[data-testid="stButton"] > button {
-            position: relative !important;
-            top: 20px !important; /* UBAH ANGKA INI UNTUK TURUN/NAIK */
+        /* Dorong container kolom tempat tombol berada ke bawah */
+        div[data-testid="stHorizontalBlock"]:has(button[key*="nav_"]) {
+            align-items: flex-end !important;
+            transform: translateY(12px) !important; /* Mendorong seluruh baris tombol ke bawah */
+            margin-bottom: 0px !important;
+        }
+
+        /* Hilangkan margin/padding bawaan tombol agar menempel dasar */
+        button[key*="nav_"] {
             margin-bottom: 0px !important;
         }
         </style>
@@ -16,9 +22,6 @@ def render_top_nav():
         unsafe_allow_html=True,
     )
 
-    # Bungkus kolom dalam div kelas kustom
-    st.markdown('<div class="nav-btn-container">', unsafe_allow_html=True)
-    
     cols = st.columns([0.85, 0.85, 0.85, 0.85, 0.85, 3])
 
     with cols[0]:
@@ -31,5 +34,3 @@ def render_top_nav():
         st.button("🔄 BACKTEST", key="nav_backtest", use_container_width=True)
     with cols[4]:
         st.button("📊 ANALYTICS", key="nav_analytics", use_container_width=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)

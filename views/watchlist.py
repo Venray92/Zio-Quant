@@ -20,12 +20,35 @@ def fetch_stock_quote(ticker_symbol):
         pass
     return None, None
 
+
 def render_page_watchlist():
+    # CSS Kustom untuk Popover Icon Minimalis & Styling Card
+    st.markdown(
+        """
+        <style>
+        /* Mengecilkan ukuran tombol icon popover (+) dan (filter) */
+        div[data-testid="stPopover"] > button {
+            border: none !important;
+            background: transparent !important;
+            padding: 2px 6px !important;
+            color: #9ECBFF !important;
+            font-size: 16px !important;
+            box-shadow: none !important;
+        }
+        div[data-testid="stPopover"] > button:hover {
+            color: #00E676 !important;
+            background: rgba(255,255,255,0.05) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # 1. Header Halaman Watchlist
     st.markdown("### 📌 Stock Watchlist")
     st.caption("Pantau daftar saham pilihan Anda secara real-time.")
 
-    # 2. Inisialisasi & Sinkronisasi Session State
+    # 2. Inisialisasi Session State
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = [
             {"Ticker": "BBCA.JK", "Notes": "Pantau area support 9800", "Target Price": 10500},
@@ -48,7 +71,7 @@ def render_page_watchlist():
     if "sort_filter" not in st.session_state:
         st.session_state["sort_filter"] = "Default"
 
-    # Fetch Real-time Data untuk Card
+    # Fetch Real-time Data
     for item in st.session_state["watchlist_data"]:
         lp, chg = fetch_stock_quote(item["Ticker"])
         item["Last Price"] = lp if lp is not None else item.get("Last Price", 0.0)
@@ -58,22 +81,28 @@ def render_page_watchlist():
     col_left, col_right = st.columns([1.2, 2.3])
 
     # ==========================================
-    # KIRI: DAFTAR SAHAM (CARDS + SCROLL + HEADER FILTER/ADD)
+    # KIRI: DAFTAR SAHAM (COMPACT MATCHING IMAGE)
     # ==========================================
     with col_left:
-        total_items = len(st.session_state["watchlist_data"])
-        
-        # Header Row: Judul, (+) Add Button, Filter Button, Badge Counter
-        h_col1, h_col2, h_col3, h_col4 = st.columns([2.2, 0.6, 0.6, 1])
+        # Header Row: Badge "Watchlist", Icon Minimalis + dan Filter
+        h_col1, h_col2, h_col3 = st.columns([2.5, 0.4, 0.4])
         
         with h_col1:
-            st.markdown("<span style='font-weight: 800; color: #00F3FF; font-size: 13px;'>📋 DAFTAR SAHAM</span>", unsafe_allow_html=True)
+            st.markdown(
+                """
+                <span style="background: #064E3B; color: #00E676; border: 1px solid #10B981; 
+                             padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+                    Watchlist
+                </span>
+                """,
+                unsafe_allow_html=True,
+            )
             
         with h_col2:
-            # Popover untuk Quick Add (+)
-            with st.popover("➕", help="Tambah Saham"):
+            # Popover Icon Tambah (+)
+            with st.popover("＋", help="Tambah Saham"):
                 st.markdown("**Tambah Saham Quick**")
-                quick_ticker = st.text_input("Kode Saham", placeholder="e.g. BBRI").strip().upper()
+                quick_ticker = st.text_input("Kode Saham", placeholder="Contoh: BBRI").strip().upper()
                 if st.button("Simpan", key="btn_quick_add", use_container_width=True):
                     if len(st.session_state["watchlist_data"]) >= 50:
                         st.error("Watchlist penuh (Max 50)!")
@@ -87,24 +116,24 @@ def render_page_watchlist():
                         st.rerun()
 
         with h_col3:
-            # Popover Filter & Search
-            with st.popover("🔍", help="Filter & Search"):
-                st.markdown("**Filter Watchlist**")
+            # Popover Icon Filter (🎛️)
+            with st.popover("🎛️", help="Filter & Search"):
+                st.markdown("**Filter & Urutkan**")
                 st.session_state["search_filter"] = st.text_input("Cari Ticker", value=st.session_state["search_filter"]).strip().upper()
                 st.session_state["sort_filter"] = st.selectbox(
                     "Urutkan", 
                     ["Default", "Gainers (% High)", "Losers (% Low)", "Price High", "Price Low"]
                 )
 
-        with h_col4:
-            st.markdown(f"<div style='text-align: right;'><span style='font-size: 10px; color: #8B949E; background: #21262D; padding: 2px 6px; border-radius: 8px;'>{total_items}/50</span></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+        # Input Search Bar di Bawah Header (opsional, mirip gambar "Cari kode atau nama saham...")
+        search_kw = st.text_input("🔍 Cari kode saham...", value=st.session_state["search_filter"], placeholder="Cari kode saham...", label_visibility="collapsed").strip().upper()
 
         # Processing Filter Data
         display_list = list(st.session_state["watchlist_data"])
-        if st.session_state["search_filter"]:
-            display_list = [x for x in display_list if st.session_state["search_filter"] in x["Ticker"]]
+        if search_kw:
+            display_list = [x for x in display_list if search_kw in x["Ticker"]]
 
         if st.session_state["sort_filter"] == "Gainers (% High)":
             display_list.sort(key=lambda x: x.get("Change Pct", 0), reverse=True)
@@ -115,7 +144,7 @@ def render_page_watchlist():
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0))
 
-        # Container Panjang Fixed (420px) + Internal ScrollBar
+        # Container Fixed (420px) + Internal ScrollBar
         with st.container(height=420):
             if display_list:
                 for idx, item in enumerate(display_list):
@@ -124,38 +153,53 @@ def render_page_watchlist():
                     last_price = item.get("Last Price", 0.0)
                     pct_change = item.get("Change Pct", 0.0)
 
-                    # Tentukan warna status persentase
+                    # Tentukan warna & panah arah persentase
                     if pct_change > 0:
                         chg_color = "#00E676"
+                        arrow_icon = "📈 "
                         chg_prefix = "+"
                     elif pct_change < 0:
                         chg_color = "#FF5252"
+                        arrow_icon = "📉 "
                         chg_prefix = ""
                     else:
                         chg_color = "#8B949E"
+                        arrow_icon = ""
                         chg_prefix = ""
 
                     price_str = f"{int(last_price):,}" if last_price else "-"
-                    pct_str = f"{chg_prefix}{pct_change:.2f}%" if last_price else "-"
+                    pct_str = f"{arrow_icon}{chg_prefix}{pct_change:.2f}%" if last_price else "-"
 
-                    # Render UI Card Saham
-                    c_card, c_del = st.columns([3.3, 0.7])
+                    # Render UI Card Saham Presisi Sesuai Gambar
+                    c_card, c_del = st.columns([3.4, 0.6])
                     with c_card:
                         card_html = f"""
-                        <div style="background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 8px 12px; margin-bottom: 6px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 13px; font-weight: 800; color: #F0F6FC;">{clean_ticker}</span>
-                                <span style="font-size: 13px; font-weight: 700; color: #E6EDF3;">{price_str}</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; 
+                                    background: #0D1117; padding: 10px 12px; border-radius: 8px; 
+                                    margin-bottom: 6px; border-bottom: 1px solid #21262D;">
+                            <!-- Bagian Kiri: Badge IDX + Ticker Code -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; 
+                                            font-size: 10px; font-weight: 800; padding: 6px 8px; 
+                                            border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                                    IDX
+                                </div>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 800; color: #F0F6FC;">{clean_ticker}</div>
+                                    <div style="font-size: 10px; color: #8B949E; margin-top: -2px;">Indonesia Stock</div>
+                                </div>
                             </div>
-                            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 2px;">
-                                <span style="font-size: 11px; font-weight: 700; color: {chg_color};">{pct_str}</span>
+                            <!-- Bagian Kanan: Last Price + Percentage -->
+                            <div style="text-align: right;">
+                                <div style="font-size: 14px; font-weight: 800; color: #F0F6FC;">{price_str}</div>
+                                <div style="font-size: 11px; font-weight: 700; color: {chg_color};">{pct_str}</div>
                             </div>
                         </div>
                         """
                         st.markdown(card_html, unsafe_allow_html=True)
                     
                     with c_del:
-                        st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+                        st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
                         if st.button("🗑️", key=f"del_card_{clean_ticker}_{idx}", help=f"Hapus {clean_ticker}"):
                             st.session_state["watchlist_data"] = [
                                 x for x in st.session_state["watchlist_data"] if x["Ticker"] != ticker_raw
@@ -164,7 +208,7 @@ def render_page_watchlist():
                                 st.session_state["watchlist"].remove(clean_ticker)
                             st.rerun()
             else:
-                st.caption("Tidak ada saham yang sesuai.")
+                st.caption("Tidak ada saham yang ditemukan.")
 
     # ==========================================
     # KANAN: FORM DETAIL & TABEL UTAMA
@@ -199,7 +243,6 @@ def render_page_watchlist():
         if st.session_state["watchlist_data"]:
             df_watchlist = pd.DataFrame(st.session_state["watchlist_data"])
             
-            # Reorder Kolom
             cols_show = ["Ticker", "Last Price", "Change Pct", "Target Price", "Notes"]
             existing_cols = [c for c in cols_show if c in df_watchlist.columns]
             df_display = df_watchlist[existing_cols]

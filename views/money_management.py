@@ -2,6 +2,12 @@ import math
 import plotly.graph_objects as go
 import streamlit as st
 
+# Import TradePlanner dari file backend kamu
+try:
+    from trade_planner import TradePlanner
+except ImportError:
+    TradePlanner = None
+
 
 def render_page_money_management():
     # --- INJECT CUSTOM CSS FOR MODERN CARDS & METRICS ---
@@ -61,16 +67,8 @@ def render_page_money_management():
 
     st.title("🛡️ Position Sizing & Money Management")
     st.caption(
-        "Kelola risiko transaksi dan alokasi modal IDX 962 Saham secara presisi berdasarkan profil trading Anda."
+        "Kelola risiko transaksi dan alokasi modal IDX secara presisi berdasarkan profil trading Anda."
     )
-
-    # --- AMBIL DATA ATAU DEFAULT DARI SESSION STATE ---
-    # Jika dipanggil dari Trade Planner / Screener, data otomatis terpakai
-    default_ticker = st.session_state.get("mm_ticker", "BBCA.JK")
-    default_entry = float(st.session_state.get("mm_entry", 10000.0))
-    default_sl = float(st.session_state.get("mm_sl", 9600.0))
-    default_tp1 = float(st.session_state.get("mm_tp1", 10800.0))
-    default_tp2 = float(st.session_state.get("mm_tp2", 11600.0))
 
     # --- CONFIG PROFIL TRADING ---
     PROFILE_RULES = {
@@ -126,46 +124,135 @@ def render_page_money_management():
                 step=0.25,
             )
 
-            # Info profil otomatis
             rule = PROFILE_RULES[trading_style]
             st.caption(f"ℹ️ *{rule['desc']}*")
 
-        # Section 2: Trade Plan Parameters
+        # Section 2: Trade Plan Parameters (Auto-Sync & Format Ticker)
         with st.expander("📊 Parameter Transaksi Saham", expanded=True):
-            ticker = st.text_input("Ticker Saham", value=default_ticker).upper()
+            # Input ticker tanpa .JK
+            raw_ticker_default = (
+                st.session_state.get("mm_ticker", "BBCA")
+                .replace(".JK", "")
+                .replace(".jk", "")
+            )
+            ticker_input = st.text_input(
+                "Ticker Saham (Tanpa .JK)",
+                value=raw_ticker_default,
+                key="mm_raw_ticker_input",
+            ).strip()
+
+            clean_ticker_code = (
+                ticker_input.upper()
+                .replace(".JK", "")
+                .replace(".JK", "")
+                .strip()
+            )
+            full_ticker = (
+                f"{clean_ticker_code}.JK" if clean_ticker_code else "BBCA.JK"
+            )
+
+            # Pilih skenario setup (BOW / BOB)
+            plan_type = st.radio(
+                "Tipe Trade Plan",
+                ["BOW", "BOB"],
+                horizontal=True,
+                key="mm_plan_type_radio",
+            )
+
+            # Fungsi pembantu untuk fetch dari TradePlanner
+            def fetch_trade_plan_values():
+                if not TradePlanner:
+                    st.error("Modul `trade_planner.py` tidak ditemukan.")
+                    return
+                try:
+                    with st.spinner(
+                        f"Mengambil data Trade Plan {full_ticker}..."
+                    ):
+                        planner = TradePlanner(ticker=full_ticker)
+                        planner.fetch_and_prepare_data()
+                        df_plan = planner.generate_trade_plan()
+
+                        # Ambil baris yang sesuai tipe (BOW / BOB)
+                        matched = df_plan[df_plan["Type"] == plan_type]
+                        if matched.empty:
+                            matched = df_plan
+
+                        row = matched.iloc[0]
+
+                        # Injeksi ke session state
+                        st.session_state["mm_entry"] = float(
+                            row["Range Buy Min"]
+                        )
+                        st.session_state["mm_sl"] = float(row["Stop Loss"])
+                        st.session_state["mm_tp1"] = float(row["TP 1"])
+                        st.session_state["mm_tp2"] = float(row["TP 2"])
+                        st.session_state["last_synced_ticker"] = (
+                            clean_ticker_code
+                        )
+                        st.session_state["last_synced_type"] = plan_type
+                except Exception as e:
+                    st.error(
+                        f"Gagal mengambil Trade Plan {clean_ticker_code}: {e}"
+                    )
+
+            # Sync otomatis saat ticker / tipe setup berubah
+            need_auto_sync = (
+                st.session_state.get("last_synced_ticker") != clean_ticker_code
+                or st.session_state.get("last_synced_type") != plan_type
+                or "mm_entry" not in st.session_state
+            )
+
+            c_btn1, c_btn2 = st.columns([1.5, 1])
+            with c_btn1:
+                if st.button(
+                    "🔄 Sync Trade Plan", use_container_width=True
+                ) or (need_auto_sync and clean_ticker_code):
+                    fetch_trade_plan_values()
+
+            # Nilai fallback jika session_state belum ada
+            val_entry = float(st.session_state.get("mm_entry", 10000.0))
+            val_sl = float(st.session_state.get("mm_sl", 9600.0))
+            val_tp1 = float(st.session_state.get("mm_tp1", 10800.0))
+            val_tp2 = float(st.session_state.get("mm_tp2", 11600.0))
+
+            # Render Form Inputs
             c_entry, c_sl = st.columns(2)
             with c_entry:
                 entry_price = st.number_input(
                     "Harga Beli (Entry)",
-                    min_value=50.0,
-                    value=default_entry,
-                    step=10.0,
+                    min_value=1.0,
+                    value=val_entry,
+                    step=5.0,
+                    key="input_entry_price",
                 )
             with c_sl:
                 sl_price = st.number_input(
                     "Harga Cut Loss (SL)",
                     min_value=1.0,
-                    value=default_sl,
-                    step=10.0,
+                    value=val_sl,
+                    step=5.0,
+                    key="input_sl_price",
                 )
 
             c_tp1, c_tp2 = st.columns(2)
             with c_tp1:
                 tp1_price = st.number_input(
                     "Target Price 1 (TP1)",
-                    min_value=50.0,
-                    value=default_tp1,
-                    step=10.0,
+                    min_value=1.0,
+                    value=val_tp1,
+                    step=5.0,
+                    key="input_tp1_price",
                 )
             with c_tp2:
                 tp2_price = st.number_input(
                     "Target Price 2 (TP2)",
-                    min_value=50.0,
-                    value=default_tp2,
-                    step=10.0,
+                    min_value=1.0,
+                    value=val_tp2,
+                    step=5.0,
+                    key="input_tp2_price",
                 )
 
-        # Fee Broker IDX
+        # Section 3: Fee Sekuritas
         with st.expander("🛠️ Custom Fee Sekuritas", expanded=False):
             fee_buy = (
                 st.number_input(
@@ -218,7 +305,6 @@ def render_page_money_management():
         actual_risk_idr = (total_cost_with_fee) - (
             (final_shares * sl_price) * (1 - fee_sell)
         )
-        actual_risk_pct_capital = (actual_risk_idr / capital) * 100
 
         # Risk Reward Ratio (RRR)
         reward_tp1 = tp1_price - entry_price
@@ -330,7 +416,6 @@ def render_page_money_management():
         v1, v2 = st.columns(2)
 
         with v1:
-            # Gauge Chart untuk RRR TP1
             fig_gauge = go.Figure(
                 go.Indicator(
                     mode="gauge+number",
@@ -341,9 +426,18 @@ def render_page_money_management():
                         "axis": {"range": [0, 4]},
                         "bar": {"color": "#26a69a"},
                         "steps": [
-                            {"range": [0, 1.5], "color": "rgba(239, 83, 80, 0.3)"},
-                            {"range": [1.5, 2.0], "color": "rgba(255, 179, 0, 0.3)"},
-                            {"range": [2.0, 4.0], "color": "rgba(38, 166, 154, 0.3)"},
+                            {
+                                "range": [0, 1.5],
+                                "color": "rgba(239, 83, 80, 0.3)",
+                            },
+                            {
+                                "range": [1.5, 2.0],
+                                "color": "rgba(255, 179, 0, 0.3)",
+                            },
+                            {
+                                "range": [2.0, 4.0],
+                                "color": "rgba(38, 166, 154, 0.3)",
+                            },
                         ],
                         "threshold": {
                             "line": {"color": "white", "width": 4},
@@ -362,12 +456,14 @@ def render_page_money_management():
             st.plotly_chart(fig_gauge, use_container_width=True)
 
         with v2:
-            # Donut Chart untuk Portfolio Exposure
             cash_left = capital - total_buy_value
             fig_donut = go.Figure(
                 data=[
                     go.Pie(
-                        labels=[f"Posisi {ticker}", "Sisa Cash Modal"],
+                        labels=[
+                            f"Posisi {clean_ticker_code}",
+                            "Sisa Cash Modal",
+                        ],
                         values=[total_buy_value, cash_left],
                         hole=0.6,
                         marker_colors=["#26a69a", "#2A2E39"],

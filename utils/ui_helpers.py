@@ -6,33 +6,24 @@ from engines.trade_planner import TradePlanner
 
 
 def inject_custom_css():
-    """Injects Cyber-Futuristic Dark Trading UI & Custom CSS into Streamlit."""
+    """Injects Cyber-Futuristic Dark Trading UI & Custom CSS into Streamlit safely."""
     css_file_path = "rsi.css"
-    
-    # Cek apakah file rsi.css ada, jika ada baca dari file
+
+    # 1. Prioritaskan membaca file rsi.css jika tersedia
     if os.path.exists(css_file_path):
         with open(css_file_path, "r", encoding="utf-8") as f:
             custom_css = f"<style>\n{f.read()}\n</style>"
     else:
-        # Fallback inline CSS jika file rsi.css tidak ditemukan
+        # 2. Fallback CSS dengan selector yang aman (tanpa merusak layout global)
         custom_css = """
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-        /* Global App Styling */
+        /* Global Font & Background */
         .stApp {
-            background-color: #1A1A1A !important;
+            background-color: #0d1117 !important;
             color: #C0C5D0 !important;
             font-family: 'Share Tech Mono', monospace !important;
-        }
-
-        /* Sembunyikan Top Bar Streamlit */
-        header[data-testid="stHeader"] {
-            display: none !important;
-        }
-        .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 1rem !important;
         }
 
         /* Header Bar Styling */
@@ -42,15 +33,11 @@ def inject_custom_css():
             gap: 14px;
             text-decoration: none !important;
             cursor: pointer;
-            transition: opacity 0.2s ease-in-out;
-        }
-        .brand-link:hover {
-            opacity: 0.8;
         }
 
         .brand-logo-img {
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
             border-radius: 8px;
             object-fit: cover;
             border: 1.5px solid #00F3FF;
@@ -59,134 +46,14 @@ def inject_custom_css():
 
         .brand-title-text {
             color: #00F3FF;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 900;
             letter-spacing: 1px;
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
             font-family: 'Share Tech Mono', monospace;
         }
 
-        /* DUMMY BUTTONS STYLING */
-        div[data-testid="stColumn"] > div > div > button {
-            background-color: #242424 !important;
-            border: 1px solid #30363D !important;
-            border-radius: 4px !important;
-            color: #8A8B98 !important;
-            font-family: 'Share Tech Mono', monospace !important;
-            font-size: 11px !important;
-            font-weight: 700 !important;
-            height: 30px !important;
-            padding: 2px 8px !important;
-            margin-top: 15px !important;
-            margin-bottom: -10px !important;
-            transition: all 0.2s ease-in-out !important;
-        }
-        div[data-testid="stColumn"] > div > div > button:hover {
-            border-color: #00F3FF !important;
-            color: #00F3FF !important;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
-        }
-
-        /* MAIN POPOVER BUTTON CONTAINER */
-        div[data-testid="stPopover"] > button {
-            background-color: #242424 !important;
-            border: 2px solid #00F3FF !important;
-            border-radius: 6px !important;
-            padding: 4px 16px !important;
-            height: 42px !important;
-            width: 100% !important;
-            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
-            transition: all 0.2s ease-in-out !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-        }
-
-        div[data-testid="stPopover"] button p,
-        div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
-            color: #00F3FF !important;
-            font-weight: 900 !important;
-            font-family: 'Share Tech Mono', monospace !important;
-            text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
-            font-size: 12px !important;
-            letter-spacing: 0.5px !important;
-            margin: 0 !important;
-            white-space: nowrap !important;
-        }
-
-        div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
-        div[data-testid="stPopover"] button i,
-        div[data-testid="stPopover"] button svg {
-            color: #00F3FF !important;
-            fill: #00F3FF !important;
-            font-size: 18px !important;
-            margin: 0 !important;
-        }
-
-        div[data-testid="stPopover"] > button:hover {
-            background-color: #00F3FF !important;
-            box-shadow: 0 0 20px #00F3FF !important;
-        }
-
-        div[data-testid="stPopover"] > button:hover p,
-        div[data-testid="stPopover"] > button:hover div[data-testid="stMarkdownContainer"] p {
-            color: #000000 !important;
-            text-shadow: none !important;
-        }
-
-        div[data-testid="stPopover"] > button:hover span[data-testid="stIconMaterial"],
-        div[data-testid="stPopover"] > button:hover i,
-        div[data-testid="stPopover"] > button:hover svg {
-            color: #000000 !important;
-            fill: #000000 !important;
-        }
-
-        div[data-testid="stPopoverContent"] {
-            background-color: #242424 !important;
-            border: 2px solid #00F3FF !important;
-            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4) !important;
-            border-radius: 8px !important;
-            padding: 12px !important;
-        }
-
-        div[data-testid="stPopoverContent"] button {
-            background-color: #1E1E1E !important;
-            border: 1.5px solid #00F3FF !important;
-            border-radius: 6px !important;
-            margin: 4px 0 !important;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
-            transition: all 0.2s ease-in-out !important;
-        }
-
-        div[data-testid="stPopoverContent"] button *,
-        div[data-testid="stPopoverContent"] button p,
-        div[data-testid="stPopoverContent"] button span {
-            color: #00F3FF !important;
-            font-family: 'Share Tech Mono', monospace !important;
-            font-weight: 800 !important;
-            text-shadow: 0 0 6px #00F3FF !important;
-        }
-
-        div[data-testid="stPopoverContent"] button:hover {
-            background-color: #00F3FF !important;
-            border-color: #00F3FF !important;
-            box-shadow: 0 0 20px #00F3FF !important;
-        }
-
-        div[data-testid="stPopoverContent"] button:hover *,
-        div[data-testid="stPopoverContent"] button:hover p,
-        div[data-testid="stPopoverContent"] button:hover span {
-            color: #000000 !important;
-            text-shadow: none !important;
-        }
-
-        div.btn-active button {
-            background-color: rgba(0, 243, 255, 0.2) !important;
-            border: 2px solid #00F3FF !important;
-            box-shadow: 0 0 18px #00F3FF, inset 0 0 8px rgba(0, 243, 255, 0.5) !important;
-        }
-
+        /* Trade Plan Header Card */
         .live-plan-header {
             background: linear-gradient(90deg, rgba(0, 230, 118, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
             border-left: 5px solid #00E676;
@@ -200,7 +67,7 @@ def inject_custom_css():
         }
 
         .live-plan-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 800;
             color: #FFFFFF;
             letter-spacing: 0.5px;
@@ -227,13 +94,7 @@ def inject_custom_css():
             letter-spacing: 1px;
         }
 
-        div[data-baseweb="select"] > div {
-            background-color: #161B22 !important;
-            border: 1px solid #30363D !important;
-            border-radius: 8px !important;
-            color: #E6EDF3 !important;
-        }
-
+        /* Metric Box Styling */
         div[data-testid="stMetric"] {
             background: linear-gradient(180deg, #161B22 0%, #0D1117 100%);
             border: 1px solid #21262D;
@@ -263,7 +124,7 @@ def inject_custom_css():
         }
         </style>
         """
-        
+
     st.markdown(custom_css, unsafe_allow_html=True)
 
 
@@ -318,7 +179,7 @@ def calculate_rr_ratios(row):
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     st.markdown("---")
 
-    # 1. HEADER FUTURISTIK (TITLE LIVE TRADE PLAN)
+    # 1. HEADER LIVE TRADE PLAN
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -333,7 +194,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE DATA ANALYSIS (DI ATAS CHART)
+    # 2. DROPDOWN PERIODE
     col_select, col_space = st.columns([1, 2])
     with col_select:
         period_selected = st.selectbox(
@@ -376,7 +237,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
     """
     components.html(tv_html, height=560)
 
-    # TULISAN PERINGATAN KECIL DI BAWAH CHART
     st.markdown(
         "<div style='font-size: 11px; color: #8B949E; margin-bottom: 20px; font-weight: 500;'>"
         "*Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual, karena sistem tidak menyimpan tarikan garis secara otomatis saat Anda berpindah saham."
@@ -418,7 +278,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     grade = row.get("Grade", "N/A")
                     posisi = row.get("Posisi Harga", row.get("Status", "-"))
 
-                    # Handling Area Buy Range
                     range_min = _format_val(
                         row.get("Range Buy Min", row.get("Buy Min", "-"))
                     )
@@ -468,20 +327,20 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2); box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.05);">
-                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Area Buy</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800; text-transform: uppercase;">Area Buy</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2); box-shadow: inset 0 0 10px rgba(255, 82, 82, 0.05);">
-                                <div style="font-size: 10px; color: #FF5252; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Stop Loss</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2);">
+                                <div style="font-size: 10px; color: #FF5252; font-weight: 800; text-transform: uppercase;">Stop Loss</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2); box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.05);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Target 1 (TP 1)</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase;">Target 1 (TP 1)</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2); box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.05);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">Target 2 (TP 2)</div>
+                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                <div style="font-size: 10px; color: #00E676; font-weight: 800; text-transform: uppercase;">Target 2 (TP 2)</div>
                                 <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>
                             </div>
                         </div>
@@ -493,10 +352,8 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                     """
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # KALKULASI R:R
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
-                    # DETAIL EXPANDER
                     with st.expander(
                         f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
                         expanded=True,
@@ -510,56 +367,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             st.metric(
                                 label="R:R ( Target 2 )", value=rr_tp2_val
                             )
-
-                        skip_cols = [
-                            "No",
-                            "no",
-                            "index",
-                            "RR_Val",
-                            "rr_val",
-                            "Rasio (R:R)",
-                            "R:R",
-                            "RR",
-                            "Type",
-                            "Strategy",
-                            "Score",
-                            "Grade",
-                            "Posisi Harga",
-                            "Status",
-                            "Range Buy Min",
-                            "Buy Min",
-                            "Range Buy Max",
-                            "Buy Max",
-                            "Area Buy",
-                            "Stop Loss",
-                            "SL",
-                            "TP 1",
-                            "TP1",
-                            "Target 1",
-                            "TP 2",
-                            "TP2",
-                            "Target 2",
-                            "Warning",
-                            "Status Candle",
-                        ]
-                        extra_cols = [
-                            c for c in df_plan.columns if c not in skip_cols
-                        ]
-
-                        if extra_cols:
-                            st.markdown(
-                                "<div style='margin-top: 10px;'></div>",
-                                unsafe_allow_html=True,
-                            )
-                            cols_per_row = 3
-                            for i in range(0, len(extra_cols), cols_per_row):
-                                chunk_cols = extra_cols[i : i + cols_per_row]
-                                ui_cols = st.columns(len(chunk_cols))
-                                for col_idx, c_name in enumerate(chunk_cols):
-                                    val = _format_val(row[c_name])
-                                    ui_cols[col_idx].metric(
-                                        label=c_name, value=val
-                                    )
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan: {e}")

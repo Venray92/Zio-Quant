@@ -263,20 +263,14 @@ def render_page_watchlist():
         st.session_state["selected_cards"] = set()
     if "quick_add_count" not in st.session_state:
         st.session_state["quick_add_count"] = 1
-    if "enable_batch_delete" not in st.session_state:
-        st.session_state["enable_batch_delete"] = False
     if "input_search_ticker_field" not in st.session_state:
         st.session_state["input_search_ticker_field"] = ""
     if "selected_watchlist_ticker" not in st.session_state:
         st.session_state["selected_watchlist_ticker"] = None
 
-    # Safe reset flag untuk Mode Hapus pasca-delete
-    if "reset_batch_del" not in st.session_state:
-        st.session_state["reset_batch_del"] = False
-
-    if st.session_state["reset_batch_del"]:
-        st.session_state["enable_batch_delete"] = False
-        st.session_state["reset_batch_del"] = False
+    # Versioning key untuk mereset checkbox "Mode Hapus" secara paksa
+    if "batch_del_version" not in st.session_state:
+        st.session_state["batch_del_version"] = 0
 
     # Fetch Real-time Data
     for item in st.session_state["watchlist_data"]:
@@ -375,16 +369,18 @@ def render_page_watchlist():
             with st.popover("🗑️ Kelola", use_container_width=True):
                 st.caption("Batch Delete")
 
-                st.session_state["enable_batch_delete"] = st.checkbox(
+                # Memakai Dynamic Key berbasis versi
+                del_ver = st.session_state["batch_del_version"]
+                enable_batch_delete = st.checkbox(
                     "Mode Hapus",
-                    value=st.session_state["enable_batch_delete"],
-                    key="chk_mode_hapus_state",
+                    value=False,
+                    key=f"chk_mode_hapus_v{del_ver}",
                 )
 
-                if st.session_state["enable_batch_delete"]:
+                if enable_batch_delete:
                     if st.button(
                         "Hapus Terpilih",
-                        key="btn_execute_batch_delete",
+                        key=f"btn_execute_batch_delete_v{del_ver}",
                         type="primary",
                         use_container_width=True,
                     ):
@@ -402,8 +398,8 @@ def render_page_watchlist():
                             )
                             st.session_state["selected_cards"].clear()
 
-                            # Set flag untuk hilangkan centang setelah rerun
-                            st.session_state["reset_batch_del"] = True
+                            # Naikkan versi key agar checkbox ter-reset penuh ke uncheck
+                            st.session_state["batch_del_version"] += 1
 
                             st.toast("Saham berhasil dihapus!", icon="🗑️")
                             st.rerun()
@@ -493,12 +489,12 @@ def render_page_watchlist():
                         f"{prefix}{pct_change:.2f}%" if last_price else "-"
                     )
 
-                    if st.session_state["enable_batch_delete"]:
+                    if enable_batch_delete:
                         c_chk, c_card = st.columns([0.4, 3.6])
                         with c_chk:
                             is_checked = st.checkbox(
                                 "",
-                                key=f"card_chk_{clean_ticker}_{idx}",
+                                key=f"card_chk_{clean_ticker}_{idx}_v{del_ver}",
                                 value=ticker_raw
                                 in st.session_state["selected_cards"],
                             )

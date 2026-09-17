@@ -27,7 +27,7 @@ def clear_search_callback():
 
 
 def render_page_watchlist():
-    # CSS Custom: Panah Popover, Alignment, & Ukuran Tombol
+    # CSS Custom: Menyembunyikan panah popover & membuat tombol berbasis teks lebih lebar dan rapi
     st.markdown(
         """
         <style>
@@ -43,7 +43,7 @@ def render_page_watchlist():
             margin-bottom: 0px !important;
         }
         
-        /* Styling Button & Popover Header (Membuat Button Panjang & Rata Tengah) */
+        /* Styling Popover Header: Teks Rata Tengah, Lebih Lebar & Berbentuk Button Card */
         div[data-testid="stPopover"] > button {
             display: flex !important;
             justify-content: center !important;
@@ -52,9 +52,10 @@ def render_page_watchlist():
             width: 100% !important;
             background: #161B22 !important;
             border: 1px solid #30363D !important;
-            padding: 4px 8px !important;
+            padding: 5px 2px !important;
             color: #9ECBFF !important;
-            font-size: 15px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
             border-radius: 6px !important;
             box-shadow: none !important;
         }
@@ -143,14 +144,14 @@ def render_page_watchlist():
     # KIRI: DAFTAR SAHAM
     # ==========================================
     with col_left:
-        # Header Row: Badge "Watchlist" + 3 Button yang diperpanjang porsinya (0.7, 0.7, 0.7)
-        h_col1, h_col2, h_col3, h_col4 = st.columns([1.4, 0.7, 0.7, 0.7])
+        # Header Row: Badge "Watchlist" + 3 Tombol Popover Berteks (Tambah, Hapus, Filter)
+        h_col1, h_col2, h_col3, h_col4 = st.columns([1.0, 1.0, 1.0, 1.0])
         
         with h_col1:
             st.markdown(
                 """
                 <span style="background: #064E3B; color: #00E676; border: 1px solid #10B981; 
-                             padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-block; margin-top: 3px;">
+                             padding: 5px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; display: block; text-align: center;">
                     Watchlist
                 </span>
                 """,
@@ -158,8 +159,8 @@ def render_page_watchlist():
             )
             
         with h_col2:
-            # Popover Icon Tambah (+) - Multi Dynamic Input
-            with st.popover("＋", help="Tambah Saham"):
+            # Popover Tombol Tambah Teks
+            with st.popover("Tambah", help="Tambah Saham"):
                 st.markdown("<div style='text-align:center;'><b>Tambah Saham Quick</b></div>", unsafe_allow_html=True)
                 
                 inputs = []
@@ -181,21 +182,24 @@ def render_page_watchlist():
                             for ticker in inputs:
                                 if len(st.session_state["watchlist_data"]) < 50:
                                     formatted = ticker if ticker.endswith(".JK") else f"{ticker}.JK"
-                                    st.session_state["watchlist_data"].append({
-                                        "Ticker": formatted,
-                                        "Notes": "Quick Added",
-                                        "Target Price": 0
-                                    })
-                                    added_count += 1
-                            st.session_state["quick_add_count"] = 1
+                                    # Tambahkan jika belum ada di list
+                                    existing = [x["Ticker"] for x in st.session_state["watchlist_data"]]
+                                    if formatted not in existing:
+                                        st.session_state["watchlist_data"].append({
+                                            "Ticker": formatted,
+                                            "Notes": "Quick Added",
+                                            "Target Price": 0
+                                        })
+                                        added_count += 1
+                            # Catatan: Kolom tidak di-clear/reset agar data tetap ada
                             st.toast(f"{added_count} Saham berhasil ditambahkan!", icon="🚀")
                             st.rerun()
                         else:
                             st.warning("Masukkan kode saham!")
 
         with h_col3:
-            # Popover Menu Hapus (🗑️)
-            with st.popover("🗑️", help="Menu Hapus"):
+            # Popover Tombol Hapus Teks
+            with st.popover("Hapus", help="Menu Hapus"):
                 st.markdown("<div style='text-align:center;'><b>Pengaturan Hapus</b></div>", unsafe_allow_html=True)
                 
                 st.session_state["enable_batch_delete"] = st.checkbox(
@@ -223,8 +227,8 @@ def render_page_watchlist():
                             st.warning("Belum ada saham yang dicentang.")
 
         with h_col4:
-            # Popover Icon Filter (🎛️)
-            with st.popover("🎛️", help="Filter & Urutkan"):
+            # Popover Tombol Filter Teks
+            with st.popover("Filter", help="Filter & Urutkan"):
                 st.markdown("<div style='text-align:center;'><b>Filter & Urutkan</b></div>", unsafe_allow_html=True)
                 st.session_state["sort_filter"] = st.selectbox(
                     "Urutkan", 

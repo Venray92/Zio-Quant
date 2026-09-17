@@ -25,7 +25,7 @@ def _clean_num(val):
         return None
 
 
-def render_money_management_page():
+def render_page_money_management():
     st.markdown(
         """
         <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 20px; border-radius: 12px; border-left: 6px solid #10B981; margin-bottom: 25px;">

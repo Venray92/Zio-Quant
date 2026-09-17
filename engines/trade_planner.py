@@ -60,9 +60,9 @@ class TradePlanner:
         stock = yf.Ticker(self.ticker)
         df = stock.history(period=self.period, interval="1d").reset_index()
 
-        if df.empty or len(df) < 14:
+        if df.empty or len(df) < 20:
             raise ValueError(
-                f"Data tidak mencukupi/tidak ditemukan untuk ticker '{self.ticker}'."
+                f"Data tidak mencukupi (minimal 20 bar) atau tidak ditemukan untuk ticker '{self.ticker}'."
             )
 
         if "Date" in df.columns:
@@ -71,7 +71,7 @@ class TradePlanner:
         df["Body_Top"] = df[["Open", "Close"]].max(axis=1)
         df["Body_Bottom"] = df[["Open", "Close"]].min(axis=1)
 
-        # ATR(14)
+        # ATR(14) Calculation
         df["Prev_Close"] = df["Close"].shift(1)
         df["TR"] = np.maximum(
             df["High"] - df["Low"],
@@ -85,7 +85,7 @@ class TradePlanner:
             atr_series.iloc[-1] if not pd.isna(atr_series.iloc[-1]) else 0.0
         )
 
-        # Swing Points
+        # Swing Points Detection
         order = 3
         high_idx = argrelextrema(
             df["High"].values, np.greater_equal, order=order
@@ -95,8 +95,8 @@ class TradePlanner:
         )[0]
 
         df["Swing_Type"] = ""
-        df.iloc[high_idx, df.columns.get_loc("Swing_Type")] = "Swing High"
-        df.iloc[low_idx, df.columns.get_loc("Swing_Type")] = "Swing Low"
+        df.loc[df.index.isin(high_idx), "Swing_Type"] = "Swing High"
+        df.loc[df.index.isin(low_idx), "Swing_Type"] = "Swing Low"
 
         self.df = df
 
@@ -137,7 +137,11 @@ class TradePlanner:
 
         res_df = pd.DataFrame(accepted_rows)
         if not res_df.empty:
-            res_df = res_df.head(3).reset_index(drop=True)
+            # Urutkan berdasarkan level harga agar Rank 1st selalu yang terdekat
+            sort_ascending = True if prefix == "Resistance" else False
+            sort_by_col = col1 if col1 in res_df.columns else col2
+            res_df = res_df.sort_values(by=sort_by_col, ascending=sort_ascending).head(3).reset_index(drop=True)
+            
             ranks = [
                 f"1st {prefix} (Terdekat)"
                 if i == 0
@@ -215,7 +219,7 @@ class TradePlanner:
         }])
 
     def classify_candle(self):
-        if len(self.df) < 5 or self.atr_14 <= 0:
+        if len(self.df) < 20 or self.atr_14 <= 0:
             return "Standard Candle", "NEUTRAL"
 
         ma20 = self.df["Close"].rolling(20).mean().iloc[-1]

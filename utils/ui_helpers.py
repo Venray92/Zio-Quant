@@ -69,6 +69,63 @@ def calculate_rr_ratios(row):
 # ==========================================================================
 # 2. MONEY MANAGEMENT VISUALIZATION HELPERS
 # ==========================================================================
+def render_metric_card(
+    label: str,
+    value: str,
+    subtext: str = "",
+    badge_text: str = "",
+    badge_type: str = "green",
+    val_color: str = "#E6EDF3",
+):
+    """Render komponen card metric ringkas."""
+    badge_html = (
+        f'<span class="mm-badge-{badge_type}">{badge_text}</span>'
+        if badge_text
+        else ""
+    )
+    sub_html = (
+        f'<div style="font-size: 12px; color: #8B949E;">{subtext}</div>'
+        if subtext
+        else ""
+    )
+
+    st.markdown(
+        f"""
+        <div class="mm-card">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value" style="color:{val_color};">{value}</div>
+            {sub_html}
+            {badge_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_scaling_card(
+    title: str,
+    lot: int,
+    price: float,
+    profit: float,
+    footer_text: str,
+    footer_color: str = "green",
+):
+    """Render card rencana scaling out / partial profit taking."""
+    footer_c = "#00E676" if footer_color == "green" else "#FFB300"
+    st.markdown(
+        f"""
+        <div class="mm-card">
+            <h4 style="margin:0; color:#00E676;">{title}</h4>
+            <p style="margin:8px 0; font-size:14px; color:#E6EDF3;"><b>Jual {lot:,} Lot</b> di harga <b>Rp {price:,.0f}</b></p>
+            <p style="margin:0; font-size:13px; color:#8B949E;">Profit Diamankan: <b style="color:#00E676;">+Rp {profit:,.0f}</b></p>
+            <hr style="margin:12px 0; border-color:#21262D;">
+            <span style="font-size:12px; color:{footer_c};">{footer_text}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_risk_gauge_chart(actual_risk_pct, risk_pct):
     """Membentuk Plotly Gauge Chart untuk mengukur Toleransi Risiko vs Risiko Riil."""
     max_range = max(10.0, float(risk_pct) * 1.2)

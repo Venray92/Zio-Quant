@@ -77,8 +77,8 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
-    col_select, col_btn, _ = st.columns([1.5, 1.2, 1.3])
+  # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
+    col_select, col_btn = st.columns([2, 1])
     
     with col_select:
         period_selected = st.selectbox(
@@ -94,6 +94,19 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         
         clean_ticker_code = ticker_symbol.upper().strip()
         is_in_watchlist = clean_ticker_code in st.session_state["watchlist"]
+
+        # Wrapper CSS untuk memaksa tombol mentok ke kanan penuh
+        st.markdown(
+            """
+            <style>
+            div[element-id*="btn_add_wl_"] {
+                display: flex;
+                justify-content: flex-end;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
 
         if is_in_watchlist:
             st.button("✅ In Watchlist", key=f"btn_add_wl_{key_suffix}", disabled=True, use_container_width=True)

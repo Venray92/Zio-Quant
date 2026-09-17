@@ -123,9 +123,12 @@ def render_page_watchlist():
     st.markdown("### 📌 Stock Watchlist")
     st.caption("Pantau daftar saham pilihan Anda secara real-time.")
 
-    # 2. Inisialisasi Session State & Muat Data Permanen
+    # 2. Inisialisasi Session State & Versi Form
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
+
+    if "add_form_version" not in st.session_state:
+        st.session_state["add_form_version"] = 0
 
     if "sort_filter" not in st.session_state:
         st.session_state["sort_filter"] = "Default"
@@ -171,10 +174,14 @@ def render_page_watchlist():
                 st.markdown("<div style='text-align:center;'><b>Tambah Saham Quick</b></div>", unsafe_allow_html=True)
                 
                 inputs = []
+                ver = st.session_state["add_form_version"]
+                
                 for i in range(st.session_state["quick_add_count"]):
+                    # Key dinamis berdasarkan versi form
+                    input_key = f"quick_t_{i}_v{ver}"
                     val = st.text_input(
                         f"Kode Saham #{i+1}", 
-                        key=f"quick_t_{i}", 
+                        key=input_key, 
                         placeholder="Contoh: BBRI"
                     ).strip().upper()
                     if val:
@@ -206,13 +213,10 @@ def render_page_watchlist():
                             # Simpan Perubahan ke File Permanen
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             
-                            # HAPUS EKSPLISIT DARI SESSION STATE UNTUK AUTO-CLEAR INPUT
-                            for i in range(st.session_state["quick_add_count"]):
-                                k = f"quick_t_{i}"
-                                if k in st.session_state:
-                                    del st.session_state[k]
-                            
+                            # SOLUSI PASTI AUTO-CLEAR: Naikkan versi form & reset jumlah baris
+                            st.session_state["add_form_version"] += 1
                             st.session_state["quick_add_count"] = 1
+                            
                             st.toast(f"{added_count} Saham berhasil ditambahkan!", icon="🚀")
                             st.rerun()
                         else:

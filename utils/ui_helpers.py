@@ -58,7 +58,7 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* DUMMY BUTTONS STYLING - UKURAN KECIL, NEMPEL GARIS PEMBATAS, ALIGN KIRI */
+    /* DUMMY BUTTONS STYLING */
     div[data-testid="stColumn"] > div > div > button {
         background-color: #242424 !important;
         border: 1px solid #30363D !important;
@@ -95,7 +95,7 @@ def inject_custom_css():
         gap: 8px !important;
     }
 
-    /* PENGATURAN TEKS LABEL TOMBOL (DIPISAH DARI ICON) */
+    /* PENGATURAN TEKS LABEL TOMBOL */
     div[data-testid="stPopover"] button p,
     div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
         color: #00F3FF !important;
@@ -108,7 +108,7 @@ def inject_custom_css():
         white-space: nowrap !important;
     }
 
-    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT (JANGAN UBAH FONT-FAMILY) */
+    /* PENGATURAN ICON PANAH STREAMLIT */
     div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
     div[data-testid="stPopover"] button i,
     div[data-testid="stPopover"] button svg {
@@ -136,6 +136,7 @@ def inject_custom_css():
         color: #000000 !important;
         fill: #000000 !important;
     }
+
     /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #242424 !important;
@@ -290,9 +291,7 @@ def _clean_num(val):
 
 def calculate_rr_ratios(row):
     buy_val = _clean_num(
-        row.get(
-            "Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))
-        )
+        row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None)))
     )
     sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
     tp1_val = _clean_num(
@@ -333,8 +332,8 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE DATA ANALYSIS (DI ATAS CHART)
-    col_select, col_space = st.columns([1, 2])
+    # 2. DROPDOWN PERIODE DATA ANALYSIS
+    col_select, _ = st.columns([1, 2])
     with col_select:
         period_selected = st.selectbox(
             "⏱️ Periode Data Analysis",
@@ -376,17 +375,17 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
     """
     components.html(tv_html, height=560)
 
-    # TULISAN PERINGATAN KECIL DI BAWAH CHART
+    # PERINGATAN KECIL DI BAWAH CHART
     st.markdown(
         "<div style='font-size: 11px; color: #8B949E; margin-bottom: 20px; font-weight: 500;'>"
-        "**Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual, karena sistem tidak menyimpan tarikan garis secara otomatis saat Anda berpindah saham."
+        "*Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual, karena sistem tidak menyimpan tarikan garis secara otomatis saat Anda berpindah saham."
         "</div>",
         unsafe_allow_html=True,
     )
 
     # 4. TRADE PLAN RECOMMENDATION
     with st.spinner(
-        f"⚡ Menganalisis & Meng kalkulasi Trade Plan {ticker_symbol}..."
+        f"⚡ Menganalisis & Mengkalkulasi Trade Plan {ticker_symbol}..."
     ):
         try:
             planner = TradePlanner(
@@ -402,7 +401,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             )
 
             if df_plan is not None and not (
-                hasattr(df_plan, "empty") and df_plan.empty
+                isinstance(df_plan, pd.DataFrame) and df_plan.empty
             ):
                 st.markdown(
                     '<div class="section-title">🎯 Trade Plan Recommendation</div>',
@@ -511,7 +510,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                                 label="R:R ( Target 2 )", value=rr_tp2_val
                             )
 
-                        skip_cols = [
+                        skip_cols = {
                             "No",
                             "no",
                             "index",
@@ -541,7 +540,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                             "Target 2",
                             "Warning",
                             "Status Candle",
-                        ]
+                        }
                         extra_cols = [
                             c for c in df_plan.columns if c not in skip_cols
                         ]

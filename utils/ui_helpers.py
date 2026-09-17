@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
-from trade_planner import TradePlanner
+from engines.trade_planner import TradePlanner
 
 
 def inject_custom_css():

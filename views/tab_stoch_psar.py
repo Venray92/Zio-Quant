@@ -107,7 +107,7 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-           4. STYLING SELECT SAHAM BUTTON (OVERRIDE WARNA MERAH)
+           4. STYLING SELECT SAHAM BUTTON
            ========================================================= */
         /* All Stock Selection Buttons */
         div[data-testid="stColumn"] button[kind="primary"],
@@ -143,7 +143,7 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-           5. STYLING SELECTBOX / DROPDOWN (NEON BORDER & TEXT)
+           5. STYLING SELECTBOX / DROPDOWN
            ========================================================= */
         div[data-testid="stSelectbox"] > div > div {
             background-color: #0D1117 !important;
@@ -351,9 +351,7 @@ def render_tab_stoch_psar():
             )
 
             if not df_target.empty:
-                # =========================================================
                 # BUNGKUS DENGAN CONTAINER UNTUK SCROLLING (MAX HEIGHT)
-                # =========================================================
                 with st.container(height=550, border=False):
                     for idx, row in df_target.iterrows():
                         ticker = str(row.get("Ticker", ""))

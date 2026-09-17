@@ -5,13 +5,135 @@ from trade_planner import TradePlanner
 
 
 def inject_custom_css():
-    """Injects Cyber-Futuristic Dark Trading UI into Streamlit."""
+    """Injects Cyber-Futuristic Dark Trading UI & Custom CSS into Streamlit."""
     custom_css = """
     <style>
-    /* Global App Styling */
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    /* Global App Styling (Abu Gelap & Cyber Font) */
     .stApp {
-        background-color: #0B0E14 !important;
-        color: #E6EDF3 !important;
+        background-color: #1A1A1A !important;
+        color: #C0C5D0 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+    }
+
+    /* Sembunyikan Top Bar Streamlit */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+    }
+
+    /* Header Bar & Popover Styling */
+    .brand-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        text-decoration: none !important;
+        cursor: pointer;
+        transition: opacity 0.2s ease-in-out;
+    }
+    .brand-link:hover {
+        opacity: 0.8;
+    }
+
+    .brand-logo-img {
+        width: 55px;
+        height: 55px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1.5px solid #00F3FF;
+        box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+    }
+
+    .brand-title-text {
+        color: #00F3FF;
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+        font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* MAIN POPOVER BUTTON */
+    div[data-testid="stPopover"] > button {
+        background-color: #242424 !important;
+        border: 2px solid #00FF66 !important;
+        border-radius: 8px !important;
+        padding: 6px 16px !important;
+        height: 48px !important;
+        box-shadow: 0 0 15px #00FF66, inset 0 0 8px rgba(0, 255, 102, 0.4) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    div[data-testid="stPopover"] > button *,
+    div[data-testid="stPopover"] > button p {
+        color: #00FF66 !important;
+        font-weight: 900 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        text-shadow: 0 0 8px #00FF66 !important;
+        letter-spacing: 1px !important;
+    }
+
+    div[data-testid="stPopover"] > button:hover {
+        background-color: #00FF66 !important;
+        box-shadow: 0 0 25px #00FF66 !important;
+    }
+
+    div[data-testid="stPopover"] > button:hover *,
+    div[data-testid="stPopover"] > button:hover p {
+        color: #000000 !important;
+        text-shadow: none !important;
+    }
+
+    /* Container Popover Dropdown */
+    div[data-testid="stPopoverContent"] {
+        background-color: #242424 !important;
+        border: 2px solid #00FF66 !important;
+        box-shadow: 0 0 25px rgba(0, 255, 102, 0.5) !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
+    }
+
+    /* TOMBOL ITEM 1, 2, 3 DI DALAM DROPDOWN */
+    div[data-testid="stPopoverContent"] button {
+        background-color: #1E1E1E !important;
+        border: 1.5px solid #00FF66 !important;
+        border-radius: 6px !important;
+        margin: 4px 0 !important;
+        box-shadow: 0 0 10px rgba(0, 255, 102, 0.4), inset 0 0 5px rgba(0, 255, 102, 0.2) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    div[data-testid="stPopoverContent"] button *,
+    div[data-testid="stPopoverContent"] button p,
+    div[data-testid="stPopoverContent"] button span {
+        color: #00FF66 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        font-weight: 800 !important;
+        text-shadow: 0 0 6px #00FF66 !important;
+    }
+
+    div[data-testid="stPopoverContent"] button:hover {
+        background-color: #00FF66 !important;
+        border-color: #00FF66 !important;
+        box-shadow: 0 0 20px #00FF66 !important;
+    }
+
+    div[data-testid="stPopoverContent"] button:hover *,
+    div[data-testid="stPopoverContent"] button:hover p,
+    div[data-testid="stPopoverContent"] button:hover span {
+        color: #000000 !important;
+        text-shadow: none !important;
+    }
+
+    /* State Aktif Preset Screener */
+    div.btn-active button {
+        background-color: rgba(0, 255, 102, 0.25) !important;
+        border: 2px solid #00FF66 !important;
+        box-shadow: 0 0 18px #00FF66, inset 0 0 8px rgba(0, 255, 102, 0.6) !important;
     }
 
     /* Subheader & Section Headers */

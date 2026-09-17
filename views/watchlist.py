@@ -163,9 +163,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
             if df_plan is not None and not df_plan.empty:
                 st.markdown(
-                    '<div class="section-title" style="font-size: 13px;'
-                    ' margin-bottom: 8px;">🎯 TRADE PLAN'
-                    " RECOMMENDATION</div>",
+                    '<div class="section-title" style="font-size: 13px; margin-bottom: 8px;">🎯 TRADE PLAN RECOMMENDATION</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -239,19 +237,14 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
                     with st.expander(
-                        f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no}"
-                        f" ({plan_type})",
+                        f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
                         expanded=False,
                     ):
                         c1, c2 = st.columns(2)
                         with c1:
-                            st.metric(
-                                label="R:R ( Target 1 )", value=rr_tp1_val
-                            )
+                            st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
                         with c2:
-                            st.metric(
-                                label="R:R ( Target 2 )", value=rr_tp2_val
-                            )
+                            st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan: {e}")
@@ -264,21 +257,30 @@ def render_page_watchlist():
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
 
-    # SYNC DARI SESSION STATE "watchlist"
-    if "watchlist" in st.session_state and isinstance(
-        st.session_state["watchlist"], list
-    ):
-        existing_tickers = [
-            x["Ticker"] for x in st.session_state["watchlist_data"]
-        ]
+    # SINKRONISASI DINAMIS DARI SESSION STATE "watchlist"
+    if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
+        existing_tickers = [x["Ticker"] for x in st.session_state["watchlist_data"]]
         has_new = False
+
+        # Ambil nama screener aktif dari session_state jika ada
+        active_screener_name = st.session_state.get("active_screener_name", "Screener")
+
         for item in st.session_state["watchlist"]:
-            formatted = item if item.endswith(".JK") else f"{item}.JK"
-            if formatted not in existing_tickers:
+            # Jika item berupa dict, cek catatan sumbernya
+            if isinstance(item, dict):
+                ticker_raw = item.get("Ticker", "")
+                notes_source = item.get("Notes", item.get("Source", active_screener_name))
+            else:
+                ticker_raw = str(item)
+                notes_source = active_screener_name
+
+            formatted = ticker_raw if ticker_raw.endswith(".JK") else f"{ticker_raw}.JK"
+
+            if formatted and formatted not in existing_tickers:
                 st.session_state["watchlist_data"].append(
                     {
                         "Ticker": formatted,
-                        "Notes": "Stoch-Trend Radar",
+                        "Notes": notes_source,
                         "Target Price": 0,
                     }
                 )
@@ -312,8 +314,7 @@ def render_page_watchlist():
             item["Change Pct"] = chg
 
     st.markdown(
-        "<h4 style='margin-bottom: 12px; font-weight: 700;"
-        " color: #E6EDF3;'>WATCHLIST</h4>",
+        "<h4 style='margin-bottom: 12px; font-weight: 700; color: #E6EDF3;'>WATCHLIST</h4>",
         unsafe_allow_html=True,
     )
 
@@ -367,33 +368,26 @@ def render_page_watchlist():
                                 for x in st.session_state["watchlist_data"]
                             ]
                             for ticker in inputs:
-                                if (
-                                    len(st.session_state["watchlist_data"])
-                                    < 50
-                                ):
+                                if len(st.session_state["watchlist_data"]) < 50:
                                     formatted = (
                                         ticker
                                         if ticker.endswith(".JK")
                                         else f"{ticker}.JK"
                                     )
                                     if formatted not in existing_tickers:
-                                        st.session_state[
-                                            "watchlist_data"
-                                        ].append({
-                                            "Ticker": formatted,
-                                            "Notes": "Quick Added",
-                                            "Target Price": 0,
-                                        })
+                                        st.session_state["watchlist_data"].append(
+                                            {
+                                                "Ticker": formatted,
+                                                "Notes": "Quick Added",
+                                                "Target Price": 0,
+                                            }
+                                        )
                                         added_count += 1
 
-                            save_watchlist_to_file(
-                                st.session_state["watchlist_data"]
-                            )
+                            save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["add_form_version"] += 1
                             st.session_state["quick_add_count"] = 1
-                            st.toast(
-                                f"{added_count} Saham ditambahkan!", icon="🚀"
-                            )
+                            st.toast(f"{added_count} Saham ditambahkan!", icon="🚀")
                             st.rerun()
 
         with h_col2:
@@ -415,9 +409,7 @@ def render_page_watchlist():
                         use_container_width=True,
                     ):
                         if st.session_state["selected_cards"]:
-                            to_remove = list(
-                                st.session_state["selected_cards"]
-                            )
+                            to_remove = list(st.session_state["selected_cards"])
                             st.session_state["watchlist_data"] = [
                                 x
                                 for x in st.session_state["watchlist_data"]
@@ -428,13 +420,11 @@ def render_page_watchlist():
                                 st.session_state["watchlist"] = [
                                     x
                                     for x in st.session_state["watchlist"]
-                                    if x not in to_remove
-                                    and f"{x}.JK" not in to_remove
+                                    if (isinstance(x, str) and x not in to_remove and f"{x}.JK" not in to_remove)
+                                    or (isinstance(x, dict) and x.get("Ticker") not in to_remove and f"{x.get('Ticker')}.JK" not in to_remove)
                                 ]
 
-                            save_watchlist_to_file(
-                                st.session_state["watchlist_data"]
-                            )
+                            save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["selected_cards"].clear()
                             st.session_state["batch_del_version"] += 1
                             st.toast("Saham berhasil dihapus!", icon="🗑️")
@@ -481,20 +471,14 @@ def render_page_watchlist():
 
         display_list = list(st.session_state["watchlist_data"])
         if search_val:
-            display_list = [
-                x for x in display_list if search_val in x["Ticker"]
-            ]
+            display_list = [x for x in display_list if search_val in x["Ticker"]]
 
         if st.session_state["sort_filter"] == "Gainers (% High)":
-            display_list.sort(
-                key=lambda x: x.get("Change Pct", 0) or 0, reverse=True
-            )
+            display_list.sort(key=lambda x: x.get("Change Pct", 0) or 0, reverse=True)
         elif st.session_state["sort_filter"] == "Losers (% Low)":
             display_list.sort(key=lambda x: x.get("Change Pct", 0) or 0)
         elif st.session_state["sort_filter"] == "Price High":
-            display_list.sort(
-                key=lambda x: x.get("Last Price", 0) or 0, reverse=True
-            )
+            display_list.sort(key=lambda x: x.get("Last Price", 0) or 0, reverse=True)
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0) or 0)
 
@@ -531,7 +515,7 @@ def render_page_watchlist():
 
                     with c_card:
                         with st.container(border=True):
-                            # Baris Atas: Ticker & Harga (Ringkas)
+                            # Baris Atas: Ticker & Harga (Kompak)
                             col_info, col_price = st.columns([1.3, 1])
 
                             with col_info:
@@ -539,7 +523,7 @@ def render_page_watchlist():
                                     f"<div style='font-size: 15px; font-weight: 800; color: #E6EDF3;'>{clean_ticker}</div>",
                                     unsafe_allow_html=True,
                                 )
-                                # Label Sumber Tambah
+                                # Menampilkan label sumber dinamis (RSI Matrix / Stoch-Trend Radar / dll)
                                 st.caption(f"🔹 {notes_tag}")
 
                             with col_price:
@@ -564,8 +548,7 @@ def render_page_watchlist():
                                     )
 
                             is_active = (
-                                st.session_state["selected_watchlist_ticker"]
-                                == ticker_raw
+                                st.session_state["selected_watchlist_ticker"] == ticker_raw
                             )
                             btn_label = (
                                 "📍 Aktif Dilihat"
@@ -579,9 +562,7 @@ def render_page_watchlist():
                                 use_container_width=True,
                                 type="primary" if is_active else "secondary",
                             ):
-                                st.session_state["selected_watchlist_ticker"] = (
-                                    ticker_raw
-                                )
+                                st.session_state["selected_watchlist_ticker"] = ticker_raw
                                 st.rerun()
 
             else:
@@ -599,6 +580,4 @@ def render_page_watchlist():
                 key_suffix=f"wl_{selected_ticker.replace('.', '_')}",
             )
         else:
-            st.info(
-                "Pilih salah satu saham dari daftar pantauan di sebelah kiri."
-            )
+            st.info("Pilih salah satu saham dari daftar pantauan di sebelah kiri.")

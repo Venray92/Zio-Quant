@@ -270,6 +270,14 @@ def render_page_watchlist():
     if "selected_watchlist_ticker" not in st.session_state:
         st.session_state["selected_watchlist_ticker"] = None
 
+    # Safe reset flag untuk Mode Hapus pasca-delete
+    if "reset_batch_del" not in st.session_state:
+        st.session_state["reset_batch_del"] = False
+
+    if st.session_state["reset_batch_del"]:
+        st.session_state["enable_batch_delete"] = False
+        st.session_state["reset_batch_del"] = False
+
     # Fetch Real-time Data
     for item in st.session_state["watchlist_data"]:
         lp, chg = fetch_stock_quote(item["Ticker"])
@@ -363,43 +371,42 @@ def render_page_watchlist():
                             )
                             st.rerun()
 
-with h_col2:
-    with st.popover("🗑️ Kelola", use_container_width=True):
-        st.caption("Batch Delete")
+        with h_col2:
+            with st.popover("🗑️ Kelola", use_container_width=True):
+                st.caption("Batch Delete")
 
-        # Inisialisasi widget state jika belum ada
-        if "chk_enable_batch_del" not in st.session_state:
-            st.session_state["chk_enable_batch_del"] = False
+                st.session_state["enable_batch_delete"] = st.checkbox(
+                    "Mode Hapus",
+                    value=st.session_state["enable_batch_delete"],
+                    key="chk_mode_hapus_state",
+                )
 
-        # Gunakan key langsung untuk mengontrol checkbox
-        enable_del = st.checkbox(
-            "Mode Hapus", key="chk_enable_batch_del"
-        )
-        st.session_state["enable_batch_delete"] = enable_del
+                if st.session_state["enable_batch_delete"]:
+                    if st.button(
+                        "Hapus Terpilih",
+                        key="btn_execute_batch_delete",
+                        type="primary",
+                        use_container_width=True,
+                    ):
+                        if st.session_state["selected_cards"]:
+                            to_remove = list(
+                                st.session_state["selected_cards"]
+                            )
+                            st.session_state["watchlist_data"] = [
+                                x
+                                for x in st.session_state["watchlist_data"]
+                                if x["Ticker"] not in to_remove
+                            ]
+                            save_watchlist_to_file(
+                                st.session_state["watchlist_data"]
+                            )
+                            st.session_state["selected_cards"].clear()
 
-        if enable_del:
-            if st.button(
-                "Hapus Terpilih",
-                key="btn_execute_batch_delete",
-                type="primary",
-                use_container_width=True,
-            ):
-                if st.session_state["selected_cards"]:
-                    to_remove = list(st.session_state["selected_cards"])
-                    st.session_state["watchlist_data"] = [
-                        x
-                        for x in st.session_state["watchlist_data"]
-                        if x["Ticker"] not in to_remove
-                    ]
-                    save_watchlist_to_file(st.session_state["watchlist_data"])
-                    st.session_state["selected_cards"].clear()
+                            # Set flag untuk hilangkan centang setelah rerun
+                            st.session_state["reset_batch_del"] = True
 
-                    # RESET MODE HAPUS (AUTO CLEAR UNCHECK)
-                    st.session_state["chk_enable_batch_del"] = False
-                    st.session_state["enable_batch_delete"] = False
-
-                    st.toast("Saham berhasil dihapus!", icon="🗑️")
-                    st.rerun()
+                            st.toast("Saham berhasil dihapus!", icon="🗑️")
+                            st.rerun()
 
         with h_col3:
             with st.popover("⚡ Sort", use_container_width=True):

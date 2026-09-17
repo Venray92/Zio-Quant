@@ -271,7 +271,7 @@ def calculate_rr_ratios(row):
 def render_inline_trade_planner(ticker_symbol, key_suffix):
     st.markdown("---")
 
-    # 1. HEADER FUTURISTIK (TITLE + PERIODE DATA)
+    # 1. HEADER FUTURISTIK (TITLE LIVE TRADE PLAN)
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -286,41 +286,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # -------------------------------------------------------------
-    # 2. INTEGRASI TRADINGVIEW ADVANCED CHART (DENGAN DRAWING TOOLS)
-    # -------------------------------------------------------------
-    # Format ticker IHSG ke prefix TradingView ("IDX:AYAM")
-    clean_ticker = (
-        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
-    )
-    tv_symbol = f"IDX:{clean_ticker}"
-
-    tv_html = f"""
-    <div class="tradingview-widget-container" style="height:520px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-bottom: 20px;">
-      <div id="tradingview_chart_{key_suffix}" style="height:100%; width:100%;"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-      <script type="text/javascript">
-      new TradingView.widget({{
-        "autosize": true,
-        "symbol": "{tv_symbol}",
-        "interval": "D",
-        "timezone": "Asia/Jakarta",
-        "theme": "dark",
-        "style": "1",
-        "locale": "en",
-        "toolbar_bg": "#1A1A1A",
-        "enable_publishing": false,
-        "hide_side_toolbar": false,   // AKTIFKAN PANEL TOOLS TARIK GARIS DI KIRI
-        "allow_symbol_change": true,
-        "save_image": true,
-        "container_id": "tradingview_chart_{key_suffix}"
-      }});
-      </script>
-    </div>
-    """
-    components.html(tv_html, height=530)
-    # -------------------------------------------------------------
-
+    # 2. DROPDOWN PERIODE DATA ANALYSIS (DITAROK DI ATAS CHART)
     col_select, col_space = st.columns([1, 2])
     with col_select:
         period_selected = st.selectbox(
@@ -330,6 +296,44 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             key=f"period_{key_suffix}",
         )
 
+    # 3. TRADINGVIEW WIDGET (DENGAN LOCAL STORAGE STORAGE & FIXED CONTAINER)
+    clean_ticker = (
+        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
+    )
+    tv_symbol = f"IDX:{clean_ticker}"
+
+    # Menggunakan TradingView Widget Advanced dengan autosave layout & localstorage
+    tv_html = f"""
+    <div class="tradingview-widget-container" style="height:550px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-top: 10px; margin-bottom: 24px;">
+      <div id="tv_chart_container_{clean_ticker}" style="height:100%; width:100%;"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+      if (typeof TradingView !== 'undefined') {{
+          new TradingView.widget({{
+            "autosize": true,
+            "symbol": "{tv_symbol}",
+            "interval": "D",
+            "timezone": "Asia/Jakarta",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#1A1A1A",
+            "enable_publishing": false,
+            "hide_side_toolbar": false,     // Tampilkan toolbar garis di kiri
+            "allow_symbol_change": true,
+            "save_image": true,
+            "container_id": "tv_chart_container_{clean_ticker}",
+            "remember_page": true,
+            "auto_save_change": true
+          }});
+      }}
+      </script>
+    </div>
+    """
+    # Key unik per ticker agar Streamlit tidak memusnahkan DOM iframe saat ganti saham
+    components.html(tv_html, height=560, key=f"tv_widget_{clean_ticker}")
+
+    # 4. TRADE PLAN RECOMMENDATION
     with st.spinner(
         f"⚡ Menganalisis & Meng kalkulasi Trade Plan {ticker_symbol}..."
     ):
@@ -447,7 +451,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                         f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
                         expanded=True,
                     ):
-                        # Row 1: Dua Kotak R:R Sesuai Permintaan
                         c1, c2 = st.columns(2)
                         with c1:
                             st.metric(
@@ -458,7 +461,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                                 label="R:R ( Target 2 )", value=rr_tp2_val
                             )
 
-                        # Row 2+: Sisa Parameter Mentah
                         skip_cols = [
                             "No",
                             "no",

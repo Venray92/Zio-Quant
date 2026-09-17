@@ -11,7 +11,7 @@ from views.tab_trade_planner import render_tab_trade_planner
 # Import modul halaman baru
 from views.watchlist import render_page_watchlist
 from views.money_management import (
-    render_page_money_management,  # <-- TAMBAHKAN IMPORT INI
+    render_money_management_page,
 )
 
 # 1. Konfigurasi Halaman Streamlit
@@ -65,7 +65,7 @@ elif page == "watchlist":
     render_page_watchlist()
 
 elif page == "money_management":
-    render_page_money_management()
+  render_money_management_page()
 
 elif page == "how_to":
     st.title("💡 How To")

@@ -79,7 +79,7 @@ def inject_custom_css():
         box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
     }
 
-    /* MAIN POPOVER BUTTON (CHOOSE SCREENER - FORCE CYAN TEXT DI SEMUA TAB) */
+    /* MAIN POPOVER BUTTON CONTAINER */
     div[data-testid="stPopover"] > button {
         background-color: #242424 !important;
         border: 2px solid #00F3FF !important;
@@ -89,38 +89,53 @@ def inject_custom_css():
         width: 100% !important;
         box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
         transition: all 0.2s ease-in-out !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
     }
 
-    /* PAKSA WARNA CYAN UNTUK SEMUA ELEMENT INSIDE POPOVER BUTTON */
-    div[data-testid="stPopover"] button *,
+    /* PENGATURAN TEKS LABEL TOMBOL (DIPISAH DARI ICON) */
     div[data-testid="stPopover"] button p,
-    div[data-testid="stPopover"] button div,
-    div[data-testid="stPopover"] button span,
-    div[data-testid="stPopover"] button svg {
+    div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
         color: #00F3FF !important;
         font-weight: 900 !important;
         font-family: 'Share Tech Mono', monospace !important;
         text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
         font-size: 12px !important;
         letter-spacing: 0.5px !important;
-        fill: #00F3FF !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
     }
 
+    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT (JANGAN UBAH FONT-FAMILY) */
+    div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
+    div[data-testid="stPopover"] button i,
+    div[data-testid="stPopover"] button svg {
+        color: #00F3FF !important;
+        fill: #00F3FF !important;
+        font-size: 18px !important;
+        margin: 0 !important;
+    }
+
+    /* HOVER STATE */
     div[data-testid="stPopover"] > button:hover {
         background-color: #00F3FF !important;
         box-shadow: 0 0 20px #00F3FF !important;
     }
 
-    div[data-testid="stPopover"] > button:hover *,
     div[data-testid="stPopover"] > button:hover p,
-    div[data-testid="stPopover"] > button:hover div,
-    div[data-testid="stPopover"] > button:hover span,
-    div[data-testid="stPopover"] > button:hover svg {
+    div[data-testid="stPopover"] > button:hover div[data-testid="stMarkdownContainer"] p {
         color: #000000 !important;
         text-shadow: none !important;
-        fill: #000000 !important;
     }
 
+    div[data-testid="stPopover"] > button:hover span[data-testid="stIconMaterial"],
+    div[data-testid="stPopover"] > button:hover i,
+    div[data-testid="stPopover"] > button:hover svg {
+        color: #000000 !important;
+        fill: #000000 !important;
+    }
     /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #242424 !important;

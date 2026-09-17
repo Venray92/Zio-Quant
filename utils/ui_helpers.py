@@ -58,12 +58,17 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* DUMMY BUTTONS STYLING - FORCE BORDER GELAP DI SEMUA STATE (ACTIVE/FOCUS/NORMAL) */
+    /* ==========================================================================
+       FIX BORDER DUMMY BUTTONS - KUNCI GELAP NETRAL DI SEMUA STATE (FOCUS/ACTIVE/NORMAL)
+       ========================================================================== */
     .dummy-nav-wrapper button,
     .dummy-nav-wrapper button:focus,
+    .dummy-nav-wrapper button:focus:visible,
     .dummy-nav-wrapper button:active,
     .dummy-nav-wrapper button:visited,
-    .dummy-nav-wrapper button[data-testid="baseButton-secondary"] {
+    .dummy-nav-wrapper button[data-testid="baseButton-secondary"],
+    .dummy-nav-wrapper button[data-testid="baseButton-secondary"]:focus,
+    .dummy-nav-wrapper button[data-testid="baseButton-secondary"]:active {
         background-color: #1E222D !important;
         border: 1px solid #2A2E39 !important;
         border-color: #2A2E39 !important;
@@ -87,8 +92,9 @@ def inject_custom_css():
         margin: 0 !important;
     }
 
-    /* HOVER STATE - BARU MENYALA CYAN SAAT KURSOR DI-HOVER */
-    .dummy-nav-wrapper button:hover {
+    /* HOVER STATE - BARU MENYALA CYAN HANYA SAAT KURSOR DI-HOVER */
+    .dummy-nav-wrapper button:hover,
+    .dummy-nav-wrapper button[data-testid="baseButton-secondary"]:hover {
         border: 1px solid #00F3FF !important;
         border-color: #00F3FF !important;
         background-color: #242B35 !important;
@@ -101,7 +107,9 @@ def inject_custom_css():
     }
 
     /* MAIN POPOVER BUTTON CONTAINER */
-    div[data-testid="stPopover"] > button {
+    div[data-testid="stPopover"] > button,
+    div[data-testid="stPopover"] > button:focus,
+    div[data-testid="stPopover"] > button:active {
         background-color: #242424 !important;
         border: 2px solid #00F3FF !important;
         border-radius: 6px !important;
@@ -116,7 +124,7 @@ def inject_custom_css():
         gap: 8px !important;
     }
 
-    /* PENGATURAN TEKS LABEL TOMBOL (DIPISAH DARI ICON) */
+    /* PENGATURAN TEKS LABEL TOMBOL POPOVER */
     div[data-testid="stPopover"] button p,
     div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
         color: #00F3FF !important;

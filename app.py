@@ -20,6 +20,9 @@ st.set_page_config(
 inject_custom_css()
 
 # 3. Inisialisasi Session State
+if "selected_page" not in st.session_state:
+    st.session_state["selected_page"] = "home"
+
 if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
@@ -28,14 +31,30 @@ render_header()
 render_top_nav()
 render_header_divider()
 
-# 5. Routing Halaman Berdasarkan Screener Terpilih
-screener = st.session_state["selected_screener"]
+# 5. Routing Utama Berdasarkan `selected_page`
+page = st.session_state["selected_page"]
 
-if screener is None:
-    render_welcome()
-elif screener == "rsi":
-    render_tab_rsi()
-elif screener == "stoch_psar":
-    render_tab_stoch_psar()
-elif screener == "trade_plan":
-    render_tab_trade_planner()
+if page == "home":
+    # Jika di halaman Home, tampilkan screener terpilih atau halaman Welcome
+    screener = st.session_state.get("selected_screener", None)
+    
+    if screener is None:
+        render_welcome()
+    elif screener == "rsi":
+        render_tab_rsi()
+    elif screener == "stoch_psar":
+        render_tab_stoch_psar()
+    elif screener == "trade_plan":
+        render_tab_trade_planner()
+
+elif page == "watchlist":
+    st.title("📌 Watchlist")
+    st.info("Halaman Watchlist siap dihubungkan ke file baru.")
+
+elif page == "money_management":
+    st.title("🛡️ Money Management")
+    st.info("Halaman Money Management siap dihubungkan ke file baru.")
+
+elif page == "how_to":
+    st.title("💡 How To")
+    st.info("Halaman Panduan / Tutorial siap dihubungkan ke file baru.")

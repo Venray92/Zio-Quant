@@ -95,52 +95,10 @@ def render_page_watchlist():
             chg if chg is not None else item.get("Change Pct", 0.0)
         )
 
-    # 1. Header & Metric Summary Row
+    # Header
     st.title("📈 Watchlist Saham Pro")
 
-    if st.session_state["watchlist_data"]:
-        valid_items = [
-            x
-            for x in st.session_state["watchlist_data"]
-            if x.get("Last Price", 0) > 0
-        ]
-        total_items = len(st.session_state["watchlist_data"])
-
-        top_gainer = (
-            max(valid_items, key=lambda x: x.get("Change Pct", -999))
-            if valid_items
-            else None
-        )
-        top_loser = (
-            min(valid_items, key=lambda x: x.get("Change Pct", 999))
-            if valid_items
-            else None
-        )
-
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Total Watchlist", f"{total_items} Saham")
-
-        if top_gainer:
-            m2.metric(
-                "Top Gainer",
-                top_gainer["Ticker"].replace(".JK", ""),
-                f"+{top_gainer.get('Change Pct', 0):.2f}%",
-            )
-        else:
-            m2.metric("Top Gainer", "-")
-
-        if top_loser:
-            m3.metric(
-                "Top Loser",
-                top_loser["Ticker"].replace(".JK", ""),
-                f"{top_loser.get('Change Pct', 0):.2f}%",
-            )
-        else:
-            m3.metric("Top Loser", "-")
-
-    st.divider()
-
-    # 2. Main Layout Split
+    # Main Layout Split
     col_left, col_right = st.columns([1.2, 1.8], gap="large")
 
     # ==========================================
@@ -312,7 +270,7 @@ def render_page_watchlist():
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0))
 
-        # List Kartu Saham Kustom
+        # List Kartu Saham
         with st.container(height=450):
             if display_list:
                 for idx, item in enumerate(display_list):
@@ -321,7 +279,6 @@ def render_page_watchlist():
                     last_price = item.get("Last Price", 0.0)
                     pct_change = item.get("Change Pct", 0.0)
 
-                    # Tentukan Warna & Format Tampilan
                     if pct_change > 0:
                         color_code = "#00C853"
                         bg_code = "#E8F5E9"
@@ -361,7 +318,6 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
-                        # Render Blok Kartu Visual Baru
                         st.markdown(
                             f"""
                             <div style="
@@ -453,7 +409,7 @@ def render_page_watchlist():
                     else:
                         st.warning("Kode Ticker wajib diisi.")
 
-        # Display Dataframe dengan Kolom Terformat
+        # Display Dataframe
         if st.session_state["watchlist_data"]:
             df_watchlist = pd.DataFrame(st.session_state["watchlist_data"])
             df_watchlist["Ticker"] = df_watchlist["Ticker"].str.replace(

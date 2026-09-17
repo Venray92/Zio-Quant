@@ -15,7 +15,21 @@ def load_watchlist_from_file():
     if os.path.exists(STORAGE_FILE):
         try:
             with open(STORAGE_FILE, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Normalisasi format jika data di file berupa list string
+                normalized = []
+                for item in data:
+                    if isinstance(item, str):
+                        normalized.append(
+                            {
+                                "Ticker": item,
+                                "Notes": "Watchlist",
+                                "Target Price": 0,
+                            }
+                        )
+                    elif isinstance(item, dict):
+                        normalized.append(item)
+                return normalized
         except Exception:
             pass
     return [
@@ -117,7 +131,6 @@ def calculate_rr_ratios(row):
 
 def render_trade_plan_only(ticker_symbol, key_suffix):
     """Merender Trade Plan Recommendation tanpa Chart TradingView"""
-    # Menampilkan Header Live Plan langsung sejajar dengan tombol kiri
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -249,6 +262,31 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 def render_page_watchlist():
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
+
+    # SYNC DARI SESSION STATE "watchlist" (jika tombol dari ui_helpers memasukkan ke st.session_state["watchlist"])
+    if "watchlist" in st.session_state and isinstance(
+        st.session_state["watchlist"], list
+    ):
+        existing_tickers = [
+            x["Ticker"] for x in st.session_state["watchlist_data"]
+        ]
+        has_new = False
+        for item in st.session_state["watchlist"]:
+            formatted = item if item.endswith(".JK") else f"{item}.JK"
+            if formatted not in existing_tickers:
+                st.session_state["watchlist_data"].append(
+                    {
+                        "Ticker": formatted,
+                        "Notes": "Dari Stoch-Trend Radar",
+                        "Target Price": 0,
+                    }
+                )
+                existing_tickers.append(formatted)
+                has_new = True
+
+        if has_new:
+            save_watchlist_to_file(st.session_state["watchlist_data"])
+
     if "add_form_version" not in st.session_state:
         st.session_state["add_form_version"] = 0
     if "sort_filter" not in st.session_state:
@@ -387,13 +425,21 @@ def render_page_watchlist():
                                 for x in st.session_state["watchlist_data"]
                                 if x["Ticker"] not in to_remove
                             ]
+
+                            # Sync juga hapus dari st.session_state["watchlist"]
+                            if "watchlist" in st.session_state:
+                                st.session_state["watchlist"] = [
+                                    x
+                                    for x in st.session_state["watchlist"]
+                                    if x not in to_remove
+                                    and f"{x}.JK" not in to_remove
+                                ]
+
                             save_watchlist_to_file(
                                 st.session_state["watchlist_data"]
                             )
                             st.session_state["selected_cards"].clear()
-
                             st.session_state["batch_del_version"] += 1
-
                             st.toast("Saham berhasil dihapus!", icon="🗑️")
                             st.rerun()
 
@@ -461,6 +507,7 @@ def render_page_watchlist():
                 for idx, item in enumerate(display_list):
                     ticker_raw = item["Ticker"]
                     clean_ticker = ticker_raw.replace(".JK", "").upper()
+                    notes_tag = item.get("Notes", "")
                     last_price = item.get("Last Price", 0.0)
                     pct_change = item.get("Change Pct", 0.0)
 
@@ -478,6 +525,17 @@ def render_page_watchlist():
                     pct_str = (
                         f"{prefix}{pct_change:.2f}%" if last_price else "-"
                     )
+
+                    # Tampilan Badge Keterangan Asal Saham
+                    source_badge = ""
+                    if "Stoch-Trend Radar" in notes_tag:
+                        source_badge = (
+                            "<span style='font-size: 9px; background:"
+                            " rgba(56, 189, 248, 0.15); color: #38BDF8; border:"
+                            " 1px solid rgba(56, 189, 248, 0.4); padding: 1px"
+                            " 5px; border-radius: 4px; margin-left:"
+                            " 6px;'>Stoch-Trend Radar</span>"
+                        )
 
                     if enable_batch_delete:
                         c_chk, c_card = st.columns([0.4, 3.6])
@@ -513,7 +571,8 @@ def render_page_watchlist():
                                 background-color: #161B22;">
                                 <div>
                                     <span style="font-weight: bold; font-size: 16px; color: #E6EDF3;">{clean_ticker}</span>
-                                    <span style="font-size: 10px; color: #8B949E; margin-left: 5px;">IDX</span>
+                                    <span style="font-size: 10px; color: #8B949E; margin-left: 3px;">IDX</span>
+                                    {source_badge}
                                 </div>
                                 <div style="text-align: right;">
                                     <div style="font-weight: bold; font-size: 14px; color: #E6EDF3;">{price_str}</div>

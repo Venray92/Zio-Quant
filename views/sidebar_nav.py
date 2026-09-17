@@ -10,10 +10,8 @@ def render_sidebar_nav():
     is_collapsed = st.session_state["nav_collapsed"]
     active_nav = st.session_state.get("active_nav", "screener")
 
-    # Lebar sidebar berdasarkan status collapse
     sidebar_width = "64px" if is_collapsed else "160px"
 
-    # CSS & HTML Layout kustom agar tombol toggle pas di tengah garis pembatas
     nav_css = f"""
     <style>
     .custom-sidebar-container {{
@@ -30,7 +28,6 @@ def render_sidebar_nav():
         transition: width 0.25s ease-in-out;
     }
 
-    /* Style Tombol Menu Navigasi */
     div.stButton > button.nav-menu-btn {{
         background-color: #161B22 !important;
         border: 1px solid #30363D !important;
@@ -54,7 +51,6 @@ def render_sidebar_nav():
         background-color: rgba(0, 255, 102, 0.08) !important;
     }}
 
-    /* Active State */
     div.stButton > button.nav-active-btn {{
         color: #00FF66 !important;
         background-color: rgba(0, 255, 102, 0.15) !important;
@@ -62,7 +58,6 @@ def render_sidebar_nav():
         box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
     }}
 
-    /* Tombol Toggle Presisi di Tengah Garis Pembatas Kanan */
     .toggle-wrapper-center {{
         position: absolute;
         top: 50%;
@@ -103,12 +98,9 @@ def render_sidebar_nav():
         ("support", "🎧 Support"),
     ]
 
-    # Wrapper kontainer utama sidebar
     st.markdown('<div class="custom-sidebar-container">', unsafe_allow_html=True)
 
-    # Render Menu Item
     for key, label in nav_items:
-        # Jika collapsed, tampilkan ikon/huruf pertamanya saja agar tidak patah
         display_text = label[:2] if is_collapsed else label
         is_active_class = "nav-active-btn" if active_nav == key else "nav-menu-btn"
 
@@ -120,10 +112,11 @@ def render_sidebar_nav():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Tombol Toggle Tepat di Tengah Garis Pembatas (Menggunakan absolut positioning CSS)
     toggle_icon = "›" if is_collapsed else "‹"
     st.markdown('<div class="toggle-wrapper-center">', unsafe_allow_html=True)
-    if st.button(toggle_icon, key="btn_nav_toggle", use_container_width=False):
+    if st.button(
+        toggle_icon, key="btn_nav_toggle", use_container_width=False
+    ):
         st.session_state["nav_collapsed"] = not is_collapsed
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)

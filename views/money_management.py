@@ -334,3 +334,134 @@ def render_page_money_management():
                 ),
                 use_container_width=True,
             )
+
+# ==========================================================================
+# 4. MAIN ENTRY POINT FOR MONEY MANAGEMENT PAGE
+# ==========================================================================
+def render_page_money_management():
+    """Fungsi utama untuk menampilkan halaman Money Management di Streamlit."""
+    inject_custom_css()
+
+    st.title("🛡️ Money Management & Position Sizing")
+    st.caption("Hitung alokasi modal, batas risiko per trade, dan scaling out plan.")
+
+    # Top Level Input Form
+    col_cap, col_risk, col_ticker = st.columns(3)
+    with col_cap:
+        capital = st.number_input(
+            "Total Capital (Rp)", min_value=1_000_000, value=50_000_000, step=1_000_000
+        )
+    with col_risk:
+        risk_pct = st.number_input(
+            "Max Risk Tolerance (%)", min_value=0.5, max_value=10.0, value=2.0, step=0.5
+        )
+    with col_ticker:
+        ticker = st.text_input("Ticker Saham", value="BBCA").upper().strip()
+
+    st.markdown("---")
+
+    # Trade Inputs & Position Calculator
+    c_entry, c_sl, c_tp1, c_tp2 = st.columns(4)
+    with c_entry:
+        entry_price = st.number_input("Harga Entry (Rp)", min_value=1, value=10000)
+    with c_sl:
+        sl_price = st.number_input("Harga Stop Loss (Rp)", min_value=1, value=9500)
+    with c_tp1:
+        tp1_price = st.number_input("Target 1 / TP1 (Rp)", min_value=1, value=11000)
+    with c_tp2:
+        tp2_price = st.number_input("Target 2 / TP2 (Rp)", min_value=1, value=12000)
+
+    # Calculation Core
+    max_risk_amount = capital * (risk_pct / 100)
+    risk_per_share = max(1, entry_price - sl_price)
+
+    if entry_price > sl_price:
+        max_shares = int(max_risk_amount / risk_per_share)
+        max_lots = max_shares // 100
+        total_buy_cost = max_lots * 100 * entry_price
+        actual_risk_pct = (
+            (max_lots * 100 * risk_per_share) / capital
+        ) * 100 if capital > 0 else 0
+    else:
+        max_lots = 0
+        total_buy_cost = 0
+        actual_risk_pct = 0.0
+
+    # Display Metrics & Visuals
+    col_m1, col_m2, col_m3 = st.columns(3)
+    with col_m1:
+        render_metric_card(
+            label="Maksimal Posisi Buy",
+            value=f"{max_lots:,} Lot",
+            subtext=f"Total Nominal: Rp {total_buy_cost:,.0f}",
+            badge_text="RECOMMENDED SIZE",
+            badge_type="green",
+        )
+    with col_m2:
+        render_metric_card(
+            label="Maksimal Kerugian (Risk)",
+            value=f"Rp {max_risk_amount:,.0f}",
+            subtext=f"Toleransi Risiko: {risk_pct}% dari Kapital",
+            badge_text="RISK LIMIT",
+            badge_type="red",
+        )
+    with col_m3:
+        rr1, rr2 = calculate_rr_ratios({
+            "Buy Max": entry_price,
+            "Stop Loss": sl_price,
+            "TP1": tp1_price,
+            "TP2": tp2_price,
+        })
+        render_metric_card(
+            label="Risk to Reward Ratio",
+            value=f"TP1 ({rr1})",
+            subtext=f"TP2 ({rr2})",
+            badge_text="R:R RATIO",
+            badge_type="blue",
+        )
+
+    # Display Charts
+    ch_col1, ch_col2 = st.columns(2)
+    with ch_col1:
+        st.subheader("🔥 Risk Gauge")
+        st.plotly_chart(
+            render_risk_gauge_chart(actual_risk_pct, risk_pct),
+            use_container_width=True,
+        )
+    with ch_col2:
+        st.subheader("📊 Capital Allocation")
+        st.plotly_chart(
+            render_portfolio_pie_chart(ticker, total_buy_cost, capital),
+            use_container_width=True,
+        )
+
+    # Scaling Out Plan Cards
+    st.subheader("🎯 Profit Scaling Plan")
+    sc1, sc2 = st.columns(2)
+    lot_tp1 = max_lots // 2
+    lot_tp2 = max_lots - lot_tp1
+    profit_tp1 = lot_tp1 * 100 * (tp1_price - entry_price)
+    profit_tp2 = lot_tp2 * 100 * (tp2_price - entry_price)
+
+    with sc1:
+        render_scaling_card(
+            title="Partial Take Profit 1 (50%)",
+            lot=lot_tp1,
+            price=tp1_price,
+            profit=profit_tp1,
+            footer_text="Amankan modal & pasang Trailing Stop",
+            footer_color="green",
+        )
+    with sc2:
+        render_scaling_card(
+            title="Final Take Profit 2 (50%)",
+            lot=lot_tp2,
+            price=tp2_price,
+            profit=profit_tp2,
+            footer_text="Liq kustom sisa posisi target maksimal",
+            footer_color="gold",
+        )
+
+    # Optional Live Trade Planner
+    if ticker:
+        render_inline_trade_planner(ticker, key_suffix="mm_page")

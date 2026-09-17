@@ -4,7 +4,7 @@ import pandas as pd
 import ta
 import yfinance as yf
 
-from ihsg_tickers import get_all_ihsg_tickers
+from data.ihsg_tickers import get_all_ihsg_tickers
 
 warnings.filterwarnings("ignore")
 

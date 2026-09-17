@@ -2,10 +2,10 @@ import streamlit as st
 
 
 def render_top_nav():
+    # Inject CSS untuk mengatur posisi tombol dan margin bawah
     st.markdown(
         """
         <style>
-        /* Mendorong seluruh baris tombol ke bawah mendekati garis divider */
         div[data-testid="stHorizontalBlock"]:has(button[key*="nav_"]) {
             align-items: flex-end !important;
             transform: translateY(22px) !important;
@@ -27,16 +27,11 @@ def render_top_nav():
 
     cols = st.columns([1, 1, 1.2, 1, 2.5])
 
-    # 1. HOME (Reset Total)
+    # 1. HOME (Reset Total Tampilan Kembali ke Welcome Screen)
     with cols[0]:
         if st.button("Home", key="nav_home", use_container_width=True):
             st.session_state["selected_page"] = "home"
             st.session_state["selected_screener"] = None
-            
-            # HAPUS KEY WIDGET DROPDOWN HEADER (Ganti 'screener_dropdown' jika beda key)
-            if "screener_dropdown" in st.session_state:
-                st.session_state["screener_dropdown"] = None
-                
             st.rerun()
 
     # 2. WATCHLIST

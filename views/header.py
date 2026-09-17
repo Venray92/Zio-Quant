@@ -19,24 +19,23 @@ def render_header():
     col_brand, col_popover = st.columns([3, 1], vertical_alignment="center")
 
     with col_brand:
-        # Gunakan sub-columns internal untuk menyejajarkan Logo + Tombol Teks
-        col_img, col_txt = st.columns([0.15, 0.85], vertical_alignment="center")
+        if logo_b64:
+            logo_html = f'<img src="data:image/jpeg;base64,{logo_b64}" class="brand-logo-img" />'
+        else:
+            logo_html = '<span style="font-size: 32px;">⚡</span>'
 
-        with col_img:
-            if logo_b64:
-                st.image("logo.jpg", width=40)
-            else:
-                st.markdown("<span style='font-size: 24px;'>⚡</span>", unsafe_allow_html=True)
-
-        with col_txt:
-            # Tombol Teks Brand yang responsif mereset ke Welcome Screen
-            if st.button(
-                "Z-QUANT",
-                key="btn_home_brand",
-                type="tertiary",
-            ):
-                st.session_state["selected_screener"] = None
-                st.rerun()
+        # Menggunakan inline-flex + pointer-events: auto + z-index tinggi agar pasti bisa diklik 100%
+        st.markdown(
+            f"""
+            <div style="position: relative; z-index: 99999; pointer-events: auto; display: inline-block;">
+                <a href="/" target="_self" class="brand-link" style="display: inline-flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; pointer-events: auto;">
+                    {logo_html}
+                    <span class="brand-title-text" style="cursor: pointer; pointer-events: auto;">Z-QUANT</span>
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     with col_popover:
         with st.popover("CHOOSE SCREENER", use_container_width=True):

@@ -1,33 +1,14 @@
 import os
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
+
+# Import visualisasi helper dari ui_helpers
+from ui_helpers import render_portfolio_pie_chart, render_risk_gauge_chart
 
 try:
     from engines.trade_planner import TradePlanner
 except ImportError:
     TradePlanner = None
-
-
-# ==========================================================================
-# 1. CORE CSS & FORMATTING HELPER
-# ==========================================================================
-def inject_custom_css(file_path=os.path.join("assets", "style.css")):
-    """Mengimpor style CSS eksternal (default: assets/style.css)."""
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-
-def _format_val(val):
-    if pd.isna(val) or val is None or val == "" or val == "-":
-        return "-"
-    try:
-        num = float(val)
-        return f"{int(num):,}" if num.is_integer() else f"{num:,.2f}"
-    except (ValueError, TypeError):
-        return str(val)
 
 
 def _clean_num(val):
@@ -41,339 +22,345 @@ def _clean_num(val):
         return None
 
 
-def calculate_rr_ratios(row):
-    buy_val = _clean_num(
-        row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None)))
-    )
-    sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
-    tp1_val = _clean_num(
-        row.get("TP 1", row.get("TP1", row.get("Target 1", None)))
-    )
-    tp2_val = _clean_num(
-        row.get("TP 2", row.get("TP2", row.get("Target 2", None)))
-    )
-
-    rr_tp1_str = "-"
-    rr_tp2_str = "-"
-
-    if buy_val and sl_val and (buy_val > sl_val):
-        risk = buy_val - sl_val
-        if tp1_val and tp1_val > buy_val:
-            rr_tp1_str = f"1 : {((tp1_val - buy_val) / risk):.1f}"
-        if tp2_val and tp2_val > buy_val:
-            rr_tp2_str = f"1 : {((tp2_val - buy_val) / risk):.1f}"
-
-    return rr_tp1_str, rr_tp2_str
-
-
-# ==========================================================================
-# 2. MONEY MANAGEMENT VISUALIZATION HELPERS
-# ==========================================================================
-def render_risk_gauge_chart(actual_risk_pct, risk_pct):
-    """Membentuk Plotly Gauge Chart untuk mengukur Toleransi Risiko vs Risiko Riil."""
-    max_range = max(10.0, float(risk_pct) * 1.2)
-    fig_gauge = go.Figure(
-        go.Indicator(
-            mode="gauge+number+delta",
-            value=actual_risk_pct,
-            number={"suffix": "%", "valueformat": ".2f"},
-            delta={
-                "reference": risk_pct,
-                "relative": False,
-                "position": "top",
-            },
-            domain={"x": [0, 1], "y": [0, 1]},
-            gauge={
-                "axis": {"range": [0, max_range], "tickwidth": 1},
-                "bar": {
-                    "color": (
-                        "#00E676" if actual_risk_pct <= risk_pct else "#FF5252"
-                    )
-                },
-                "steps": [
-                    {
-                        "range": [0, risk_pct],
-                        "color": "rgba(0, 230, 118, 0.15)",
-                    },
-                    {
-                        "range": [risk_pct, max_range],
-                        "color": "rgba(255, 82, 82, 0.15)",
-                    },
-                ],
-                "threshold": {
-                    "line": {"color": "#00F3FF", "width": 4},
-                    "thickness": 0.75,
-                    "value": risk_pct,
-                },
-            },
-        )
-    )
-    fig_gauge.update_layout(
-        height=220,
-        margin=dict(l=20, r=20, t=10, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#C0C5D0", "family": "Share Tech Mono"},
-    )
-    return fig_gauge
-
-
-def render_portfolio_pie_chart(ticker, total_cost_with_fee, capital):
-    """Membentuk Plotly Donut Chart untuk simulasi Alokasi Kapital Saham vs Cash."""
-    cash_left = max(0.0, capital - total_cost_with_fee)
-    fig_donut = go.Figure(
-        data=[
-            go.Pie(
-                labels=[f"Posisi {ticker}", "Sisa Cash"],
-                values=[total_cost_with_fee, cash_left],
-                hole=0.6,
-                marker_colors=["#00E676", "#21262D"],
-            )
-        ]
-    )
-    fig_donut.update_layout(
-        height=220,
-        margin=dict(l=10, r=10, t=10, b=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#C0C5D0", "family": "Share Tech Mono"},
-        showlegend=True,
-    )
-    return fig_donut
-
-
-# ==========================================================================
-# 3. LIVE TRADE PLANNER & TRADINGVIEW WIDGET
-# ==========================================================================
-def render_inline_trade_planner(
-    ticker_symbol, key_suffix, screener_name="Screener"
-):
-    st.markdown("---")
-
-    # Inisialisasi session state watchlist jika belum ada
-    if "watchlist" not in st.session_state:
-        st.session_state["watchlist"] = []
-
-    # 1. HEADER FUTURISTIK
+def render_money_management_page():
     st.markdown(
-        f"""
-        <div class="live-plan-header">
-            <div class="live-plan-title">
-                📊 LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
-            </div>
-            <div style="font-size: 12px; color: #8B949E; font-weight: 600;">
-                SYSTEM STATUS: <span style="color: #00E676;">ONLINE</span>
-            </div>
+        """
+        <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 20px; border-radius: 12px; border-left: 6px solid #10B981; margin-bottom: 25px;">
+            <h2 style="color: #F8FAFC; margin: 0; font-size: 24px;">⚖️ Advanced Money Management & Position Sizing</h2>
+            <p style="color: #94A3B8; margin-top: 5px; font-size: 14px;">
+                Hitung alokasi lot presisi, kontrol toleransi risiko modal, dan evaluasi Risk-to-Reward Ratio secara matematis sebelum melakukan eksekusi order.
+            </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
-    col_select, _, col_btn = st.columns([1, 2, 1], vertical_alignment="bottom")
+    # State Sync dari Trade Plan
+    if "mm_buy_price" not in st.session_state:
+        st.session_state["mm_buy_price"] = 1000.0
+    if "mm_sl_price" not in st.session_state:
+        st.session_state["mm_sl_price"] = 950.0
+    if "mm_tp1_price" not in st.session_state:
+        st.session_state["mm_tp1_price"] = 1100.0
+    if "mm_tp2_price" not in st.session_state:
+        st.session_state["mm_tp2_price"] = 1200.0
+    if "mm_ticker" not in st.session_state:
+        st.session_state["mm_ticker"] = "BBCA"
 
-    with col_select:
-        period_selected = st.selectbox(
-            "⏱️ Periode Data Analysis",
-            options=["3mo", "6mo", "1y", "2y"],
-            index=0,
-            key=f"period_{key_suffix}",
+    col_input, col_output = st.columns([1, 1], gap="large")
+
+    # =========================================================================
+    # KOLOM KIRI: INPUT PARAMETER & PROFIL RISIKO
+    # =========================================================================
+    with col_input:
+        st.markdown("### 📥 Parameter Transaksi")
+
+        ticker = st.text_input(
+            "Ticker Saham",
+            value=st.session_state["mm_ticker"],
+            key="input_mm_ticker",
+        ).upper()
+
+        capital = st.number_input(
+            "Total Modal Trading (IDR)",
+            min_value=100_000,
+            value=100_000_000,
+            step=1_000_000,
+            format="%d",
         )
 
-    with col_btn:
-        clean_ticker_code = ticker_symbol.upper().strip()
+        st.markdown("---")
+        st.markdown("#### 🎯 Profil Risk & Allocation Limit")
 
-        # Ekstrak ticker yang sudah ada di watchlist
-        existing_list = [
-            x.get("Ticker", x) if isinstance(x, dict) else str(x)
-            for x in st.session_state["watchlist"]
-        ]
-        is_in_watchlist = clean_ticker_code in existing_list
-
-        if is_in_watchlist:
-            st.button(
-                "✅ In Watchlist",
-                key=f"btn_add_wl_{key_suffix}",
-                disabled=True,
-                use_container_width=True,
+        col_r1, col_r2 = st.columns(2)
+        with col_r1:
+            risk_pct = st.number_input(
+                "Max Risk Per Trade (%)",
+                min_value=0.1,
+                max_value=10.0,
+                value=2.0,
+                step=0.1,
+                help="Maksimal toleransi kerugian dari total modal untuk 1 posisi transaksi.",
             )
-        else:
-            if st.button(
-                "➕ Add to Watchlist",
-                key=f"btn_add_wl_{key_suffix}",
-                use_container_width=True,
-            ):
-                active_source = screener_name
-                if (
-                    active_source == "Screener"
-                    and "active_screener_name" in st.session_state
+        with col_r2:
+            max_alloc_pct = st.number_input(
+                "Max Portfolio Allocation (%)",
+                min_value=1.0,
+                max_value=100.0,
+                value=20.0,
+                step=1.0,
+                help="Maksimal porsi modal yang dialokasikan untuk 1 saham ini.",
+            )
+
+        st.markdown("---")
+        st.markdown("#### 📈 Target Harga & Level Risiko")
+
+        c_buy, c_sl = st.columns(2)
+        with c_buy:
+            buy_price = st.number_input(
+                "Harga Beli (Buy Price)",
+                min_value=1.0,
+                value=float(st.session_state["mm_buy_price"]),
+                step=1.0,
+            )
+        with c_sl:
+            sl_price = st.number_input(
+                "Stop Loss (SL)",
+                min_value=1.0,
+                value=float(st.session_state["mm_sl_price"]),
+                step=1.0,
+            )
+
+        c_tp1, c_tp2 = st.columns(2)
+        with c_tp1:
+            tp1_price = st.number_input(
+                "Target Profit 1 (TP 1)",
+                min_value=1.0,
+                value=float(st.session_state["mm_tp1_price"]),
+                step=1.0,
+            )
+        with c_tp2:
+            tp2_price = st.number_input(
+                "Target Profit 2 (TP 2)",
+                min_value=1.0,
+                value=float(st.session_state["mm_tp2_price"]),
+                step=1.0,
+            )
+
+        st.markdown("---")
+        st.markdown("#### 💸 Transaksi Fee Sekuritas")
+        c_fb, c_fs = st.columns(2)
+        with c_fb:
+            fee_buy_pct = (
+                st.number_input(
+                    "Fee Beli (%)",
+                    min_value=0.0,
+                    max_value=2.0,
+                    value=0.15,
+                    step=0.01,
+                )
+                / 100.0
+            )
+        with c_fs:
+            fee_sell_pct = (
+                st.number_input(
+                    "Fee Jual (%)",
+                    min_value=0.0,
+                    max_value=2.0,
+                    value=0.25,
+                    step=0.01,
+                )
+                / 100.0
+            )
+
+        # FITUR SINKRONISASI DARI TRADE PLANNER
+        st.markdown("---")
+        with st.expander("🔄 Import Parameter dari Trade Plan", expanded=False):
+            st.caption(
+                "Tarik rekomendasi level harga terbaru berdasarkan Trade Planner otomatis."
+            )
+            col_sp_btn, col_sp_sel = st.columns([1, 1])
+            with col_sp_sel:
+                sync_period = st.selectbox(
+                    "Periode Data",
+                    options=["3mo", "6mo", "1y"],
+                    key="mm_sync_period",
+                )
+            with col_sp_btn:
+                if st.button(
+                    "⚡ Sync Trade Plan", use_container_width=True
                 ):
-                    active_source = st.session_state.get(
-                        "active_screener_name", "Screener"
-                    )
+                    if TradePlanner is not None:
+                        with st.spinner("Mengambil data Trade Plan..."):
+                            try:
+                                tp = TradePlanner(
+                                    ticker=ticker, period=sync_period
+                                )
+                                tp.fetch_and_prepare_data()
+                                df_plan = tp.generate_trade_plan()
+                                if df_plan is not None and not df_plan.empty:
+                                    best_plan = df_plan.iloc[0]
+                                    buy_val = _clean_num(
+                                        best_plan.get(
+                                            "Range Buy Max",
+                                            best_plan.get("Buy Max", buy_price),
+                                        )
+                                    )
+                                    sl_val = _clean_num(
+                                        best_plan.get(
+                                            "Stop Loss",
+                                            best_plan.get("SL", sl_price),
+                                        )
+                                    )
+                                    tp1_val = _clean_num(
+                                        best_plan.get(
+                                            "TP 1",
+                                            best_plan.get("TP1", tp1_price),
+                                        )
+                                    )
+                                    tp2_val = _clean_num(
+                                        best_plan.get(
+                                            "TP 2",
+                                            best_plan.get("TP2", tp2_price),
+                                        )
+                                    )
 
-                st.session_state["watchlist"].append(
-                    {"Ticker": clean_ticker_code, "Notes": active_source}
-                )
+                                    if buy_val:
+                                        st.session_state["mm_buy_price"] = (
+                                            buy_val
+                                        )
+                                    if sl_val:
+                                        st.session_state["mm_sl_price"] = sl_val
+                                    if tp1_val:
+                                        st.session_state["mm_tp1_price"] = (
+                                            tp1_val
+                                        )
+                                    if tp2_val:
+                                        st.session_state["mm_tp2_price"] = (
+                                            tp2_val
+                                        )
+                                    st.session_state["mm_ticker"] = ticker
+                                    st.success(
+                                        f"Berhasil mengimpor rekomendasi Trade Plan #{1} ({best_plan.get('Type', 'Plan')})!"
+                                    )
+                                    st.rerun()
+                                else:
+                                    st.warning(
+                                        "Tidak ada data Trade Plan yang valid."
+                                    )
+                            except Exception as ex:
+                                st.error(f"Gagal memuat Trade Plan: {ex}")
+                    else:
+                        st.warning("Modul `TradePlanner` tidak tersedia.")
 
-                st.toast(
-                    f"🚀 **{clean_ticker_code}** ({active_source}) berhasil ditambahkan ke Watchlist!",
-                    icon="📌",
-                )
-                st.rerun()
+    # =========================================================================
+    # KALKULASI MONEY MANAGEMENT LOGIC
+    # =========================================================================
+    # 1. Toleransi Risiko Nominal
+    max_risk_amount = capital * (risk_pct / 100.0)
 
-    # 3. TRADINGVIEW WIDGET
-    clean_ticker = (
-        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
+    # 2. Maksimal Alokasi Kapital Nominal
+    max_alloc_amount = capital * (max_alloc_pct / 100.0)
+
+    # 3. Jarak Stop Loss per Lembar & Persentase Kerugian per Lembar
+    sl_distance = max(0.0, buy_price - sl_price)
+    sl_pct = (sl_distance / buy_price) * 100.0 if buy_price > 0 else 0.0
+
+    # 4. Kalkulasi Lot Maksimal Berdasarkan Risk Limit vs Allocation Limit
+    if sl_distance > 0:
+        # Lot ideal berdasarkan toleransi risiko nominal
+        shares_by_risk = max_risk_amount / (sl_distance * (1 + fee_buy_pct))
+        lot_by_risk = shares_by_risk // 100
+
+        # Lot ideal berdasarkan alokasi kapital maksimal
+        shares_by_alloc = max_alloc_amount / (buy_price * (1 + fee_buy_pct))
+        lot_by_alloc = shares_by_alloc // 100
+
+        # Mengambil lot terkecil agar aman dari kedua batas limit
+        final_lot = int(max(0, min(lot_by_risk, lot_by_alloc)))
+    else:
+        final_lot = 0
+
+    total_shares = final_lot * 100
+    total_cost_raw = total_shares * buy_price
+    total_buy_fee = total_cost_raw * fee_buy_pct
+    total_cost_with_fee = total_cost_raw + total_buy_fee
+
+    # 5. Potensi Risiko Riil (Rupiah & Persentase terhadap Modal)
+    actual_loss_raw = total_shares * sl_distance
+    actual_sell_fee_sl = (total_shares * sl_price) * fee_sell_pct
+    actual_risk_amount = actual_loss_raw + total_buy_fee + actual_sell_fee_sl
+    actual_risk_pct = (
+        (actual_risk_amount / capital) * 100.0 if capital > 0 else 0.0
     )
-    safe_container_id = clean_ticker.replace(".", "_")
-    tv_symbol = f"IDX:{clean_ticker}"
 
-    tv_html = f"""
-    <div class="tradingview-widget-container" style="height:550px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-top: 10px; margin-bottom: 8px;">
-      <div id="tv_chart_container_{safe_container_id}" style="height:100%; width:100%;"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-      <script type="text/javascript">
-      if (typeof TradingView !== 'undefined') {{
-          new TradingView.widget({{
-            "autosize": true,
-            "symbol": "{tv_symbol}",
-            "interval": "D",
-            "timezone": "Asia/Jakarta",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#1A1A1A",
-            "enable_publishing": false,
-            "hide_side_toolbar": false,
-            "allow_symbol_change": true,
-            "save_image": true,
-            "container_id": "tv_chart_container_{safe_container_id}"
-          }});
-      }}
-      </script>
-    </div>
-    """
-    components.html(tv_html, height=560)
+    # 6. Potensi Gain TP1 & TP2 (Bersih Fee)
+    tp1_distance = max(0.0, tp1_price - buy_price)
+    tp1_gain_raw = total_shares * tp1_distance
+    tp1_sell_fee = (total_shares * tp1_price) * fee_sell_pct
+    tp1_net_gain = max(0.0, tp1_gain_raw - total_buy_fee - tp1_sell_fee)
 
-    st.markdown(
-        "<div style='font-size: 11px; color: #8B949E; margin-bottom: 20px; font-weight: 500;'>"
-        "💡 *Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual.*"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    tp2_distance = max(0.0, tp2_price - buy_price)
+    tp2_gain_raw = total_shares * tp2_distance
+    tp2_sell_fee = (total_shares * tp2_price) * fee_sell_pct
+    tp2_net_gain = max(0.0, tp2_gain_raw - total_buy_fee - tp2_sell_fee)
 
-    # 4. TRADE PLAN RECOMMENDATION
-    if TradePlanner is None:
-        st.warning("Module `TradePlanner` tidak dapat diimpor.")
-        return
+    # 7. Risk-to-Reward Ratio (R:R)
+    rr_tp1 = (tp1_distance / sl_distance) if sl_distance > 0 else 0.0
+    rr_tp2 = (tp2_distance / sl_distance) if sl_distance > 0 else 0.0
 
-    with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
-        try:
-            planner = TradePlanner(
-                ticker=ticker_symbol.upper(), period=period_selected
-            )
-            if hasattr(planner, "fetch_and_prepare_data"):
-                planner.fetch_and_prepare_data()
+    # =========================================================================
+    # KOLOM KANAN: OUTPUT PERHITUNGAN & VISUALISASI
+    # =========================================================================
+    with col_output:
+        st.markdown("### 📊 Rekomendasi Eksekusi & Ringkasan Risk")
 
-            df_plan = (
-                planner.generate_trade_plan()
-                if hasattr(planner, "generate_trade_plan")
-                else None
-            )
+        # HTML Cards Ringkasan Eksekusi
+        m1 = f"""
+        <div style="background: linear-gradient(135deg, #0D1117 0%, #161B22 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 10px; padding: 16px; margin-bottom: 15px;">
+            <div style="font-size: 12px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Rekomendasi Posisi Maksimal</div>
+            <div style="font-size: 32px; font-weight: 900; color: #00E676; margin-top: 4px;">{final_lot:,} <span style="font-size: 16px; color: #C0C5D0;">LOT</span></div>
+            <div style="font-size: 13px; color: #8B949E; margin-top: 4px;">Setara dengan <b>{total_shares:,}</b> lembar saham {ticker}</div>
+        </div>
+        """
 
-            if df_plan is not None and not df_plan.empty:
-                st.markdown(
-                    '<div class="section-title">🎯 Trade Plan Recommendation</div>',
-                    unsafe_allow_html=True,
+        m2 = f"""
+        <div style="background: linear-gradient(135deg, #0D1117 0%, #161B22 100%); border: 1px solid #30363D; border-left: 5px solid #38BDF8; border-radius: 10px; padding: 16px; margin-bottom: 15px;">
+            <div style="font-size: 12px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total Nilai Transaksi (+ Fee Beli)</div>
+            <div style="font-size: 26px; font-weight: 900; color: #38BDF8; margin-top: 4px;">Rp {total_cost_with_fee:,.0f}</div>
+            <div style="font-size: 13px; color: #8B949E; margin-top: 4px;">Alokasi Modal: <b>{((total_cost_with_fee / capital) * 100):.2f}%</b> dari total portfolio</div>
+        </div>
+        """
+
+        m3 = f"""
+        <div style="background: linear-gradient(135deg, #0D1117 0%, #161B22 100%); border: 1px solid #30363D; border-left: 5px solid #FF5252; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+            <div style="font-size: 12px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Potensi Risiko Riil (Bila Kena Stop Loss)</div>
+            <div style="font-size: 26px; font-weight: 900; color: #FF5252; margin-top: 4px;">- Rp {actual_risk_amount:,.0f}</div>
+            <div style="font-size: 13px; color: #8B949E; margin-top: 4px;">Risiko Riil Portfolio: <b>{actual_risk_pct:.2f}%</b> (Target limit: {risk_pct:.2f}%)</div>
+        </div>
+        """
+
+        st.markdown(m1, unsafe_allow_html=True)
+        st.markdown(m2, unsafe_allow_html=True)
+        st.markdown(m3, unsafe_allow_html=True)
+
+        # DETAIL MATRIX PARAMETER (EXPANDER)
+        with st.expander("📌 Rincian Potensi Profit & Rasio Risk/Reward", expanded=True):
+            r1, r2 = st.columns(2)
+            with r1:
+                st.metric(
+                    label="Potensi Profit TP 1 (Bersih Fee)",
+                    value=f"Rp {tp1_net_gain:,.0f}",
+                    delta=f"R:R = 1 : {rr_tp1:.2f}",
+                )
+            with r2:
+                st.metric(
+                    label="Potensi Profit TP 2 (Bersih Fee)",
+                    value=f"Rp {tp2_net_gain:,.0f}",
+                    delta=f"R:R = 1 : {rr_tp2:.2f}",
                 )
 
-                for idx, row in df_plan.iterrows():
-                    plan_no = idx + 1
-                    plan_type = row.get(
-                        "Type", row.get("Strategy", f"Plan #{plan_no}")
-                    )
-                    score = row.get("Score", 0)
-                    grade = row.get("Grade", "N/A")
-                    posisi = row.get("Posisi Harga", row.get("Status", "-"))
+            st.caption(
+                f"Jarak ke Stop Loss: **-{sl_pct:.2f}%** | Jarak ke TP1: **+{((tp1_distance/buy_price)*100):.2f}%** | Jarak ke TP2: **+{((tp2_distance/buy_price)*100):.2f}%**"
+            )
 
-                    range_min = _format_val(
-                        row.get("Range Buy Min", row.get("Buy Min", "-"))
-                    )
-                    range_max = _format_val(
-                        row.get("Range Buy Max", row.get("Buy Max", "-"))
-                    )
-                    area_buy = (
-                        f"{range_min} - {range_max}"
-                        if range_min != "-" and range_max != "-"
-                        else range_min
-                    )
+        # GRAFIK VISUALISASI PLOTLY
+        st.markdown("---")
+        st.markdown("#### 📈 Visualisasi Profil Risk & Portofolio")
 
-                    stop_loss = _format_val(
-                        row.get("Stop Loss", row.get("SL", "-"))
-                    )
-                    tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
-                    tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
+        tab_g1, tab_g2 = st.tabs(["🎯 Risk Gauge Chart", "🥧 Portfolio Allocation"])
 
-                    posisi_color = (
-                        "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
-                    )
+        with tab_g1:
+            fig_g = render_risk_gauge_chart(actual_risk_pct, risk_pct)
+            st.plotly_chart(fig_g, use_container_width=True)
 
-                    card_html = f"""
-                    <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
-                            <div>
-                                <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
-                                <span style="font-size: 13px; font-weight: 700; color: #E6EDF3; margin-left: 8px;">{grade}</span>
-                            </div>
-                            <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
-                                SCORE: {score}
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800;">Area Buy</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>
-                            </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2);">
-                                <div style="font-size: 10px; color: #FF5252; font-weight: 800;">Stop Loss</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>
-                            </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 1</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>
-                            </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 2</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>
-                            </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; background-color: #0E1117; padding: 10px 14px; border-radius: 8px; border: 1px solid #21262D;">
-                            <span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>
-                            <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
-                        </div>
-                    </div>
-                    """
-                    st.markdown(card_html, unsafe_allow_html=True)
+        with tab_g2:
+            fig_p = render_portfolio_pie_chart(
+                ticker, total_cost_with_fee, capital
+            )
+            st.plotly_chart(fig_p, use_container_width=True)
 
-                    # KALKULASI R:R
-                    rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 
-                    with st.expander(
-                        f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
-                        expanded=True,
-                    ):
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.metric(
-                                label="R:R ( Target 1 )", value=rr_tp1_val
-                            )
-                        with c2:
-                            st.metric(
-                                label="R:R ( Target 2 )", value=rr_tp2_val
-                            )
-            else:
-                st.info(
-                    f"Tidak ada Trade Plan yang tersedia untuk **{ticker_symbol}** pada periode ini."
-                )
-
-        except Exception as e:
-            st.error(f"Gagal memuat Trade Plan: {e}")
+if __name__ == "__main__":
+    st.set_page_config(page_title="Money Management", layout="wide")
+    render_money_management_page()

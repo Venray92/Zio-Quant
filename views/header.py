@@ -18,6 +18,7 @@ def render_header():
     # Cek query param reset dari logo
     if st.query_params.get("reset") == "true":
         st.session_state["selected_screener"] = None
+        st.session_state["selected_page"] = "home"
         st.query_params.clear()
         st.rerun()
 
@@ -68,6 +69,7 @@ def render_header():
                 use_container_width=True,
             ):
                 st.session_state["selected_screener"] = "rsi"
+                st.session_state["selected_page"] = "home"  # FORCE KE HOME PAGE
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -81,6 +83,7 @@ def render_header():
                 use_container_width=True,
             ):
                 st.session_state["selected_screener"] = "stoch_psar"
+                st.session_state["selected_page"] = "home"  # FORCE KE HOME PAGE
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -94,6 +97,7 @@ def render_header():
                 use_container_width=True,
             ):
                 st.session_state["selected_screener"] = "trade_plan"
+                st.session_state["selected_page"] = "home"  # FORCE KE HOME PAGE
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 

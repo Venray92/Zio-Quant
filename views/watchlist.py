@@ -22,45 +22,39 @@ def fetch_stock_quote(ticker_symbol):
 
 
 def render_page_watchlist():
-    # Force CSS untuk merapatkan layout, memperkecil icon, dan menghapus gap
+    # CSS Custom: Sembunyikan Panah Dropdown Popover & Rapikan Layout
     st.markdown(
         """
         <style>
-        /* Hilangkan gap bawaan Streamlit antar komponen */
+        /* Hilangkan panah dropdown bawaan popover Streamlit */
+        div[data-testid="stPopover"] div[aria-expanded="false"] svg,
+        div[data-testid="stPopover"] div[aria-expanded="true"] svg {
+            display: none !important;
+        }
+        
+        /* Hilangkan gap bawaan Streamlit */
         [data-testid="stVerticalBlock"] > [data-testid="stBlock"] {
-            gap: 0rem !important;
+            gap: 0.2rem !important;
             margin-bottom: 0px !important;
         }
         
-        /* Style Icon Popover & Action Button Header */
+        /* Transparan & Minimalis untuk Tombol Icon Popover Header */
         div[data-testid="stPopover"] > button {
             border: none !important;
             background: transparent !important;
-            padding: 0px 4px !important;
+            padding: 0px 2px !important;
             color: #9ECBFF !important;
             font-size: 16px !important;
-            min-height: 0px !important;
-            height: auto !important;
             box-shadow: none !important;
         }
         div[data-testid="stPopover"] > button:hover {
             color: #00E676 !important;
         }
         
-        /* Rapatkan Search Input ke Header */
+        /* Layout Input Search & Clear Button */
         div[data-testid="stTextInput"] {
-            margin-top: 2px !important;
-            margin-bottom: 6px !important;
-        }
-        div[data-testid="stTextInput"] input {
-            padding: 4px 10px !important;
-            font-size: 12px !important;
-        }
-
-        /* Checkbox Styling Minimalis */
-        div[data-testid="stCheckbox"] {
-            margin: 0px !important;
-            padding-top: 10px !important;
+            margin-top: 0px !important;
+            margin-bottom: 0px !important;
         }
         </style>
         """,
@@ -93,6 +87,12 @@ def render_page_watchlist():
         st.session_state["sort_filter"] = "Default"
     if "selected_cards" not in st.session_state:
         st.session_state["selected_cards"] = set()
+    if "quick_add_count" not in st.session_state:
+        st.session_state["quick_add_count"] = 1
+    if "search_input_val" not in st.session_state:
+        st.session_state["search_input_val"] = ""
+    if "delete_mode" not in st.session_state:
+        st.session_state["delete_mode"] = "Delete Single"
 
     # Fetch Real-time Data
     for item in st.session_state["watchlist_data"]:
@@ -104,10 +104,10 @@ def render_page_watchlist():
     col_left, col_right = st.columns([1.2, 2.3])
 
     # ==========================================
-    # KANAN DULU / KIRI: DAFTAR SAHAM
+    # KIRI: DAFTAR SAHAM
     # ==========================================
     with col_left:
-        # Header Row: Badge "Watchlist" + (+) Add + (🗑️) Batch Delete + (🎛️) Filter
+        # Header Row: Badge "Watchlist" + (+) Add + (🗑️) Delete Dropdown + (🎛️) Filter
         h_col1, h_col2, h_col3, h_col4 = st.columns([2.0, 0.4, 0.4, 0.4])
         
         with h_col1:
@@ -122,43 +122,74 @@ def render_page_watchlist():
             )
             
         with h_col2:
-            # Popover Icon Tambah (+)
+            # Popover Icon Tambah (+) - Multi Dynamic Input + Auto Reset
             with st.popover("＋", help="Tambah Saham"):
                 st.markdown("**Tambah Saham Quick**")
-                quick_ticker = st.text_input("Kode Saham", placeholder="Contoh: BBRI").strip().upper()
-                if st.button("Simpan", key="btn_quick_add", use_container_width=True):
-                    if len(st.session_state["watchlist_data"]) >= 50:
-                        st.error("Watchlist penuh (Max 50)!")
-                    elif quick_ticker:
-                        formatted = quick_ticker if quick_ticker.endswith(".JK") else f"{quick_ticker}.JK"
-                        st.session_state["watchlist_data"].append({
-                            "Ticker": formatted,
-                            "Notes": "Quick Added",
-                            "Target Price": 0
-                        })
+                
+                inputs = []
+                for i in range(st.session_state["quick_add_count"]):
+                    val = st.text_input(f"Kode Saham #{i+1}", key=f"quick_t_{i}", placeholder="Contoh: BBRI").strip().upper()
+                    if val:
+                        inputs.append(val)
+
+                col_add_field, col_save = st.columns(2)
+                with col_add_field:
+                    if st.button("➕ Baris", key="btn_add_more_field", use_container_width=True):
+                        st.session_state["quick_add_count"] += 1
                         st.rerun()
 
+                with col_save:
+                    if st.button("Simpan", key="btn_quick_add_save", use_container_width=True):
+                        if inputs:
+                            added_count = 0
+                            for ticker in inputs:
+                                if len(st.session_state["watchlist_data"]) < 50:
+                                    formatted = ticker if ticker.endswith(".JK") else f"{ticker}.JK"
+                                    st.session_state["watchlist_data"].append({
+                                        "Ticker": formatted,
+                                        "Notes": "Quick Added",
+                                        "Target Price": 0
+                                    })
+                                    added_count += 1
+                            # Reset input count & clear form
+                            st.session_state["quick_add_count"] = 1
+                            st.toast(f"{added_count} Saham berhasil ditambahkan!", icon="🚀")
+                            st.rerun()
+                        else:
+                            st.warning("Masukkan kode saham!")
+
         with h_col3:
-            # Tombol Hapus Terpilih (🗑️) di Atas
-            if st.button("🗑️", key="btn_batch_delete", help="Hapus Saham Tercentang"):
-                if st.session_state["selected_cards"]:
-                    to_remove = list(st.session_state["selected_cards"])
-                    st.session_state["watchlist_data"] = [
-                        x for x in st.session_state["watchlist_data"] if x["Ticker"] not in to_remove
-                    ]
-                    if "watchlist" in st.session_state:
-                        st.session_state["watchlist"] = [
-                            x for x in st.session_state["watchlist"] 
-                            if f"{x}.JK" not in to_remove and x not in to_remove
-                        ]
-                    st.session_state["selected_cards"].clear()
-                    st.toast("Saham terpilih berhasil dihapus!", icon="🗑️")
-                    st.rerun()
-                else:
-                    st.toast("Centang saham yang ingin dihapus.", icon="⚠️")
+            # Popover Menu Hapus (🗑️) Dropdown: Delete Single vs Batch Delete
+            with st.popover("🗑️", help="Menu Hapus"):
+                st.markdown("**Pilihan Mode Hapus**")
+                mode = st.radio(
+                    "Pilih Mode", 
+                    ["Delete Single", "Batch Delete"], 
+                    index=0 if st.session_state["delete_mode"] == "Delete Single" else 1,
+                    key="radio_del_mode"
+                )
+                st.session_state["delete_mode"] = mode
+
+                if mode == "Batch Delete":
+                    if st.button("Hapus Tercentang", key="btn_execute_batch_delete", use_container_width=True):
+                        if st.session_state["selected_cards"]:
+                            to_remove = list(st.session_state["selected_cards"])
+                            st.session_state["watchlist_data"] = [
+                                x for x in st.session_state["watchlist_data"] if x["Ticker"] not in to_remove
+                            ]
+                            if "watchlist" in st.session_state:
+                                st.session_state["watchlist"] = [
+                                    x for x in st.session_state["watchlist"] 
+                                    if f"{x}.JK" not in to_remove and x not in to_remove
+                                ]
+                            st.session_state["selected_cards"].clear()
+                            st.toast("Saham terpilih berhasil dihapus!", icon="🗑️")
+                            st.rerun()
+                        else:
+                            st.warning("Belum ada saham yang dicentang.")
 
         with h_col4:
-            # Popover Filter (🎛️)
+            # Popover Icon Filter (🎛️)
             with st.popover("🎛️", help="Filter & Urutkan"):
                 st.markdown("**Filter & Urutkan**")
                 st.session_state["sort_filter"] = st.selectbox(
@@ -166,16 +197,26 @@ def render_page_watchlist():
                     ["Default", "Gainers (% High)", "Losers (% Low)", "Price High", "Price Low"]
                 )
 
-        # Search Bar tanpa Enter (Realtime Auto-reset ketika dihapus)
-        search_kw = st.text_input(
-            "Cari", 
-            placeholder="🔍 Cari kode atau nama saham...", 
-            label_visibility="collapsed",
-            key="input_search_ticker"
-        ).strip().upper()
+        # Search Bar + Tombol Clear (X)
+        c_search, c_clear = st.columns([3.3, 0.7])
+        with c_search:
+            search_input = st.text_input(
+                "Cari", 
+                value=st.session_state["search_input_val"], 
+                placeholder="🔍 Cari kode saham...", 
+                label_visibility="collapsed",
+                key="input_search_ticker"
+            )
+            st.session_state["search_input_val"] = search_input
+        
+        with c_clear:
+            if st.button("❌", key="btn_clear_search", help="Bersihkan Pencarian", use_container_width=True):
+                st.session_state["search_input_val"] = ""
+                st.rerun()
 
         # Filter List Saham
         display_list = list(st.session_state["watchlist_data"])
+        search_kw = st.session_state["search_input_val"].strip().upper()
         if search_kw:
             display_list = [x for x in display_list if search_kw in x["Ticker"]]
 
@@ -213,18 +254,22 @@ def render_page_watchlist():
                     price_str = f"{int(last_price):,}" if last_price else "-"
                     pct_str = f"{arrow_icon}{chg_prefix}{pct_change:.2f}%" if last_price else "-"
 
-                    c_chk, c_card = st.columns([0.3, 3.7])
-                    
-                    with c_chk:
-                        is_checked = st.checkbox(
-                            "", 
-                            key=f"chk_{clean_ticker}_{idx}",
-                            value=ticker_raw in st.session_state["selected_cards"]
-                        )
-                        if is_checked:
-                            st.session_state["selected_cards"].add(ticker_raw)
-                        else:
-                            st.session_state["selected_cards"].discard(ticker_raw)
+                    # Jika Mode Batch Delete Aktif -> Tampilkan Checkbox
+                    if st.session_state["delete_mode"] == "Batch Delete":
+                        c_chk, c_card = st.columns([0.4, 3.6])
+                        with c_chk:
+                            is_checked = st.checkbox(
+                                "", 
+                                key=f"chk_{clean_ticker}_{idx}",
+                                value=ticker_raw in st.session_state["selected_cards"]
+                            )
+                            if is_checked:
+                                st.session_state["selected_cards"].add(ticker_raw)
+                            else:
+                                st.session_state["selected_cards"].discard(ticker_raw)
+                    else:
+                        # Single Delete Mode -> Tanpa Checkbox
+                        c_card = st.container()
 
                     with c_card:
                         card_html = f"""

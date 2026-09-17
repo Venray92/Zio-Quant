@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Navigasi Sidebar dengan 1 Kontainer Utama dan Garis Border Jelas di Kanan."""
+    """Navigasi Sidebar Terpisah di Kiri Mentok Luar (Mulai dari Bawah Logo)."""
 
     if "nav_collapsed" not in st.session_state:
         st.session_state["nav_collapsed"] = False
@@ -10,29 +10,38 @@ def render_sidebar_nav():
     is_collapsed = st.session_state["nav_collapsed"]
     active_nav = st.session_state.get("active_nav", "screener")
 
-    # Lebar kontainer sidebar
-    box_width = "70px" if is_collapsed else "180px"
+    # Lebar sidebar luar
+    sidebar_width = "70px" if is_collapsed else "180px"
 
-    # CSS Murni untuk Kontainer Utama dan Tombol
+    # CSS Khusus untuk mereset sidebar bawaan Streamlit agar nempel di kiri luar & ada garis border jelas di kanan
     nav_css = f"""
     <style>
-    /* Kontainer Utama Pembungkus Sidebar */
-    .main-sidebar-box {{
+    /* Target elemen sidebar bawaan Streamlit */
+    section[data-testid="stSidebar"] {{
+        width: {sidebar_width} !important;
+        background-color: #0D0E12 !important;
+        border-right: 3px solid #00FF66 !important; /* Garis border jelas di kanan */
+        transition: width 0.2s ease-in-out !important;
+    }}
+
+    /* Hilangkan padding atas bawaan stSidebar agar pas di bawah logo */
+    section[data-testid="stSidebar"] > div:first-child {{
+        padding-top: 1rem !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }}
+
+    /* Kontainer pembungkus elemen di dalam sidebar */
+    .external-sidebar-container {{
         position: relative;
-        background-color: #0D0E12;
-        border-right: 3px solid #00FF66; /* Garis border jelas di kanan */
-        border-radius: 6px;
-        padding: 16px 10px;
-        width: {box_width};
         display: flex;
         flex-direction: column;
         gap: 10px;
-        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.4);
-        transition: width 0.2s ease-in-out;
+        width: 100%;
     }}
 
     /* Styling Tombol Menu Navigasi */
-    .main-sidebar-box div.stButton > button {{
+    section[data-testid="stSidebar"] div.stButton > button {{
         background-color: #161B22 !important;
         border: 1px solid #30363D !important;
         color: #C9D1D9 !important;
@@ -50,13 +59,13 @@ def render_sidebar_nav():
         transition: all 0.2s ease-in-out !important;
     }}
 
-    .main-sidebar-box div.stButton > button:hover {{
+    section[data-testid="stSidebar"] div.stButton > button:hover {{
         color: #00FF66 !important;
         border-color: #00FF66 !important;
         background-color: rgba(0, 255, 102, 0.08) !important;
     }}
 
-    /* State Aktif */
+    /* State Aktif (Glow Hijau) */
     .btn-active-menu div.stButton > button {{
         color: #00FF66 !important;
         background-color: rgba(0, 255, 102, 0.15) !important;
@@ -64,13 +73,13 @@ def render_sidebar_nav():
         box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
     }}
 
-    /* Tombol Toggle persis di tengah garis border kanan */
+    /* Tombol Toggle persis di tengah garis border kanan sidebar */
     .sidebar-toggle-btn-wrap {{
         position: absolute;
         top: 50%;
-        right: -13px;
+        right: -17px;
         transform: translateY(-50%);
-        z-index: 99;
+        z-index: 999;
     }}
 
     .sidebar-toggle-btn-wrap div.stButton > button {{
@@ -102,33 +111,34 @@ def render_sidebar_nav():
         ("support", "🎧 Support"),
     ]
 
-    # Buka 1 Kontainer Utama
-    st.markdown('<div class="main-sidebar-box">', unsafe_allow_html=True)
+    # Render menggunakan st.sidebar agar keluar dari kontainer utama di sebelah kanan
+    with st.sidebar:
+        st.markdown(
+            '<div class="external-sidebar-container">', unsafe_allow_html=True
+        )
 
-    # Render Menu Item
-    for key, label in nav_items:
-        display_text = label[:2] if is_collapsed else label
-        active_class = "btn-active-menu" if active_nav == key else ""
+        for key, label in nav_items:
+            display_text = label[:2] if is_collapsed else label
+            active_class = "btn-active-menu" if active_nav == key else ""
 
-        st.markdown(f'<div class="{active_class}">', unsafe_allow_html=True)
+            st.markdown(f'<div class="{active_class}">', unsafe_allow_html=True)
+            if st.button(
+                display_text, key=f"nav_btn_{key}", use_container_width=True
+            ):
+                st.session_state["active_nav"] = key
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # Tombol Toggle pas di tengah garis border kanan sidebar
+        toggle_icon = "›" if is_collapsed else "‹"
+        st.markdown(
+            '<div class="sidebar-toggle-btn-wrap">', unsafe_allow_html=True
+        )
         if st.button(
-            display_text, key=f"nav_btn_{key}", use_container_width=True
+            toggle_icon, key="btn_sidebar_toggle", use_container_width=False
         ):
-            st.session_state["active_nav"] = key
+            st.session_state["nav_collapsed"] = not is_collapsed
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Tombol Toggle di tengah garis border kanan (berada di dalam kontainer yang sama)
-    toggle_icon = "›" if is_collapsed else "‹"
-    st.markdown(
-        '<div class="sidebar-toggle-btn-wrap">', unsafe_allow_html=True
-    )
-    if st.button(
-        toggle_icon, key="btn_sidebar_toggle", use_container_width=False
-    ):
-        st.session_state["nav_collapsed"] = not is_collapsed
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Tutup Kontainer Utama
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)

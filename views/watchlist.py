@@ -363,36 +363,43 @@ def render_page_watchlist():
                             )
                             st.rerun()
 
-        with h_col2:
-            with st.popover("🗑️ Kelola", use_container_width=True):
-                st.caption("Batch Delete")
-                st.session_state["enable_batch_delete"] = st.checkbox(
-                    "Mode Hapus",
-                    value=st.session_state["enable_batch_delete"],
-                    key="chk_enable_batch_del",
-                )
-                if st.session_state["enable_batch_delete"]:
-                    if st.button(
-                        "Hapus Terpilih",
-                        key="btn_execute_batch_delete",
-                        type="primary",
-                        use_container_width=True,
-                    ):
-                        if st.session_state["selected_cards"]:
-                            to_remove = list(
-                                st.session_state["selected_cards"]
-                            )
-                            st.session_state["watchlist_data"] = [
-                                x
-                                for x in st.session_state["watchlist_data"]
-                                if x["Ticker"] not in to_remove
-                            ]
-                            save_watchlist_to_file(
-                                st.session_state["watchlist_data"]
-                            )
-                            st.session_state["selected_cards"].clear()
-                            st.toast("Saham berhasil dihapus!", icon="🗑️")
-                            st.rerun()
+with h_col2:
+    with st.popover("🗑️ Kelola", use_container_width=True):
+        st.caption("Batch Delete")
+
+        # Inisialisasi widget state jika belum ada
+        if "chk_enable_batch_del" not in st.session_state:
+            st.session_state["chk_enable_batch_del"] = False
+
+        # Gunakan key langsung untuk mengontrol checkbox
+        enable_del = st.checkbox(
+            "Mode Hapus", key="chk_enable_batch_del"
+        )
+        st.session_state["enable_batch_delete"] = enable_del
+
+        if enable_del:
+            if st.button(
+                "Hapus Terpilih",
+                key="btn_execute_batch_delete",
+                type="primary",
+                use_container_width=True,
+            ):
+                if st.session_state["selected_cards"]:
+                    to_remove = list(st.session_state["selected_cards"])
+                    st.session_state["watchlist_data"] = [
+                        x
+                        for x in st.session_state["watchlist_data"]
+                        if x["Ticker"] not in to_remove
+                    ]
+                    save_watchlist_to_file(st.session_state["watchlist_data"])
+                    st.session_state["selected_cards"].clear()
+
+                    # RESET MODE HAPUS (AUTO CLEAR UNCHECK)
+                    st.session_state["chk_enable_batch_del"] = False
+                    st.session_state["enable_batch_delete"] = False
+
+                    st.toast("Saham berhasil dihapus!", icon="🗑️")
+                    st.rerun()
 
         with h_col3:
             with st.popover("⚡ Sort", use_container_width=True):

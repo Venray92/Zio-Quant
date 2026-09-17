@@ -7,263 +7,263 @@ from engines.trade_planner import TradePlanner
 
 def inject_custom_css():
     """Injects Cyber-Futuristic Dark Trading UI & Custom CSS into Streamlit."""
-    custom_css = "rsi.css""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    css_file_path = "rsi.css"
+    
+    # Cek apakah file rsi.css ada, jika ada baca dari file
+    if os.path.exists(css_file_path):
+        with open(css_file_path, "r", encoding="utf-8") as f:
+            custom_css = f"<style>\n{f.read()}\n</style>"
+    else:
+        # Fallback inline CSS jika file rsi.css tidak ditemukan
+        custom_css = """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-    /* Global App Styling */
-    .stApp {
-        background-color: #1A1A1A !important;
-        color: #C0C5D0 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-    }
+        /* Global App Styling */
+        .stApp {
+            background-color: #1A1A1A !important;
+            color: #C0C5D0 !important;
+            font-family: 'Share Tech Mono', monospace !important;
+        }
 
-    /* Sembunyikan Top Bar Streamlit */
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-    .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
-    }
+        /* Sembunyikan Top Bar Streamlit */
+        header[data-testid="stHeader"] {
+            display: none !important;
+        }
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
 
-    /* Header Bar Styling */
-    .brand-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 14px;
-        text-decoration: none !important;
-        cursor: pointer;
-        transition: opacity 0.2s ease-in-out;
-    }
-    .brand-link:hover {
-        opacity: 0.8;
-    }
+        /* Header Bar Styling */
+        .brand-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none !important;
+            cursor: pointer;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .brand-link:hover {
+            opacity: 0.8;
+        }
 
-    .brand-logo-img {
-        width: 50px;
-        height: 50px;
-        border-radius: 8px;
-        object-fit: cover;
-        border: 1.5px solid #00F3FF;
-        box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
-    }
+        .brand-logo-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1.5px solid #00F3FF;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+        }
 
-    .brand-title-text {
-        color: #00F3FF;
-        font-size: 24px;
-        font-weight: 900;
-        letter-spacing: 1px;
-        text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
-        font-family: 'Share Tech Mono', monospace;
-    }
+        .brand-title-text {
+            color: #00F3FF;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+            font-family: 'Share Tech Mono', monospace;
+        }
 
-    /* DUMMY BUTTONS STYLING - UKURAN KECIL, NEMPEL GARIS PEMBATAS, ALIGN KIRI */
-    div[data-testid="stColumn"] > div > div > button {
-        background-color: #242424 !important;
-        border: 1px solid #30363D !important;
-        border-radius: 4px !important;
-        color: #8A8B98 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        height: 30px !important;
-        padding: 2px 8px !important;
-        margin-top: 15px !important;
-        margin-bottom: -10px !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    div[data-testid="stColumn"] > div > div > button:hover {
-        border-color: #00F3FF !important;
-        color: #00F3FF !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
-    }
+        /* DUMMY BUTTONS STYLING */
+        div[data-testid="stColumn"] > div > div > button {
+            background-color: #242424 !important;
+            border: 1px solid #30363D !important;
+            border-radius: 4px !important;
+            color: #8A8B98 !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            height: 30px !important;
+            padding: 2px 8px !important;
+            margin-top: 15px !important;
+            margin-bottom: -10px !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        div[data-testid="stColumn"] > div > div > button:hover {
+            border-color: #00F3FF !important;
+            color: #00F3FF !important;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
+        }
 
-    /* MAIN POPOVER BUTTON CONTAINER */
-    div[data-testid="stPopover"] > button {
-        background-color: #242424 !important;
-        border: 2px solid #00F3FF !important;
-        border-radius: 6px !important;
-        padding: 4px 16px !important;
-        height: 42px !important;
-        width: 100% !important;
-        box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
-        transition: all 0.2s ease-in-out !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-    }
+        /* MAIN POPOVER BUTTON CONTAINER */
+        div[data-testid="stPopover"] > button {
+            background-color: #242424 !important;
+            border: 2px solid #00F3FF !important;
+            border-radius: 6px !important;
+            padding: 4px 16px !important;
+            height: 42px !important;
+            width: 100% !important;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
+            transition: all 0.2s ease-in-out !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+        }
 
-    /* PENGATURAN TEKS LABEL TOMBOL (DIPISAH DARI ICON) */
-    div[data-testid="stPopover"] button p,
-    div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
-        color: #00F3FF !important;
-        font-weight: 900 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
-        font-size: 12px !important;
-        letter-spacing: 0.5px !important;
-        margin: 0 !important;
-        white-space: nowrap !important;
-    }
+        div[data-testid="stPopover"] button p,
+        div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
+            color: #00F3FF !important;
+            font-weight: 900 !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
+            font-size: 12px !important;
+            letter-spacing: 0.5px !important;
+            margin: 0 !important;
+            white-space: nowrap !important;
+        }
 
-    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT (JANGAN UBAH FONT-FAMILY) */
-    div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
-    div[data-testid="stPopover"] button i,
-    div[data-testid="stPopover"] button svg {
-        color: #00F3FF !important;
-        fill: #00F3FF !important;
-        font-size: 18px !important;
-        margin: 0 !important;
-    }
+        div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
+        div[data-testid="stPopover"] button i,
+        div[data-testid="stPopover"] button svg {
+            color: #00F3FF !important;
+            fill: #00F3FF !important;
+            font-size: 18px !important;
+            margin: 0 !important;
+        }
 
-    /* HOVER STATE */
-    div[data-testid="stPopover"] > button:hover {
-        background-color: #00F3FF !important;
-        box-shadow: 0 0 20px #00F3FF !important;
-    }
+        div[data-testid="stPopover"] > button:hover {
+            background-color: #00F3FF !important;
+            box-shadow: 0 0 20px #00F3FF !important;
+        }
 
-    div[data-testid="stPopover"] > button:hover p,
-    div[data-testid="stPopover"] > button:hover div[data-testid="stMarkdownContainer"] p {
-        color: #000000 !important;
-        text-shadow: none !important;
-    }
+        div[data-testid="stPopover"] > button:hover p,
+        div[data-testid="stPopover"] > button:hover div[data-testid="stMarkdownContainer"] p {
+            color: #000000 !important;
+            text-shadow: none !important;
+        }
 
-    div[data-testid="stPopover"] > button:hover span[data-testid="stIconMaterial"],
-    div[data-testid="stPopover"] > button:hover i,
-    div[data-testid="stPopover"] > button:hover svg {
-        color: #000000 !important;
-        fill: #000000 !important;
-    }
-    /* Container Popover Dropdown */
-    div[data-testid="stPopoverContent"] {
-        background-color: #242424 !important;
-        border: 2px solid #00F3FF !important;
-        box-shadow: 0 0 25px rgba(0, 243, 255, 0.4) !important;
-        border-radius: 8px !important;
-        padding: 12px !important;
-    }
+        div[data-testid="stPopover"] > button:hover span[data-testid="stIconMaterial"],
+        div[data-testid="stPopover"] > button:hover i,
+        div[data-testid="stPopover"] > button:hover svg {
+            color: #000000 !important;
+            fill: #000000 !important;
+        }
 
-    /* ITEM DROPDOWN MENU */
-    div[data-testid="stPopoverContent"] button {
-        background-color: #1E1E1E !important;
-        border: 1.5px solid #00F3FF !important;
-        border-radius: 6px !important;
-        margin: 4px 0 !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
-        transition: all 0.2s ease-in-out !important;
-    }
+        div[data-testid="stPopoverContent"] {
+            background-color: #242424 !important;
+            border: 2px solid #00F3FF !important;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4) !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+        }
 
-    div[data-testid="stPopoverContent"] button *,
-    div[data-testid="stPopoverContent"] button p,
-    div[data-testid="stPopoverContent"] button span {
-        color: #00F3FF !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        font-weight: 800 !important;
-        text-shadow: 0 0 6px #00F3FF !important;
-    }
+        div[data-testid="stPopoverContent"] button {
+            background-color: #1E1E1E !important;
+            border: 1.5px solid #00F3FF !important;
+            border-radius: 6px !important;
+            margin: 4px 0 !important;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+            transition: all 0.2s ease-in-out !important;
+        }
 
-    div[data-testid="stPopoverContent"] button:hover {
-        background-color: #00F3FF !important;
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 20px #00F3FF !important;
-    }
+        div[data-testid="stPopoverContent"] button *,
+        div[data-testid="stPopoverContent"] button p,
+        div[data-testid="stPopoverContent"] button span {
+            color: #00F3FF !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            font-weight: 800 !important;
+            text-shadow: 0 0 6px #00F3FF !important;
+        }
 
-    div[data-testid="stPopoverContent"] button:hover *,
-    div[data-testid="stPopoverContent"] button:hover p,
-    div[data-testid="stPopoverContent"] button:hover span {
-        color: #000000 !important;
-        text-shadow: none !important;
-    }
+        div[data-testid="stPopoverContent"] button:hover {
+            background-color: #00F3FF !important;
+            border-color: #00F3FF !important;
+            box-shadow: 0 0 20px #00F3FF !important;
+        }
 
-    /* State Aktif Preset Screener */
-    div.btn-active button {
-        background-color: rgba(0, 243, 255, 0.2) !important;
-        border: 2px solid #00F3FF !important;
-        box-shadow: 0 0 18px #00F3FF, inset 0 0 8px rgba(0, 243, 255, 0.5) !important;
-    }
+        div[data-testid="stPopoverContent"] button:hover *,
+        div[data-testid="stPopoverContent"] button:hover p,
+        div[data-testid="stPopoverContent"] button:hover span {
+            color: #000000 !important;
+            text-shadow: none !important;
+        }
 
-    /* Subheader & Section Headers */
-    .live-plan-header {
-        background: linear-gradient(90deg, rgba(0, 230, 118, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
-        border-left: 5px solid #00E676;
-        padding: 12px 18px;
-        border-radius: 8px;
-        margin-top: 10px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
+        div.btn-active button {
+            background-color: rgba(0, 243, 255, 0.2) !important;
+            border: 2px solid #00F3FF !important;
+            box-shadow: 0 0 18px #00F3FF, inset 0 0 8px rgba(0, 243, 255, 0.5) !important;
+        }
 
-    .live-plan-title {
-        font-size: 20px;
-        font-weight: 800;
-        color: #FFFFFF;
-        letter-spacing: 0.5px;
-    }
+        .live-plan-header {
+            background: linear-gradient(90deg, rgba(0, 230, 118, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
+            border-left: 5px solid #00E676;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-    .live-plan-ticker {
-        color: #00E676;
-        background: rgba(0, 230, 118, 0.1);
-        padding: 2px 10px;
-        border-radius: 6px;
-        border: 1px solid rgba(0, 230, 118, 0.3);
-    }
+        .live-plan-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #FFFFFF;
+            letter-spacing: 0.5px;
+        }
 
-    .section-title {
-        font-size: 16px;
-        font-weight: 700;
-        color: #38BDF8;
-        margin-top: 15px;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
+        .live-plan-ticker {
+            color: #00E676;
+            background: rgba(0, 230, 118, 0.1);
+            padding: 2px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 230, 118, 0.3);
+        }
 
-    /* Custom Selectbox Dropdown */
-    div[data-baseweb="select"] > div {
-        background-color: #161B22 !important;
-        border: 1px solid #30363D !important;
-        border-radius: 8px !important;
-        color: #E6EDF3 !important;
-    }
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #38BDF8;
+            margin-top: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
-    /* Metric Cards in Expander */
-    div[data-testid="stMetric"] {
-        background: linear-gradient(180deg, #161B22 0%, #0D1117 100%);
-        border: 1px solid #21262D;
-        padding: 12px 16px;
-        border-radius: 10px;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
+        div[data-baseweb="select"] > div {
+            background-color: #161B22 !important;
+            border: 1px solid #30363D !important;
+            border-radius: 8px !important;
+            color: #E6EDF3 !important;
+        }
 
-    div[data-testid="stMetricValue"] {
-        color: #00E676 !important;
-        font-size: 20px !important;
-        font-weight: 800 !important;
-    }
+        div[data-testid="stMetric"] {
+            background: linear-gradient(180deg, #161B22 0%, #0D1117 100%);
+            border: 1px solid #21262D;
+            padding: 12px 16px;
+            border-radius: 10px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
 
-    div[data-testid="stMetricLabel"] {
-        color: #8B949E !important;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        text-transform: uppercase;
-    }
+        div[data-testid="stMetricValue"] {
+            color: #00E676 !important;
+            font-size: 20px !important;
+            font-weight: 800 !important;
+        }
 
-    /* Expander Styling */
-    div[data-testid="stExpander"] {
-        background-color: #161B22 !important;
-        border: 1px solid #30363D !important;
-        border-radius: 10px !important;
-        margin-top: 10px;
-    }
-    </style>
-    """
+        div[data-testid="stMetricLabel"] {
+            color: #8B949E !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+        }
+
+        div[data-testid="stExpander"] {
+            background-color: #161B22 !important;
+            border: 1px solid #30363D !important;
+            border-radius: 10px !important;
+            margin-top: 10px;
+        }
+        </style>
+        """
+        
     st.markdown(custom_css, unsafe_allow_html=True)
 
 
@@ -379,14 +379,14 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
     # TULISAN PERINGATAN KECIL DI BAWAH CHART
     st.markdown(
         "<div style='font-size: 11px; color: #8B949E; margin-bottom: 20px; font-weight: 500;'>"
-        "**Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual, karena sistem tidak menyimpan tarikan garis secara otomatis saat Anda berpindah saham."
+        "*Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual, karena sistem tidak menyimpan tarikan garis secara otomatis saat Anda berpindah saham."
         "</div>",
         unsafe_allow_html=True,
     )
 
     # 4. TRADE PLAN RECOMMENDATION
     with st.spinner(
-        f"⚡ Menganalisis & Meng kalkulasi Trade Plan {ticker_symbol}..."
+        f"⚡ Menganalisis & Mengkalkulasi Trade Plan {ticker_symbol}..."
     ):
         try:
             planner = TradePlanner(

@@ -376,18 +376,12 @@ def render_page_watchlist():
                                         else f"{ticker}.JK"
                                     )
                                     if formatted not in existing_tickers:
-                                        # Langsung ambil harga awal saat ditambahkan
-                                        init_lp, init_chg = fetch_stock_quote(
-                                            formatted
-                                        )
                                         st.session_state[
                                             "watchlist_data"
                                         ].append({
                                             "Ticker": formatted,
                                             "Notes": "Quick Added",
                                             "Target Price": 0,
-                                            "Last Price": init_lp or 0.0,
-                                            "Change Pct": init_chg or 0.0,
                                         })
                                         added_count += 1
 
@@ -516,34 +510,20 @@ def render_page_watchlist():
                     pct_change = item.get("Change Pct", None)
 
                     if pct_change is not None and pct_change > 0:
-                        color_code = "#00C853"
                         prefix = "+"
-                    elif pct_change is not None and pct_change < 0:
-                        color_code = "#D50000"
-                        prefix = ""
                     else:
-                        color_code = "#757575"
                         prefix = ""
 
-                    if last_price and last_price > 0:
-                        price_str = f"Rp {int(last_price):,}"
-                    else:
-                        price_str = "-"
-
-                    if pct_change is not None and last_price:
-                        pct_str = f"{prefix}{pct_change:.2f}%"
-                    else:
-                        pct_str = "-"
-
-                    source_badge = ""
-                    if "Stoch-Trend Radar" in notes_tag:
-                        source_badge = (
-                            "<span style='font-size: 9px; background:"
-                            " rgba(56, 189, 248, 0.15); color: #38BDF8; border:"
-                            " 1px solid rgba(56, 189, 248, 0.4); padding: 1px"
-                            " 5px; border-radius: 4px; margin-left:"
-                            " 6px;'>Stoch-Trend Radar</span>"
-                        )
+                    price_str = (
+                        f"Rp {int(last_price):,}"
+                        if last_price is not None
+                        else "-"
+                    )
+                    pct_str = (
+                        f"{prefix}{pct_change:.2f}%"
+                        if pct_change is not None
+                        else "-"
+                    )
 
                     if enable_batch_delete:
                         c_chk, c_card = st.columns([0.4, 3.6])
@@ -565,56 +545,46 @@ def render_page_watchlist():
                     else:
                         c_card = st.container()
 
+                    # MURNI LAYOUT STREAMLIT TANPA HTML MANUAL SENSITIF
                     with c_card:
-                        card_style = (
-                            "border: 1px solid #21262D; border-left: 4px solid"
-                            f" {color_code}; border-radius: 8px; padding: 10px"
-                            " 14px; margin-bottom: 6px; background-color:"
-                            " #161B22;"
-                        )
+                        with st.container(border=True):
+                            col_info, col_price = st.columns([1.5, 1])
 
-                        # Render Kartu Tampilan dengan HTML Terisolasi
-                        st.markdown(
-                            f"""
-                            <div style="{card_style}">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <span style="font-weight: bold; font-size: 16px; color: #E6EDF3;">{clean_ticker}</span>
-                                        <span style="font-size: 10px; color: #8B949E; margin-left: 3px;">IDX</span>
-                                        {source_badge}
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-weight: bold; font-size: 14px; color: #E6EDF3;">{price_str}</div>
-                                        <div style="font-size: 11px; font-weight: bold; color: {color_code}; border-radius: 4px;">{pct_str}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
+                            with col_info:
+                                st.subheader(clean_ticker)
+                                if "Stoch-Trend Radar" in notes_tag:
+                                    st.caption("🔹 Stoch-Trend Radar")
 
-                        is_active = (
-                            st.session_state["selected_watchlist_ticker"]
-                            == ticker_raw
-                        )
-                        btn_label = (
-                            "📍 Aktif Dilihat"
-                            if is_active
-                            else f"📊 Trade Plan {clean_ticker}"
-                        )
+                            with col_price:
+                                st.write(f"**{price_str}**")
+                                if pct_change is not None and pct_change > 0:
+                                    st.caption(f":green[{pct_str}]")
+                                elif pct_change is not None and pct_change < 0:
+                                    st.caption(f":red[{pct_str}]")
+                                else:
+                                    st.caption(pct_str)
 
-                        if st.button(
-                            btn_label,
-                            key=f"btn_select_{clean_ticker}_{idx}",
-                            use_container_width=True,
-                            type="primary" if is_active else "secondary",
-                        ):
-                            st.session_state["selected_watchlist_ticker"] = (
-                                ticker_raw
+                            is_active = (
+                                st.session_state["selected_watchlist_ticker"]
+                                == ticker_raw
                             )
-                            st.rerun()
+                            btn_label = (
+                                "📍 Aktif Dilihat"
+                                if is_active
+                                else f"📊 Trade Plan {clean_ticker}"
+                            )
 
-                        st.write("")
+                            if st.button(
+                                btn_label,
+                                key=f"btn_select_{clean_ticker}_{idx}",
+                                use_container_width=True,
+                                type="primary" if is_active else "secondary",
+                            ):
+                                st.session_state["selected_watchlist_ticker"] = (
+                                    ticker_raw
+                                )
+                                st.rerun()
+
             else:
                 st.caption("Tidak ada saham yang ditemukan.")
 

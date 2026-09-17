@@ -62,8 +62,7 @@ elif page == "watchlist":
     render_page_watchlist()
 
 elif page == "money_management":
-    st.title("🛡️ Money Management")
-    st.info("Halaman Money Management siap dihubungkan ke file baru.")
+    render_page_money_management()
 
 elif page == "how_to":
     st.title("💡 How To")

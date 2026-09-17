@@ -4,31 +4,32 @@ import streamlit as st
 def render_sidebar_nav():
     """Sidebar Navigasi Standar dengan Kontainer Berborder Merah."""
 
-    # CSS khusus untuk mengubah border kontainer di sidebar menjadi warna merah
-    st.markdown(
-        """
-        <style>
-        /* Styling kontainer di sidebar agar border berwarna merah */
-        [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
-            border: 1px solid #FF0000 !important;
-            border-radius: 8px !important;
-            padding: 10px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
     # Init State dasar
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = "screener"
 
     active_nav = st.session_state["active_nav"]
 
-    # Render menggunakan st.sidebar
     with st.sidebar:
-        # Membungkus elemen navigasi ke dalam container ber-border
-        with st.container(border=True):
+        # CSS disuntikkan langsung di dalam sidebar menggunakan selector key 'sidebar_box'
+        st.markdown(
+            """
+            <style>
+            div[data-element-link-key="sidebar_box"],
+            div[element-id="sidebar_box"],
+            div:has(> div[data-testid="stVerticalBlock"] .element-container) {
+                border: 2px solid #FF0000 !important;
+                border-radius: 8px !important;
+                padding: 15px !important;
+                box-shadow: 0 0 10px rgba(255, 0, 0, 0.3) !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Kontainer khusus di sidebar
+        with st.container(border=True, key="sidebar_box"):
             st.markdown("### 🧭 Navigation")
             st.markdown("---")
 

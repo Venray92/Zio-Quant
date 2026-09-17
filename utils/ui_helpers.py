@@ -58,25 +58,46 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* DUMMY BUTTONS STYLING - UKURAN KECIL, NEMPEL GARIS PEMBATAS, ALIGN KIRI */
-    div[data-testid="stColumn"] > div > div > button {
-        background-color: #242424 !important;
-        border: 1px solid #30363D !important;
-        border-radius: 4px !important;
-        color: #8A8B98 !important;
+    /* DUMMY BUTTONS STYLING - FORCE BORDER GELAP DI SEMUA STATE (ACTIVE/FOCUS/NORMAL) */
+    .dummy-nav-wrapper button,
+    .dummy-nav-wrapper button:focus,
+    .dummy-nav-wrapper button:active,
+    .dummy-nav-wrapper button:visited,
+    .dummy-nav-wrapper button[data-testid="baseButton-secondary"] {
+        background-color: #1E222D !important;
+        border: 1px solid #2A2E39 !important;
+        border-color: #2A2E39 !important;
+        border-radius: 6px !important;
+        box-shadow: none !important;
+        outline: none !important;
+        height: 36px !important;
+        padding: 2px 12px !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    /* TEKS DUMMY BUTTONS - SELALU CYAN NYALA */
+    .dummy-nav-wrapper button p,
+    .dummy-nav-wrapper button div[data-testid="stMarkdownContainer"] p {
+        color: #00F3FF !important;
         font-family: 'Share Tech Mono', monospace !important;
         font-size: 11px !important;
         font-weight: 700 !important;
-        height: 30px !important;
-        padding: 2px 8px !important;
-        margin-top: 15px !important;
-        margin-bottom: -10px !important;
-        transition: all 0.2s ease-in-out !important;
+        letter-spacing: 0.5px !important;
+        text-shadow: 0 0 6px rgba(0, 243, 255, 0.6) !important;
+        margin: 0 !important;
     }
-    div[data-testid="stColumn"] > div > div > button:hover {
+
+    /* HOVER STATE - BARU MENYALA CYAN SAAT KURSOR DI-HOVER */
+    .dummy-nav-wrapper button:hover {
+        border: 1px solid #00F3FF !important;
         border-color: #00F3FF !important;
+        background-color: #242B35 !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
+    }
+
+    .dummy-nav-wrapper button:hover p {
         color: #00F3FF !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
+        text-shadow: 0 0 10px #00F3FF !important;
     }
 
     /* MAIN POPOVER BUTTON CONTAINER */
@@ -108,7 +129,7 @@ def inject_custom_css():
         white-space: nowrap !important;
     }
 
-    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT (JANGAN UBAH FONT-FAMILY) */
+    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT */
     div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
     div[data-testid="stPopover"] button i,
     div[data-testid="stPopover"] button svg {
@@ -118,7 +139,7 @@ def inject_custom_css():
         margin: 0 !important;
     }
 
-    /* HOVER STATE */
+    /* HOVER STATE POPOVER */
     div[data-testid="stPopover"] > button:hover {
         background-color: #00F3FF !important;
         box-shadow: 0 0 20px #00F3FF !important;
@@ -136,6 +157,7 @@ def inject_custom_css():
         color: #000000 !important;
         fill: #000000 !important;
     }
+
     /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #242424 !important;

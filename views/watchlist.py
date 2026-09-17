@@ -69,107 +69,6 @@ def clear_search_callback():
 # MAIN RENDER FUNCTION
 # ==========================================
 def render_page_watchlist():
-    # Modern Custom CSS Styling
-    st.markdown(
-        """
-        <style>
-        /* Global Font & Background adjustments */
-        .stApp {
-            background-color: #0B0E14;
-        }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0B0E14;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1F2937;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #374151;
-        }
-
-        /* Glassmorphism Cards */
-        .stock-card {
-            background: rgba(17, 24, 39, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            padding: 10px 14px;
-            margin-bottom: 8px;
-            transition: all 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .stock-card:hover {
-            border-color: rgba(0, 230, 118, 0.4);
-            transform: translateY(-1px);
-            background: rgba(31, 41, 55, 0.8);
-        }
-
-        /* Popover Styling */
-        div[data-testid="stPopover"] > button {
-            background: #1F2937 !important;
-            border: 1px solid #374151 !important;
-            border-radius: 8px !important;
-            color: #E5E7EB !important;
-            font-weight: 600 !important;
-            transition: all 0.2s ease !important;
-        }
-        div[data-testid="stPopover"] > button:hover {
-            border-color: #00E676 !important;
-            color: #00E676 !important;
-            box-shadow: 0 0 10px rgba(0, 230, 118, 0.2);
-        }
-        
-        /* Remove popover arrow */
-        div[data-testid="stPopover"] div[aria-expanded="false"] svg,
-        div[data-testid="stPopover"] div[aria-expanded="true"] svg {
-            display: none !important;
-        }
-
-        /* Input Custom Styling */
-        div[data-testid="stTextInput"] input {
-            background-color: #111827 !important;
-            border: 1px solid #374151 !important;
-            border-radius: 8px !important;
-            color: #F3F4F6 !important;
-        }
-        div[data-testid="stTextInput"] input:focus {
-            border-color: #00E676 !important;
-            box-shadow: 0 0 8px rgba(0, 230, 118, 0.3) !important;
-        }
-
-        /* Badge Styling */
-        .idx-badge {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.05));
-            color: #38BDF8;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 3px 6px;
-            border-radius: 4px;
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            letter-spacing: 0.5px;
-        }
-        
-        /* Metric Box */
-        .metric-container {
-            background: #111827;
-            border: 1px solid #1F2937;
-            border-radius: 10px;
-            padding: 12px 16px;
-            text-align: left;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
     # Inisialisasi Session State
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
@@ -196,10 +95,9 @@ def render_page_watchlist():
             chg if chg is not None else item.get("Change Pct", 0.0)
         )
 
-    # 1. Header Section
-    st.markdown("### 📊 Market Watchlist Pro")
+    # 1. Header & Metric Summary Row
+    st.title("📈 Watchlist Saham Pro")
 
-    # Metrics Summary Row
     if st.session_state["watchlist_data"]:
         valid_items = [
             x
@@ -220,63 +118,43 @@ def render_page_watchlist():
         )
 
         m1, m2, m3 = st.columns(3)
-        with m1:
-            st.markdown(
-                f"""
-                <div class="metric-container">
-                    <div style="font-size: 11px; color: #9CA3AF; font-weight: 600;">TOTAL WATCHLIST</div>
-                    <div style="font-size: 18px; color: #F3F4F6; font-weight: 700; margin-top:2px;">{total_items} <span style="font-size:12px; color:#6B7280;">/ 50</span></div>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
-        with m2:
-            g_ticker = (
-                top_gainer["Ticker"].replace(".JK", "") if top_gainer else "-"
-            )
-            g_pct = top_gainer.get("Change Pct", 0.0) if top_gainer else 0.0
-            st.markdown(
-                f"""
-                <div class="metric-container">
-                    <div style="font-size: 11px; color: #9CA3AF; font-weight: 600;">TOP GAINER</div>
-                    <div style="font-size: 18px; color: #00E676; font-weight: 700; margin-top:2px;">{g_ticker} <span style="font-size:13px;">(+{g_pct:.2f}%)</span></div>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
-        with m3:
-            l_ticker = (
-                top_loser["Ticker"].replace(".JK", "") if top_loser else "-"
-            )
-            l_pct = top_loser.get("Change Pct", 0.0) if top_loser else 0.0
-            st.markdown(
-                f"""
-                <div class="metric-container">
-                    <div style="font-size: 11px; color: #9CA3AF; font-weight: 600;">TOP LOSER</div>
-                    <div style="font-size: 18px; color: #FF5252; font-weight: 700; margin-top:2px;">{l_ticker} <span style="font-size:13px;">({l_pct:.2f}%)</span></div>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
+        m1.metric("Total Watchlist", f"{total_items} Saham")
 
-    st.write("")
+        if top_gainer:
+            m2.metric(
+                "Top Gainer",
+                top_gainer["Ticker"].replace(".JK", ""),
+                f"+{top_gainer.get('Change Pct', 0):.2f}%",
+            )
+        else:
+            m2.metric("Top Gainer", "-")
+
+        if top_loser:
+            m3.metric(
+                "Top Loser",
+                top_loser["Ticker"].replace(".JK", ""),
+                f"{top_loser.get('Change Pct', 0):.2f}%",
+            )
+        else:
+            m3.metric("Top Loser", "-")
+
+    st.divider()
 
     # 2. Main Layout Split
-    col_left, col_right = st.columns([1.1, 1.9], gap="medium")
+    col_left, col_right = st.columns([1.2, 1.8], gap="large")
 
     # ==========================================
     # KIRI: DAFTAR KARTU SAHAM
     # ==========================================
     with col_left:
+        st.subheader("Daftar Pantauan")
+
         # Action Toolbar
         h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
         with h_col1:
             with st.popover("➕ Tambah", use_container_width=True):
-                st.markdown(
-                    "<div style='text-align:center; padding-bottom:8px;'><b>Quick Add</b></div>",
-                    unsafe_allow_html=True,
-                )
+                st.caption("Quick Add Ticker")
                 inputs = []
                 ver = st.session_state["add_form_version"]
 
@@ -347,10 +225,7 @@ def render_page_watchlist():
 
         with h_col2:
             with st.popover("🗑️ Kelola", use_container_width=True):
-                st.markdown(
-                    "<div style='text-align:center; padding-bottom:8px;'><b>Batch Delete</b></div>",
-                    unsafe_allow_html=True,
-                )
+                st.caption("Batch Delete")
                 st.session_state["enable_batch_delete"] = st.checkbox(
                     "Mode Hapus",
                     value=st.session_state["enable_batch_delete"],
@@ -381,12 +256,9 @@ def render_page_watchlist():
 
         with h_col3:
             with st.popover("⚡ Sort", use_container_width=True):
-                st.markdown(
-                    "<div style='text-align:center; padding-bottom:8px;'><b>Urutkan</b></div>",
-                    unsafe_allow_html=True,
-                )
+                st.caption("Urutkan Tampilan")
                 st.session_state["sort_filter"] = st.selectbox(
-                    "Berdasarkan",
+                    "Sort By",
                     [
                         "Default",
                         "Gainers (% High)",
@@ -397,7 +269,7 @@ def render_page_watchlist():
                     label_visibility="collapsed",
                 )
 
-        # Search Bar Row
+        # Search Bar
         search_val = st.session_state["input_search_ticker_field"].strip().upper()
         if search_val:
             c_search, c_clear = st.columns([3.2, 0.8])
@@ -422,7 +294,7 @@ def render_page_watchlist():
                     on_click=clear_search_callback,
                 )
 
-        # Apply Filtering & Sorting
+        # Filtering & Sorting
         display_list = list(st.session_state["watchlist_data"])
         if search_val:
             display_list = [
@@ -440,8 +312,8 @@ def render_page_watchlist():
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0))
 
-        # Cards Scroll Container
-        with st.container(height=430):
+        # List Kartu Saham Kustom
+        with st.container(height=450):
             if display_list:
                 for idx, item in enumerate(display_list):
                     ticker_raw = item["Ticker"]
@@ -449,27 +321,23 @@ def render_page_watchlist():
                     last_price = item.get("Last Price", 0.0)
                     pct_change = item.get("Change Pct", 0.0)
 
+                    # Tentukan Warna & Format Tampilan
                     if pct_change > 0:
-                        chg_color = "#00E676"
-                        bg_badge = "rgba(0, 230, 118, 0.1)"
-                        chg_prefix = "+"
-                        icon = "▲ "
+                        color_code = "#00C853"
+                        bg_code = "#E8F5E9"
+                        prefix = "+"
                     elif pct_change < 0:
-                        chg_color = "#FF5252"
-                        bg_badge = "rgba(255, 82, 82, 0.1)"
-                        chg_prefix = ""
-                        icon = "▼ "
+                        color_code = "#D50000"
+                        bg_code = "#FFEBEE"
+                        prefix = ""
                     else:
-                        chg_color = "#9CA3AF"
-                        bg_badge = "rgba(156, 163, 175, 0.1)"
-                        chg_prefix = ""
-                        icon = ""
+                        color_code = "#757575"
+                        bg_code = "#F5F5F5"
+                        prefix = ""
 
-                    price_str = f"{int(last_price):,}" if last_price else "-"
+                    price_str = f"Rp {int(last_price):,}" if last_price else "-"
                     pct_str = (
-                        f"{icon}{chg_prefix}{pct_change:.2f}%"
-                        if last_price
-                        else "-"
+                        f"{prefix}{pct_change:.2f}%" if last_price else "-"
                     )
 
                     if st.session_state["enable_batch_delete"]:
@@ -493,18 +361,33 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
+                        # Render Blok Kartu Visual Baru
                         st.markdown(
                             f"""
-                            <div class="stock-card">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span class="idx-badge">IDX</span>
-                                    <div>
-                                        <div style="font-size: 14px; font-weight: 700; color: #F9FAFB;">{clean_ticker}</div>
-                                    </div>
+                            <div style="
+                                border: 1px solid #E0E0E0; 
+                                border-left: 5px solid {color_code}; 
+                                border-radius: 8px; 
+                                padding: 10px 14px; 
+                                margin-bottom: 8px; 
+                                display: flex; 
+                                justify-content: space-between; 
+                                align-items: center;
+                                background-color: #FFFFFF;">
+                                <div>
+                                    <span style="font-weight: bold; font-size: 16px; color: #212121;">{clean_ticker}</span>
+                                    <span style="font-size: 10px; color: #9E9E9E; margin-left: 5px;">IDX</span>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="font-size: 13px; font-weight: 700; color: #F3F4F6;">{price_str}</div>
-                                    <div style="font-size: 11px; font-weight: 700; color: {chg_color}; background: {bg_badge}; padding: 1px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;">
+                                    <div style="font-weight: bold; font-size: 14px; color: #212121;">{price_str}</div>
+                                    <div style="
+                                        font-size: 11px; 
+                                        font-weight: bold; 
+                                        color: {color_code}; 
+                                        background-color: {bg_code}; 
+                                        padding: 2px 6px; 
+                                        border-radius: 4px; 
+                                        display: inline-block;">
                                         {pct_str}
                                     </div>
                                 </div>
@@ -513,13 +396,15 @@ def render_page_watchlist():
                             unsafe_allow_html=True,
                         )
             else:
-                st.caption("Tidak ada saham yang cocok.")
+                st.caption("Tidak ada saham yang ditemukan.")
 
     # ==========================================
     # KANAN: FORM DETAIL & DATA TABEL PRO
     # ==========================================
     with col_right:
-        with st.expander("➕ Tambah Saham Lengkap & Catatan Strategi"):
+        st.subheader("Detail & Analisis")
+
+        with st.expander("➕ Tambah Saham Lengkap & Catatan"):
             with st.form(key="add_watchlist_form_full", clear_on_submit=True):
                 c1, c2 = st.columns(2)
                 with c1:
@@ -534,7 +419,7 @@ def render_page_watchlist():
                     )
 
                 new_notes = st.text_area(
-                    "Catatan Strategi & Technical Setup",
+                    "Catatan Strategi",
                     placeholder="Contoh: Entry area breakout 5200...",
                     height=80,
                 )
@@ -568,11 +453,9 @@ def render_page_watchlist():
                     else:
                         st.warning("Kode Ticker wajib diisi.")
 
-        # Table Display
+        # Display Dataframe dengan Kolom Terformat
         if st.session_state["watchlist_data"]:
             df_watchlist = pd.DataFrame(st.session_state["watchlist_data"])
-
-            # Clean Up Ticker Display Name
             df_watchlist["Ticker"] = df_watchlist["Ticker"].str.replace(
                 ".JK", ""
             )
@@ -589,15 +472,12 @@ def render_page_watchlist():
             ]
             df_display = df_watchlist[existing_cols]
 
-            # Streamlit Interactive Dataframe dengan Formatting Canggih
             st.dataframe(
                 df_display,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    "Ticker": st.column_config.TextColumn(
-                        "Kode", help="Kode saham IDX", width="medium"
-                    ),
+                    "Ticker": st.column_config.TextColumn("Kode"),
                     "Last Price": st.column_config.NumberColumn(
                         "Harga Terakhir", format="Rp %'d"
                     ),
@@ -607,9 +487,7 @@ def render_page_watchlist():
                     "Target Price": st.column_config.NumberColumn(
                         "Target Price", format="Rp %'d"
                     ),
-                    "Notes": st.column_config.TextColumn(
-                        "Catatan Strategi", width="large"
-                    ),
+                    "Notes": st.column_config.TextColumn("Catatan Strategi"),
                 },
             )
 

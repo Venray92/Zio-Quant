@@ -27,7 +27,87 @@ def inject_custom_css():
         padding-bottom: 2rem !important;
     }
 
-    /* Header Bar & Popover Styling */
+    /* ------------------------------------------------------------- */
+    /* SIDEBAR VERTICAL NAVIGATION STYLING (4 TOMBOL KIRI MODERN)    */
+    /* ------------------------------------------------------------- */
+    section[data-testid="stSidebar"] {
+        width: 90px !important;
+        background-color: #0D0E12 !important;
+        border-right: 1px solid #21262D !important;
+    }
+    
+    section[data-testid="stSidebar"] > div {
+        padding-top: 2rem !important;
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
+    }
+
+    .sidebar-nav-container {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .sidebar-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #6E7681;
+        gap: 6px;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        position: relative;
+        width: 100%;
+        padding: 8px 0;
+    }
+
+    .sidebar-nav-item .nav-icon {
+        stroke: #6E7681;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .sidebar-nav-item .nav-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    /* Hover & Active State (Neon Green Accent) */
+    .sidebar-nav-item:hover, .sidebar-nav-item.active {
+        color: #00FF66 !important;
+    }
+
+    .sidebar-nav-item:hover .nav-icon, .sidebar-nav-item.active .nav-icon {
+        stroke: #00FF66 !important;
+        filter: drop-shadow(0 0 6px #00FF66);
+    }
+
+    .sidebar-nav-item.active::after {
+        content: '';
+        position: absolute;
+        right: -8px;
+        top: 15%;
+        height: 70%;
+        width: 3px;
+        background-color: #00FF66;
+        box-shadow: 0 0 8px #00FF66;
+        border-radius: 2px;
+    }
+
+    /* Menjadikan Tombol Native Streamlit Transparan di atas HTML Nav */
+    div[data-testid="stSidebar"] button[key^="nav_btn_"] {
+        margin-top: -65px !important;
+        height: 60px !important;
+        opacity: 0 !important;
+        cursor: pointer !important;
+    }
+
+    /* ------------------------------------------------------------- */
+    /* Header Bar & Popover Styling                                  */
+    /* ------------------------------------------------------------- */
     .brand-link {
         display: inline-flex;
         align-items: center;

@@ -59,7 +59,7 @@ def inject_custom_css():
     }
 
     /* ==========================================================================
-       FIX BORDER DUMMY BUTTONS - KUNCI GELAP NETRAL DI SEMUA STATE (FOCUS/ACTIVE/NORMAL)
+       FIX BORDER DUMMY BUTTONS - BORDER CYAN NYALA KONSISTEN DI SEMUA TAB
        ========================================================================== */
     .dummy-nav-wrapper button,
     .dummy-nav-wrapper button:focus,
@@ -70,10 +70,10 @@ def inject_custom_css():
     .dummy-nav-wrapper button[data-testid="baseButton-secondary"]:focus,
     .dummy-nav-wrapper button[data-testid="baseButton-secondary"]:active {
         background-color: #1E222D !important;
-        border: 1px solid #2A2E39 !important;
-        border-color: #2A2E39 !important;
+        border: 1px solid #00F3FF !important;
+        border-color: #00F3FF !important;
         border-radius: 6px !important;
-        box-shadow: none !important;
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
         outline: none !important;
         height: 36px !important;
         padding: 2px 12px !important;
@@ -92,13 +92,13 @@ def inject_custom_css():
         margin: 0 !important;
     }
 
-    /* HOVER STATE - BARU MENYALA CYAN HANYA SAAT KURSOR DI-HOVER */
+    /* HOVER STATE - EFEK GLOW LEBIH TERANG SAAT KURSOR DI-HOVER */
     .dummy-nav-wrapper button:hover,
     .dummy-nav-wrapper button[data-testid="baseButton-secondary"]:hover {
         border: 1px solid #00F3FF !important;
         border-color: #00F3FF !important;
         background-color: #242B35 !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
     }
 
     .dummy-nav-wrapper button:hover p {

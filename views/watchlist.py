@@ -22,39 +22,45 @@ def fetch_stock_quote(ticker_symbol):
 
 
 def render_page_watchlist():
-    # CSS Custom untuk merapatkan gap layout & styling checkbox
+    # Force CSS untuk merapatkan layout, memperkecil icon, dan menghapus gap
     st.markdown(
         """
         <style>
-        /* Hilangkan gap margin bawaan streamlit antar elemen kiri */
-        div[data-testid="stVerticalBlock"] > div {
-            gap: 0.3rem !important;
+        /* Hilangkan gap bawaan Streamlit antar komponen */
+        [data-testid="stVerticalBlock"] > [data-testid="stBlock"] {
+            gap: 0rem !important;
+            margin-bottom: 0px !important;
         }
-        /* Style Icon Popover / Button Header minimalis */
-        div[data-testid="stPopover"] > button, .top-header-btn > button {
+        
+        /* Style Icon Popover & Action Button Header */
+        div[data-testid="stPopover"] > button {
             border: none !important;
             background: transparent !important;
-            padding: 2px 4px !important;
+            padding: 0px 4px !important;
             color: #9ECBFF !important;
             font-size: 16px !important;
+            min-height: 0px !important;
+            height: auto !important;
             box-shadow: none !important;
         }
-        div[data-testid="stPopover"] > button:hover, .top-header-btn > button:hover {
+        div[data-testid="stPopover"] > button:hover {
             color: #00E676 !important;
-            background: rgba(255,255,255,0.05) !important;
         }
-        /* Merapatkan margin input search */
+        
+        /* Rapatkan Search Input ke Header */
         div[data-testid="stTextInput"] {
-            margin-top: -6px !important;
-            margin-bottom: 4px !important;
+            margin-top: 2px !important;
+            margin-bottom: 6px !important;
         }
-        /* Merapatkan checkbox di dalam card */
+        div[data-testid="stTextInput"] input {
+            padding: 4px 10px !important;
+            font-size: 12px !important;
+        }
+
+        /* Checkbox Styling Minimalis */
         div[data-testid="stCheckbox"] {
             margin: 0px !important;
-            padding: 0px !important;
-        }
-        div[data-testid="stCheckbox"] label {
-            padding-left: 0px !important;
+            padding-top: 10px !important;
         }
         </style>
         """,
@@ -83,8 +89,6 @@ def render_page_watchlist():
                     "Target Price": 0
                 })
 
-    if "search_kw" not in st.session_state:
-        st.session_state["search_kw"] = ""
     if "sort_filter" not in st.session_state:
         st.session_state["sort_filter"] = "Default"
     if "selected_cards" not in st.session_state:
@@ -100,17 +104,17 @@ def render_page_watchlist():
     col_left, col_right = st.columns([1.2, 2.3])
 
     # ==========================================
-    # KIRI: DAFTAR SAHAM (BATCH DELETE & NO GAP)
+    # KANAN DULU / KIRI: DAFTAR SAHAM
     # ==========================================
     with col_left:
-        # Header Row: Badge "Watchlist", (+) Add, (🗑️) Batch Delete, (🎛️) Filter
-        h_col1, h_col2, h_col3, h_col4 = st.columns([2.1, 0.4, 0.4, 0.4])
+        # Header Row: Badge "Watchlist" + (+) Add + (🗑️) Batch Delete + (🎛️) Filter
+        h_col1, h_col2, h_col3, h_col4 = st.columns([2.0, 0.4, 0.4, 0.4])
         
         with h_col1:
             st.markdown(
                 """
                 <span style="background: #064E3B; color: #00E676; border: 1px solid #10B981; 
-                             padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">
+                             padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700;">
                     Watchlist
                 </span>
                 """,
@@ -135,7 +139,7 @@ def render_page_watchlist():
                         st.rerun()
 
         with h_col3:
-            # Button Hapus Terpilih (🗑️) di Header Atas
+            # Tombol Hapus Terpilih (🗑️) di Atas
             if st.button("🗑️", key="btn_batch_delete", help="Hapus Saham Tercentang"):
                 if st.session_state["selected_cards"]:
                     to_remove = list(st.session_state["selected_cards"])
@@ -151,10 +155,10 @@ def render_page_watchlist():
                     st.toast("Saham terpilih berhasil dihapus!", icon="🗑️")
                     st.rerun()
                 else:
-                    st.toast("Pilih/centang saham yang ingin dihapus terlebih dahulu.", icon="⚠️")
+                    st.toast("Centang saham yang ingin dihapus.", icon="⚠️")
 
         with h_col4:
-            # Popover Icon Filter (🎛️)
+            # Popover Filter (🎛️)
             with st.popover("🎛️", help="Filter & Urutkan"):
                 st.markdown("**Filter & Urutkan**")
                 st.session_state["sort_filter"] = st.selectbox(
@@ -162,21 +166,18 @@ def render_page_watchlist():
                     ["Default", "Gainers (% High)", "Losers (% Low)", "Price High", "Price Low"]
                 )
 
-        # Search Bar Tanpa Gap & Auto-Reset saat Kosong
-        search_input = st.text_input(
+        # Search Bar tanpa Enter (Realtime Auto-reset ketika dihapus)
+        search_kw = st.text_input(
             "Cari", 
-            value=st.session_state["search_kw"], 
             placeholder="🔍 Cari kode atau nama saham...", 
             label_visibility="collapsed",
             key="input_search_ticker"
-        )
-        # Update state keyword pencarian secara otomatis
-        st.session_state["search_kw"] = search_input.strip().upper()
+        ).strip().upper()
 
-        # Filtering & Sorting
+        # Filter List Saham
         display_list = list(st.session_state["watchlist_data"])
-        if st.session_state["search_kw"]:
-            display_list = [x for x in display_list if st.session_state["search_kw"] in x["Ticker"]]
+        if search_kw:
+            display_list = [x for x in display_list if search_kw in x["Ticker"]]
 
         if st.session_state["sort_filter"] == "Gainers (% High)":
             display_list.sort(key=lambda x: x.get("Change Pct", 0), reverse=True)
@@ -187,7 +188,7 @@ def render_page_watchlist():
         elif st.session_state["sort_filter"] == "Price Low":
             display_list.sort(key=lambda x: x.get("Last Price", 0))
 
-        # Container Scrollable Fixed Height (420px)
+        # Container Scroll (Fixed Height)
         with st.container(height=420):
             if display_list:
                 for idx, item in enumerate(display_list):
@@ -196,7 +197,6 @@ def render_page_watchlist():
                     last_price = item.get("Last Price", 0.0)
                     pct_change = item.get("Change Pct", 0.0)
 
-                    # Tentukan warna & panah arah persentase
                     if pct_change > 0:
                         chg_color = "#00E676"
                         arrow_icon = "📈 "
@@ -213,11 +213,9 @@ def render_page_watchlist():
                     price_str = f"{int(last_price):,}" if last_price else "-"
                     pct_str = f"{arrow_icon}{chg_prefix}{pct_change:.2f}%" if last_price else "-"
 
-                    # Grid Card: Checkbox di Kiri + Card Info Saham
-                    c_chk, c_card = st.columns([0.4, 3.6])
+                    c_chk, c_card = st.columns([0.3, 3.7])
                     
                     with c_chk:
-                        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
                         is_checked = st.checkbox(
                             "", 
                             key=f"chk_{clean_ticker}_{idx}",
@@ -231,21 +229,20 @@ def render_page_watchlist():
                     with c_card:
                         card_html = f"""
                         <div style="display: flex; align-items: center; justify-content: space-between; 
-                                    background: #0D1117; padding: 8px 10px; border-radius: 8px; 
+                                    background: #0D1117; padding: 6px 10px; border-radius: 6px; 
                                     margin-bottom: 4px; border-bottom: 1px solid #21262D;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <div style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; 
-                                            font-size: 9px; font-weight: 800; padding: 4px 6px; 
+                                            font-size: 9px; font-weight: 800; padding: 3px 5px; 
                                             border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">
                                     IDX
                                 </div>
                                 <div>
                                     <div style="font-size: 13px; font-weight: 800; color: #F0F6FC;">{clean_ticker}</div>
-                                    <div style="font-size: 9px; color: #8B949E; margin-top: -2px;">Indonesia Stock</div>
                                 </div>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-size: 13px; font-weight: 800; color: #F0F6FC;">{price_str}</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #F0F6FC;">{price_str}</div>
                                 <div style="font-size: 10px; font-weight: 700; color: {chg_color};">{pct_str}</div>
                             </div>
                         </div>

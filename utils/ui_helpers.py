@@ -58,8 +58,9 @@ def inject_custom_css():
         font-family: 'Share Tech Mono', monospace;
     }
 
-    /* DUMMY BUTTONS STYLING - UKURAN KECIL, NEMPEL GARIS PEMBATAS, ALIGN KIRI */
-    div[data-testid="stColumn"] > div > div > button {
+    /* DUMMY BUTTONS STYLING - KONSISTEN DI SEMUA TAB (TIDAK NYALA BORDER SAAT ACTIVE) */
+    .dummy-nav-wrapper button,
+    div[data-testid="stColumn"] button {
         background-color: #242424 !important;
         border: 1px solid #30363D !important;
         border-radius: 4px !important;
@@ -71,12 +72,27 @@ def inject_custom_css():
         padding: 2px 8px !important;
         margin-top: 15px !important;
         margin-bottom: -10px !important;
+        box-shadow: none !important;
         transition: all 0.2s ease-in-out !important;
     }
-    div[data-testid="stColumn"] > div > div > button:hover {
+
+    /* HOVER STATE DUMMY BUTTONS */
+    .dummy-nav-wrapper button:hover,
+    div[data-testid="stColumn"] button:hover {
         border-color: #00F3FF !important;
         color: #00F3FF !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.4) !important;
+    }
+
+    /* RESET FOCUS & ACTIVE STATE DUMMY BUTTONS */
+    .dummy-nav-wrapper button:focus,
+    .dummy-nav-wrapper button:active,
+    div[data-testid="stColumn"] button:focus,
+    div[data-testid="stColumn"] button:active {
+        border-color: #30363D !important;
+        color: #8A8B98 !important;
+        box-shadow: none !important;
+        outline: none !important;
     }
 
     /* MAIN POPOVER BUTTON CONTAINER */
@@ -95,7 +111,7 @@ def inject_custom_css():
         gap: 8px !important;
     }
 
-    /* PENGATURAN TEKS LABEL TOMBOL (DIPISAH DARI ICON) */
+    /* TEKS POPOVER BUTTON (CHOOSE SCREENER - CYAN TEXT) */
     div[data-testid="stPopover"] button p,
     div[data-testid="stPopover"] button div[data-testid="stMarkdownContainer"] p {
         color: #00F3FF !important;
@@ -108,7 +124,7 @@ def inject_custom_css():
         white-space: nowrap !important;
     }
 
-    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT (JANGAN UBAH FONT-FAMILY) */
+    /* PENGATURAN KHUSUS ICON PANAH STREAMLIT (TIDAK MENIMPA FONT IKON) */
     div[data-testid="stPopover"] button span[data-testid="stIconMaterial"],
     div[data-testid="stPopover"] button i,
     div[data-testid="stPopover"] button svg {
@@ -118,7 +134,7 @@ def inject_custom_css():
         margin: 0 !important;
     }
 
-    /* HOVER STATE */
+    /* HOVER STATE POPOVER BUTTON */
     div[data-testid="stPopover"] > button:hover {
         background-color: #00F3FF !important;
         box-shadow: 0 0 20px #00F3FF !important;
@@ -136,6 +152,7 @@ def inject_custom_css():
         color: #000000 !important;
         fill: #000000 !important;
     }
+
     /* Container Popover Dropdown */
     div[data-testid="stPopoverContent"] {
         background-color: #242424 !important;

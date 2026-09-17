@@ -17,7 +17,6 @@ def load_watchlist_from_file():
                 return json.load(f)
         except Exception:
             pass
-    # Default data jika file belum ada
     return [
         {"Ticker": "BBCA.JK", "Notes": "Pantau area support 9800", "Target Price": 10500},
         {"Ticker": "TLKM.JK", "Notes": "Tunggu konfirmasi breakout", "Target Price": 3200},
@@ -56,7 +55,7 @@ def clear_search_callback():
 
 
 def render_page_watchlist():
-    # CSS Custom: Sembunyikan Panah Popover, Rapatkan Button ke Kanan
+    # CSS Custom: Sembunyikan Panah Popover, Rapatkan Tombol ke Kanan
     st.markdown(
         """
         <style>
@@ -72,7 +71,7 @@ def render_page_watchlist():
             margin-bottom: 0px !important;
         }
         
-        /* Styling Popover Header: Rata Tengah, Berdempetan & Mentok Kanan */
+        /* Styling Popover Header: Rata Tengah & Mentok Kanan */
         div[data-testid="stPopover"] > button {
             display: flex !important;
             justify-content: center !important;
@@ -154,8 +153,8 @@ def render_page_watchlist():
     # KIRI: DAFTAR SAHAM
     # ==========================================
     with col_left:
-        # Header Row: Badge "Watchlist" + 3 Tombol (Ikon +, Ikon ✕, Filter) Mentok Kanan
-        h_col1, h_col2, h_col3, h_col4 = st.columns([1.8, 0.7, 0.7, 0.7])
+        # Header Row: Badge "Watchlist" (lebar) + 3 Tombol Dirapatkan ke Kanan
+        h_col1, h_col2, h_col3, h_col4 = st.columns([2.5, 0.5, 0.5, 0.5])
         
         with h_col1:
             st.markdown(
@@ -169,7 +168,7 @@ def render_page_watchlist():
             )
             
         with h_col2:
-            # Popover Tombol Tambah (Ikon Modern +)
+            # Popover Tombol Tambah (+)
             with st.popover("＋"):
                 st.markdown("<div style='text-align:center;'><b>Tambah Saham Quick</b></div>", unsafe_allow_html=True)
                 
@@ -209,20 +208,16 @@ def render_page_watchlist():
                                         })
                                         added_count += 1
                             
-                            # Simpan Perubahan ke File Permanen
                             save_watchlist_to_file(st.session_state["watchlist_data"])
-                            
-                            # Auto-Clear Form Input
                             st.session_state["add_form_version"] += 1
                             st.session_state["quick_add_count"] = 1
-                            
                             st.toast(f"{added_count} Saham berhasil ditambahkan!", icon="🚀")
                             st.rerun()
                         else:
                             st.warning("Masukkan kode saham!")
 
         with h_col3:
-            # Popover Tombol Hapus (Ikon Modern ✕)
+            # Popover Tombol Hapus (✕)
             with st.popover("✕"):
                 st.markdown("<div style='text-align:center;'><b>Pengaturan Hapus</b></div>", unsafe_allow_html=True)
                 
@@ -239,10 +234,7 @@ def render_page_watchlist():
                             st.session_state["watchlist_data"] = [
                                 x for x in st.session_state["watchlist_data"] if x["Ticker"] not in to_remove
                             ]
-                            
-                            # Simpan Perubahan ke File Permanen
                             save_watchlist_to_file(st.session_state["watchlist_data"])
-                            
                             st.session_state["selected_cards"].clear()
                             st.toast("Saham terpilih berhasil dihapus!", icon="🗑️")
                             st.rerun()

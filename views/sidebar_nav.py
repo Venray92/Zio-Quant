@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Menampilkan Navigasi Vertikal dalam Kontainer dengan Toggle di Tengah Garis Pembatas."""
+    """Menampilkan Navigasi Vertikal dengan Tombol Toggle Presisi di Tengah Garis Pembatas Kanan."""
 
     if "nav_collapsed" not in st.session_state:
         st.session_state["nav_collapsed"] = False
@@ -10,20 +10,28 @@ def render_sidebar_nav():
     is_collapsed = st.session_state["nav_collapsed"]
     active_nav = st.session_state.get("active_nav", "screener")
 
-    # Styling CSS penuh untuk kontainer, tombol utama, dan toggle di tengah garis
-    nav_css = """
+    # Lebar sidebar menyesuaikan status buka/tutup
+    sidebar_width = "72px" if is_collapsed else "165px"
+
+    nav_css = f"""
     <style>
-    /* Kontainer pembungkus sidebar kustom */
-    .sidebar-wrapper {
+    /* Kontainer utama sidebar dengan garis pembatas di sebelah kanan */
+    .block-sidebar {{
+        position: relative;
         background-color: #0D0E12;
         border-right: 2px solid #21262D;
         border-radius: 8px;
-        padding: 14px 8px;
-        position: relative;
-    }
+        padding: 16px 8px;
+        width: {sidebar_width};
+        min-height: 520px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: width 0.25s ease-in-out;
+    }}
 
-    /* Memperbesar tombol navigasi utama agar tidak kekecilan dan teks tidak terpotong */
-    div.nav-main-area div.stButton > button {
+    /* Styling Tombol Navigasi Utama (Ukuran pas, teks tidak terpotong) */
+    .block-sidebar div.stButton > button {{
         background-color: #161B22 !important;
         border: 1px solid #30363D !important;
         color: #C9D1D9 !important;
@@ -37,55 +45,54 @@ def render_sidebar_nav():
         align-items: center !important;
         justify-content: flex-start !important;
         padding-left: 14px !important;
-        transition: all 0.2s ease-in-out !important;
         box-shadow: none !important;
-    }
+        transition: all 0.2s ease-in-out !important;
+    }}
 
-    div.nav-main-area div.stButton > button:hover {
+    .block-sidebar div.stButton > button:hover {{
         color: #00FF66 !important;
         border-color: #00FF66 !important;
         background-color: rgba(0, 255, 102, 0.08) !important;
-    }
+    }}
 
-    /* Active State (Glow Hijau) */
-    .nav-item-active div.stButton > button {
+    /* State Aktif (Glow Neon Green) */
+    .btn-active div.stButton > button {{
         color: #00FF66 !important;
-        background-color: rgba(0, 255, 102, 0.12) !important;
+        background-color: rgba(0, 255, 102, 0.15) !important;
         border: 1.5px solid #00FF66 !important;
-        box-shadow: 0 0 10px rgba(0, 255, 102, 0.25) !important;
-    }
+        box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
+    }}
 
-    /* Posisi tombol toggle agar tepat di tengah secara vertikal pada kolom kanan */
-    .nav-toggle-area {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        min-height: 260px;
-    }
+    /* TOMBOL TOGGLE: Mengambang tepat di tengah secara vertikal pada garis batas kanan */
+    .sidebar-toggle-container {{
+        position: absolute;
+        top: 50%;
+        right: -12px;
+        transform: translateY(-50%);
+        z-index: 999;
+    }}
 
-    div.nav-toggle-area div.stButton > button {
+    .sidebar-toggle-container div.stButton > button {{
         background-color: #161B22 !important;
-        border: 1px solid #30363D !important;
-        border-left: none !important;
+        border: 2px solid #30363D !important;
         color: #00FF66 !important;
         font-size: 15px !important;
         font-weight: 900 !important;
-        height: 60px !important;
-        width: 18px !important;
-        min-width: 18px !important;
+        height: 48px !important;
+        width: 22px !important;
+        min-width: 22px !important;
         padding: 0 !important;
-        border-radius: 0px 6px 6px 0px !important;
+        border-radius: 4px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7) !important;
         transition: all 0.2s ease-in-out !important;
-        box-shadow: 2px 0 8px rgba(0,0,0,0.4) !important;
-    }
+    }}
 
-    div.nav-toggle-area div.stButton > button:hover {
+    .sidebar-toggle-container div.stButton > button:hover {{
         background-color: #00FF66 !important;
         color: #000000 !important;
         border-color: #00FF66 !important;
-        box-shadow: 0 0 12px #00FF66 !important;
-    }
+        box-shadow: 0 0 14px #00FF66 !important;
+    }}
     </style>
     """
     st.markdown(nav_css, unsafe_allow_html=True)
@@ -97,37 +104,32 @@ def render_sidebar_nav():
         ("support", "🎧 Support"),
     ]
 
-    # Bungkus dalam kontainer utama bergaris pembatas
-    st.markdown('<div class="sidebar-wrapper">', unsafe_allow_html=True)
+    # Buka Kontainer Sidebar
+    st.markdown('<div class="block-sidebar">', unsafe_allow_html=True)
 
-    # Menggunakan rasio kolom agar tombol menu utama luas dan tombol toggle pas di garis kanan
-    col_menu, col_toggle = st.columns([6, 1], gap="small")
+    # Render Tombol Menu
+    for key, label in nav_items:
+        display_text = label[:2] if is_collapsed else label
+        active_class = "btn-active" if active_nav == key else ""
 
-    with col_menu:
-        st.markdown('<div class="nav-main-area">', unsafe_allow_html=True)
-        for key, label in nav_items:
-            display_label = label[:2] if is_collapsed else label
-            is_active = (
-                "nav-item-active" if active_nav == key else "nav-item-normal"
-            )
-
-            st.markdown(f'<div class="{is_active}">', unsafe_allow_html=True)
-            if st.button(
-                display_label, key=f"nav_btn_{key}", use_container_width=True
-            ):
-                st.session_state["active_nav"] = key
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_toggle:
-        st.markdown('<div class="nav-toggle-area">', unsafe_allow_html=True)
-        toggle_icon = "›" if is_collapsed else "‹"
+        st.markdown(f'<div class="{active_class}">', unsafe_allow_html=True)
         if st.button(
-            toggle_icon, key="btn_nav_toggle", use_container_width=True
+            display_text, key=f"nav_btn_{key}", use_container_width=True
         ):
-            st.session_state["nav_collapsed"] = not is_collapsed
+            st.session_state["active_nav"] = key
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Tombol Toggle di Tengah Garis Pembatas
+    toggle_icon = "›" if is_collapsed else "‹"
+    st.markdown(
+        '<div class="sidebar-toggle-container">', unsafe_allow_html=True
+    )
+    if st.button(
+        toggle_icon, key="btn_sidebar_toggle", use_container_width=False
+    ):
+        st.session_state["nav_collapsed"] = not is_collapsed
+        st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)

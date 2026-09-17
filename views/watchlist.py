@@ -83,8 +83,8 @@ def render_page_watchlist():
             border: 1px solid #30363D !important;
             padding: 4px 0px !important;
             color: #9ECBFF !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
             border-radius: 6px !important;
             box-shadow: none !important;
         }
@@ -154,7 +154,7 @@ def render_page_watchlist():
     # KIRI: DAFTAR SAHAM
     # ==========================================
     with col_left:
-        # Header Row: Badge "Watchlist" + 3 Tombol (Tambah, Hapus, Filter) Mentok Kanan
+        # Header Row: Badge "Watchlist" + 3 Tombol (Ikon +, Ikon ✕, Filter) Mentok Kanan
         h_col1, h_col2, h_col3, h_col4 = st.columns([1.8, 0.7, 0.7, 0.7])
         
         with h_col1:
@@ -169,15 +169,14 @@ def render_page_watchlist():
             )
             
         with h_col2:
-            # Popover Tombol Tambah Teks
-            with st.popover("Tambah", help="Tambah Saham"):
+            # Popover Tombol Tambah (Ikon Modern +)
+            with st.popover("＋"):
                 st.markdown("<div style='text-align:center;'><b>Tambah Saham Quick</b></div>", unsafe_allow_html=True)
                 
                 inputs = []
                 ver = st.session_state["add_form_version"]
                 
                 for i in range(st.session_state["quick_add_count"]):
-                    # Key dinamis berdasarkan versi form
                     input_key = f"quick_t_{i}_v{ver}"
                     val = st.text_input(
                         f"Kode Saham #{i+1}", 
@@ -213,7 +212,7 @@ def render_page_watchlist():
                             # Simpan Perubahan ke File Permanen
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             
-                            # SOLUSI PASTI AUTO-CLEAR: Naikkan versi form & reset jumlah baris
+                            # Auto-Clear Form Input
                             st.session_state["add_form_version"] += 1
                             st.session_state["quick_add_count"] = 1
                             
@@ -223,8 +222,8 @@ def render_page_watchlist():
                             st.warning("Masukkan kode saham!")
 
         with h_col3:
-            # Popover Tombol Hapus Teks
-            with st.popover("Hapus", help="Menu Hapus"):
+            # Popover Tombol Hapus (Ikon Modern ✕)
+            with st.popover("✕"):
                 st.markdown("<div style='text-align:center;'><b>Pengaturan Hapus</b></div>", unsafe_allow_html=True)
                 
                 st.session_state["enable_batch_delete"] = st.checkbox(
@@ -252,7 +251,7 @@ def render_page_watchlist():
 
         with h_col4:
             # Popover Tombol Filter Teks
-            with st.popover("Filter", help="Filter & Urutkan"):
+            with st.popover("Filter"):
                 st.markdown("<div style='text-align:center;'><b>Filter & Urutkan</b></div>", unsafe_allow_html=True)
                 st.session_state["sort_filter"] = st.selectbox(
                     "Urutkan", 
@@ -281,7 +280,7 @@ def render_page_watchlist():
                 st.button(
                     "❌", 
                     key="btn_clear_search_act", 
-                    help="Bersihkan Pencarian", 
+                    help="", 
                     use_container_width=True,
                     on_click=clear_search_callback
                 )

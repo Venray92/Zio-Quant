@@ -5,7 +5,7 @@ import streamlit as st
 import yfinance as yf
 
 # Import fungsi render dari ui_helpers
-from ui_helpers import render_inline_trade_planner
+from utils.ui_helpers import render_inline_trade_planner
 
 STORAGE_FILE = "watchlist_storage.json"
 

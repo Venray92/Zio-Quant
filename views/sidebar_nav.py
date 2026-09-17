@@ -2,14 +2,14 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Sidebar Navigasi Ringkas Vertikal (Ikon di atas, teks di bawah) - Garansi Muncul."""
+    """Sidebar Navigasi Ringkas Vertikal - Tanpa Memaksa Lebar CSS yang Merusak DOM."""
 
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = "screener"
 
     active_nav = st.session_state["active_nav"]
 
-    # Definisi menu navigasi (Key, Label, Icon)
+    # Definisi menu navigasi
     nav_items = [
         ("screener", "Screener", "⚙️"),
         ("markets", "Markets", "📈"),
@@ -17,40 +17,23 @@ def render_sidebar_nav():
         ("support", "Support", "🎧"),
     ]
 
-    # CSS Global khusus Sidebar
+    # Style CSS murni untuk komponen di dalam sidebar
     sidebar_css = """
     <style>
-    /* Lebar Sidebar Ramping */
-    [data-testid="stSidebar"] {
-        min-width: 90px !important;
-        max-width: 90px !important;
-        background-color: #0D0E12 !important;
-        border-right: 1px solid #1E222D !important;
-    }
-
-    /* Container tombol di sidebar */
-    [data-testid="stSidebarUserContent"] {
-        padding: 12px 6px !important;
-    }
-
-    /* Styling Universal Semua Tombol Sidebar */
+    /* Ubah tampilan tombol di sidebar agar ikon & teks vertikal */
     [data-testid="stSidebar"] button {
-        background-color: transparent !important;
-        border: 1px solid transparent !important;
-        color: #787B86 !important;
-        font-family: sans-serif !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
+        background-color: #161B22 !important;
+        border: 1px solid #30363D !important;
+        color: #C9D1D9 !important;
         height: 60px !important;
-        width: 100% !important;
         border-radius: 6px !important;
-        padding: 4px 0 !important;
-        box-shadow: none !important;
+        margin-bottom: 4px !important;
     }
 
-    /* Target isi teks di dalam tombol agar bertumpuk (Ikon atas, Teks bawah) */
+    /* Format teks dalam tombol agar bertumpuk */
     [data-testid="stSidebar"] button p {
-        font-size: 11px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
         line-height: 1.2 !important;
         white-space: pre-line !important;
         text-align: center !important;
@@ -59,24 +42,23 @@ def render_sidebar_nav():
     /* Hover State */
     [data-testid="stSidebar"] button:hover {
         color: #00FF66 !important;
-        background-color: rgba(0, 255, 102, 0.05) !important;
+        border-color: #00FF66 !important;
+        background-color: rgba(0, 255, 102, 0.08) !important;
     }
     </style>
     """
     st.markdown(sidebar_css, unsafe_allow_html=True)
 
-    # Render Tombol Langsung di Sidebar
+    # Render Tombol di Sidebar
     with st.sidebar:
+        st.caption("NAVIGASI")
         for key, label, icon in nav_items:
             is_active = active_nav == key
 
-            # Format gabungan Ikon & Teks dengan Enter (\n)
+            # Jika aktif, tambahkan penanda visual dan ubah format teks
             button_text = f"{icon}\n{label}"
-
-            # Jika menu ini aktif, tampilkan penanda visual (misal diberi indikator penanda)
             if is_active:
-                # Menggunakan simbol indicator aktif jika sedang terpilih
-                button_text = f"{icon}\n● {label}"
+                button_text = f"► {icon}\n{label}"
 
             if st.button(button_text, key=f"nav_{key}", use_container_width=True):
                 if st.session_state["active_nav"] != key:

@@ -16,7 +16,6 @@ def load_watchlist_from_file():
         try:
             with open(STORAGE_FILE, "r") as f:
                 data = json.load(f)
-                # Normalisasi format jika data di file berupa list string
                 normalized = []
                 for item in data:
                     if isinstance(item, str):
@@ -71,6 +70,8 @@ def fetch_stock_quote(ticker_symbol):
         if last_price and prev_close:
             pct_change = ((last_price - prev_close) / prev_close) * 100
             return float(last_price), float(pct_change)
+        elif last_price:
+            return float(last_price), 0.0
     except Exception:
         pass
     return None, None
@@ -81,7 +82,7 @@ def clear_search_callback():
 
 
 # ==========================================
-# HELPER UNTUK TRADE PLAN (TANPA CHART)
+# HELPER UNTUK TRADE PLAN
 # ==========================================
 def _format_val(val):
     if pd.isna(val) or val is None or val == "" or val == "-":
@@ -130,7 +131,6 @@ def calculate_rr_ratios(row):
 
 
 def render_trade_plan_only(ticker_symbol, key_suffix):
-    """Merender Trade Plan Recommendation tanpa Chart TradingView"""
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -263,7 +263,7 @@ def render_page_watchlist():
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
 
-    # SYNC DARI SESSION STATE "watchlist" (jika tombol dari ui_helpers memasukkan ke st.session_state["watchlist"])
+    # SYNC DARI SESSION STATE "watchlist"
     if "watchlist" in st.session_state and isinstance(
         st.session_state["watchlist"], list
     ):
@@ -306,12 +306,9 @@ def render_page_watchlist():
     # Fetch Real-time Data
     for item in st.session_state["watchlist_data"]:
         lp, chg = fetch_stock_quote(item["Ticker"])
-        item["Last Price"] = (
-            lp if lp is not None else item.get("Last Price", 0.0)
-        )
-        item["Change Pct"] = (
-            chg if chg is not None else item.get("Change Pct", 0.0)
-        )
+        if lp is not None:
+            item["Last Price"] = lp
+            item["Change Pct"] = chg
 
     st.markdown(
         "<h3 style='margin-bottom: 20px; font-weight: 700;"
@@ -426,7 +423,6 @@ def render_page_watchlist():
                                 if x["Ticker"] not in to_remove
                             ]
 
-                            # Sync juga hapus dari st.session_state["watchlist"]
                             if "watchlist" in st.session_state:
                                 st.session_state["watchlist"] = [
                                     x
@@ -490,14 +486,16 @@ def render_page_watchlist():
 
         if st.session_state["sort_filter"] == "Gainers (% High)":
             display_list.sort(
-                key=lambda x: x.get("Change Pct", 0), reverse=True
+                key=lambda x: x.get("Change Pct", 0) or 0, reverse=True
             )
         elif st.session_state["sort_filter"] == "Losers (% Low)":
-            display_list.sort(key=lambda x: x.get("Change Pct", 0))
+            display_list.sort(key=lambda x: x.get("Change Pct", 0) or 0)
         elif st.session_state["sort_filter"] == "Price High":
-            display_list.sort(key=lambda x: x.get("Last Price", 0), reverse=True)
+            display_list.sort(
+                key=lambda x: x.get("Last Price", 0) or 0, reverse=True
+            )
         elif st.session_state["sort_filter"] == "Price Low":
-            display_list.sort(key=lambda x: x.get("Last Price", 0))
+            display_list.sort(key=lambda x: x.get("Last Price", 0) or 0)
 
         with st.container(height=550):
             if display_list:
@@ -508,25 +506,30 @@ def render_page_watchlist():
                     ticker_raw = item["Ticker"]
                     clean_ticker = ticker_raw.replace(".JK", "").upper()
                     notes_tag = item.get("Notes", "")
-                    last_price = item.get("Last Price", 0.0)
-                    pct_change = item.get("Change Pct", 0.0)
+                    last_price = item.get("Last Price", None)
+                    pct_change = item.get("Change Pct", None)
 
-                    if pct_change > 0:
+                    if pct_change is not None and pct_change > 0:
                         color_code = "#00C853"
                         prefix = "+"
-                    elif pct_change < 0:
+                    elif pct_change is not None and pct_change < 0:
                         color_code = "#D50000"
                         prefix = ""
                     else:
                         color_code = "#757575"
                         prefix = ""
 
-                    price_str = f"Rp {int(last_price):,}" if last_price else "-"
+                    price_str = (
+                        f"Rp {int(last_price):,}"
+                        if last_price is not None
+                        else "-"
+                    )
                     pct_str = (
-                        f"{prefix}{pct_change:.2f}%" if last_price else "-"
+                        f"{prefix}{pct_change:.2f}%"
+                        if pct_change is not None
+                        else "-"
                     )
 
-                    # Tampilan Badge Keterangan Asal Saham
                     source_badge = ""
                     if "Stoch-Trend Radar" in notes_tag:
                         source_badge = (
@@ -558,38 +561,36 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
-                        st.markdown(
-                            f"""
-                            <div style="
-                                border: 1px solid #21262D; 
-                                border-left: 4px solid {color_code}; 
-                                border-radius: 8px 8px 0px 0px; 
-                                padding: 10px 14px; 
-                                display: flex; 
-                                justify-content: space-between; 
-                                align-items: center;
-                                background-color: #161B22;">
-                                <div>
-                                    <span style="font-weight: bold; font-size: 16px; color: #E6EDF3;">{clean_ticker}</span>
-                                    <span style="font-size: 10px; color: #8B949E; margin-left: 3px;">IDX</span>
-                                    {source_badge}
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-weight: bold; font-size: 14px; color: #E6EDF3;">{price_str}</div>
-                                    <div style="
-                                        font-size: 11px; 
-                                        font-weight: bold; 
-                                        color: {color_code}; 
-                                        padding: 2px 6px; 
-                                        border-radius: 4px; 
-                                        display: inline-block;">
-                                        {pct_str}
-                                    </div>
+                        card_html = f"""
+                        <div style="
+                            border: 1px solid #21262D; 
+                            border-left: 4px solid {color_code}; 
+                            border-radius: 8px 8px 0px 0px; 
+                            padding: 10px 14px; 
+                            display: flex; 
+                            justify-content: space-between; 
+                            align-items: center;
+                            background-color: #161B22;">
+                            <div>
+                                <span style="font-weight: bold; font-size: 16px; color: #E6EDF3;">{clean_ticker}</span>
+                                <span style="font-size: 10px; color: #8B949E; margin-left: 3px;">IDX</span>
+                                {source_badge}
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: bold; font-size: 14px; color: #E6EDF3;">{price_str}</div>
+                                <div style="
+                                    font-size: 11px; 
+                                    font-weight: bold; 
+                                    color: {color_code}; 
+                                    padding: 2px 6px; 
+                                    border-radius: 4px; 
+                                    display: inline-block;">
+                                    {pct_str}
                                 </div>
                             </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
+                        </div>
+                        """
+                        st.markdown(card_html, unsafe_allow_html=True)
 
                         is_active = (
                             st.session_state["selected_watchlist_ticker"]

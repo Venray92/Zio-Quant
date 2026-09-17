@@ -515,7 +515,6 @@ def render_page_watchlist():
 
                     with c_card:
                         with st.container(border=True):
-                            # Baris Atas: Ticker & Harga (Kompak)
                             col_info, col_price = st.columns([1.3, 1])
 
                             with col_info:
@@ -523,7 +522,6 @@ def render_page_watchlist():
                                     f"<div style='font-size: 15px; font-weight: 800; color: #E6EDF3;'>{clean_ticker}</div>",
                                     unsafe_allow_html=True,
                                 )
-                                # Menampilkan label sumber dinamis (RSI Matrix / Stoch-Trend Radar / dll)
                                 st.caption(f"🔹 {notes_tag}")
 
                             with col_price:

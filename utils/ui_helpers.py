@@ -55,7 +55,7 @@ def calculate_rr_ratios(row):
     return rr_tp1_str, rr_tp2_str
 
 
-def render_inline_trade_planner(ticker_symbol, key_suffix):
+def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screener"):
     st.markdown("---")
 
     # Inisialisasi session state watchlist jika belum ada
@@ -114,9 +114,10 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
                 key=f"btn_add_wl_{key_suffix}",
                 use_container_width=True,
             ):
-                active_source = st.session_state.get(
-                    "active_screener_name", "Screener"
-                )
+                # PERBAIKAN: Prioritaskan parameter `screener_name`, lalu session state, lalu fallback "Screener"
+                active_source = screener_name
+                if active_source == "Screener" and "active_screener_name" in st.session_state:
+                    active_source = st.session_state.get("active_screener_name", "Screener")
 
                 st.session_state["watchlist"].append(
                     {"Ticker": clean_ticker_code, "Notes": active_source}

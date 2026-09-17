@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Sidebar Navigasi Bergaya TradingView (Compact, Border Hijau, Tanpa Kotak Hitam)."""
+    """Sidebar Navigasi Bergaya TradingView yang Stabil dan Pasti Muncul."""
 
     # Init State
     if "nav_collapsed" not in st.session_state:
@@ -16,19 +16,9 @@ def render_sidebar_nav():
     # Atur lebar berdasarkan state lipat
     sidebar_width = "70px" if is_collapsed else "160px"
 
-    # Dynamic CSS Murni ke DOM Streamlit + Pembersih Kotak Hitam di Atas
+    # CSS Aman Tanpa Merusak Elemen Utama
     css = f"""
     <style>
-    /* HILANGKAN KOTAK HITAM / HEADER BAWAAN DI ATAS SIDEBAR */
-    [data-testid="stSidebarHeader"], 
-    [data-testid="stSidebarUserContent"] > div:first-child {{
-        display: none !important;
-        height: 0px !important;
-        visibility: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }}
-
     /* Force Lebar Sidebar dan Styling Dasar */
     [data-testid="stSidebar"] {{
         min-width: {sidebar_width} !important;
@@ -37,9 +27,9 @@ def render_sidebar_nav():
         border-right: 2px solid #00FF66 !important;
     }}
 
-    /* Hilangkan padding default yang mengganggu */
+    /* Hilangkan padding default agar lebih rapat ke atas */
     [data-testid="stSidebarUserContent"] {{
-        padding: 10px 4px !important;
+        padding: 4px 4px !important;
     }}
 
     /* Style Semua Tombol Navigasi */
@@ -62,13 +52,14 @@ def render_sidebar_nav():
         background-color: rgba(0, 255, 102, 0.08) !important;
     }}
 
-    /* CSS Khusus Tombol Toggle Buka/Tutup */
+    /* CSS Khusus Tombol Toggle Buka/Tutup di Atas */
     [data-testid="stSidebar"] button[key="btn_toggle"] {{
-        height: 30px !important;
+        height: 32px !important;
         border: 1px solid #30363D !important;
         background-color: #161B22 !important;
         color: #00FF66 !important;
-        margin-bottom: 15px !important;
+        margin-bottom: 10px !important;
+        margin-top: 0px !important;
     }}
     </style>
     """
@@ -92,12 +83,8 @@ def render_sidebar_nav():
         for key, label, icon in nav_items:
             is_active = active_nav == key
 
-            # Jika dilipat hanya tampilkan Ikon, jika dibuka tampilkan Ikon + Teks
-            button_label = (
-                f"{icon}" if is_collapsed else f"{icon}\n{label}"
-            )  # Ditangani via CSS/Flex
+            button_label = f"{icon}" if is_collapsed else f"{icon}\n{label}"
 
-            # Tandai indikator aktif
             if is_active:
                 button_label = f"● {icon}" if is_collapsed else f"{icon} {label}"
 

@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def render_sidebar_nav():
-    """Sidebar Navigasi Bersih dengan 4 Tombol Normal Tanpa Kotak Hitam di Atas."""
+    """Sidebar Navigasi dengan Kontainer Bersih dan Tombol Dijamin Muncul."""
 
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = "screener"
@@ -11,20 +11,13 @@ def render_sidebar_nav():
 
     sidebar_css = """
     <style>
-    /* HILANGKAN KOTAK HITAM / TOMBOL BAWAAN DI BAGIAN ATAS SIDEBAR */
-    section[data-testid="stSidebar"] [data-testid="stBaseButton-header"],
-    section[data-testid="stSidebar"] button[kind="header"],
-    [data-testid="collapsedControl"],
-    header[data-testid="stHeader"] {
+    /* Hilangkan secara spesifik tombol collapse bawaan sidebar tanpa merusak tombol lain */
+    button[data-testid="baseButton-header"], 
+    [data-testid="collapsedControl"] {
         display: none !important;
-        visibility: hidden !important;
     }
 
-    /* Rapikan padding atas sidebar agar tombol langsung mepet ke atas */
-    section[data-testid="stSidebar"] > div:first-child {
-        padding-top: 1rem !important;
-    }
-
+    /* Kontainer Sidebar Utama */
     .clean-sidebar-box {
         background-color: #0D0E12;
         border-right: 2px solid #00FF66;
@@ -33,8 +26,10 @@ def render_sidebar_nav():
         display: flex;
         flex-direction: column;
         gap: 8px;
+        margin-top: 10px;
     }
 
+    /* Styling Tombol Menu agar Muncul Sempurna */
     .clean-sidebar-box div.stButton > button {
         background-color: #161B22 !important;
         border: 1.5px solid #30363D !important;
@@ -57,6 +52,14 @@ def render_sidebar_nav():
         border-color: #00FF66 !important;
         background-color: rgba(0, 255, 102, 0.08) !important;
     }
+
+    /* State Aktif */
+    .btn-active-menu div.stButton > button {
+        color: #00FF66 !important;
+        background-color: rgba(0, 255, 102, 0.15) !important;
+        border: 1.5px solid #00FF66 !important;
+        box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
+    }
     </style>
     """
     st.markdown(sidebar_css, unsafe_allow_html=True)
@@ -68,15 +71,19 @@ def render_sidebar_nav():
         ("support", "🎧 Support"),
     ]
 
-    # Jika lo menggunakan st.sidebar, bungkus kodenya di sini:
+    # Render menggunakan st.sidebar dengan pembungkus yang aman
     with st.sidebar:
         st.markdown('<div class="clean-sidebar-box">', unsafe_allow_html=True)
 
         for key, label in nav_items:
+            active_class = "btn-active-menu" if active_nav == key else ""
+
+            st.markdown(f'<div class="{active_class}">', unsafe_allow_html=True)
             if st.button(
                 label, key=f"clean_btn_{key}", use_container_width=True
             ):
                 st.session_state["active_nav"] = key
                 st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)

@@ -20,19 +20,22 @@ def render_header():
 
     with col_brand:
         if logo_b64:
-            logo_html = f'<img src="data:image/jpeg;base64,{logo_b64}" class="brand-logo-img" />'
+            logo_html = f'<img src="data:image/jpeg;base64,{logo_b64}" class="brand-logo-img" style="vertical-align: middle; margin-right: 8px;" />'
         else:
-            logo_html = '<span style="font-size: 32px;">⚡</span>'
+            logo_html = '<span style="font-size: 24px; vertical-align: middle; margin-right: 8px;">⚡</span>'
 
-        st.markdown(
-            f"""
-            <a href="/" target="_self" class="brand-link">
-                {logo_html}
-                <span class="brand-title-text">Z-QUANT</span>
-            </a>
-            """,
-            unsafe_allow_html=True,
-        )
+        # Label kombinasi Logo + Teks Brand
+        button_label = f"{logo_html}<span class='brand-title-text' style='vertical-align: middle;'>Z-QUANT</span>"
+
+        # Tombol Home Native Streamlit (Aman dari bug click & mereset state screener ke Home)
+        if st.button(
+            button_label,
+            key="btn_home_brand",
+            type="tertiary",
+            use_container_width=False,
+        ):
+            st.session_state["selected_screener"] = None
+            st.rerun()
 
     with col_popover:
         with st.popover("CHOOSE SCREENER", use_container_width=True):

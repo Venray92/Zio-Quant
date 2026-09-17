@@ -9,7 +9,7 @@ def render_top_nav():
         /* Dorong container kolom tempat tombol berada ke bawah */
         div[data-testid="stHorizontalBlock"]:has(button[key*="nav_"]) {
             align-items: flex-end !important;
-            transform: translateY(12px) !important; /* Mendorong seluruh baris tombol ke bawah */
+            transform: translateY(18px) !important; /* Mendorong seluruh baris tombol ke bawah */
             margin-bottom: 0px !important;
         }
 

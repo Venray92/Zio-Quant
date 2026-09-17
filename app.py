@@ -10,6 +10,9 @@ from views.tab_trade_planner import render_tab_trade_planner
 
 # Import modul halaman baru
 from views.watchlist import render_page_watchlist
+from views.money_management import (
+    render_page_money_management,  # <-- TAMBAHKAN IMPORT INI
+)
 
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
@@ -44,7 +47,7 @@ page = st.session_state["selected_page"]
 if page == "home":
     # Jika di halaman Home, tampilkan screener terpilih atau halaman Welcome
     screener = st.session_state.get("selected_screener", None)
-    
+
     if screener is None:
         render_welcome()
     elif screener == "rsi":

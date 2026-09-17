@@ -9,9 +9,10 @@ STORAGE_FILE = "watchlist_storage.json"
 
 
 # ==========================================
-# FUNGSIONALITAS DATA & STORAGE
+# DATA & STORAGE MANAGEMENT
 # ==========================================
 def load_watchlist_from_file():
+    """Memuat data watchlist dari file JSON lokal."""
     if os.path.exists(STORAGE_FILE):
         try:
             with open(STORAGE_FILE, "r") as f:
@@ -21,31 +22,28 @@ def load_watchlist_from_file():
                     if isinstance(item, str):
                         normalized.append(
                             {
-                                "Ticker": item,
+                                "Ticker": item if item.endswith(".JK") else f"{item}.JK",
                                 "Notes": "Watchlist",
                                 "Target Price": 0,
                             }
                         )
                     elif isinstance(item, dict):
-                        normalized.append(item)
+                        ticker = item.get("Ticker", "")
+                        if ticker:
+                            item["Ticker"] = ticker if ticker.endswith(".JK") else f"{ticker}.JK"
+                            normalized.append(item)
                 return normalized
         except Exception:
             pass
+
     return [
-        {
-            "Ticker": "BBCA.JK",
-            "Notes": "Manual Added",
-            "Target Price": 10500,
-        },
-        {
-            "Ticker": "TLKM.JK",
-            "Notes": "Manual Added",
-            "Target Price": 3200,
-        },
+        {"Ticker": "BBCA.JK", "Notes": "Manual Added", "Target Price": 10500},
+        {"Ticker": "TLKM.JK", "Notes": "Manual Added", "Target Price": 3200},
     ]
 
 
 def save_watchlist_to_file(data):
+    """Menyimpan data watchlist ke file JSON."""
     try:
         with open(STORAGE_FILE, "w") as f:
             json.dump(data, f, indent=4)
@@ -55,12 +53,9 @@ def save_watchlist_to_file(data):
 
 @st.cache_data(ttl=60)
 def fetch_stock_quote(ticker_symbol):
+    """Mengambil harga terbaru dan persentase perubahan dari Yahoo Finance."""
     try:
-        symbol = (
-            ticker_symbol
-            if ticker_symbol.endswith(".JK")
-            else f"{ticker_symbol}.JK"
-        )
+        symbol = ticker_symbol if ticker_symbol.endswith(".JK") else f"{ticker_symbol}.JK"
         stock = yf.Ticker(symbol)
         fast_info = stock.fast_info
 
@@ -82,10 +77,10 @@ def clear_search_callback():
 
 
 # ==========================================
-# HELPER UNTUK TRADE PLAN
+# TRADE PLAN HELPERS
 # ==========================================
 def _format_val(val):
-    if pd.isna(val) or val is None or val == "" or val == "-":
+    if pd.isna(val) or val is None or val in ["", "-"]:
         return "-"
     try:
         num = float(val)
@@ -95,7 +90,7 @@ def _format_val(val):
 
 
 def _clean_num(val):
-    if pd.isna(val) or val is None or val == "" or val == "-":
+    if pd.isna(val) or val is None or val in ["", "-"]:
         return None
     try:
         if isinstance(val, str):
@@ -106,16 +101,11 @@ def _clean_num(val):
 
 
 def calculate_rr_ratios(row):
-    buy_val = _clean_num(
-        row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None)))
-    )
+    """Menghitung rasio Risk to Reward untuk Target 1 & Target 2."""
+    buy_val = _clean_num(row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))))
     sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
-    tp1_val = _clean_num(
-        row.get("TP 1", row.get("TP1", row.get("Target 1", None)))
-    )
-    tp2_val = _clean_num(
-        row.get("TP 2", row.get("TP2", row.get("Target 2", None)))
-    )
+    tp1_val = _clean_num(row.get("TP 1", row.get("TP1", row.get("Target 1", None))))
+    tp2_val = _clean_num(row.get("TP 2", row.get("TP2", row.get("Target 2", None))))
 
     rr_tp1_str = "-"
     rr_tp2_str = "-"
@@ -131,6 +121,7 @@ def calculate_rr_ratios(row):
 
 
 def render_trade_plan_only(ticker_symbol, key_suffix):
+    """Renders the Trade Plan Recommendation component for the selected ticker."""
     st.markdown(
         f"""
         <div class="live-plan-header" style="padding: 8px 12px; margin-bottom: 10px;">
@@ -149,9 +140,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
-            planner = TradePlanner(
-                ticker=ticker_symbol.upper(), period=period_selected
-            )
+            planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
             if hasattr(planner, "fetch_and_prepare_data"):
                 planner.fetch_and_prepare_data()
 
@@ -169,34 +158,24 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
-                    plan_type = row.get(
-                        "Type", row.get("Strategy", f"Plan #{plan_no}")
-                    )
+                    plan_type = row.get("Type", row.get("Strategy", f"Plan #{plan_no}"))
                     score = row.get("Score", 0)
                     grade = row.get("Grade", "N/A")
                     posisi = row.get("Posisi Harga", row.get("Status", "-"))
 
-                    range_min = _format_val(
-                        row.get("Range Buy Min", row.get("Buy Min", "-"))
-                    )
-                    range_max = _format_val(
-                        row.get("Range Buy Max", row.get("Buy Max", "-"))
-                    )
+                    range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
+                    range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
                     area_buy = (
                         f"{range_min} - {range_max}"
                         if range_min != "-" and range_max != "-"
                         else range_min
                     )
 
-                    stop_loss = _format_val(
-                        row.get("Stop Loss", row.get("SL", "-"))
-                    )
+                    stop_loss = _format_val(row.get("Stop Loss", row.get("SL", "-")))
                     tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
                     tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
 
-                    posisi_color = (
-                        "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
-                    )
+                    posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
 
                     card_html = f"""
                     <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 4px solid #00E676; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
@@ -254,19 +233,17 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 # MAIN RENDER FUNCTION
 # ==========================================
 def render_page_watchlist():
+    # Session State Initialization
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
 
-    # SINKRONISASI DINAMIS DARI SESSION STATE "watchlist"
+    # Dynamic Sync with Global "watchlist" State
     if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
-        existing_tickers = [x["Ticker"] for x in st.session_state["watchlist_data"]]
+        existing_tickers = {x["Ticker"] for x in st.session_state["watchlist_data"]}
         has_new = False
-
-        # Ambil nama screener aktif dari session_state jika ada
         active_screener_name = st.session_state.get("active_screener_name", "Screener")
 
         for item in st.session_state["watchlist"]:
-            # Jika item berupa dict, cek catatan sumbernya
             if isinstance(item, dict):
                 ticker_raw = item.get("Ticker", "")
                 notes_source = item.get("Notes", item.get("Source", active_screener_name))
@@ -284,29 +261,27 @@ def render_page_watchlist():
                         "Target Price": 0,
                     }
                 )
-                existing_tickers.append(formatted)
+                existing_tickers.add(formatted)
                 has_new = True
 
         if has_new:
             save_watchlist_to_file(st.session_state["watchlist_data"])
 
-    if "add_form_version" not in st.session_state:
-        st.session_state["add_form_version"] = 0
-    if "sort_filter" not in st.session_state:
-        st.session_state["sort_filter"] = "Default"
-    if "selected_cards" not in st.session_state:
-        st.session_state["selected_cards"] = set()
-    if "quick_add_count" not in st.session_state:
-        st.session_state["quick_add_count"] = 1
-    if "input_search_ticker_field" not in st.session_state:
-        st.session_state["input_search_ticker_field"] = ""
-    if "selected_watchlist_ticker" not in st.session_state:
-        st.session_state["selected_watchlist_ticker"] = None
+    # Additional Session State Variables
+    defaults = {
+        "add_form_version": 0,
+        "sort_filter": "Default",
+        "selected_cards": set(),
+        "quick_add_count": 1,
+        "input_search_ticker_field": "",
+        "selected_watchlist_ticker": None,
+        "batch_del_version": 0,
+    }
+    for key, val in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = val
 
-    if "batch_del_version" not in st.session_state:
-        st.session_state["batch_del_version"] = 0
-
-    # Fetch Real-time Data
+    # Fetch Real-time Market Data
     for item in st.session_state["watchlist_data"]:
         lp, chg = fetch_stock_quote(item["Ticker"])
         if lp is not None:
@@ -321,11 +296,12 @@ def render_page_watchlist():
     col_left, col_right = st.columns([1.2, 1.8], gap="medium")
 
     # ==========================================
-    # KIRI: DAFTAR KARTU SAHAM
+    # LEFT COLUMN: WATCHLIST CARDS
     # ==========================================
     with col_left:
         h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
+        # 1. Quick Add Popover
         with h_col1:
             with st.popover("➕ Tambah", use_container_width=True):
                 st.caption("Quick Add Ticker")
@@ -347,33 +323,18 @@ def render_page_watchlist():
 
                 c_add, c_save = st.columns(2)
                 with c_add:
-                    if st.button(
-                        "＋ Baris",
-                        key="btn_add_more_field",
-                        use_container_width=True,
-                    ):
+                    if st.button("＋ Baris", key="btn_add_more_field", use_container_width=True):
                         st.session_state["quick_add_count"] += 1
                         st.rerun()
                 with c_save:
-                    if st.button(
-                        "Simpan",
-                        key="btn_quick_add_save",
-                        type="primary",
-                        use_container_width=True,
-                    ):
+                    if st.button("Simpan", key="btn_quick_add_save", type="primary", use_container_width=True):
                         if inputs:
                             added_count = 0
-                            existing_tickers = [
-                                x["Ticker"]
-                                for x in st.session_state["watchlist_data"]
-                            ]
+                            existing_tickers = {x["Ticker"] for x in st.session_state["watchlist_data"]}
+
                             for ticker in inputs:
                                 if len(st.session_state["watchlist_data"]) < 50:
-                                    formatted = (
-                                        ticker
-                                        if ticker.endswith(".JK")
-                                        else f"{ticker}.JK"
-                                    )
+                                    formatted = ticker if ticker.endswith(".JK") else f"{ticker}.JK"
                                     if formatted not in existing_tickers:
                                         st.session_state["watchlist_data"].append(
                                             {
@@ -382,6 +343,7 @@ def render_page_watchlist():
                                                 "Target Price": 0,
                                             }
                                         )
+                                        existing_tickers.add(formatted)
                                         added_count += 1
 
                             save_watchlist_to_file(st.session_state["watchlist_data"])
@@ -390,10 +352,10 @@ def render_page_watchlist():
                             st.toast(f"{added_count} Saham ditambahkan!", icon="🚀")
                             st.rerun()
 
+        # 2. Batch Delete Popover
         with h_col2:
             with st.popover("🗑️ Kelola", use_container_width=True):
                 st.caption("Batch Delete")
-
                 del_ver = st.session_state["batch_del_version"]
                 enable_batch_delete = st.checkbox(
                     "Mode Hapus",
@@ -409,17 +371,16 @@ def render_page_watchlist():
                         use_container_width=True,
                     ):
                         if st.session_state["selected_cards"]:
-                            to_remove = list(st.session_state["selected_cards"])
+                            to_remove = set(st.session_state["selected_cards"])
+                            
                             st.session_state["watchlist_data"] = [
-                                x
-                                for x in st.session_state["watchlist_data"]
+                                x for x in st.session_state["watchlist_data"]
                                 if x["Ticker"] not in to_remove
                             ]
 
                             if "watchlist" in st.session_state:
                                 st.session_state["watchlist"] = [
-                                    x
-                                    for x in st.session_state["watchlist"]
+                                    x for x in st.session_state["watchlist"]
                                     if (isinstance(x, str) and x not in to_remove and f"{x}.JK" not in to_remove)
                                     or (isinstance(x, dict) and x.get("Ticker") not in to_remove and f"{x.get('Ticker')}.JK" not in to_remove)
                                 ]
@@ -430,6 +391,7 @@ def render_page_watchlist():
                             st.toast("Saham berhasil dihapus!", icon="🗑️")
                             st.rerun()
 
+        # 3. Sort Popover
         with h_col3:
             with st.popover("⚡ Sort", use_container_width=True):
                 st.caption("Urutkan Tampilan")
@@ -445,6 +407,7 @@ def render_page_watchlist():
                     label_visibility="collapsed",
                 )
 
+        # Search Bar UI
         search_val = st.session_state["input_search_ticker_field"].strip().upper()
         if search_val:
             c_search, c_clear = st.columns([3.2, 0.8])
@@ -469,19 +432,23 @@ def render_page_watchlist():
                     on_click=clear_search_callback,
                 )
 
+        # Filter & Sort Data Display
         display_list = list(st.session_state["watchlist_data"])
         if search_val:
             display_list = [x for x in display_list if search_val in x["Ticker"]]
 
-        if st.session_state["sort_filter"] == "Gainers (% High)":
-            display_list.sort(key=lambda x: x.get("Change Pct", 0) or 0, reverse=True)
-        elif st.session_state["sort_filter"] == "Losers (% Low)":
-            display_list.sort(key=lambda x: x.get("Change Pct", 0) or 0)
-        elif st.session_state["sort_filter"] == "Price High":
-            display_list.sort(key=lambda x: x.get("Last Price", 0) or 0, reverse=True)
-        elif st.session_state["sort_filter"] == "Price Low":
-            display_list.sort(key=lambda x: x.get("Last Price", 0) or 0)
+        sort_key_map = {
+            "Gainers (% High)": (lambda x: x.get("Change Pct", 0) or 0, True),
+            "Losers (% Low)": (lambda x: x.get("Change Pct", 0) or 0, False),
+            "Price High": (lambda x: x.get("Last Price", 0) or 0, True),
+            "Price Low": (lambda x: x.get("Last Price", 0) or 0, False),
+        }
 
+        if st.session_state["sort_filter"] in sort_key_map:
+            key_func, rev = sort_key_map[st.session_state["sort_filter"]]
+            display_list.sort(key=key_func, reverse=rev)
+
+        # Scrollable Cards View
         with st.container(height=580):
             if display_list:
                 if not st.session_state["selected_watchlist_ticker"]:
@@ -491,8 +458,8 @@ def render_page_watchlist():
                     ticker_raw = item["Ticker"]
                     clean_ticker = ticker_raw.replace(".JK", "").upper()
                     notes_tag = item.get("Notes", "Manual Added")
-                    last_price = item.get("Last Price", None)
-                    pct_change = item.get("Change Pct", None)
+                    last_price = item.get("Last Price")
+                    pct_change = item.get("Change Pct")
 
                     prefix = "+" if (pct_change is not None and pct_change > 0) else ""
                     price_str = f"Rp {int(last_price):,}" if last_price is not None else "-"
@@ -529,30 +496,18 @@ def render_page_watchlist():
                                     f"<div style='text-align: right; font-size: 13px; font-weight: 700;'>{price_str}</div>",
                                     unsafe_allow_html=True,
                                 )
-                                if pct_change is not None and pct_change > 0:
-                                    st.markdown(
-                                        f"<div style='text-align: right; font-size: 11px; color: #00C853; font-weight: 700;'>{pct_str}</div>",
-                                        unsafe_allow_html=True,
-                                    )
-                                elif pct_change is not None and pct_change < 0:
-                                    st.markdown(
-                                        f"<div style='text-align: right; font-size: 11px; color: #D50000; font-weight: 700;'>{pct_str}</div>",
-                                        unsafe_allow_html=True,
-                                    )
-                                else:
-                                    st.markdown(
-                                        f"<div style='text-align: right; font-size: 11px; color: #757575; font-weight: 700;'>{pct_str}</div>",
-                                        unsafe_allow_html=True,
-                                    )
+                                color_code = (
+                                    "#00C853" if pct_change and pct_change > 0
+                                    else "#D50000" if pct_change and pct_change < 0
+                                    else "#757575"
+                                )
+                                st.markdown(
+                                    f"<div style='text-align: right; font-size: 11px; color: {color_code}; font-weight: 700;'>{pct_str}</div>",
+                                    unsafe_allow_html=True,
+                                )
 
-                            is_active = (
-                                st.session_state["selected_watchlist_ticker"] == ticker_raw
-                            )
-                            btn_label = (
-                                "📍 Aktif Dilihat"
-                                if is_active
-                                else f"📊 Trade Plan {clean_ticker}"
-                            )
+                            is_active = st.session_state["selected_watchlist_ticker"] == ticker_raw
+                            btn_label = "📍 Aktif Dilihat" if is_active else f"📊 Trade Plan {clean_ticker}"
 
                             if st.button(
                                 btn_label,
@@ -562,12 +517,11 @@ def render_page_watchlist():
                             ):
                                 st.session_state["selected_watchlist_ticker"] = ticker_raw
                                 st.rerun()
-
             else:
                 st.caption("Tidak ada saham yang ditemukan.")
 
     # ==========================================
-    # KANAN: TRADE PLAN RECOMMENDATION ONLY
+    # RIGHT COLUMN: TRADE PLAN VIEW
     # ==========================================
     with col_right:
         selected_ticker = st.session_state.get("selected_watchlist_ticker")

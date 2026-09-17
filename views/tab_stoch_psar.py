@@ -354,7 +354,7 @@ def render_tab_stoch_psar():
                 # =========================================================
                 # BUNGKUS DENGAN CONTAINER UNTUK SCROLLING (MAX HEIGHT)
                 # =========================================================
-                with st.container(height=520, border=False):
+                with st.container(height=530, border=False):
                     for idx, row in df_target.iterrows():
                         ticker = str(row.get("Ticker", ""))
                         saham = ticker.replace(".JK", "")

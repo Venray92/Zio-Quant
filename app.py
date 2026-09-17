@@ -29,6 +29,10 @@ if "selected_page" not in st.session_state:
 if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
+# Inisialisasi active_screener_name
+if "active_screener_name" not in st.session_state:
+    st.session_state["active_screener_name"] = "Screener"
+
 # 4. Render Layout Atas (Header -> Top Nav -> Divider)
 render_header()
 render_top_nav()
@@ -44,10 +48,14 @@ if page == "home":
     if screener is None:
         render_welcome()
     elif screener == "rsi":
+        st.session_state["active_screener_name"] = "RSI Screener"
         render_tab_rsi()
     elif screener == "stoch_psar":
+        # Tagging eksplisit untuk Stoch-Trend Radar
+        st.session_state["active_screener_name"] = "Stoch-Trend Radar"
         render_tab_stoch_psar()
     elif screener == "trade_plan":
+        st.session_state["active_screener_name"] = "Trade Planner"
         render_tab_trade_planner()
 
 elif page == "watchlist":

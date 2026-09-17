@@ -2,9 +2,68 @@ import json
 import os
 import pandas as pd
 import streamlit as st
+import yfinance as yf
 from engines.trade_planner import TradePlanner
 
 STORAGE_FILE = "watchlist_storage.json"
+
+
+# ==========================================
+# FUNGSIONALITAS DATA & STORAGE
+# ==========================================
+def load_watchlist_from_file():
+    if os.path.exists(STORAGE_FILE):
+        try:
+            with open(STORAGE_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return [
+        {
+            "Ticker": "BBCA.JK",
+            "Notes": "Pantau area support 9800",
+            "Target Price": 10500,
+        },
+        {
+            "Ticker": "TLKM.JK",
+            "Notes": "Tunggu konfirmasi breakout",
+            "Target Price": 3200,
+        },
+    ]
+
+
+def save_watchlist_to_file(data):
+    try:
+        with open(STORAGE_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        st.error(f"Gagal menyimpan data: {e}")
+
+
+@st.cache_data(ttl=60)
+def fetch_stock_quote(ticker_symbol):
+    try:
+        symbol = (
+            ticker_symbol
+            if ticker_symbol.endswith(".JK")
+            else f"{ticker_symbol}.JK"
+        )
+        stock = yf.Ticker(symbol)
+        fast_info = stock.fast_info
+
+        last_price = fast_info.last_price
+        prev_close = fast_info.previous_close
+
+        if last_price and prev_close:
+            pct_change = ((last_price - prev_close) / prev_close) * 100
+            return float(last_price), float(pct_change)
+    except Exception:
+        pass
+    return None, None
+
+
+def clear_search_callback():
+    st.session_state["input_search_ticker_field"] = ""
 
 
 # ==========================================
@@ -60,7 +119,6 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
     """Merender Trade Plan Recommendation tanpa Chart TradingView"""
     st.markdown("---")
 
-    # Header
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -75,7 +133,6 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # Dropdown Periode Analisis
     period_selected = st.selectbox(
         "⏱️ Periode Data Analysis",
         options=["3mo", "6mo", "1y", "2y"],
@@ -83,7 +140,6 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         key=f"period_{key_suffix}",
     )
 
-    # Fetch Data & Generate Plan
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
             planner = TradePlanner(
@@ -194,42 +250,6 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
 
 # ==========================================
-# FUNGSIONALITAS DATA & STORAGE WATCHLIST
-# ==========================================
-def load_watchlist_from_file():
-    if os.path.exists(STORAGE_FILE):
-        try:
-            with open(STORAGE_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return [
-        {
-            "Ticker": "BBCA.JK",
-            "Notes": "Pantau area support 9800",
-            "Target Price": 10500,
-        },
-        {
-            "Ticker": "TLKM.JK",
-            "Notes": "Tunggu konfirmasi breakout",
-            "Target Price": 3200,
-        },
-    ]
-
-
-def save_watchlist_to_file(data):
-    try:
-        with open(STORAGE_FILE, "w") as f:
-            json.dump(data, f, indent=4)
-    except Exception as e:
-        st.error(f"Gagal menyimpan data: {e}")
-
-
-def clear_search_callback():
-    st.session_state["input_search_ticker_field"] = ""
-
-
-# ==========================================
 # MAIN RENDER FUNCTION
 # ==========================================
 def render_page_watchlist():
@@ -249,6 +269,16 @@ def render_page_watchlist():
         st.session_state["input_search_ticker_field"] = ""
     if "selected_watchlist_ticker" not in st.session_state:
         st.session_state["selected_watchlist_ticker"] = None
+
+    # Fetch Real-time Data
+    for item in st.session_state["watchlist_data"]:
+        lp, chg = fetch_stock_quote(item["Ticker"])
+        item["Last Price"] = (
+            lp if lp is not None else item.get("Last Price", 0.0)
+        )
+        item["Change Pct"] = (
+            chg if chg is not None else item.get("Change Pct", 0.0)
+        )
 
     st.title("📈 Watchlist Saham Pro")
 
@@ -369,7 +399,13 @@ def render_page_watchlist():
                 st.caption("Urutkan Tampilan")
                 st.session_state["sort_filter"] = st.selectbox(
                     "Sort By",
-                    ["Default", "A-Z", "Z-A"],
+                    [
+                        "Default",
+                        "Gainers (% High)",
+                        "Losers (% Low)",
+                        "Price High",
+                        "Price Low",
+                    ],
                     label_visibility="collapsed",
                 )
 
@@ -403,10 +439,16 @@ def render_page_watchlist():
                 x for x in display_list if search_val in x["Ticker"]
             ]
 
-        if st.session_state["sort_filter"] == "A-Z":
-            display_list.sort(key=lambda x: x["Ticker"])
-        elif st.session_state["sort_filter"] == "Z-A":
-            display_list.sort(key=lambda x: x["Ticker"], reverse=True)
+        if st.session_state["sort_filter"] == "Gainers (% High)":
+            display_list.sort(
+                key=lambda x: x.get("Change Pct", 0), reverse=True
+            )
+        elif st.session_state["sort_filter"] == "Losers (% Low)":
+            display_list.sort(key=lambda x: x.get("Change Pct", 0))
+        elif st.session_state["sort_filter"] == "Price High":
+            display_list.sort(key=lambda x: x.get("Last Price", 0), reverse=True)
+        elif st.session_state["sort_filter"] == "Price Low":
+            display_list.sort(key=lambda x: x.get("Last Price", 0))
 
         with st.container(height=550):
             if display_list:
@@ -416,6 +458,26 @@ def render_page_watchlist():
                 for idx, item in enumerate(display_list):
                     ticker_raw = item["Ticker"]
                     clean_ticker = ticker_raw.replace(".JK", "").upper()
+                    last_price = item.get("Last Price", 0.0)
+                    pct_change = item.get("Change Pct", 0.0)
+
+                    if pct_change > 0:
+                        color_code = "#00C853"
+                        bg_code = "#E8F5E9"
+                        prefix = "+"
+                    elif pct_change < 0:
+                        color_code = "#D50000"
+                        bg_code = "#FFEBEE"
+                        prefix = ""
+                    else:
+                        color_code = "#757575"
+                        bg_code = "#F5F5F5"
+                        prefix = ""
+
+                    price_str = f"Rp {int(last_price):,}" if last_price else "-"
+                    pct_str = (
+                        f"{prefix}{pct_change:.2f}%" if last_price else "-"
+                    )
 
                     if st.session_state["enable_batch_delete"]:
                         c_chk, c_card = st.columns([0.4, 3.6])
@@ -438,12 +500,46 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
+                        # RENDER KARTU SAHAM HTML
+                        st.markdown(
+                            f"""
+                            <div style="
+                                border: 1px solid #30363D; 
+                                border-left: 5px solid {color_code}; 
+                                border-radius: 8px 8px 0px 0px; 
+                                padding: 10px 14px; 
+                                display: flex; 
+                                justify-content: space-between; 
+                                align-items: center;
+                                background-color: #161B22;">
+                                <div>
+                                    <span style="font-weight: bold; font-size: 16px; color: #E6EDF3;">{clean_ticker}</span>
+                                    <span style="font-size: 10px; color: #8B949E; margin-left: 5px;">IDX</span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: bold; font-size: 14px; color: #E6EDF3;">{price_str}</div>
+                                    <div style="
+                                        font-size: 11px; 
+                                        font-weight: bold; 
+                                        color: {color_code}; 
+                                        padding: 2px 6px; 
+                                        border-radius: 4px; 
+                                        display: inline-block;">
+                                        {pct_str}
+                                    </div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                        # TOMBOL TRADE PLAN
                         is_active = (
                             st.session_state["selected_watchlist_ticker"]
                             == ticker_raw
                         )
                         btn_label = (
-                            f"📍 {clean_ticker} (Aktif)"
+                            "📍 Aktif Dilihat"
                             if is_active
                             else f"📊 Trade Plan {clean_ticker}"
                         )

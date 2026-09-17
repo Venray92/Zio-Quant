@@ -77,8 +77,8 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
-    col_select, _, col_btn = st.columns([1, 2, 1])
+    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST (Menggunakan vertical_alignment)
+    col_select, _, col_btn = st.columns([1, 2, 1], vertical_alignment="bottom")
 
     with col_select:
         period_selected = st.selectbox(
@@ -89,9 +89,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
         )
 
     with col_btn:
-        # Menyamakan tinggi lokasi button dengan dropdown
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-
         clean_ticker_code = ticker_symbol.upper().strip()
 
         # Ekstrak ticker yang sudah ada di watchlist
@@ -114,7 +111,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                 key=f"btn_add_wl_{key_suffix}",
                 use_container_width=True,
             ):
-                # PERBAIKAN: Prioritaskan parameter `screener_name`, lalu session state, lalu fallback "Screener"
                 active_source = screener_name
                 if active_source == "Screener" and "active_screener_name" in st.session_state:
                     active_source = st.session_state.get("active_screener_name", "Screener")
@@ -133,11 +129,12 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
     )
+    safe_container_id = clean_ticker.replace(".", "_")
     tv_symbol = f"IDX:{clean_ticker}"
 
     tv_html = f"""
     <div class="tradingview-widget-container" style="height:550px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-top: 10px; margin-bottom: 8px;">
-      <div id="tv_chart_container_{clean_ticker}" style="height:100%; width:100%;"></div>
+      <div id="tv_chart_container_{safe_container_id}" style="height:100%; width:100%;"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
       if (typeof TradingView !== 'undefined') {{
@@ -154,7 +151,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
             "hide_side_toolbar": false,
             "allow_symbol_change": true,
             "save_image": true,
-            "container_id": "tv_chart_container_{clean_ticker}"
+            "container_id": "tv_chart_container_{safe_container_id}"
           }});
       }}
       </script>
@@ -164,7 +161,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
 
     st.markdown(
         "<div style='font-size: 11px; color: #8B949E; margin-bottom: 20px; font-weight: 500;'>"
-        "**Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual."
+        "💡 *Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual.*"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -274,6 +271,8 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                             st.metric(
                                 label="R:R ( Target 2 )", value=rr_tp2_val
                             )
+            else:
+                st.info(f"Tidak ada Trade Plan yang tersedia untuk **{ticker_symbol}** pada periode ini.")
 
         except Exception as e:
             st.error(f"Gagal memuat Trade Plan: {e}")

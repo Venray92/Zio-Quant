@@ -60,6 +60,19 @@ def render_page_money_management():
             font-weight: 800;
             color: #FFFFFF;
         }
+        .chart-custom-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #FFFFFF;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        .chart-custom-subtitle {
+            font-size: 12px;
+            color: #8E94A0;
+            text-align: center;
+            margin-bottom: 10px;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -121,7 +134,6 @@ def render_page_money_management():
                 key="mm_style_select",
             )
 
-            # Max risk dinaikkan hingga 10%
             risk_pct = st.slider(
                 "Batas Toleransi Risiko per Trade (%)",
                 min_value=0.25,
@@ -267,7 +279,7 @@ def render_page_money_management():
                 / 100
             )
 
-    # --- PROSES KALKULASI MONEY MANAGEMENT & RE-LINK DATA ---
+    # --- PROSES KALKULASI MONEY MANAGEMENT ---
     with col_output:
         st.subheader("🎯 Hasil Logika & Position Sizing")
 
@@ -428,7 +440,16 @@ def render_page_money_management():
         v1, v2 = st.columns(2)
 
         with v1:
-            # Gauge sekarang memantau Risiko Realistis vs Toleransi Slider Risiko
+            # Menggunakan Streamlit Markdown untuk judul & subjudul agar tidak terpotong oleh Plotly Canvas
+            st.markdown(
+                f'<div class="chart-custom-title">Risiko Posisi Saat Ini vs Target ({risk_pct}%)</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f'<div class="chart-custom-subtitle">Nominal Risk: Rp {actual_risk_idr:,.0f}</div>',
+                unsafe_allow_html=True,
+            )
+
             fig_gauge = go.Figure(
                 go.Indicator(
                     mode="gauge+number+delta",
@@ -440,9 +461,6 @@ def render_page_money_management():
                         "position": "top",
                     },
                     domain={"x": [0, 1], "y": [0, 1]},
-                    title={
-                        "text": f"Risiko Posisi Saat Ini vs Target ({risk_pct}%)<br><span style='font-size:12px;color:#8E94A0;'>Nominal Risk: Rp {actual_risk_idr:,.0f}</span>"
-                    },
                     gauge={
                         "axis": {
                             "range": [0, max(10.0, risk_pct * 1.2)],
@@ -474,14 +492,23 @@ def render_page_money_management():
                 )
             )
             fig_gauge.update_layout(
-                height=260,
-                margin=dict(l=10, r=10, t=50, b=10),
+                height=220,
+                margin=dict(l=20, r=20, t=10, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 font={"color": "white"},
             )
             st.plotly_chart(fig_gauge, use_container_width=True)
 
         with v2:
+            st.markdown(
+                '<div class="chart-custom-title">Simulasi Capital Exposure (Inc. Fee)</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div class="chart-custom-subtitle">Alokasi Modal Terpakai vs Cash</div>',
+                unsafe_allow_html=True,
+            )
+
             cash_left = max(0.0, capital - total_cost_with_fee)
             fig_donut = go.Figure(
                 data=[
@@ -497,9 +524,8 @@ def render_page_money_management():
                 ]
             )
             fig_donut.update_layout(
-                title_text="Simulasi Capital Exposure (Inc. Fee)",
-                height=260,
-                margin=dict(l=10, r=10, t=40, b=10),
+                height=220,
+                margin=dict(l=10, r=10, t=10, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 font={"color": "white"},
                 showlegend=True,

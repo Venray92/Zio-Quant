@@ -28,62 +28,67 @@ def inject_custom_css():
     }
 
     /* ------------------------------------------------------------- */
-    /* SIDEBAR VERTICAL NAVIGATION STYLING (4 TOMBOL KIRI MODERN)    */
+    /* ULTRA-SLIM SIDEBAR (RAMPING & PAS DI SAMPING KONTEN)          */
     /* ------------------------------------------------------------- */
     section[data-testid="stSidebar"] {
-        width: 110px !important;
+        width: 80px !important;
         background-color: #0D0E12 !important;
         border-right: 1px solid #21262D !important;
-        display: block !important;
-        visibility: visible !important;
+        min-width: 80px !important;
     }
 
     section[data-testid="stSidebar"] > div:first-child {
-        width: 110px !important;
-        padding: 1.5rem 0.2rem !important;
+        width: 80px !important;
+        padding: 1rem 0.2rem !important;
     }
 
+    /* Container Tombol Navigasi */
     .sidebar-wrapper {
         display: flex;
         flex-direction: column;
         gap: 16px;
         align-items: center;
+        margin-top: 10px;
     }
 
     .nav-btn-box {
         width: 100%;
+        display: flex;
+        justify-content: center;
     }
 
-    /* Tombol Navigasi Sidebar Native */
+    /* Custom Styling Tombol Native Streamlit di Sidebar */
     div[data-testid="stSidebar"] button[key^="nav_btn_"] {
         background: transparent !important;
         border: none !important;
-        color: #6E7681 !important;
+        color: #8A8B98 !important;
         font-family: 'Share Tech Mono', monospace !important;
-        font-size: 12px !important;
-        font-weight: 600 !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        height: 65px !important;
-        border-radius: 8px !important;
-        padding: 6px 0 !important;
+        height: 55px !important;
+        width: 100% !important;
+        padding: 4px 0 !important;
+        border-radius: 6px !important;
+        box-shadow: none !important;
         transition: all 0.2s ease-in-out !important;
     }
 
     /* Hover State */
     div[data-testid="stSidebar"] button[key^="nav_btn_"]:hover {
         color: #00FF66 !important;
-        background-color: rgba(0, 255, 102, 0.05) !important;
+        background-color: rgba(0, 255, 102, 0.08) !important;
     }
 
-    /* Active State (Glow Neon Green) */
+    /* Active State (Glow Neon Green & Strip Kanan) */
     .nav-btn-box.active-nav button {
         color: #00FF66 !important;
         background-color: rgba(0, 255, 102, 0.12) !important;
         border-right: 3px solid #00FF66 !important;
-        box-shadow: inset -3px 0 8px rgba(0, 255, 102, 0.3) !important;
+        box-shadow: inset -2px 0 8px rgba(0, 255, 102, 0.3) !important;
         text-shadow: 0 0 8px #00FF66 !important;
     }
 

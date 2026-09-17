@@ -286,7 +286,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE DATA ANALYSIS (DITAROK DI ATAS CHART)
+    # 2. DROPDOWN PERIODE DATA ANALYSIS (DI ATAS CHART)
     col_select, col_space = st.columns([1, 2])
     with col_select:
         period_selected = st.selectbox(
@@ -296,14 +296,14 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             key=f"period_{key_suffix}",
         )
 
-    # 3. TRADINGVIEW WIDGET ADVANCED (AUTOSAVE & DRAWING TOOLBAR)
+    # 3. TRADINGVIEW WIDGET
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
     )
     tv_symbol = f"IDX:{clean_ticker}"
 
     tv_html = f"""
-    <div class="tradingview-widget-container" style="height:550px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-top: 10px; margin-bottom: 24px;">
+    <div class="tradingview-widget-container" style="height:550px; width:100%; border-radius:10px; overflow:hidden; border: 1px solid #30363D; margin-top: 10px; margin-bottom: 8px;">
       <div id="tv_chart_container_{clean_ticker}" style="height:100%; width:100%;"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
@@ -321,16 +321,21 @@ def render_inline_trade_planner(ticker_symbol, key_suffix):
             "hide_side_toolbar": false,
             "allow_symbol_change": true,
             "save_image": true,
-            "container_id": "tv_chart_container_{clean_ticker}",
-            "remember_page": true,
-            "auto_save_change": true
+            "container_id": "tv_chart_container_{clean_ticker}"
           }});
       }}
       </script>
     </div>
     """
-    # Dipanggil tanpa argumen 'key' karena st.components.v1.html tidak mendukungnya
     components.html(tv_html, height=560)
+
+    # TULISAN PERINGATAN KECIL DI BAWAH CHART
+    st.markdown(
+        "<div style='font-size: 11px; color: #8B949E; margin-bottom: 20px; font-weight: 500;'>"
+        "**Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual, karena sistem tidak menyimpan tarikan garis secara otomatis saat Anda berpindah saham."
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
     # 4. TRADE PLAN RECOMMENDATION
     with st.spinner(

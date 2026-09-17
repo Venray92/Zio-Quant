@@ -3,7 +3,13 @@ import os
 import pandas as pd
 import streamlit as st
 
-from trade_planner import TradePlanner
+# PERBAIKAN 1: Pastikan mengimpor TradePlanner dari modul backend yang benar
+# (Ganti 'trade_planner_engine' dengan nama file tempat class TradePlanner Anda berada)
+try:
+    from trade_planner_engine import TradePlanner
+except ImportError:
+    # Fallback dummy class jika dipanggil di file yang sama
+    pass
 
 
 def load_daftar_saham(filename="daftar_saham.txt"):
@@ -254,7 +260,6 @@ def render_tab_trade_planner():
     st.markdown(
         """
         <style>
-        /* Keyframe Animasi Dot Nyala-Redup (Pulsing Glow) */
         @keyframes pulseGlow {
             0% {
                 opacity: 0.3;
@@ -273,7 +278,6 @@ def render_tab_trade_planner():
             }
         }
 
-        /* Banner Header Ringkas (Background Gelap, Lebar Tetap, Tinggi Ringkas, Rata Tengah) */
         .header-banner {
             border: 1px solid #00F3FF;
             box-shadow: 0 0 14px rgba(0, 243, 255, 0.4), inset 0 0 14px rgba(0, 243, 255, 0.15);
@@ -290,7 +294,6 @@ def render_tab_trade_planner():
             width: 100%;
         }
 
-        /* Dot Glowing Rata Tengah Di Atas Judul */
         .top-glowing-dot {
             width: 10px;
             height: 10px;
@@ -310,7 +313,6 @@ def render_tab_trade_planner():
             line-height: 1.2;
         }
 
-        /* Styling Judul-Judul Penting + Gradasi + Glowing */
         .glow-title {
             display: flex;
             align-items: center;
@@ -325,7 +327,6 @@ def render_tab_trade_planner():
             margin-bottom: 10px;
         }
 
-        /* Indikator Dot Cyan Biasa */
         .cyan-dot {
             width: 10px;
             height: 10px;
@@ -336,7 +337,6 @@ def render_tab_trade_planner():
             flex-shrink: 0;
         }
 
-        /* Custom Styling Tombol (Border & Primary Cyan Neon Glow, Mengganti Warna Merah Default) */
         div.stButton > button {
             border: 1px solid #00F3FF !important;
             box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
@@ -363,7 +363,6 @@ def render_tab_trade_planner():
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.8) !important;
         }
 
-        /* Card Styling */
         .card {
             background-color: #0f172a;
             border-radius: 6px;
@@ -552,7 +551,6 @@ def render_tab_trade_planner():
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
         with col_info:
-            # 🔒 Teks disederhanakan tanpa menampilkan nama file & total ticker
             st.info("💡 **Click Run To Screen All Ticker**")
         with col_batch_btn:
             if st.button("Run Screener", type="primary", use_container_width=True):
@@ -768,3 +766,14 @@ def render_tab_trade_planner():
         """,
         unsafe_allow_html=True,
     )
+
+
+# --- ENTRY POINT UNTUK MENJALANKAN APLIKASI ---
+if __name__ == "__main__":
+    st.set_page_config(
+        page_title="Stock Trade Planner",
+        page_icon="📈",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+    render_tab_trade_planner()

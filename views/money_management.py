@@ -12,7 +12,6 @@ try:
 except ImportError:
     TradePlanner = None
 
-# --- CONFIG PROFIL TRADING ---
 PROFILE_RULES = {
     "Scalping / Fast Trade": {
         "max_alloc": 10.0,

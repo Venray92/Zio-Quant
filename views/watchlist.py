@@ -133,12 +133,8 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    period_selected = st.selectbox(
-        "⏱️ Periode Data Analysis",
-        options=["3mo", "6mo", "1y", "2y"],
-        index=0,
-        key=f"period_{key_suffix}",
-    )
+    # Periode di-default ke 3mo tanpa menampilkan selectbox
+    period_selected = "3mo"
 
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
@@ -156,8 +152,8 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
             if df_plan is not None and not df_plan.empty:
                 st.markdown(
-                    '<div class="section-title">🎯 Trade Plan'
-                    " Recommendation</div>",
+                    '<div class="section-title">🎯 TRADE PLAN'
+                    " RECOMMENDATION</div>",
                     unsafe_allow_html=True,
                 )
 
@@ -268,7 +264,6 @@ def render_page_watchlist():
     if "selected_watchlist_ticker" not in st.session_state:
         st.session_state["selected_watchlist_ticker"] = None
 
-    # Versioning key untuk mereset checkbox "Mode Hapus" secara paksa
     if "batch_del_version" not in st.session_state:
         st.session_state["batch_del_version"] = 0
 
@@ -282,7 +277,12 @@ def render_page_watchlist():
             chg if chg is not None else item.get("Change Pct", 0.0)
         )
 
-    st.title("📈 Watchlist Saham Pro")
+    # JUDUL DENGAN UKURAN LEBIH KECIL DAN TANPA ICON
+    st.markdown(
+        "<h3 style='margin-bottom: 20px; font-weight: 700;"
+        " color: #E6EDF3;'>WATCHLIST</h3>",
+        unsafe_allow_html=True,
+    )
 
     col_left, col_right = st.columns([1.2, 1.8], gap="large")
 
@@ -290,8 +290,6 @@ def render_page_watchlist():
     # KIRI: DAFTAR KARTU SAHAM
     # ==========================================
     with col_left:
-        st.subheader("Daftar Pantauan")
-
         h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
         with h_col1:
@@ -369,7 +367,6 @@ def render_page_watchlist():
             with st.popover("🗑️ Kelola", use_container_width=True):
                 st.caption("Batch Delete")
 
-                # Memakai Dynamic Key berbasis versi
                 del_ver = st.session_state["batch_del_version"]
                 enable_batch_delete = st.checkbox(
                     "Mode Hapus",
@@ -398,7 +395,6 @@ def render_page_watchlist():
                             )
                             st.session_state["selected_cards"].clear()
 
-                            # Naikkan versi key agar checkbox ter-reset penuh ke uncheck
                             st.session_state["batch_del_version"] += 1
 
                             st.toast("Saham berhasil dihapus!", icon="🗑️")
@@ -473,15 +469,12 @@ def render_page_watchlist():
 
                     if pct_change > 0:
                         color_code = "#00C853"
-                        bg_code = "#E8F5E9"
                         prefix = "+"
                     elif pct_change < 0:
                         color_code = "#D50000"
-                        bg_code = "#FFEBEE"
                         prefix = ""
                     else:
                         color_code = "#757575"
-                        bg_code = "#F5F5F5"
                         prefix = ""
 
                     price_str = f"Rp {int(last_price):,}" if last_price else "-"
@@ -510,12 +503,12 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
-                        # RENDER KARTU SAHAM HTML
+                        # RENDER KARTU SAHAM HTML (Border disamarkan menggunakan #21262D)
                         st.markdown(
                             f"""
                             <div style="
-                                border: 1px solid #30363D; 
-                                border-left: 5px solid {color_code}; 
+                                border: 1px solid #21262D; 
+                                border-left: 4px solid {color_code}; 
                                 border-radius: 8px 8px 0px 0px; 
                                 padding: 10px 14px; 
                                 display: flex; 

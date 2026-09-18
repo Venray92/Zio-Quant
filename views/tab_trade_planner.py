@@ -818,12 +818,136 @@ def render_tab_trade_planner():
                 df = df[df["RR_Val"] >= 3.0]
 
             if f_candle == "Bullish Signal Only":
-                df = df[df["Candlestick Pattern"].str.contains("Bullish|Hammer|Engulfing|Morning", case=False, na=False)]
+                df = df[
+                    df["Candlestick Pattern"].str.contains(
+                        "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
+                        case=False,
+                        na=False,
+                    )
+                ]
             elif f_candle == "Neutral / Doji Only":
-                df = df[df["Candlestick Pattern"].str.contains("Doji|Neutral", case=False, na=False)]
+                df = df[
+                    df["Candlestick Pattern"].str.contains(
+                        "Doji|Spinning|Standard", case=False, na=False
+                    )
+                ]
+
+            df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
             st.write("")
-            if df.empty:
-                st.warning("⚠️ No stocks match your filter criteria.")
-            else:
-                render_trade_plan_cards(df, is_title_needed=True, is_single_mode=False)
+
+            h_left, _ = st.columns([3, 1], vertical_alignment="center")
+            with h_left:
+                st.markdown(
+                    f"""
+                    <h3 class="glow-title" style="margin-bottom: 0px;">
+                        <span class="cyan-dot"></span>Screener Results 
+                        <span style='font-size:0.9rem; color:#94a3b8;'>({len(df)} items)</span>
+                    </h3>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            if "batch_uncheck_trigger" not in st.session_state:
+                st.session_state["batch_uncheck_trigger"] = 0
+
+            editor_key = f"batch_editor_v{st.session_state['batch_uncheck_trigger']}"
+
+            df_table = df.copy()
+            df_table.insert(0, "Select", False)
+
+            edited_df = st.data_editor(
+                df_table[["Select"] + [col for col in df.columns if col != "Select"]],
+                column_config={
+                    "Select": st.column_config.CheckboxColumn(
+                        "Select",
+                        help="Check to view detailed Trade Plan cards",
+                        default=False,
+                    ),
+                    "Symbol": st.column_config.TextColumn("Symbol"),
+                    "Score": st.column_config.NumberColumn("Score", format="%d"),
+                    "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
+                    "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
+                    "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
+                    "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
+                },
+                disabled=[col for col in df.columns if col != "Select"],
+                use_container_width=True,
+                key=editor_key
+            )
+
+            selected_rows = edited_df[edited_df["Select"] == True]
+
+            # Siapkan teks gabungan untuk semua saham yang dicentang (untuk Copy Terpilih)
+            batch_copy_text = ""
+            if not selected_rows.empty:
+                checked_symbols_preview = selected_rows["Symbol"].unique().tolist()
+                df_to_preview = df_raw[df_raw["Symbol"].isin(checked_symbols_preview)]
+                
+                plan_blocks = []
+                for _, r in df_to_preview.iterrows():
+                    p_text = f"""=== TRADE PLAN: {r.get('Symbol', '')} ===
+Strategy: {r.get('Strategy', 'BOW')}
+Grade: {r.get('Grade', 'N/A')}
+Score: {r.get('Score', 0)}/100
+Last Price: Rp {r.get('Last Price', 0):,}
+Buy Range: {r.get('Buy Range', '-')}
+Stop Loss: Rp {r.get('Stop Loss (SL)', 0):,}
+Target 1 (TP1): Rp {r.get('TP 1', 0):,}
+Target 2 (TP2): Rp {r.get('TP 2', 0):,}
+Zone Position: {r.get('Zone Position', '-')}
+Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}
+==============================="""
+                    plan_blocks.append(p_text)
+                batch_copy_text = "\n\n".join(plan_blocks)
+
+            # Tombol aksi Batch: Clear Centang di kiri, Copy Terpilih di tengah, Watchlist Terpilih di kanan
+            c_act_clear, c_act_copy, c_act_wl = st.columns([1, 1, 1], vertical_alignment="bottom")
+            
+            with c_act_clear:
+                if st.button("🗑️ Clear Centang", use_container_width=True, key="btn_clear_checks"):
+                    st.session_state["batch_uncheck_trigger"] += 1
+                    st.rerun()
+
+            with c_act_copy:
+                unique_batch_btn_id = "copy_btn_batch_all"
+                batch_copy_html = f"""
+                <button id="{unique_batch_btn_id}" style="width: 100%; background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 9px 10px; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
+                    📋 Copy Terpilih
+                </button>
+                <script>
+                const textToCopy_{unique_batch_btn_id} = `{batch_copy_text}`;
+                const btn_{unique_batch_btn_id} = document.getElementById("{unique_batch_btn_id}");
+                btn_{unique_batch_btn_id}.onclick = function() {{
+                    if (!textToCopy_{unique_batch_btn_id}.trim()) {{
+                        alert("Pilih minimal satu saham dicentang pada tabel di atas.");
+                        return;
+                    }}
+                    navigator.clipboard.writeText(textToCopy_{unique_batch_btn_id}).then(function() {{
+                        btn_{unique_batch_btn_id}.innerText = "✅ Copied!";
+                        btn_{unique_batch_btn_id}.style.background = "#00FF66";
+                        setTimeout(function() {{
+                            btn_{unique_batch_btn_id}.innerText = "📋 Copy Terpilih";
+                            btn_{unique_batch_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
+                        }}, 2000);
+                    }}).catch(function(err) {{
+                        console.error('Gagal menyalin text: ', err);
+                    }});
+                }};
+                </script>
+                """
+                components.html(batch_copy_html, height=45)
+
+            with c_act_wl:
+                if st.button("⭐ Watchlist Terpilih", use_container_width=True, key="btn_wl_batch_selected"):
+                    if not selected_rows.empty:
+                        symbols_to_add = selected_rows["Symbol"].unique().tolist()
+                        add_tickers_to_watchlist(symbols_to_add)
+                    else:
+                        st.toast("Pilih minimal satu saham dicentang pada tabel di atas.", icon="⚠️")
+
+            if not selected_rows.empty:
+                st.markdown("<br>", unsafe_allow_html=True)
+                checked_symbols = selected_rows["Symbol"].unique().tolist()
+                df_to_render = df_raw[df_raw["Symbol"].isin(checked_symbols)]
+                render_trade_plan_cards(df_to_render, is_title_needed=True, is_single_mode=False)

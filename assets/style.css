@@ -46,28 +46,38 @@ header[data-testid="stHeader"] {
     text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
 }
 
-/* Top Navigation / Dropdown Popover */
+/* Top Navigation / Dropdown Popover - Selalu Menyala Hijau Neon Permanen */
 div[data-testid="stPopover"] > button {
-    background-color: #242424 !important;
-    border: 2px solid #00F3FF !important;
-    border-radius: 6px !important;
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
+    border: 2px solid #00FF66 !important;
+    color: #00FF66 !important;
+    border-radius: 8px !important;
     padding: 4px 16px !important;
     height: 42px !important;
     width: 100% !important;
-    box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 6px rgba(0, 243, 255, 0.2) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 12px rgba(0, 255, 102, 0.4), inset 0 0 6px rgba(0, 255, 102, 0.2) !important;
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.6) !important;
+}
+
+div[data-testid="stPopover"] > button:hover {
+    background: rgba(0, 255, 102, 0.2) !important;
+    color: #ffffff !important;
+    border-color: #00FF66 !important;
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.8) !important;
+    text-shadow: 0 0 10px #ffffff !important;
 }
 
 div[data-testid="stPopoverContent"] {
-    background-color: #242424 !important;
-    border: 2px solid #00F3FF !important;
-    box-shadow: 0 0 25px rgba(0, 243, 255, 0.4) !important;
+    background-color: #1A1A1A !important;
+    border: 2px solid #00FF66 !important;
+    box-shadow: 0 0 25px rgba(0, 255, 102, 0.4) !important;
     border-radius: 8px !important;
 }
 
 /* ==========================================================================
    2. TAB RSI STYLING
    ========================================================================== */
-/* Warna dan Border khusus komponen Indikator RSI */
 .rsi-badge-overbought {
     background-color: rgba(255, 82, 82, 0.15) !important;
     border: 1px solid #FF5252 !important;
@@ -89,7 +99,6 @@ div[data-testid="stPopoverContent"] {
 /* ==========================================================================
    3. TAB STOCHASTIC & PSAR STYLING
    ========================================================================== */
-/* Warna dan Border khusus komponen Stoch & Parabolic SAR */
 .stoch-card-bullish {
     background: #161B22 !important;
     border-left: 4px solid #00E676 !important;
@@ -113,7 +122,6 @@ div[data-testid="stPopoverContent"] {
 /* ==========================================================================
    4. TAB TRADE PLANNER STYLING
    ========================================================================== */
-/* Header Live Trade Plan */
 .live-plan-header {
     background: linear-gradient(90deg, rgba(0, 230, 118, 0.15) 0%, rgba(56, 189, 248, 0.05) 100%);
     border-left: 5px solid #00E676;
@@ -146,7 +154,6 @@ div[data-testid="stPopoverContent"] {
     text-transform: uppercase;
 }
 
-/* Metric Cards & Expander */
 div[data-testid="stMetric"] {
     background: linear-gradient(180deg, #161B22 0%, #0D1117 100%);
     border: 1px solid #21262D;

@@ -29,6 +29,13 @@ inject_custom_css()
 st.markdown(
     """
     <style>
+    /* 0. IMPORT FONT GOOGLE & TERAPKAN KE SELURUH ELEMEN APLIKASI */
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    html, body, [class*="css"], .stMarkdown, p, h1, h2, h3, h4, h5, h6, span, label, input, textarea {
+        font-family: 'Share Tech Mono', monospace !important;
+    }
+
     /* 1. STYLING UNIVERSAL UNTUK SEMUA TOMBOL DI SELURUH APLIKASI & TEKS DIDALAMNYA */
     .stButton button, 
     div[data-testid="stHorizontalBlock"] .stButton button,

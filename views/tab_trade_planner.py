@@ -3,6 +3,7 @@ import json
 import os
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from engines.trade_planner import TradePlanner
 
@@ -54,23 +55,19 @@ def process_single_ticker(ticker_code: str):
         for idx, p in df_plan.iterrows():
             plan_type = str(p["Type"])
             
-            # Ambil batas bawah area buy untuk perhitungan R:R dan persentase
             buy_min = float(p["Range Buy Min"])
             stop_loss = float(p["Stop Loss"])
             tp1 = float(p["TP 1"])
             tp2 = float(p["TP 2"])
 
-            # 1. Hitung ulang R:R dari Buy Range Terbawah ke TP 1
             risk = buy_min - stop_loss
             reward_tp1 = tp1 - buy_min
             rr_val = round(reward_tp1 / risk, 1) if risk > 0 else 0.0
 
-            # 2. Hitung persentase Potential Gain TP 1 & TP 2 dari Buy Range Terbawah/Mid
             entry_mid = (p["Range Buy Min"] + p["Range Buy Max"]) / 2.0
             pot_gain_tp1 = round(((tp1 - entry_mid) / entry_mid) * 100, 1) if entry_mid > 0 else 0
             pot_gain_tp2 = round(((tp2 - entry_mid) / entry_mid) * 100, 1) if entry_mid > 0 else 0
             
-            # 3. Hitung persentase Risk (SL Risk)
             pot_risk = round(((entry_mid - stop_loss) / entry_mid) * 100, 1) if entry_mid > 0 else 0
 
             processed_plans.append({
@@ -254,18 +251,8 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
         suggested_strat = df_sym["Suggested Strategy"].iloc[0] if "Suggested Strategy" in df_sym.columns else strategies[0]
         
         selected_strat = suggested_strat
-        if is_single_mode and len(strategies) > 1:
+        if len(strategies) > 1:
             st.write("")
-            
-            # Label & Dropdown diletakkan berdampingan secara rapi di sebelah kiri
-            st.markdown(
-                """
-                <div style="font-weight: 700; color: #00F3FF; font-size: 0.95rem; margin-bottom: 4px;">
-                    Pilih Strategi:
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
             
             # Mapping nama kode pendek ke nama panjang
             label_map = {
@@ -278,9 +265,18 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             default_display = label_map.get(suggested_strat, display_options[0])
             default_idx = display_options.index(default_display) if default_display in display_options else 0
             
-            # Batasi lebar kolom dropdown agar ringkas
-            col_drop, _ = st.columns([1.5, 3.5])
+            # Mengatur tata letak: Dropdown di kiri, dan tombol aksi (Watchlist, Copy Plan, Clear Data) di kanan
+            col_drop, col_space, col_w, col_c, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
+            
             with col_drop:
+                st.markdown(
+                    """
+                    <div style="font-weight: 700; color: #00F3FF; font-size: 0.85rem; margin-bottom: 2px;">
+                        Pilih Strategi:
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 chosen_display = st.selectbox(
                     "Strategy",
                     options=display_options,
@@ -290,22 +286,76 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
                 )
             selected_strat = reverse_map.get(chosen_display, chosen_display)
 
-        row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
-        
+            row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
+
+            # Teks untuk fitur Copy Plan
+            copyable_text = f"""=== TRADE PLAN: {row['Symbol']} ===
+Strategy: {row['Strategy']}
+Grade: {row['Grade']}
+Score: {row['Score']}/100
+Last Price: Rp {row['Last Price']:,}
+Buy Range: {row['Buy Range']}
+Stop Loss: Rp {row['Stop Loss (SL)']:,}
+Target 1 (TP1): Rp {row['TP 1']:,}
+Target 2 (TP2): Rp {row['TP 2']:,}
+Zone Position: {row['Zone Position']}
+Risk-Reward: {row['Risk-Reward Ratio']}
+==============================="""
+
+            unique_btn_id = f"copy_btn_tp_{sym}_{row['Strategy']}"
+
+            with col_w:
+                if st.button("⭐ Watchlist", key=f"btn_wl_{sym}", use_container_width=True):
+                    add_tickers_to_watchlist([sym])
+
+            with col_c:
+                # Tombol Copy Plan interaktif
+                copy_html = f"""
+                <button id="{unique_btn_id}" style="width: 100%; background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 7px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
+                    📋 Copy
+                </button>
+                <script>
+                const textToCopy_{unique_btn_id} = `{copyable_text}`;
+                const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
+                btn_{unique_btn_id}.onclick = function() {{
+                    navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
+                        btn_{unique_btn_id}.innerText = "✅ Copied";
+                        btn_{unique_btn_id}.style.background = "#00FF66";
+                        setTimeout(function() {{
+                            btn_{unique_btn_id}.innerText = "📋 Copy";
+                            btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
+                        }}, 2000);
+                    }}).catch(function(err) {{
+                        console.error('Gagal menyalin text: ', err);
+                    }});
+                }};
+                </script>
+                """
+                components.html(copy_html, height=36)
+
+            with col_cl:
+                if is_single_mode:
+                    if st.button("🗑️ Clear", key=f"btn_clr_{sym}", use_container_width=True):
+                        st.session_state.pop("df_screener_single", None)
+                        st.rer()
+
+        else:
+            row = df_sym.iloc[0]
+
         strat_display_name = "Buy On Weakness" if row['Strategy'] == "BOW" else ("Buy On Breakout" if row['Strategy'] == "BOB" else row['Strategy'])
         is_suggestion = " (Suggestion)" if row.get("Strategy") == row.get("Suggested Strategy") else ""
 
         st.markdown(
             f"""
-            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px 20px; margin-top: 15px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <span style="font-size: 1.5rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
+            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 20px; margin-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span style="font-size: 1.4rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
                     <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {strat_display_name}{is_suggestion}</span>
                     <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
                     <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
                 </div>
                 <div style="color: #94a3b8; font-size: 0.9rem;">
-                    Last Price: <strong style="color: #00F3FF; font-size: 1.2rem;">Rp {row['Last Price']:,}</strong>
+                    Last Price: <strong style="color: #00F3FF; font-size: 1.1rem;">Rp {row['Last Price']:,}</strong>
                 </div>
             </div>
             """,
@@ -625,29 +675,17 @@ def render_tab_trade_planner():
             df_single_res = st.session_state[active_cache_key]
 
             st.write("")
-            h_left, h_btn_wl, h_right = st.columns([2.2, 1.2, 1], vertical_alignment="center")
-            
+            h_left, _ = st.columns([3, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
                     f"""
-                    <h3 class="glow-title">
+                    <h3 class="glow-title" style="margin-bottom: 0px;">
                         <span class="cyan-dot"></span>Analysis Results 
                         <span style='font-size:0.9rem; color:#94a3b8;'>({len(df_single_res['Symbol'].unique())} items)</span>
                     </h3>
                     """,
                     unsafe_allow_html=True,
                 )
-            
-            with h_btn_wl:
-                if not df_single_res.empty:
-                    if st.button("⭐ + Watchlist", use_container_width=True, key="btn_add_watchlist_single_header"):
-                        symbols_to_add = df_single_res["Symbol"].unique().tolist()
-                        add_tickers_to_watchlist(symbols_to_add)
-
-            with h_right:
-                if st.button("🗑️ Clear Data", use_container_width=True, key="btn_clear_single"):
-                    clear_cache(active_cache_key)
-                    st.rerun()
 
             if df_single_res.empty:
                 st.warning("⚠️ No valid data returned for the selected tickers.")
@@ -766,11 +804,11 @@ def render_tab_trade_planner():
 
             st.write("")
 
-            h_left, h_btn1, h_btn2, h_right = st.columns([2, 1, 1, 1], vertical_alignment="center")
+            h_left, _ = st.columns([3, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
                     f"""
-                    <h3 class="glow-title">
+                    <h3 class="glow-title" style="margin-bottom: 0px;">
                         <span class="cyan-dot"></span>Screener Results 
                         <span style='font-size:0.9rem; color:#94a3b8;'>({len(df)} items)</span>
                     </h3>
@@ -780,8 +818,6 @@ def render_tab_trade_planner():
 
             if "editor_key_version" not in st.session_state:
                 st.session_state["editor_key_version"] = 0
-
-            current_editor_key = f"batch_editor_v{st.session_state['editor_key_version']}"
 
             df_table = df.copy()
             df_table.insert(0, "Select", False)
@@ -803,69 +839,25 @@ def render_tab_trade_planner():
                 },
                 disabled=["Symbol", "Score", "Grade", "Strategy", "Last Price", "Zone Position", "Buy Range", "Stop Loss (SL)", "TP 1", "TP 2", "Potential Gain", "SL Risk", "Risk-Reward Ratio", "Candlestick Pattern"],
                 use_container_width=True,
-                key=current_editor_key,
+                key=f"batch_editor_v{st.session_state['editor_key_version']}"
             )
 
             selected_rows = edited_df[edited_df["Select"] == True]
-            num_checked = len(selected_rows)
 
-            with h_btn1:
-                if st.button("⭐ + Add to Watchlist", use_container_width=True, key="btn_add_watchlist"):
-                    if num_checked > 0:
-                        symbols_to_add = selected_rows["Symbol"].tolist()
+            # Tombol aksi Global Batch (Add Watchlist & Clear Data)
+            c_act1, c_act2, c_act3 = st.columns([1, 1, 2], vertical_alignment="bottom")
+            with c_act1:
+                if st.button("⭐ Watchlist Terpilih", use_container_width=True, key="btn_wl_batch_selected"):
+                    if not selected_rows.empty:
+                        symbols_to_add = selected_rows["Symbol"].unique().tolist()
                         add_tickers_to_watchlist(symbols_to_add)
                     else:
-                        st.warning("⚠️ Centang minimal 1 saham di tabel terlebih dahulu!")
-
-            with h_btn2:
+                        st.toast("Pilih minimal satu saham dicentang pada tabel di atas.", icon="⚠️")
+            with c_act2:
                 if st.button("🗑️ Clear Cache", use_container_width=True, key="btn_clear_batch"):
                     clear_cache(active_cache_key)
                     st.rerun()
 
-            with h_right:
-                if not df.empty:
-                    csv_data = df.to_csv(index=False).encode("utf-8")
-                    st.download_button(
-                        label="📥 Export CSV",
-                        data=csv_data,
-                        file_name="trade_planner_results.csv",
-                        mime="text/csv",
-                        use_container_width=True,
-                    )
-
-            if df.empty:
-                st.warning("⚠️ No stock tickers match the selected filter criteria.")
-            else:
-                st.info("💡 Select the checkbox on any row to display its detailed Trade Plan card.")
-
-            col_chk_status, col_chk_btn = st.columns([3, 1], vertical_alignment="center")
-            with col_chk_status:
-                if num_checked > 0:
-                    st.markdown(
-                        f"📌 **Selected:** `{num_checked}` stock(s) loaded for detailed view.",
-                        unsafe_allow_html=True,
-                    )
-            with col_chk_btn:
-                if num_checked > 0:
-                    if st.button("🧹 Clear Selection", use_container_width=True, key="btn_clear_selection"):
-                        st.session_state["editor_key_version"] += 1
-                        st.toast("Selection cleared", icon="✅")
-                        st.rerun()
-
             if not selected_rows.empty:
-                st.write("")
-                selected_symbols = selected_rows["Symbol"].tolist()
-                df_selected_full = df[df["Symbol"].isin(selected_symbols)]
-                render_trade_plan_cards(df_selected_full, is_title_needed=True, is_single_mode=True)
-
-    # --- FOOTER ---
-    st.markdown(
-        """
-        <br>
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1e293b; padding-top: 12px; color: #94a3b8; font-size: 0.8rem;">
-            <div>Trade Planner</div>
-            <div style="color: #10b981; font-weight: 600;">Status: Ready</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+                st.markdown("<br>", unsafe_allow_html=True)
+                render_trade_plan_cards(selected_rows, is_title_needed=True, is_single_mode=False)

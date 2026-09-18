@@ -15,14 +15,14 @@ def get_logo_base64(file_path="logo.jpg"):
 def render_header():
     """Menampilkan Header Bar (Logo di kiri, CHOOSE SCREENER di kanan)."""
 
-    # Inject CSS khusus untuk Popover & Tombol Screener bergaya Cyberpunk
+    # Inject CSS khusus untuk Popover & Styling Tombol Aktif (Cyberpunk Neon)
     st.markdown(
         """
         <style>
         /* Styling Utama Tombol Popover CHOOSE SCREENER */
         [data-testid="stPopover"] > button {
             background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
-            border: 1px solid #00F3FF !important;
+            border: 1.5px solid #00F3FF !important;
             color: #00F3FF !important;
             border-radius: 8px !important;
             font-family: 'Share Tech Mono', monospace !important;
@@ -33,26 +33,37 @@ def render_header():
         [data-testid="stPopover"] > button:hover {
             background: rgba(0, 243, 255, 0.2) !important;
             color: #ffffff !important;
-            border-color: #00F3FF !important;
-            box-shadow: 0 0 18px rgba(0, 243, 255, 0.6) !important;
+            border-color: #FF007F !important;
+            box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
         }
 
-        /* Styling Tombol di dalam Popover Menu (RSI, Stoch, Trade Plan) */
+        /* Styling Tombol di dalam Popover Menu (Default) */
         div[data-testid="stPopoverBody"] button {
-            background: #0d1b2a !important;
-            border: 1px solid rgba(0, 243, 255, 0.4) !important;
+            background: #161B22 !important;
+            border: 1.5px solid #00F3FF !important;
             color: #00F3FF !important;
             border-radius: 6px !important;
             font-family: 'Share Tech Mono', monospace !important;
             font-weight: 600 !important;
             margin-bottom: 4px !important;
             transition: all 0.2s ease !important;
+            box-shadow: 0 0 6px rgba(0, 243, 255, 0.2) !important;
         }
         div[data-testid="stPopoverBody"] button:hover {
-            background: #00F3FF !important;
-            color: #0d1b2a !important;
-            border-color: #00F3FF !important;
-            box-shadow: 0 0 12px #00F3FF !important;
+            background: rgba(0, 243, 255, 0.2) !important;
+            color: #FFFFFF !important;
+            border-color: #FF007F !important;
+            box-shadow: 0 0 12px rgba(255, 0, 127, 0.6) !important;
+        }
+
+        /* STYLING KHUSUS UNTUK TOMBOL YANG SEDANG AKTIF (AGAR TETAP MENYALA DI SEMUA TAB) */
+        div[data-testid="stPopoverBody"] button:has(p:contains("[ACTIVE]")),
+        div[data-testid="stPopoverBody"] button:has(div:contains("[ACTIVE]")) {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.25) 0%, rgba(255, 0, 127, 0.25) 100%) !important;
+            border: 1.5px solid #00F3FF !important;
+            color: #00F3FF !important;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
+            text-shadow: 0 0 8px #00F3FF !important;
         }
         </style>
         """,

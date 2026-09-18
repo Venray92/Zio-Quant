@@ -1,12 +1,10 @@
 import concurrent.futures
+import json
 import os
 import pandas as pd
 import streamlit as st
 
 from engines.trade_planner import TradePlanner
-
-# Import fungsi atau modul watchlist jika diperlukan
-# import watchlist  # Sesuaikan jika watchlist.py memiliki fungsi helper khusus
 
 
 def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
@@ -149,10 +147,8 @@ def clear_cache(cache_key):
     st.toast("Data Cache Cleared", icon="🧹")
 
 
-import json
-
 def add_tickers_to_watchlist(symbols_list):
-    """Menambahkan list ticker terpilih ke file JSON watchlist_storage.json (sinkron dengan watchlist.py)"""
+    """Menambahkan list ticker terpilih ke file JSON watchlist_storage.json & sinkronisasi session_state."""
     storage_file = "watchlist_storage.json"
     
     try:
@@ -178,17 +174,25 @@ def add_tickers_to_watchlist(symbols_list):
         added_count = 0
         active_screener_name = st.session_state.get("active_screener_name", "Trade Planner Screener")
 
-        # 3. Masukkan ticker baru dengan format struktur dictionary JSON watchlist.py
+        # 3. Masukkan ticker baru dengan format struktur dictionary JSON
         for sym in symbols_list:
             clean_sym = sym.strip().upper()
             formatted = clean_sym if clean_sym.endswith(".JK") else f"{clean_sym}.JK"
             
             if formatted not in existing_tickers and clean_sym not in existing_tickers:
-                watchlist_data.append({
+                new_item = {
                     "Ticker": formatted,
                     "Notes": active_screener_name,
                     "Target Price": 0
-                })
+                }
+                watchlist_data.append(new_item)
+                
+                # Sinkronkan langsung ke session_state agar instan terbaca watchlist.py
+                if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
+                    st.session_state["watchlist"].append(new_item)
+                if "watchlist_data" in st.session_state and isinstance(st.session_state["watchlist_data"], list):
+                    st.session_state["watchlist_data"].append(new_item)
+
                 existing_tickers.add(formatted)
                 existing_tickers.add(clean_sym)
                 added_count += 1
@@ -703,7 +707,6 @@ def render_tab_trade_planner():
 
             st.write("")
 
-            # 🔧 PERUBAHAN KOLOM HEADER: Menambahkan tombol "+ Add to Watchlist" di sebelah "Clear Cache"
             h_left, h_btn1, h_btn2, h_right = st.columns([2, 1, 1, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
@@ -715,10 +718,7 @@ def render_tab_trade_planner():
                     """,
                     unsafe_allow_html=True,
                 )
-            
-            # Placeholder editor data table di bawah nanti mendefinisikan selected_rows
-            # Kita tampung logic tombol Add to Watchlist dan Clear Cache di sini
-            
+
             if "editor_key_version" not in st.session_state:
                 st.session_state["editor_key_version"] = 0
 
@@ -750,7 +750,6 @@ def render_tab_trade_planner():
             selected_rows = edited_df[edited_df["Select"] == True]
             num_checked = len(selected_rows)
 
-            # Render tombol aksi di header atas menggunakan data selected_rows yang sudah terdeteksi
             with h_btn1:
                 if st.button("⭐ + Add to Watchlist", use_container_width=True, key="btn_add_watchlist"):
                     if num_checked > 0:

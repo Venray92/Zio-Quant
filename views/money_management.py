@@ -14,9 +14,9 @@ except ImportError:
 # 1. EXTERNAL CSS INJECTOR
 # ==============================================================================
 def inject_cyberpunk_theme():
-    """Membaca file CSS eksternal dan memasangnya ke halaman Streamlit."""
-    css_file_path =os.path.join( "style-money-management.css")
-   
+    """Membaca file CSS eksternal dari folder assets dan memasangnya ke Streamlit."""
+    # Arahkan path ke dalam folder assets
+    css_file_path = os.path.join("assets", "style-money-management.css")
 
     if os.path.exists(css_file_path):
         with open(css_file_path, "r") as f:

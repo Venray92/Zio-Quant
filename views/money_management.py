@@ -19,7 +19,7 @@ def inject_cyberpunk_theme():
     css_file_path = os.path.join("assets", "style-money-management.css")
 
     if os.path.exists(css_file_path):
-        with open(css_file_path, "r") as f:
+        with open(css_file_path, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     else:
         st.warning(
@@ -91,6 +91,12 @@ def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> boo
         return False
 
 
+def clear_ticker_callback():
+    """Callback untuk mengosongkan input ticker dan session state terkait."""
+    st.session_state["mm_raw_ticker_input"] = ""
+    st.session_state["selected_watchlist_ticker"] = ""
+
+
 # ==============================================================================
 # 4. MAIN RENDER FUNCTION
 # ==============================================================================
@@ -147,33 +153,52 @@ def render_page_money_management():
             st.session_state.setdefault("input_tp1_price", 151.0)
             st.session_state.setdefault("input_tp2_price", 216.0)
 
-            # Mengambil ticker dari session state watchlist jika ada, atau default ke COCO
-            default_ticker_val = (
-                st.session_state.get("selected_watchlist_ticker", "COCO")
-                .upper()
-                .replace(".JK", "")
-            )
+            # Fitur Pilih dari Watchlist (jika ada datanya di session state)
+            watchlist_items = st.session_state.get("watchlist_data", [])
+            if watchlist_items:
+                wl_tickers = ["-- Pilih dari Watchlist --"] + [
+                    x.get("Ticker", "").replace(".JK", "") for x in watchlist_items if isinstance(x, dict)
+                ]
+                selected_from_wl = st.selectbox(
+                    "📌 Ambil dari Watchlist",
+                    wl_tickers,
+                    key="mm_select_from_watchlist"
+                )
+                if selected_from_wl != "-- Pilih dari Watchlist --":
+                    st.session_state["mm_raw_ticker_input"] = selected_from_wl
 
-            ticker_input = st.text_input(
-                "Ticker Code",
-                value=default_ticker_val,
-                key="mm_raw_ticker_input",
-            ).strip()
+            # Kolom Ticker Input berdampingan dengan Tombol Clear
+            col_tinput, col_tclear = st.columns([3, 1], vertical_alignment="bottom")
+
+            with col_tinput:
+                default_ticker_val = st.session_state.get("mm_raw_ticker_input", "")
+                ticker_input = st.text_input(
+                    "Ticker Code",
+                    value=default_ticker_val,
+                    key="mm_raw_ticker_input",
+                    placeholder="COCO / BBCA",
+                ).strip()
+
+            with col_tclear:
+                st.button("🧹 Clear", key="btn_clear_ticker", on_click=clear_ticker_callback, use_container_width=True)
 
             clean_ticker = (
                 ticker_input.upper().replace(".JK", "").strip() or "COCO"
             )
             full_ticker = f"{clean_ticker}.JK"
 
-            plan_type = st.radio(
-                "Trade Strategy Type",
-                ["BOW", "BOB"],
-                horizontal=True,
-                key="mm_plan_type_radio",
-            )
+            st.markdown("<p style='font-size: 12px; color: #8d9bb0; margin-bottom: 4px;'>Trade Strategy Type (Checklist)</p>", unsafe_allow_html=True)
+            c_chk1, c_chk2 = st.columns(2)
+            with c_chk1:
+                chk_bow = st.checkbox("BOW (Buy on Weakness)", value=True, key="chk_strat_bow")
+            with c_chk2:
+                chk_bob = st.checkbox("BOB (Buy on Breakout)", value=False, key="chk_strat_bob")
+
+            # Tentukan tipe plan aktif berdasarkan checkbox
+            active_plan_type = "BOW" if chk_bow else ("BOB" if chk_bob else "BOW")
 
             if st.button("🔄 Sync with Trade Planner", use_container_width=True):
-                if fetch_trade_plan(full_ticker, plan_type, clean_ticker):
+                if fetch_trade_plan(full_ticker, active_plan_type, clean_ticker):
                     st.rerun()
 
             c_entry, c_sl = st.columns(2)
@@ -234,7 +259,6 @@ def render_page_money_management():
     # KOLOM 2: ANALYTICS OUTPUT
     # --------------------------------------------------------------------------
     with col_output:
-        # Header title dengan tombol copy plan di sebelah kanan
         c_title, c_btn = st.columns([2.5, 1], vertical_alignment="center")
         with c_title:
             st.markdown("### 🎯 POSITION SIZING ANALYTICS")
@@ -286,8 +310,13 @@ def render_page_money_management():
         is_capped = (lot_by_cap < lot_by_risk) and (lot_by_risk > 0)
 
         # Teks untuk fitur Copy MM Plan
+        strategies_active = []
+        if chk_bow: strategies_active.append("BOW")
+        if chk_bob: strategies_active.append("BOB")
+        strat_str = " & ".join(strategies_active) if strategies_active else active_plan_type
+
         mm_copyable_text = f"""=== MONEY MANAGEMENT PLAN: {clean_ticker} ===
-Profile: {trading_style}
+Strategy: {strat_str} | Profile: {trading_style}
 Capital: Rp {capital:,.0f}
 Entry Price: Rp {entry_price:,.0f}
 Stop Loss: Rp {sl_price:,.0f}

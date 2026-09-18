@@ -231,7 +231,7 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
 
 
 def render_trade_plan_cards(df_data, is_title_needed=True):
-    """Renders Trade Plan Cards for given stocks Dataframe."""
+    """Renders Trade Plan Cards for given stocks Dataframe with Add to Watchlist button."""
     if is_title_needed:
         st.markdown(
             f"""
@@ -244,22 +244,31 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
         )
 
     for idx, row in df_data.iterrows():
-        st.markdown(
-            f"""
-            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px 20px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <span style="font-size: 1.5rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
-                    <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {row['Strategy']}</span>
-                    <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
-                    <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
+        # Bungkus header card dan tombol Add to Watchlist dalam layout kolom agar sejajar rapi
+        c_info, c_btn = st.columns([3, 1], vertical_alignment="center")
+        
+        with c_info:
+            st.markdown(
+                f"""
+                <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 18px; margin-top: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <span style="font-size: 1.4rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
+                        <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {row['Strategy']}</span>
+                        <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
+                        <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">
+                        Last Price: <strong style="color: #00F3FF; font-size: 1.1rem;">Rp {row['Last Price']:,}</strong>
+                    </div>
                 </div>
-                <div style="color: #94a3b8; font-size: 0.9rem;">
-                    Last Price: <strong style="color: #00F3FF; font-size: 1.2rem;">Rp {row['Last Price']:,}</strong>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+                """,
+                unsafe_allow_html=True,
+            )
+            
+        with c_btn:
+            # Tombol Add to Watchlist khusus untuk tiap kartu saham
+            if st.button("⭐ + Watchlist", key=f"btn_add_single_{row['Symbol']}_{idx}", use_container_width=True):
+                add_tickers_to_watchlist([row['Symbol']])
 
         col1, col2 = st.columns(2)
         with col1:
@@ -300,7 +309,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
 
         st.markdown(
             f"""
-            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px 18px; margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">RISK : REWARD</span>
                     <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>

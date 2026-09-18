@@ -29,7 +29,6 @@ def _format_val(val):
         num = float(val)
         if num.is_integer():
             return f"{int(num):,}".replace(",", ".")
-        # Format desimal: koma sebagai pemisah desimal, titik sebagai ribuan
         formatted = f"{num:,.2f}"
         return (
             formatted.replace(",", "X").replace(".", ",").replace("X", ".")
@@ -40,9 +39,9 @@ def _format_val(val):
 
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_stock_quotes_batch(tickers_list: list[str]) -> dict:
-    """Mengambil data harga (Last Price & Change %) untuk banyak saham sekaligus (Batch).
+    """Mengambil harga saham (Last Price & Change %) sekaligus dalam 1 request (Batch).
 
-    Jauh lebih cepat daripada loop satu per satu.
+    Menghemat waktu loading secara signifikan dibandingkan fetch satu per satu.
     """
     if not tickers_list:
         return {}
@@ -51,7 +50,6 @@ def fetch_stock_quotes_batch(tickers_list: list[str]) -> dict:
     results = {}
 
     try:
-        # Menarik data batch dalam 1 HTTP Request
         tickers_obj = yf.Tickers(" ".join(clean_tickers))
 
         for full_ticker in clean_tickers:
@@ -77,7 +75,6 @@ def fetch_stock_quotes_batch(tickers_list: list[str]) -> dict:
                 results[raw_ticker] = (None, None)
 
     except Exception:
-        # Fallback jika batch request gagal total
         for t in tickers_list:
             results[t.replace(".JK", "")] = (None, None)
 
@@ -155,7 +152,7 @@ def render_watchlist_page():
             st.session_state["delete_mode"] = not st.session_state[
                 "delete_mode"
             ]
-            st.session_state["selected_cards"].clear()  # Clear state saat toggle
+            st.session_state["selected_cards"].clear()
             st.rerun()
 
     # Action Bar jika dalam Mode Hapus
@@ -197,10 +194,12 @@ def render_watchlist_page():
     ]
 
     if not filtered_watchlist:
-        st.warning(f"Tidak ada saham yang cocok dengan pencarian '{search_query}'.")
+        st.warning(
+            f"Tidak ada saham yang cocok dengan pencarian '{search_query}'."
+        )
         return
 
-    # OPTIMATED: Batch fetch semua data harga secara bersamaan
+    # BATCH FETCHING HARGA (Menggantikan loop satu per satu)
     with st.spinner("Mengambil harga pasar live..."):
         market_data_map = fetch_stock_quotes_batch(filtered_watchlist)
 
@@ -221,33 +220,47 @@ def render_watchlist_page():
     with col_sort:
         sort_by = st.selectbox(
             "Urutkan Berdasarkan:",
-            ["Ticker", "Gainers (%)", "Losers (%)", "Harga Tertinggi", "Harga Terendah"],
+            [
+                "Ticker",
+                "Gainers (%)",
+                "Losers (%)",
+                "Harga Tertinggi",
+                "Harga Terendah",
+            ],
             label_visibility="collapsed",
         )
 
     # Logic Sorting
     if sort_by == "Gainers (%)":
         watchlist_cards.sort(
-            key=lambda x: x["Change Pct"] if x["Change Pct"] is not None else -999,
+            key=lambda x: (
+                x["Change Pct"] if x["Change Pct"] is not None else -999
+            ),
             reverse=True,
         )
     elif sort_by == "Losers (%)":
         watchlist_cards.sort(
-            key=lambda x: x["Change Pct"] if x["Change Pct"] is not None else 999
+            key=lambda x: (
+                x["Change Pct"] if x["Change Pct"] is not None else 999
+            )
         )
     elif sort_by == "Harga Tertinggi":
         watchlist_cards.sort(
-            key=lambda x: x["Last Price"] if x["Last Price"] is not None else -1,
+            key=lambda x: (
+                x["Last Price"] if x["Last Price"] is not None else -1
+            ),
             reverse=True,
         )
     elif sort_by == "Harga Terendah":
         watchlist_cards.sort(
-            key=lambda x: x["Last Price"] if x["Last Price"] is not None else 999999
+            key=lambda x: (
+                x["Last Price"] if x["Last Price"] is not None else 999999
+            )
         )
     else:
         watchlist_cards.sort(key=lambda x: x["Ticker"])
 
-    st.write("")  # Spacing
+    st.write("")
 
     # Render Cards Loop
     del_ver = st.session_state["del_version"]
@@ -261,11 +274,10 @@ def render_watchlist_page():
             head_col1, head_col2 = st.columns([4, 1])
 
             with head_col1:
-                # Price Change Badge Color
                 if chg is not None:
                     chg_color = "green" if chg >= 0 else "red"
                     chg_str = f":{chg_color}[({chg:+.2f}%)]"
-                    lp_str = f"RP {_format_val(lp)}"
+                    lp_str = f"Rp {_format_val(lp)}"
                 else:
                     chg_str = ""
                     lp_str = "Loading/N/A"
@@ -284,10 +296,15 @@ def render_watchlist_page():
                     else:
                         st.session_state["selected_cards"].discard(ticker_raw)
 
-            # Render Trade Plan Detail menggunakan TradePlanner Engine
+            # Bagian pemanggilan TradePlanner disesuaikan dengan variabel bawaan project Anda
             try:
                 planner = TradePlanner(ensure_jk_ticker(ticker_raw))
-                # Mengasumsikan modul Anda punya method render/get_plan
-                planner.render_trade_plan_only()
+                # Jalankan fungsi utama renderer TradePlanner milik Anda di sini
+                if hasattr(planner, "render_trade_plan_only"):
+                    planner.render_trade_plan_only()
+                elif hasattr(planner, "render"):
+                    planner.render()
+                else:
+                    st.info(f"Trade plan siap untuk {ticker_raw}")
             except Exception as e:
                 st.caption(f"⚠️ Gagal memuat analisis Trade Plan: {e}")

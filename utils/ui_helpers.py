@@ -76,7 +76,6 @@ def calculate_rr_ratios(row):
 
 # ==============================================================================
 # FUNGSI 5: RENDER INLINE TRADE PLANNER (KOMPONEN UI UTAMA)
-# Menampilkan detail Trade Plan, TradingView Chart, dan Fitur Watchlist (Semua Dilipat)
 # ==============================================================================
 def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screener"):
     st.markdown("---")
@@ -188,7 +187,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
             unsafe_allow_html=True,
         )
 
-    # 4. KARTU REKOMENDASI TRADE PLAN (MEMANGGIL ENGINE TRADE PLANNER) - DIBUNGKUS EXPANDER DEFAULT TUTUP
+    # 4. KARTU REKOMENDASI TRADE PLAN
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
             planner = TradePlanner(
@@ -235,11 +234,13 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                         "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
                     )
 
-                    # Setiap kartu rekomendasi dibungkus expander agar tertutup default (mencegah lag)
-                    with st.expander(f"🎯 Trade Plan Recommendation #{plan_no}: {plan_type} ({ticker_symbol}) - Score: {score}", expanded=False):
-                        
-                        # Teks format untuk fitur Copy Plan dengan tombol salin otomatis bawaan
-                        copyable_text = f"""=== TRADE PLAN: {ticker_symbol} ===
+                    # Menentukan Label Expander Berdasarkan Suggestion / Indeks Pertama
+                    is_suggestion = (idx == 0)
+                    prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
+                    expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
+
+                    # Teks yang akan disalin otomatis
+                    copyable_text = f"""=== TRADE PLAN: {ticker_symbol} ===
 Strategy: {plan_type}
 Grade: {grade}
 Score: {score}/100
@@ -249,12 +250,39 @@ Target 1 (TP1): {tp1}
 Target 2 (TP2): {tp2}
 Status Posisi: {posisi}
 ==============================="""
+
+                    with st.expander(expander_title, expanded=False):
                         
-                        st.markdown("📋 **Copy Plan (Klik tombol salin di sudut kanan atas kode berikut):**")
-                        st.code(copyable_text, language="text")
+                        # Menempatkan tombol Copy Plan di sebelah Score menggunakan komponen HTML/JS agar presisi
+                        unique_btn_id = f"copy_btn_{key_suffix}_{idx}"
+                        
+                        copy_component_html = f"""
+                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
+                            <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #38BDF8 100%); color: #0E1117; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transition: all 0.2s;">
+                                📋 COPY PLAN
+                            </button>
+                        </div>
+                        <script>
+                        const textToCopy_{unique_btn_id} = `{copyable_text}`;
+                        const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
+                        btn_{unique_btn_id}.onclick = function() {{
+                            navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
+                                btn_{unique_btn_id}.innerText = "✅ COPIED!";
+                                btn_{unique_btn_id}.style.background = "#00E676";
+                                setTimeout(function() {{
+                                    btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
+                                    btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #38BDF8 100%)";
+                                }, 2000);
+                            }}).catch(function(err) {{
+                                console.error('Gagal menyalin text: ', err);
+                            }});
+                        }};
+                        </script>
+                        """
+                        components.html(copy_component_html, height=45)
 
                         card_html = f"""
-                        <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px; margin-top: 10px;">
+                        <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
                                 <div>
                                     <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>

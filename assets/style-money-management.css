@@ -1,4 +1,4 @@
-/* 1. OVERRIDE ROOT STREAMLIT THEME (DISAMAKAN DENGAN HALAMAN LAIN) */
+/* 1. OVERRIDE ROOT STREAMLIT THEME */
 :root, [data-testid="stAppViewContainer"], .stApp {
     --background-color: #1A1A1A !important;
     --secondary-background-color: #161B22 !important;
@@ -27,22 +27,30 @@
 
 .cyber-card-pink {
     background: #140810 !important;
-    border: 1px solid #ff0055 !important;
+    border: 1px solid #FF0055 !important;
     border-radius: 6px !important;
     padding: 16px !important;
     margin-bottom: 15px !important;
     box-shadow: 0 0 15px rgba(255, 0, 85, 0.2) !important;
 }
 
-/* 4. TYPOGRAPHY & TEXT OVERRIDES */
-h1, h2, h3, h4, h5, h6, label, .stMarkdown, p, span {
-    color: #C0C5D0 !important;
-}
-.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+/* 4. TYPOGRAPHY & TEXT OVERRIDES (JUDUL & TEKS MENJADI CYAN NEON) */
+h1, h2, h3, h4, h5, h6 {
     color: #00F3FF !important;
-    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6) !important;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;
     letter-spacing: 1.5px !important;
 }
+
+p, span, label, .stMarkdown {
+    color: #C0C5D0 !important;
+}
+
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    color: #00F3FF !important;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.8) !important;
+    letter-spacing: 1.5px !important;
+}
+
 .cyber-label {
     color: #8B949E !important;
     font-size: 11px !important;
@@ -50,6 +58,7 @@ h1, h2, h3, h4, h5, h6, label, .stMarkdown, p, span {
     letter-spacing: 1.5px !important;
     text-transform: uppercase !important;
 }
+
 .cyber-value {
     font-size: 26px !important;
     font-weight: 900 !important;

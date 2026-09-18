@@ -223,6 +223,22 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 # MAIN RENDER FUNCTION
 # ==========================================
 def render_page_watchlist():
+    # Menghapus paksa border hijau/glow global dari file lain khusus untuk halaman Watchlist
+    st.markdown(
+        """
+        <style>
+            .stButton > button, div[data-testid="stPopover"] > button {
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                box-shadow: none !important;
+            }
+            .stButton > button:hover, div[data-testid="stPopover"] > button:hover {
+                border-color: rgba(255, 255, 255, 0.5) !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
 

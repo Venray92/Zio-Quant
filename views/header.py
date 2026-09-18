@@ -18,27 +18,28 @@ def render_header():
     # Inject CSS khusus untuk Popover & Styling Tombol Aktif (Cyberpunk Neon & Hijau Permanen)
     st.markdown(
         """
-        <style>
-        /* Tombol CHOOSE SCREENER Selalu Menyala Hijau Neon Permanen */
+<style>
+        /* Tombol CHOOSE SCREENER Menjadi Neon Biru Permanen */
         [data-testid="stPopover"] > button {
             background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
-            border: 1.5px solid #00FF66 !important;
-            color: #00FF66 !important;
+            border: 1.5px solid #00F0FF !important;
+            color: #00F0FF !important;
             border-radius: 8px !important;
             font-family: 'Share Tech Mono', monospace !important;
             font-weight: 700 !important;
-            box-shadow: 0 0 12px rgba(0, 255, 102, 0.4) !important;
-            text-shadow: 0 0 8px rgba(0, 255, 102, 0.6) !important;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.4) !important;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.6) !important;
             transition: all 0.3s ease !important;
         }
         
         [data-testid="stPopover"] > button:hover {
-            background: rgba(0, 255, 102, 0.2) !important;
+            background: rgba(0, 240, 255, 0.2) !important;
             color: #ffffff !important;
-            border-color: #00FF66 !important;
-            box-shadow: 0 0 20px rgba(0, 255, 102, 0.8) !important;
+            border-color: #00F0FF !important;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.8) !important;
             text-shadow: 0 0 10px #ffffff !important;
         }
+        
 
         /* Styling Tombol di dalam Popover Menu (Default) */
         div[data-testid="stPopoverBody"] button {

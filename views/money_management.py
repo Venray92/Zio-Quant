@@ -11,131 +11,19 @@ except ImportError:
 
 
 # ==============================================================================
-# 1. CYBERPUNK THEME ENGINE (AGGRESSIVE CSS OVERRIDE)
+# 1. EXTERNAL CSS INJECTOR
 # ==============================================================================
 def inject_cyberpunk_theme():
-    """Memaksa seluruh layout Streamlit (Background, Cards, Input, Button, Text)
+    """Membaca file CSS eksternal dan memasangnya ke halaman Streamlit."""
+    css_file_path = "style-money-management.css"
 
-    menggunakan Tema Cyberpunk Neon secara menyeluruh.
-    """
-    cyberpunk_css = """
-    <style>
-    /* 1. OVERRIDE ROOT STREAMLIT THEME */
-    :root, [data-testid="stAppViewContainer"], .stApp {
-        --background-color: #05070a !important;
-        --secondary-background-color: #0d111a !important;
-        --primary-color: #00f3ff !important;
-        --text-color: #00f3ff !important;
-        background-color: #05070a !important;
-        color: #00f3ff !important;
-        font-family: 'Segoe UI', Roboto, monospace !important;
-    }
-
-    /* 2. BACKGROUND GLOBAL APLIKASI */
-    .stAppViewContainer, .main, [data-testid="stHeader"] {
-        background-color: #05070a !important;
-    }
-
-    /* 3. CARD & CONTAINER CUSTOM */
-    .cyber-card {
-        background: #0c1017 !important;
-        border: 1px solid #00f3ff !important;
-        border-radius: 6px !important;
-        padding: 16px !important;
-        margin-bottom: 15px !important;
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2), inset 0 0 10px rgba(0, 243, 255, 0.05) !important;
-        position: relative !important;
-    }
-
-    .cyber-card-pink {
-        background: #140810 !important;
-        border: 1px solid #ff0055 !important;
-        border-radius: 6px !important;
-        padding: 16px !important;
-        margin-bottom: 15px !important;
-        box-shadow: 0 0 15px rgba(255, 0, 85, 0.2) !important;
-    }
-
-    /* 4. TYPOGRAPHY & TEXT OVERRIDES */
-    h1, h2, h3, h4, h5, h6, label, .stMarkdown, p, span {
-        color: #ffffff !important;
-    }
-    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-        color: #00f3ff !important;
-        text-shadow: 0 0 8px rgba(0, 243, 255, 0.6) !important;
-        letter-spacing: 1.5px !important;
-    }
-    .cyber-label {
-        color: #8d9bb0 !important;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        letter-spacing: 1.5px !important;
-        text-transform: uppercase !important;
-    }
-    .cyber-value {
-        font-size: 26px !important;
-        font-weight: 900 !important;
-        color: #00f3ff !important;
-        text-shadow: 0 0 10px rgba(0, 243, 255, 0.8) !important;
-        font-family: 'Courier New', monospace !important;
-    }
-
-    /* 5. INPUT FIELDS (TEXT, NUMBER, SELECTBOX) */
-    div[data-baseweb="input"], div[data-baseweb="select"] > div {
-        background-color: #0d111a !important;
-        border: 1px solid #00f3ff !important;
-        border-radius: 4px !important;
-        box-shadow: 0 0 5px rgba(0, 243, 255, 0.3) !important;
-    }
-    input {
-        color: #00f3ff !important;
-        background-color: transparent !important;
-        font-weight: bold !important;
-        font-family: 'Courier New', monospace !important;
-    }
-
-    /* 6. BUTTON STYLING (NEON GLOW) */
-    div.stButton > button {
-        background: #05070a !important;
-        color: #00f3ff !important;
-        border: 1px solid #00f3ff !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
-        font-weight: 800 !important;
-        letter-spacing: 1.5px !important;
-        text-transform: uppercase !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    div.stButton > button:hover {
-        background: #00f3ff !important;
-        color: #05070a !important;
-        box-shadow: 0 0 20px #00f3ff !important;
-    }
-
-    /* 7. EXPANDER / ACCORDION */
-    div[data-testid="stExpander"] {
-        background-color: #080c14 !important;
-        border: 1px solid #1e2638 !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stExpander"] details summary p {
-        color: #00f3ff !important;
-        font-weight: 700 !important;
-    }
-
-    /* 8. BADGES */
-    .cyber-badge {
-        padding: 3px 8px;
-        border-radius: 3px;
-        font-size: 10px;
-        font-weight: bold;
-        letter-spacing: 1px;
-    }
-    .badge-cyan { background: rgba(0,243,255,0.15); color: #00f3ff; border: 1px solid #00f3ff; }
-    .badge-yellow { background: rgba(255,230,0,0.15); color: #ffe600; border: 1px solid #ffe600; }
-    .badge-pink { background: rgba(255,0,85,0.15); color: #ff0055; border: 1px solid #ff0055; }
-    </style>
-    """
-    st.markdown(cyberpunk_css, unsafe_allow_html=True)
+    if os.path.exists(css_file_path):
+        with open(css_file_path, "r") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    else:
+        st.warning(
+            f"⚠️ File style `{css_file_path}` tidak ditemukan. Menggunakan tampilan default Streamlit."
+        )
 
 
 # ==============================================================================
@@ -207,15 +95,17 @@ def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> boo
 # ==============================================================================
 def render_page_money_management():
     """Render utama Halaman Money Management."""
-    # Eksekusi Pemaksaan CSS Cyberpunk
+    # Eksekusi Pemaksaan CSS Cyberpunk Eksternal
     inject_cyberpunk_theme()
 
     # Header Utama
-    st.markdown("<h1>⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>", unsafe_allow_html=True)
+    st.markdown(
+        "<h1>⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>", unsafe_allow_html=True
+    )
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Grid Utama (Kolom Kiri Control, Kolom Kanan Output Analytics)
+    # Grid Utama
     col_input, col_output = st.columns([1.1, 1.9], gap="large")
 
     # --------------------------------------------------------------------------
@@ -258,7 +148,9 @@ def render_page_money_management():
             st.session_state.setdefault("input_tp2_price", 216.0)
 
             raw_ticker_default = (
-                st.session_state.get("mm_ticker", "COCO").upper().replace(".JK", "")
+                st.session_state.get("mm_ticker", "COCO")
+                .upper()
+                .replace(".JK", "")
             )
             ticker_input = st.text_input(
                 "Ticker Code",
@@ -266,7 +158,9 @@ def render_page_money_management():
                 key="mm_raw_ticker_input",
             ).strip()
 
-            clean_ticker = ticker_input.upper().replace(".JK", "").strip() or "COCO"
+            clean_ticker = (
+                ticker_input.upper().replace(".JK", "").strip() or "COCO"
+            )
             full_ticker = f"{clean_ticker}.JK"
 
             plan_type = st.radio(
@@ -283,33 +177,53 @@ def render_page_money_management():
             c_entry, c_sl = st.columns(2)
             with c_entry:
                 entry_price = st.number_input(
-                    "Entry Price", min_value=1.0, step=1.0, key="input_entry_price"
+                    "Entry Price",
+                    min_value=1.0,
+                    step=1.0,
+                    key="input_entry_price",
                 )
             with c_sl:
                 sl_price = st.number_input(
-                    "Stop Loss (SL)", min_value=1.0, step=1.0, key="input_sl_price"
+                    "Stop Loss (SL)",
+                    min_value=1.0,
+                    step=1.0,
+                    key="input_sl_price",
                 )
 
             c_tp1, c_tp2 = st.columns(2)
             with c_tp1:
                 tp1_price = st.number_input(
-                    "Target Price 1", min_value=1.0, step=1.0, key="input_tp1_price"
+                    "Target Price 1",
+                    min_value=1.0,
+                    step=1.0,
+                    key="input_tp1_price",
                 )
             with c_tp2:
                 tp2_price = st.number_input(
-                    "Target Price 2", min_value=1.0, step=1.0, key="input_tp2_price"
+                    "Target Price 2",
+                    min_value=1.0,
+                    step=1.0,
+                    key="input_tp2_price",
                 )
 
         with st.expander("🛠️ BROKERAGE FEES", expanded=False):
             fee_buy = (
                 st.number_input(
-                    "Buy Fee (%)", min_value=0.0, value=0.15, step=0.01, key="mm_fee_buy"
+                    "Buy Fee (%)",
+                    min_value=0.0,
+                    value=0.15,
+                    step=0.01,
+                    key="mm_fee_buy",
                 )
                 / 100
             )
             fee_sell = (
                 st.number_input(
-                    "Sell Fee (%)", min_value=0.0, value=0.25, step=0.01, key="mm_fee_sell"
+                    "Sell Fee (%)",
+                    min_value=0.0,
+                    value=0.25,
+                    step=0.01,
+                    key="mm_fee_sell",
                 )
                 / 100
             )
@@ -322,7 +236,9 @@ def render_page_money_management():
 
         # Validasi Input Logic
         if sl_price >= entry_price:
-            st.error("❌ [LOGIC ERROR] Stop Loss (SL) harus LEBIH KECIL dari Harga Entry!")
+            st.error(
+                "❌ [LOGIC ERROR] Stop Loss (SL) harus LEBIH KECIL dari Harga Entry!"
+            )
             return
 
         # Core Calculation Engine
@@ -332,7 +248,9 @@ def render_page_money_management():
             sl_price * (1 - fee_sell)
         )
 
-        raw_shares_by_risk = max_risk_allowed_idr / total_risk_per_share_with_fee
+        raw_shares_by_risk = (
+            max_risk_allowed_idr / total_risk_per_share_with_fee
+        )
         lot_by_risk = math.floor(raw_shares_by_risk / 100)
 
         max_alloc_pct = rule["max_alloc"]
@@ -352,10 +270,14 @@ def render_page_money_management():
             if final_lot > 0
             else 0.0
         )
-        actual_risk_pct = (actual_risk_idr / capital) * 100 if capital > 0 else 0.0
+        actual_risk_pct = (
+            (actual_risk_idr / capital) * 100 if capital > 0 else 0.0
+        )
 
         reward_tp1 = tp1_price - entry_price
-        rrr_tp1 = reward_tp1 / risk_per_share_raw if risk_per_share_raw > 0 else 0
+        rrr_tp1 = (
+            reward_tp1 / risk_per_share_raw if risk_per_share_raw > 0 else 0
+        )
         is_capped = (lot_by_cap < lot_by_risk) and (lot_by_risk > 0)
 
         # 3 Card Neon Display
@@ -387,11 +309,17 @@ def render_page_money_management():
 
         with m3:
             if rrr_tp1 >= 2.0:
-                rrr_badge = '<span class="cyber-badge badge-cyan">EXCELLENT</span>'
+                rrr_badge = (
+                    '<span class="cyber-badge badge-cyan">EXCELLENT</span>'
+                )
             elif rrr_tp1 >= 1.5:
-                rrr_badge = '<span class="cyber-badge badge-yellow">ACCEPTABLE</span>'
+                rrr_badge = (
+                    '<span class="cyber-badge badge-yellow">ACCEPTABLE</span>'
+                )
             else:
-                rrr_badge = '<span class="cyber-badge badge-pink">POOR RISK</span>'
+                rrr_badge = (
+                    '<span class="cyber-badge badge-pink">POOR RISK</span>'
+                )
 
             st.markdown(
                 f"""
@@ -470,7 +398,11 @@ def render_page_money_management():
                     gauge={
                         "axis": {"range": [0, max(10.0, risk_pct * 1.5)]},
                         "bar": {
-                            "color": "#00f3ff" if actual_risk_pct <= risk_pct else "#ff0055"
+                            "color": (
+                                "#00f3ff"
+                                if actual_risk_pct <= risk_pct
+                                else "#ff0055"
+                            )
                         },
                         "steps": [
                             {"range": [0, risk_pct], "color": "#0d111a"},

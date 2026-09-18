@@ -162,3 +162,26 @@ def render_welcome():
         """,
         unsafe_allow_html=True,
     )
+
+<style>
+        /* Tombol CHOOSE SCREENER Selalu Menyala Hijau Neon Permanen */
+        [data-testid="stPopover"] > button {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
+            border: 1.5px solid #00FF66 !important;
+            color: #00FF66 !important;
+            border-radius: 8px !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 12px rgba(0, 255, 102, 0.4) !important;
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.6) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        [data-testid="stPopover"] > button:hover {
+            background: rgba(0, 255, 102, 0.2) !important;
+            color: #ffffff !important;
+            border-color: #00FF66 !important;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.8) !important;
+            text-shadow: 0 0 10px #ffffff !important;
+        }
+        </style>

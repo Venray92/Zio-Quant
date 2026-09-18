@@ -41,7 +41,7 @@
 }
 
 /* ==========================================
-   4. TYPOGRAPHY & TEXT OVERRIDES
+   4. TYPOGRAPHY & TEXT OVERRIDES (TERANG & MENYALA)
    ========================================== */
 h1, h2, h3, h4, h5, h6, 
 .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
@@ -53,6 +53,11 @@ h1, h2, h3, h4, h5, h6,
 
 p, label {
     color: #C0C5D0 !important;
+}
+
+/* Span dibatasi agar tidak merusak warna komponen lain */
+span:not(.cyber-badge):not(.cyber-value) {
+    color: inherit;
 }
 
 .cyber-label {
@@ -68,50 +73,24 @@ p, label {
     font-weight: 900 !important;
     color: #00F3FF !important;
     text-shadow: 0 0 10px rgba(0, 243, 255, 0.8) !important;
-    font-family: 'Share Tech Mono', monospace !important;
+   font-family: 'Share Tech Mono', monospace !important;
 }
 
 /* ==========================================
-   5. INPUT FIELDS & SELECTBOX (FIXED ARROW)
+   5. INPUT FIELDS (TEXT, NUMBER, SELECTBOX)
    ========================================== */
-/* Container input dan selectbox */
-div[data-baseweb="input"], 
-div[data-baseweb="select"] > div:first-child {
+div[data-baseweb="input"], div[data-baseweb="select"] > div {
     background-color: #0D1117 !important;
     border: 1px solid #00F3FF !important;
     border-radius: 4px !important;
     box-shadow: 0 0 5px rgba(0, 243, 255, 0.3) !important;
-    color: #00F3FF !important;
 }
 
-/* Warna Teks Option & Input */
-input, div[data-baseweb="select"] * {
+input {
     color: #00F3FF !important;
+    background-color: transparent !important;
     font-weight: bold !important;
     font-family: 'Share Tech Mono', monospace !important;
-}
-
-/* Memastikan Icon Panah (SVG) Dropdown Tampil Normal & Terang */
-div[data-baseweb="select"] svg {
-    fill: #00F3FF !important;
-    color: #00F3FF !important;
-    width: 18px !important;
-    height: 18px !important;
-}
-
-/* Popover / Menu Pilihan Dropdown Terbuka */
-ul[role="listbox"] {
-    background-color: #0D1117 !important;
-    border: 1px solid #00F3FF !important;
-}
-
-ul[role="listbox"] li {
-    color: #00F3FF !important;
-    background-color: #0D1117 !important;
-}
-
-ul[role="listbox"] li:hover {
-    background-color: #161B22 !important;
 }
 
 /* ==========================================
@@ -124,6 +103,7 @@ div.stButton > button {
     box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
     font-weight: 800 !important;
     letter-spacing: 1.5px !important;
+    text-transform: none !important;
     transition: all 0.2s ease-in-out !important;
 }
 

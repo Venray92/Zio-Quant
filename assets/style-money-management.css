@@ -72,9 +72,9 @@ p, label {
 }
 
 /* ==========================================
-   5. INPUT FIELDS & SELECTBOX (FIXED ARROW & OVERRIDE)
+   5. INPUT FIELDS & SELECTBOX (FIXED ARROW)
    ========================================== */
-/* Styling container input dan select */
+/* Container input dan selectbox */
 div[data-baseweb="input"], 
 div[data-baseweb="select"] > div:first-child {
     background-color: #0D1117 !important;
@@ -84,7 +84,7 @@ div[data-baseweb="select"] > div:first-child {
     color: #00F3FF !important;
 }
 
-/* Warna Teks Input & Option Select */
+/* Warna Teks Option & Input */
 input, div[data-baseweb="select"] * {
     color: #00F3FF !important;
     font-weight: bold !important;
@@ -99,7 +99,7 @@ div[data-baseweb="select"] svg {
     height: 18px !important;
 }
 
-/* Popover / Menu Pilihan Dropdown yang Terbuka */
+/* Popover / Menu Pilihan Dropdown Terbuka */
 ul[role="listbox"] {
     background-color: #0D1117 !important;
     border: 1px solid #00F3FF !important;
@@ -124,7 +124,6 @@ div.stButton > button {
     box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
     font-weight: 800 !important;
     letter-spacing: 1.5px !important;
-    text-transform: none !important;
     transition: all 0.2s ease-in-out !important;
 }
 

@@ -65,7 +65,7 @@ def process_single_ticker(ticker_code: str):
             reward_tp1 = tp1 - buy_min
             rr_val = round(reward_tp1 / risk, 1) if risk > 0 else 0.0
 
-            # 2. Hitung persentase Potential Gain TP 1 & TP 2 dari Buy Range Terbawah
+            # 2. Hitung persentase Potential Gain TP 1 & TP 2 dari Buy Range Terbawah/Mid
             entry_mid = (p["Range Buy Min"] + p["Range Buy Max"]) / 2.0
             pot_gain_tp1 = round(((tp1 - entry_mid) / entry_mid) * 100, 1) if entry_mid > 0 else 0
             pot_gain_tp2 = round(((tp2 - entry_mid) / entry_mid) * 100, 1) if entry_mid > 0 else 0
@@ -233,7 +233,7 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
 
 
 def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False):
-    """Renders Trade Plan Cards for given stocks Dataframe dengan dropdown strategi rapi di sebelah kiri."""
+    """Renders Trade Plan Cards for given stocks Dataframe dengan pilihan dropdown strategi rapi di kiri."""
     if is_title_needed:
         st.markdown(
             f"""
@@ -256,22 +256,31 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
         selected_strat = suggested_strat
         if is_single_mode and len(strategies) > 1:
             st.write("")
-            # Mengatur kolom agar mentok ke kanan (ruang kosong di kiri, teks & dropdown di kanan)
-            col_space, col_lbl, col_sel = st.columns([3.5, 1.0, 1.2], vertical_alignment="center")
-            with col_lbl:
-                st.markdown(f"<div style='font-weight:700; color:#00F3FF; font-size:0.95rem; text-align:right;'>Pilih Strategi:</div>", unsafe_allow_html=True)
-            with col_sel:
-                # Mapping nama kode pendek ke nama panjang yang rapi
-                label_map = {
-                    "BOW": "Buy On Weakness",
-                    "BOB": "Buy On Breakout"
-                }
-                reverse_map = {v: k for k, v in label_map.items()}
-                
-                display_options = [label_map.get(s, s) for s in strategies]
-                default_display = label_map.get(suggested_strat, display_options[0])
-                default_idx = display_options.index(default_display) if default_display in display_options else 0
-                
+            
+            # Label & Dropdown diletakkan berdampingan secara rapi di sebelah kiri
+            st.markdown(
+                """
+                <div style="font-weight: 700; color: #00F3FF; font-size: 0.95rem; margin-bottom: 4px;">
+                    Pilih Strategi:
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            
+            # Mapping nama kode pendek ke nama panjang
+            label_map = {
+                "BOW": "Buy On Weakness",
+                "BOB": "Buy On Breakout"
+            }
+            reverse_map = {v: k for k, v in label_map.items()}
+            
+            display_options = [label_map.get(s, s) for s in strategies]
+            default_display = label_map.get(suggested_strat, display_options[0])
+            default_idx = display_options.index(default_display) if default_display in display_options else 0
+            
+            # Batasi lebar kolom dropdown agar ringkas
+            col_drop, _ = st.columns([1.5, 3.5])
+            with col_drop:
                 chosen_display = st.selectbox(
                     "Strategy",
                     options=display_options,
@@ -279,10 +288,10 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
                     key=f"strat_select_{sym}",
                     label_visibility="collapsed"
                 )
-                selected_strat = reverse_map.get(chosen_display, chosen_display)
+            selected_strat = reverse_map.get(chosen_display, chosen_display)
+
         row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
         
-        # Tampilkan nama strategi lengkap pada badge kartu
         strat_display_name = "Buy On Weakness" if row['Strategy'] == "BOW" else ("Buy On Breakout" if row['Strategy'] == "BOB" else row['Strategy'])
         is_suggestion = " (Suggestion)" if row.get("Strategy") == row.get("Suggested Strategy") else ""
 
@@ -359,6 +368,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             """,
             unsafe_allow_html=True,
         )
+
 
 def render_tab_trade_planner():
     # 🎨 CUSTOM CSS STYLING

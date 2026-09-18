@@ -142,7 +142,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         f"""
         <div style="background: #0A0E1A; border: 1px solid #00F0FF; box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); padding: 10px 14px; margin-bottom: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 14px; font-weight: 800; color: #00F0FF; text-shadow: 0 0 5px #00F0FF;">
-                ⚡ LIVE_TRADE_PLAN // <span style="color: #FF007F; text-shadow: 0 0 5px #FF007F;">{ticker_symbol}</span>
+                ⚡ LIVE_TRADE_PLAN // <span style="color: #00F0FF; text-shadow: 0 0 5px #00F0FF;">{ticker_symbol}</span>
             </div>
             <div style="font-size: 11px; color: #8B949E; font-weight: 700;">
                 SYS_STATUS: <span style="color: #00FF66; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span>
@@ -168,7 +168,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
             if df_plan is not None and not df_plan.empty:
                 st.markdown(
-                    '<div style="font-size: 12px; font-weight: 800; color: #9D00FF; text-shadow: 0 0 5px #9D00FF; margin-bottom: 10px; letter-spacing: 1px;">🎯 TRADE PLAN RECOMMENDATION</div>',
+                    '<div style="font-size: 12px; font-weight: 800; color: #00F0FF; text-shadow: 0 0 5px #00F0FF; margin-bottom: 10px; letter-spacing: 1px;">🎯 TRADE PLAN RECOMMENDATION</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -191,16 +191,16 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                     tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
                     tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
 
-                    posisi_color = "#00FF66" if "Buy Zone" in str(posisi) else "#FF007F"
+                    posisi_color = "#00FF66" if "Buy Zone" in str(posisi) else "#00F0FF"
 
                     card_html = f"""
-                    <div style="background: #060913; border: 1px solid #9D00FF; border-left: 4px solid #00F0FF; box-shadow: 0 0 8px rgba(157, 0, 255, 0.3); border-radius: 4px; padding: 12px; margin-bottom: 12px;">
+                    <div style="background: #060913; border: 1px solid #00F0FF; border-left: 4px solid #00F0FF; box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); border-radius: 4px; padding: 12px; margin-bottom: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #2A2F45; padding-bottom: 8px; margin-bottom: 10px;">
                             <div>
                                 <span style="background: #00F0FF; color: #050811; font-weight: 900; font-size: 10px; padding: 3px 8px; border-radius: 2px; text-shadow: none;">#{plan_no} {plan_type}</span>
                                 <span style="font-size: 12px; font-weight: 700; color: #FFFFFF; margin-left: 8px;">GRADE: {grade}</span>
                             </div>
-                            <div style="background: rgba(157, 0, 255, 0.2); border: 1px solid #9D00FF; color: #E2B6FF; font-weight: 800; padding: 2px 10px; border-radius: 10px; font-size: 10px; text-shadow: 0 0 4px #9D00FF;">
+                            <div style="background: rgba(0, 240, 255, 0.1); border: 1px solid #00F0FF; color: #00F0FF; font-weight: 800; padding: 2px 10px; border-radius: 10px; font-size: 10px; text-shadow: 0 0 4px #00F0FF;">
                                 SCORE: {score}
                             </div>
                         </div>
@@ -209,9 +209,9 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                                 <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">BUY AREA</div>
                                 <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; margin-top: 2px;">{area_buy}</div>
                             </div>
-                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(255, 0, 127, 0.4);">
-                                <div style="font-size: 9px; color: #FF007F; font-weight: 700;">STOP LOSS</div>
-                                <div style="font-size: 12px; font-weight: 800; color: #FF007F; margin-top: 2px;">{stop_loss}</div>
+                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
+                                <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">STOP LOSS</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #00F0FF; margin-top: 2px;">{stop_loss}</div>
                             </div>
                             <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
                                 <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 1</div>
@@ -507,6 +507,9 @@ def render_page_watchlist():
                         glow_effect = "box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);" if is_active else ""
                         bg_card = "#0A0E1A" if is_active else "#060913"
 
+                        # Menjaga persentase negatif tetap merah/pink (#FF007F) agar terlihat sebagai loss, atau ganti ke cyan jika ingin seragam
+                        pct_color = "#00FF66" if pct_change and pct_change > 0 else "#FF007F" if pct_change and pct_change < 0 else "#8B949E"
+
                         st.markdown(
                             f"""
                             <div style="background: {bg_card}; border: 1px solid {card_border}; {glow_effect} border-radius: 4px; padding: 10px; margin-bottom: 8px;">
@@ -517,7 +520,7 @@ def render_page_watchlist():
                                     </div>
                                     <div style="text-align: right;">
                                         <div style="font-size: 13px; font-weight: 800; color: #00F0FF;">{price_str}</div>
-                                        <div style="font-size: 11px; font-weight: 800; color: {'#00FF66' if pct_change and pct_change > 0 else '#FF007F' if pct_change and pct_change < 0 else '#8B949E'}; text-shadow: 0 0 4px {'#00FF66' if pct_change and pct_change > 0 else '#FF007F'};">
+                                        <div style="font-size: 11px; font-weight: 800; color: {pct_color}; text-shadow: 0 0 4px {pct_color};">
                                             {pct_str}
                                         </div>
                                     </div>

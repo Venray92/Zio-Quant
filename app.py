@@ -29,14 +29,7 @@ inject_custom_css()
 st.markdown(
     """
     <style>
-    /* 0. IMPORT FONT GOOGLE & TERAPKAN KE SELURUH ELEMEN APLIKASI */
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
-    html, body, [class*="css"], .stMarkdown, p, h1, h2, h3, h4, h5, h6, span, label, input, textarea {
-        font-family: 'Share Tech Mono', monospace !important;
-    }
-
-    /* 1. STYLING UNIVERSAL UNTUK SEMUA TOMBOL DI SELURUH APLIKASI & TEKS DIDALAMNYA */
+    /* 1. STYLING UNIVERSAL UNTUK SEMUA TOMBOL DI SELURUH APLIKASI */
     .stButton button, 
     div[data-testid="stHorizontalBlock"] .stButton button,
     [data-testid="stPopover"] > button {
@@ -50,15 +43,6 @@ st.markdown(
         transition: all 0.3s ease !important;
     }
     
-    /* Memaksa seluruh elemen teks di dalam tombol ikut berwarna terang */
-    .stButton button *, 
-    div[data-testid="stHorizontalBlock"] .stButton button *,
-    [data-testid="stPopover"] > button * {
-        color: #00F3FF !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        text-shadow: 0 0 6px rgba(0, 243, 255, 0.6) !important;
-    }
-    
     .stButton button:hover,
     div[data-testid="stHorizontalBlock"] .stButton button:hover,
     [data-testid="stPopover"] > button:hover {
@@ -69,14 +53,8 @@ st.markdown(
         transform: translateY(-1px) !important;
     }
 
-    .stButton button:hover *,
-    div[data-testid="stHorizontalBlock"] .stButton button:hover *,
-    [data-testid="stPopover"] > button:hover * {
-        color: #ffffff !important;
-        text-shadow: 0 0 10px #ffffff !important;
-    }
-
-    /* 2. STYLING KHUSUS UNTUK TOMBOL "STOP" ATAU TOMBOL BAHAYA */
+    /* 2. STYLING KHUSUS UNTUK TOMBOL "STOP" ATAU TOMBOL BAHAYA (OPSIONAL WARNA MERAH/PINK) */
+    /* Jika tombol Stop ingin bernuansa merah/pink cyberpunk */
     .stButton button[kind="secondary"]:has(p:contains("Stop")),
     .stButton button:has(div:contains("Stop")) {
         border-color: #FF007F !important;

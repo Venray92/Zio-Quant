@@ -131,7 +131,11 @@ elif page == "watchlist":
     render_page_watchlist()
 
 elif page == "money_management":
-    render_page_money_management()
+    try:
+        render_page_money_management()
+    except Exception as e:
+        st.error(f"⚠️ Terjadi error saat memuat Money Management: {e}")
+        st.exception(e)
 
 elif page == "how_to":
     st.title("💡 How To")

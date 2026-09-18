@@ -208,27 +208,48 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                     prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
                     expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
 
-                    copyable_text = f"=== TRADE PLAN: {ticker_symbol} ===\\nStrategy: {plan_type}\\nGrade: {grade}\\nScore: {score}/100\\nArea Buy: {area_buy}\\nStop Loss: {stop_loss}\\nTarget 1 (TP1): {tp1}\\nTarget 2 (TP2): {tp2}\\nStatus Posisi: {posisi}\\n==============================="
+                    copyable_text = f"""=== TRADE PLAN: {ticker_symbol} ===
+Strategy: {plan_type}
+Grade: {grade}
+Score: {score}/100
+Area Buy: {area_buy}
+Stop Loss: {stop_loss}
+Target 1 (TP1): {tp1}
+Target 2 (TP2): {tp2}
+Status Posisi: {posisi}
+==============================="""
 
                     with st.expander(expander_title, expanded=False):
-                        unique_btn_id = f"copy_btn_{key_suffix}_{idx}"
                         
-                        card_html = f"""
-                        <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
-                                <div>
+                        # Menggunakan Kolom Streamlit agar tombol copy asli berdampingan dengan Score secara presisi
+                        col_card_header_left, col_card_header_right, col_copy_btn = st.columns([3, 1.2, 1.4], vertical_alignment="center")
+
+                        with col_card_header_left:
+                            st.markdown(
+                                f"""<div>
                                     <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
                                     <span style="font-size: 13px; font-weight: 700; color: #E6EDF3; margin-left: 8px;">{grade}</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
-                                        SCORE: {score}
-                                    </div>
-                                    <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #38BDF8 100%); color: #0E1117; border: none; padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transition: all 0.2s;">
-                                        📋 COPY PLAN
-                                    </button>
-                                </div>
-                            </div>
+                                </div>""",
+                                unsafe_allow_html=True
+                            )
+
+                        with col_card_header_right:
+                            st.markdown(
+                                f"""<div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 10px; border-radius: 20px; font-size: 11px; text-align: center;">
+                                    SCORE: {score}
+                                </div>""",
+                                unsafe_allow_html=True
+                            )
+
+                        with col_copy_btn:
+                            if st.button("📋 COPY PLAN", key=f"btn_copy_plan_{key_suffix}_{idx}", use_container_width=True):
+                                # Menyimpan ke session_state agar bisa disalin atau memunculkan toast
+                                st.session_state[f"clipboard_{key_suffix}_{idx}"] = copyable_text
+                                st.toast(f"✅ Plan sudah dicopy! Silakan paste di tempat anda inginkan.", icon="📋")
+
+                        # Tampilkan text area kecil tersembunyi/read-only opsional jika user ingin manual select-all, atau langsung tampilkan kotak info detail plan
+                        card_html = f"""
+                        <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-top: 10px; margin-bottom: 16px;">
                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
                                 <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
                                     <div style="font-size: 10px; color: #38BDF8; font-weight: 800;">Area Buy</div>
@@ -252,24 +273,12 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                                 <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
                             </div>
                         </div>
-                        <script>
-                        const textToCopy_{unique_btn_id} = `{copyable_text}`;
-                        const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
-                        btn_{unique_btn_id}.onclick = function() {{
-                            navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
-                                btn_{unique_btn_id}.innerText = "✅ COPIED!";
-                                btn_{unique_btn_id}.style.background = "#00E676";
-                                setTimeout(function() {{
-                                    btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
-                                    btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #38BDF8 100%)";
-                                }}, 2000);
-                            }}).catch(function(err) {{
-                                console.error('Gagal menyalin text: ', err);
-                            }});
-                        }};
-                        </script>
                         """
                         st.markdown(card_html, unsafe_allow_html=True)
+
+                        # Jika tombol copy baru saja diklik, tampilkan kotak teks code ringkas agar user bisa langsung blok & copy dengan 100% pasti
+                        if st.session_state.get(f"clipboard_{key_suffix}_{idx}"):
+                            st.code(copyable_text, language="text")
 
                         rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
 

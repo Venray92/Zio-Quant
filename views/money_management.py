@@ -11,13 +11,13 @@ except ImportError:
 
 
 # ==============================================================================
-# CYBERPUNK COLOR INJECTION (Cyan untuk Sisi Kiri, Magenta untuk Sisi Kanan)
+# CYBERPUNK COLOR INJECTION (Cyan untuk Sisi Kiri, Magenta untuk Sisi Kanan & Alert)
 # ==============================================================================
 def inject_custom_theme():
     st.markdown(
         """
         <style>
-            /* 1. Warna Cyan untuk System Controls (Sisi Kiri) - Termasuk Judul & Teks */
+            /* 1. Warna Cyan Mutlak untuk Seluruh Teks & Label di Sisi Kiri (System Controls) */
             div[data-testid="column"]:nth-of-type(1) h1,
             div[data-testid="column"]:nth-of-type(1) h2,
             div[data-testid="column"]:nth-of-type(1) h3,
@@ -26,28 +26,29 @@ def inject_custom_theme():
             div[data-testid="column"]:nth-of-type(1) p,
             div[data-testid="column"]:nth-of-type(1) span,
             div[data-testid="column"]:nth-of-type(1) label,
-            .stExpander summary span,
-            .stExpander p {
+            div[data-testid="column"]:nth-of-type(1) .stExpander summary span,
+            div[data-testid="column"]:nth-of-type(1) div[data-testid="stMarkdownContainer"] p {
                 color: #00FFFF !important;
             }
             
-            .stExpander {
+            /* Border Expander & Input Sisi Kiri Cyan */
+            div[data-testid="column"]:nth-of-type(1) .stExpander {
                 border: 1px solid #00FFFF !important;
                 border-radius: 4px;
             }
             
-            div[data-baseweb="input"] > div, 
-            div[data-baseweb="select"] > div, 
-            div[data-baseweb="base-input"] {
+            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="input"] > div, 
+            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="select"] > div, 
+            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="base-input"] {
                 border-color: #00FFFF !important;
             }
             
-            .stButton > button {
+            div[data-testid="column"]:nth-of-type(1) .stButton > button {
                 border: 1px solid #00FFFF !important;
                 color: #00FFFF !important;
             }
 
-            /* 2. Warna Magenta untuk Sisi Kanan (Position Sizing Analytics & Konten) */
+            /* 2. Warna Magenta untuk Sisi Kanan (Position Sizing Analytics) */
             div[data-testid="column"]:nth-of-type(2) h1,
             div[data-testid="column"]:nth-of-type(2) h2,
             div[data-testid="column"]:nth-of-type(2) h3,
@@ -59,21 +60,22 @@ def inject_custom_theme():
                 color: #FF00FF !important;
             }
 
-            /* Border Kotak Metrik di Sebelah Kanan */
             div[data-testid="column"]:nth-of-type(2) div[data-testid="stMetric"] {
                 border: 1px solid #FF00FF !important;
                 padding: 10px;
                 border-radius: 5px;
             }
 
-            /* 3. Background dan Border Kotak Peringatan (Warning) Berubah Jadi Magenta */
+            /* 3. Kotak Peringatan (Toleransi Risk): Background Magenta #FF0055, Teks Putih */
             div[data-testid="stAlert"] {
-                background-color: #2b002b !important; /* Magenta gelap sebagai background */
+                background-color: #FF0055 !important;
                 border: 1px solid #FF00FF !important;
-                color: #FF00FF !important;
+                color: #FFFFFF !important;
             }
-            div[data-testid="stAlert"] p {
-                color: #FF00FF !important;
+            div[data-testid="stAlert"] p, 
+            div[data-testid="stAlert"] span, 
+            div[data-testid="stAlert"] strong {
+                color: #FFFFFF !important;
             }
         </style>
         """,
@@ -182,15 +184,24 @@ def render_page_money_management():
         st.subheader("System Controls")
 
         with st.expander("Capital & Trader Profile", expanded=True):
-            # Menggunakan number_input kembali agar ada pemisah titik ribuan otomatis
-            capital = st.number_input(
+            # Inisialisasi state capital jika belum ada
+            if "mm_capital_val" not in st.session_state:
+                st.session_state["mm_capital_val"] = 100_000_000
+
+            # Input teks interaktif agar pemisah titik ribuan muncul secara dinamis
+            raw_cap_input = st.text_input(
                 "Total Capital (IDR)",
-                min_value=1_000_000,
-                value=100_000_000,
-                step=5_000_000,
-                format="%d",
-                key="mm_capital_input",
+                value=f"{st.session_state['mm_capital_val']:,}".replace(",", "."),
+                key="mm_capital_text_formatting"
             )
+
+            # Konversi string berformat titik kembali menjadi float/integer
+            try:
+                clean_cap_str = raw_cap_input.replace(".", "").replace(",", "").strip()
+                capital = float(clean_cap_str) if clean_cap_str else 100_000_000.0
+                st.session_state["mm_capital_val"] = capital
+            except ValueError:
+                capital = st.session_state["mm_capital_val"]
 
             trading_style = st.selectbox(
                 "Trading Strategy Profile",

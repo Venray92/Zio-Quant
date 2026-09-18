@@ -264,9 +264,13 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             default_display = label_map.get(suggested_strat, display_options[0])
             default_idx = display_options.index(default_display) if default_display in display_options else 0
             
-            # Tata letak: Dropdown di kiri (1.5), spacer (1.2), tombol Copy di kiri, Watchlist di kanan, Clear di ujung kanan
-            col_drop, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
-            
+            if is_single_mode:
+                # Single mode: Dropdown, spasi, Copy, Watchlist, Clear
+                col_drop, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
+            else:
+                # Batch mode: Dropdown, spasi, Copy, Watchlist (dimentokkan ke kanan)
+                col_drop, col_space, col_c, col_w = st.columns([1.5, 1.4, 1.0, 1.0], vertical_alignment="bottom")
+
             with col_drop:
                 st.markdown(
                     """
@@ -291,7 +295,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             if is_single_mode:
                 col_drop_dummy, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
             else:
-                col_drop_dummy, col_space, col_c, col_w = st.columns([1.5, 1.6, 0.9, 0.9], vertical_alignment="bottom")
+                col_drop_dummy, col_space, col_c, col_w = st.columns([1.5, 1.4, 1.0, 1.0], vertical_alignment="bottom")
 
             with col_drop_dummy:
                 label_map = {"BOW": "Buy On Weakness", "BOB": "Buy On Breakout"}
@@ -308,7 +312,6 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
                     unsafe_allow_html=True,
                 )
 
-        # Aman dari KeyError jika kolom opsional tidak ada di row
         p_gain_tp2 = row.get("Potential Gain TP2", "+0%")
         sl_risk_val = row.get("SL Risk", "-0%")
         tp1_val = row.get("TP 1", 0)

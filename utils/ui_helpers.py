@@ -6,16 +6,6 @@ from engines.trade_planner import TradePlanner
 
 
 def inject_custom_css():
-    css_file_path = "assets/styleupdate.css"
-    try:
-        with open(css_file_path, "r") as f:
-            css_content = f.read()
-            st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.warning(f"File CSS tidak ditemukan di: {css_file_path}")
-
-
-def inject_custom_css_main():
     css_path = os.path.join("assets", "style.css")
     if os.path.exists(css_path):
         with open(css_path, "r", encoding="utf-8") as f:
@@ -218,11 +208,13 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                     prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
                     expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
 
-                    copyable_text = f"=== TRADE PLAN: {ticker_symbol} ===\nStrategy: {plan_type}\nGrade: {grade}\nScore: {score}/100\nArea Buy: {area_buy}\nStop Loss: {stop_loss}\nTarget 1 (TP1): {tp1}\nTarget 2 (TP2): {tp2}\nStatus Posisi: {posisi}\n==============================="
+                    # Teks format bersih untuk disalin
+                    copyable_text = f"=== TRADE PLAN: {ticker_symbol} ===\\nStrategy: {plan_type}\\nGrade: {grade}\\nScore: {score}/100\\nArea Buy: {area_buy}\\nStop Loss: {stop_loss}\\nTarget 1 (TP1): {tp1}\\nTarget 2 (TP2): {tp2}\\nStatus Posisi: {posisi}\\n==============================="
 
                     with st.expander(expander_title, expanded=False):
                         unique_btn_id = f"copy_btn_{key_suffix}_{idx}"
                         
+                        # Menggunakan komponen widget kecil HTML/JS terisolasi agar tombol pas di sebelah score dan langsung copy ke clipboard
                         copy_btn_component = f"""
                         <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
                             <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #38BDF8 100%); color: #0E1117; border: none; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 10px; cursor: pointer; box-shadow: 0 0 8px rgba(168, 85, 247, 0.4); transition: all 0.2s;">

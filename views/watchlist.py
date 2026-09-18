@@ -2,6 +2,7 @@ import os
 import json
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 from engines.trade_planner import TradePlanner
 
@@ -212,55 +213,90 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
                     posisi_color = "#00FF66" if "Buy Zone" in posisi and "Below" not in posisi else "#00F0FF"
 
-                    card_html = f"""
-                    <div style="background: #060913; border: 1px solid #00F0FF; border-left: 4px solid #00F0FF; box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); border-radius: 4px; padding: 12px; margin-bottom: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #2A2F45; padding-bottom: 8px; margin-bottom: 10px;">
-                            <div>
-                                <span style="background: #00F0FF; color: #050811; font-weight: 900; font-size: 10px; padding: 3px 8px; border-radius: 2px; text-shadow: none;">#{plan_no} {plan_type}</span>
-                                <span style="font-size: 12px; font-weight: 700; color: #FFFFFF; margin-left: 8px;">GRADE: {grade}</span>
-                            </div>
-                            <div style="background: rgba(0, 240, 255, 0.1); border: 1px solid #00F0FF; color: #00F0FF; font-weight: 800; padding: 2px 10px; border-radius: 10px; font-size: 10px; text-shadow: 0 0 4px #00F0FF;">
-                                SCORE: {score}
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; text-align: center;">
-                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
-                                <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">BUY AREA</div>
-                                <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; margin-top: 2px;">{area_buy}</div>
-                            </div>
-                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
-                                <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">STOP LOSS</div>
-                                <div style="font-size: 12px; font-weight: 800; color: #00F0FF; margin-top: 2px;">{stop_loss}</div>
-                            </div>
-                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
-                                <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 1</div>
-                                <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp1}</div>
-                            </div>
-                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
-                                <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 2</div>
-                                <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp2}</div>
-                            </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 10px; background-color: #03050B; padding: 6px 10px; border-radius: 2px; border: 1px solid #1A1F35;">
-                            <span style="color: #6C7A9C; font-weight: 600;">POSISI HARGA SAAT INI:</span>
-                            <span style="font-weight: 800; color: {posisi_color}; text-shadow: 0 0 5px {posisi_color};">{posisi}</span>
-                        </div>
-                    </div>
-                    """
+                    # Pengaturan Label Expander Sesuai Suggestion/Other
+                    is_suggestion = (idx == 0)
+                    prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
+                    expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
 
-                    card_html = sanitize_pink_colors(card_html)
-                    st.markdown(card_html, unsafe_allow_html=True)
+                    copyable_text = f"=== TRADE PLAN: {ticker_symbol} ===\\nStrategy: {plan_type}\\nGrade: {grade}\\nScore: {score}/100\\nArea Buy: {area_buy}\\nStop Loss: {stop_loss}\\nTarget 1 (TP1): {tp1}\\nTarget 2 (TP2): {tp2}\\nStatus Posisi: {posisi}\\n==============================="
 
-                    rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
-                    with st.expander(
-                        f"⚙️ PARAMETERS & R:R RATIO #{plan_no} ({plan_type})",
-                        expanded=False,
-                    ):
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
-                        with c2:
-                            st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
+                    with st.expander(expander_title, expanded=False):
+                        unique_btn_id = f"copy_btn_wl_{key_suffix}_{idx}"
+                        
+                        copy_btn_component = f"""
+                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
+                            <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 4px 10px; border-radius: 4px; font-weight: 800; font-size: 10px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
+                                📋 COPY PLAN
+                            </button>
+                        </div>
+                        <script>
+                        const textToCopy_{unique_btn_id} = `{copyable_text}`;
+                        const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
+                        btn_{unique_btn_id}.onclick = function() {{
+                            navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
+                                btn_{unique_btn_id}.innerText = "✅ COPIED!";
+                                btn_{unique_btn_id}.style.background = "#00FF66";
+                                setTimeout(function() {{
+                                    btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
+                                    btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
+                                }}, 2000);
+                            }}).catch(function(err) {{
+                                console.error('Gagal menyalin text: ', err);
+                            }});
+                        }};
+                        </script>
+                        """
+                        components.html(copy_btn_component, height=35)
+
+                        card_html = f"""
+                        <div style="background: #060913; border: 1px solid #00F0FF; border-left: 4px solid #00F0FF; box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); border-radius: 4px; padding: 12px; margin-top: 4px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #2A2F45; padding-bottom: 8px; margin-bottom: 10px;">
+                                <div>
+                                    <span style="background: #00F0FF; color: #050811; font-weight: 900; font-size: 10px; padding: 3px 8px; border-radius: 2px; text-shadow: none;">#{plan_no} {plan_type}</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: #FFFFFF; margin-left: 8px;">GRADE: {grade}</span>
+                                </div>
+                                <div style="background: rgba(0, 240, 255, 0.1); border: 1px solid #00F0FF; color: #00F0FF; font-weight: 800; padding: 2px 10px; border-radius: 10px; font-size: 10px; text-shadow: 0 0 4px #00F0FF;">
+                                    SCORE: {score}
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; text-align: center;">
+                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
+                                    <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">BUY AREA</div>
+                                    <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; margin-top: 2px;">{area_buy}</div>
+                                </div>
+                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
+                                    <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">STOP LOSS</div>
+                                    <div style="font-size: 12px; font-weight: 800; color: #00F0FF; margin-top: 2px;">{stop_loss}</div>
+                                </div>
+                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
+                                    <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 1</div>
+                                    <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp1}</div>
+                                </div>
+                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
+                                    <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 2</div>
+                                    <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp2}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 10px; background-color: #03050B; padding: 6px 10px; border-radius: 2px; border: 1px solid #1A1F35;">
+                                <span style="color: #6C7A9C; font-weight: 600;">POSISI HARGA SAAT INI:</span>
+                                <span style="font-weight: 800; color: {posisi_color}; text-shadow: 0 0 5px {posisi_color};">{posisi}</span>
+                            </div>
+                        </div>
+                        """
+
+                        card_html = sanitize_pink_colors(card_html)
+                        st.markdown(card_html, unsafe_allow_html=True)
+
+                        rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
+                        with st.expander(
+                            f"⚙️ PARAMETERS & R:R RATIO #{plan_no} ({plan_type})",
+                            expanded=False,
+                        ):
+                            c1, c2 = st.columns(2)
+                            with c1:
+                                st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
+                            with c2:
+                                st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
 
         except Exception as e:
             st.error(f"[SYSTEM_FAILURE] Gagal memuat Trade Plan: {e}")
@@ -439,14 +475,10 @@ def render_page_watchlist():
                     label_visibility="collapsed",
                 )
 
-        search_val = st.session_state["input_search_ticker_field"].strip().upper()
-        if search_val:
-            c_search, c_clear = st.columns([3.2, 0.8])
-        else:
-            c_search = st.container()
-            c_clear = None
+        # --- FITUR PENCARIAN & TOMBOL EXPORT IKON KECIL DI SEBELAHNYA ---
+        col_search, col_export = st.columns([3.2, 0.8], vertical_alignment="bottom")
 
-        with c_search:
+        with col_search:
             st.text_input(
                 "Search",
                 placeholder="🔍 FILTER_TICKER...",
@@ -454,16 +486,8 @@ def render_page_watchlist():
                 key="input_search_ticker_field",
             )
 
-        if c_clear is not None:
-            with c_clear:
-                st.button(
-                    "✕",
-                    key="btn_clear_search_act",
-                    use_container_width=True,
-                    on_click=clear_search_callback,
-                )
-
         display_list = list(st.session_state["watchlist_data"])
+        search_val = st.session_state["input_search_ticker_field"].strip().upper()
         if search_val:
             display_list = [x for x in display_list if search_val in x["Ticker"]]
 
@@ -477,6 +501,21 @@ def render_page_watchlist():
         if st.session_state["sort_filter"] in sort_key_map:
             key_func, rev = sort_key_map[st.session_state["sort_filter"]]
             display_list.sort(key=key_func, reverse=rev)
+
+        with col_export:
+            if display_list:
+                df_export = pd.DataFrame(display_list)
+                csv_data = df_export.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥",
+                    data=csv_data,
+                    file_name="watchlist_export.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    help="Export Watchlist to CSV"
+                )
+            else:
+                st.button("📥", disabled=True, use_container_width=True, help="Data kosong")
 
         with st.container(height=580):
             if display_list:
@@ -516,7 +555,6 @@ def render_page_watchlist():
                         glow_effect = "box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);" if is_active else ""
                         bg_card = "#0A0E1A" if is_active else "#060913"
 
-                        # Persentase penurunan menggunakan warna merah soft standar pasar saham (#FF4D4D)
                         pct_color = "#00FF66" if pct_change and pct_change > 0 else "#FF4D4D" if pct_change and pct_change < 0 else "#8B949E"
 
                         st.markdown(

@@ -25,7 +25,8 @@ def render_top_nav():
         unsafe_allow_html=True,
     )
 
-    cols = st.columns([1, 1, 1.2, 1, 2.5])
+    # 4 Kolom pas untuk 4 tombol navigasi utama
+    cols = st.columns([1, 1, 1, 1])
 
     # 1. HOME
     with cols[0]:
@@ -41,10 +42,10 @@ def render_top_nav():
             st.session_state["selected_screener"] = None
             st.rerun()
 
-    # 3. MONEY MANAGEMENT (Diletakkan di sebelah Watchlist)
+    # 3. MONEY (Pengganti Money Management, posisi tepat di sebelah Watchlist)
     with cols[2]:
-        if st.button("Money Management", key="nav_mm", use_container_width=True):
-            st.session_state["selected_page"] = "money_management"
+        if st.button("Money", key="nav_money", use_container_width=True):
+            st.session_state["selected_page"] = "money"
             st.session_state["selected_screener"] = None
             st.rerun()
 

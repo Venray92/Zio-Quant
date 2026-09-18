@@ -29,41 +29,56 @@ inject_custom_css()
 st.markdown(
     """
     <style>
-    /* 1. Styling untuk 4 Tombol Navigasi Utama (Home, Watchlist, MM, How To) */
-    div[data-testid="stHorizontalBlock"] button {
+    /* 1. Styling Universal untuk Tombol di Horizontal Block (Home, Watchlist, dll) */
+    div[data-testid="stHorizontalBlock"] .stButton button,
+    .stButton button {
         background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
-        border: 1px solid #00F3FF !important;
+        border: 1.5px solid #00F3FF !important;
         color: #00F3FF !important;
         border-radius: 8px !important;
         font-family: 'Share Tech Mono', monospace !important;
         font-weight: 700 !important;
-        box-shadow: 0 0 8px rgba(0, 243, 255, 0.2) !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
         transition: all 0.3s ease !important;
     }
     
-    div[data-testid="stHorizontalBlock"] button:hover {
+    div[data-testid="stHorizontalBlock"] .stButton button:hover,
+    .stButton button:hover {
         background: rgba(0, 243, 255, 0.2) !important;
         color: #ffffff !important;
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
+        border-color: #FF007F !important;
+        box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
+        transform: translateY(-1px) !important;
     }
 
-    /* 2. Styling untuk Kotak Tombol CHOOSE SCREENER di Kanan Atas */
+    /* 2. Styling untuk Kotak Tombol CHOOSE SCREENER di Kanan Atas (Popover) */
     [data-testid="stPopover"] > button {
         background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
-        border: 1px solid #00F3FF !important;
+        border: 1.5px solid #00F3FF !important;
         color: #00F3FF !important;
         border-radius: 8px !important;
         font-family: 'Share Tech Mono', monospace !important;
         font-weight: 700 !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.25) !important;
+        box-shadow: 0 0 12px rgba(0, 243, 255, 0.4) !important;
+        transition: all 0.3s ease !important;
     }
     
     [data-testid="stPopover"] > button:hover {
         background: rgba(0, 243, 255, 0.2) !important;
         color: #ffffff !important;
-        border-color: #00F3FF !important;
-        box-shadow: 0 0 18px rgba(0, 243, 255, 0.6) !important;
+        border-color: #FF007F !important;
+        box-shadow: 0 0 20px rgba(255, 0, 127, 0.7) !important;
+    }
+
+    /* 3. Memastikan teks di dalam popover tombol screener tetap kontras */
+    [data-testid="stPopoverBody"] .stButton button {
+        background: #161B22 !important;
+        border: 1px solid #00F3FF !important;
+        color: #00F3FF !important;
+    }
+    [data-testid="stPopoverBody"] .stButton button:hover {
+        border-color: #FF007F !important;
+        color: #FFFFFF !important;
     }
     </style>
     """,

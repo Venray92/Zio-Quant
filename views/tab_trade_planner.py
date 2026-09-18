@@ -256,10 +256,10 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
         selected_strat = suggested_strat
         if is_single_mode and len(strategies) > 1:
             st.write("")
-            # Mengatur ukuran kolom agar dropdown kecil dan berada di sebelah kiri
-            col_lbl, col_sel, col_space = st.columns([1.0, 0.9, 1.0], vertical_alignment="center")
+            # Mengatur kolom agar mentok ke kanan (ruang kosong di kiri, teks & dropdown di kanan)
+            col_space, col_lbl, col_sel = st.columns([3.5, 1.0, 1.2], vertical_alignment="center")
             with col_lbl:
-                st.markdown(f"<div style='font-weight:700; color:#00F3FF; font-size:0.95rem;'>Pilih Strategi:</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-weight:700; color:#00F3FF; font-size:0.95rem; text-align:right;'>Pilih Strategi:</div>", unsafe_allow_html=True)
             with col_sel:
                 # Mapping nama kode pendek ke nama panjang yang rapi
                 label_map = {
@@ -280,7 +280,6 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
                     label_visibility="collapsed"
                 )
                 selected_strat = reverse_map.get(chosen_display, chosen_display)
-
         row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
         
         # Tampilkan nama strategi lengkap pada badge kartu

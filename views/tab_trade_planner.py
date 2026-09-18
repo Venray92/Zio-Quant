@@ -62,38 +62,37 @@ def process_single_ticker(ticker_code: str):
             if entry_mid > 0
             else 0
         )
-        # --- Tambahan hitungan untuk Target 2 ---
         pot_gain_tp2 = (
             round(((p["TP 2"] - entry_mid) / entry_mid) * 100, 1)
             if entry_mid > 0
             else 0
         )
-        # ----------------------------------------
         pot_risk = (
             round(((entry_mid - p["Stop Loss"]) / entry_mid) * 100, 1)
             if entry_mid > 0
             else 0
         )
 
-        return {
+        processed_plans.append({
             "Symbol": symbol.replace(".JK", ""),
             "Score": int(p["Score"]) if pd.notnull(p["Score"]) else 0,
             "Grade": str(p["Grade"]),
-            "Strategy": str(p["Type"]),
+            "Strategy": plan_type,
+            "Suggested Strategy": suggested_dir,
             "Last Price": curr_close,
             "Zone Position": str(p["Posisi Harga"]),
             "Buy Range": str(p["Area Buy"]),
-            "Stop Loss (SL)": int(p["Stop Loss"]) if pd.notnull(p["Stop Loss"]) else 0,
-            "TP 1": int(p["TP 1"]) if pd.notnull(p["TP 1"]) else 0,
-            "TP 2": int(p["TP 2"]) if pd.notnull(p["TP 2"]) else 0,
+            "Stop Loss (SL)": int(stop_loss) if pd.notnull(stop_loss) else 0,
+            "TP 1": int(tp1) if pd.notnull(tp1) else 0,
+            "TP 2": int(tp2) if pd.notnull(tp2) else 0,
             "Potential Gain": f"+{pot_gain}%",
+            "Potential Gain TP2": f"+{pot_gain_tp2}%",  # Pastikan baris ini ada
             "SL Risk": f"-{pot_risk}%",
-            "Risk-Reward Ratio": str(p["Rasio (R:R)"]),
-            "RR_Val": float(p["RR_Val"]) if "RR_Val" in p and pd.notnull(p["RR_Val"]) else 0.0,
+            "Risk-Reward Ratio": f"1 : {rr_val}",
+            "RR_Val": float(rr_val),
             "Candlestick Pattern": str(p["Pola Candle"]),
             "Analysis & Risk Warning": str(p["Warning"]),
-        }
-    except Exception:
+        })    except Exception:
         return None
 
 

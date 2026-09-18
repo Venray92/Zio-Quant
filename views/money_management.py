@@ -56,12 +56,12 @@ def inject_custom_theme():
                 color: #FF00FF !important;
             }
 
-            /* Mengubah Kotak Metrik di Sebelah Kanan menjadi Border Magenta */
+            /* Mengubah Kotak Metrik di Sebelah Kanan menjadi Border Magenta 
             div[data-testid="column"]:nth-of-type(2) div[data-testid="stMetric"] {
                 border: 1px solid #FF00FF !important;
                 padding: 10px;
                 border-radius: 5px;
-            }
+            }*/
 
             /* Mengubah Kotak Warning/Peringatan yang tadinya Kuning menjadi Magenta */
             div[data-testid="stAlert"] {

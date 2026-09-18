@@ -32,7 +32,7 @@ def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
 
 
 def process_single_ticker(ticker_code: str):
-    """Single ticker execution processor: mengembalikan seluruh DataFrame plan (BOW & BOB) beserta rekomendasi direction."""
+    """Single ticker execution processor (pure data processing, no Streamlit UI calls)."""
     symbol = ticker_code.strip().upper()
     if not symbol.endswith(".JK"):
         symbol += ".JK"
@@ -48,58 +48,50 @@ def process_single_ticker(ticker_code: str):
             return None
 
         curr_close = int(df_dir.iloc[0]["Last Close Market"])
-        suggested_dir = df_dir.iloc[0]["Direction"] # 'BOW' atau 'BOB'
+        direction_rec = df_dir.iloc[0]["Direction"]
 
-        processed_plans = []
-        for idx, p in df_plan.iterrows():
-            plan_type = str(p["Type"])
-            
-            # Ambil batas bawah area buy untuk perhitungan R:R dan persentase
-            buy_min = float(p["Range Buy Min"])
-            stop_loss = float(p["Stop Loss"])
-            tp1 = float(p["TP 1"])
-            tp2 = float(p["TP 2"])
+        selected_plan = df_plan[df_plan["Type"] == direction_rec]
+        if selected_plan.empty:
+            selected_plan = df_plan.iloc[[0]]
 
-            # 1. Hitung ulang R:R dari Buy Range Terbawah ke TP 1
-            risk = buy_min - stop_loss
-            reward_tp1 = tp1 - buy_min
-            rr_val = round(reward_tp1 / risk, 1) if risk > 0 else 0.0
+        p = selected_plan.iloc[0]
 
-            # 2. Hitung persentase Potential Gain TP 1 & TP 2 dari Buy Range Terbawah
-            pot_gain_tp1 = round(((tp1 - buy_min) / buy_min) * 100, 1) if buy_min > 0 else 0
-            pot_gain_tp2 = round(((tp2 - buy_min) / buy_min) * 100, 1) if buy_min > 0 else 0
-            
-            # 3. Hitung persentase Risk (SL Risk)
-            pot_risk = round(((buy_min - stop_loss) / buy_min) * 100, 1) if buy_min > 0 else 0
+        entry_mid = (p["Range Buy Min"] + p["Range Buy Max"]) / 2.0
+        pot_gain = (
+            round(((p["TP 1"] - entry_mid) / entry_mid) * 100, 1)
+            if entry_mid > 0
+            else 0
+        )
+        pot_risk = (
+            round(((entry_mid - p["Stop Loss"]) / entry_mid) * 100, 1)
+            if entry_mid > 0
+            else 0
+        )
 
-            processed_plans.append({
-                "Symbol": symbol.replace(".JK", ""),
-                "Score": int(p["Score"]) if pd.notnull(p["Score"]) else 0,
-                "Grade": str(p["Grade"]),
-                "Strategy": plan_type,
-                "Suggested Strategy": suggested_dir,
-                "Last Price": curr_close,
-                "Zone Position": str(p["Posisi Harga"]),
-                "Buy Range": str(p["Area Buy"]),
-                "Stop Loss (SL)": int(stop_loss) if pd.notnull(stop_loss) else 0,
-                "TP 1": int(tp1) if pd.notnull(tp1) else 0,
-                "TP 2": int(tp2) if pd.notnull(tp2) else 0,
-                "Potential Gain": f"+{pot_gain_tp1}%",
-                "Potential Gain TP2": f"+{pot_gain_tp2}%",  # <-- Kolom ini yang sebelumnya kurang
-                "SL Risk": f"-{pot_risk}%",
-                "Risk-Reward Ratio": f"1 : {rr_val}",
-                "RR_Val": float(rr_val),
-                "Candlestick Pattern": str(p["Pola Candle"]),
-                "Analysis & Risk Warning": str(p["Warning"]),
-            })
-
-        return processed_plans
+        return {
+            "Symbol": symbol.replace(".JK", ""),
+            "Score": int(p["Score"]) if pd.notnull(p["Score"]) else 0,
+            "Grade": str(p["Grade"]),
+            "Strategy": str(p["Type"]),
+            "Last Price": curr_close,
+            "Zone Position": str(p["Posisi Harga"]),
+            "Buy Range": str(p["Area Buy"]),
+            "Stop Loss (SL)": int(p["Stop Loss"]) if pd.notnull(p["Stop Loss"]) else 0,
+            "TP 1": int(p["TP 1"]) if pd.notnull(p["TP 1"]) else 0,
+            "TP 2": int(p["TP 2"]) if pd.notnull(p["TP 2"]) else 0,
+            "Potential Gain": f"+{pot_gain}%",
+            "SL Risk": f"-{pot_risk}%",
+            "Risk-Reward Ratio": str(p["Rasio (R:R)"]),
+            "RR_Val": float(p["RR_Val"]) if "RR_Val" in p and pd.notnull(p["RR_Val"]) else 0.0,
+            "Candlestick Pattern": str(p["Pola Candle"]),
+            "Analysis & Risk Warning": str(p["Warning"]),
+        }
     except Exception:
         return None
 
 
 def run_batch_execution(ticker_list, cache_key):
-    """Multi-threaded execution runner for single or batch tickers."""
+    """Multi-threaded execution runner with safe main-thread UI updates."""
     total_saham = len(ticker_list)
     if total_saham == 0:
         st.warning("⚠️ Ticker list is empty!")
@@ -108,7 +100,7 @@ def run_batch_execution(ticker_list, cache_key):
     progress_bar = st.progress(0)
     status_text = st.empty()
 
-    all_results = []
+    results = []
     completed = 0
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -117,9 +109,9 @@ def run_batch_execution(ticker_list, cache_key):
         }
 
         for future in concurrent.futures.as_completed(future_to_ticker):
-            res_list = future.result()
-            if res_list:
-                all_results.extend(res_list)
+            res = future.result()
+            if res:
+                results.append(res)
 
             completed += 1
             percent = completed / total_saham
@@ -131,16 +123,17 @@ def run_batch_execution(ticker_list, cache_key):
     progress_bar.empty()
     status_text.empty()
     st.toast(
-        f"Analysis Complete: Analyzed {len(set(r['Symbol'] for r in all_results))} stocks!",
+        f"Analysis Complete: Analyzed {len(results)} out of {total_saham} stocks!",
         icon="✅",
     )
 
-    if all_results:
-        df_res = pd.DataFrame(all_results)
+    if results:
+        df_res = pd.DataFrame(results)
         st.session_state[cache_key] = df_res
 
 
 def reset_filters():
+    """Callback function to reset filter choices to defaults."""
     st.session_state["f_strategi"] = "ALL STRATEGIES"
     st.session_state["f_grade"] = "ALL GRADES"
     st.session_state["f_zone"] = "ALL POSITIONS"
@@ -149,12 +142,15 @@ def reset_filters():
 
 
 def clear_cache(cache_key):
+    """Clear specific cache mode."""
     st.session_state.pop(cache_key, None)
     st.toast("Data Cache Cleared", icon="🧹")
 
 
 def add_tickers_to_watchlist(symbols_list):
+    """Menambahkan list ticker terpilih ke file JSON watchlist_storage.json & sinkronisasi session_state."""
     storage_file = "watchlist_storage.json"
+    
     try:
         watchlist_data = []
         if os.path.exists(storage_file):
@@ -209,6 +205,7 @@ def add_tickers_to_watchlist(symbols_list):
 
 
 def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="blue"):
+    """Reusable Dashboard Card Component."""
     badge_html = (
         f'<span class="card-badge badge-{variant}">{badge_text}</span>'
         if badge_text
@@ -228,8 +225,8 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
     st.markdown(card_html, unsafe_allow_html=True)
 
 
-def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False):
-    """Renders Trade Plan Cards for given stocks Dataframe with strategy selector for single mode."""
+def render_trade_plan_cards(df_data, is_title_needed=True):
+    """Renders Trade Plan Cards for given stocks Dataframe."""
     if is_title_needed:
         st.markdown(
             f"""
@@ -241,43 +238,13 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             unsafe_allow_html=True,
         )
 
-    # Kelompokkan berdasarkan simbol saham
-    symbols = df_data["Symbol"].unique()
-
-    for sym in symbols:
-        df_sym = df_data[df_data["Symbol"] == sym]
-        
-        # Tentukan strategi aktif (Default ke suggestion jika di mode single)
-        strategies = df_sym["Strategy"].tolist()
-        suggested_strat = df_sym["Suggested Strategy"].iloc[0] if "Suggested Strategy" in df_sym.columns else strategies[0]
-        
-        selected_strat = suggested_strat
-        if is_single_mode and len(strategies) > 1:
-            st.write("")
-            col_strat_lbl, col_strat_sel = st.columns([1, 3])
-            with col_strat_lbl:
-                st.markdown(f"<div style='padding-top:8px; font-weight:700; color:#00F3FF;'>{sym} Strategy:</div>", unsafe_allow_html=True)
-            with col_strat_sel:
-                default_idx = strategies.index(suggested_strat) if suggested_strat in strategies else 0
-                selected_strat = st.selectbox(
-                    "Pilih Strategi",
-                    options=strategies,
-                    index=default_idx,
-                    key=f"strat_select_{sym}",
-                    label_visibility="collapsed"
-                )
-
-        row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
-        
-        # Label suggestion di sebelah strategy
-        is_suggestion = " (Suggestion)" if row.get("Strategy") == row.get("Suggested Strategy") else ""
-
+    for idx, row in df_data.iterrows():
         st.markdown(
             f"""
-            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px 20px; margin-top: 15px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px 20px; margin-top: 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <span style="font-size: 1.5rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
-                    <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {row['Strategy']}{is_suggestion}</span>
+                    <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {row['Strategy']}</span>
                     <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
                     <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
                 </div>
@@ -321,7 +288,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
                 title="TARGET 2 (TP 2)",
                 value=f"Rp {row['TP 2']:,}",
                 subtext="Main swing target zone.",
-                badge_text=str(row["Potential Gain TP2"]),  # Diubah jadi persentase Potential Gain TP2
+                badge_text=f"R:R {row['Risk-Reward Ratio']}",
                 variant="blue",
                 value_color="blue",
             )
@@ -331,7 +298,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">RISK : REWARD</span>
-                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{row['Risk-Reward Ratio']}</span>
+                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">1 : {row['Risk-Reward Ratio']}</span>
                 </div>
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">CANDLESTICK PATTERN</span>
@@ -602,6 +569,7 @@ def render_tab_trade_planner():
             df_single_res = st.session_state[active_cache_key]
 
             st.write("")
+            # Header dengan Tombol Add to Watchlist di sebelah Clear Data
             h_left, h_btn_wl, h_right = st.columns([2.2, 1.2, 1], vertical_alignment="center")
             
             with h_left:
@@ -609,7 +577,7 @@ def render_tab_trade_planner():
                     f"""
                     <h3 class="glow-title">
                         <span class="cyan-dot"></span>Analysis Results 
-                        <span style='font-size:0.9rem; color:#94a3b8;'>({len(df_single_res['Symbol'].unique())} items)</span>
+                        <span style='font-size:0.9rem; color:#94a3b8;'>({len(df_single_res)} items)</span>
                     </h3>
                     """,
                     unsafe_allow_html=True,
@@ -618,7 +586,7 @@ def render_tab_trade_planner():
             with h_btn_wl:
                 if not df_single_res.empty:
                     if st.button("⭐ + Watchlist", use_container_width=True, key="btn_add_watchlist_single_header"):
-                        symbols_to_add = df_single_res["Symbol"].unique().tolist()
+                        symbols_to_add = df_single_res["Symbol"].tolist()
                         add_tickers_to_watchlist(symbols_to_add)
 
             with h_right:
@@ -629,7 +597,7 @@ def render_tab_trade_planner():
             if df_single_res.empty:
                 st.warning("⚠️ No valid data returned for the selected tickers.")
             else:
-                render_trade_plan_cards(df_single_res, is_title_needed=False, is_single_mode=True)
+                render_trade_plan_cards(df_single_res, is_title_needed=False)
 
     else:
         all_tickers = load_daftar_saham()
@@ -833,7 +801,7 @@ def render_tab_trade_planner():
                 st.write("")
                 selected_symbols = selected_rows["Symbol"].tolist()
                 df_selected_full = df[df["Symbol"].isin(selected_symbols)]
-                render_trade_plan_cards(df_selected_full, is_title_needed=True, is_single_mode=False)
+                render_trade_plan_cards(df_selected_full, is_title_needed=True)
 
     # --- FOOTER ---
     st.markdown(

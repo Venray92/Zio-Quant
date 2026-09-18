@@ -10,7 +10,7 @@ from views.tab_trade_planner import render_tab_trade_planner
 
 # Import modul halaman baru
 from views.watchlist import render_page_watchlist
-from views.money_management import render_page_money_management
+from views.money import render_page_money_management  # <-- PERBAIKAN: Import dari views.money
 
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(

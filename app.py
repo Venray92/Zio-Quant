@@ -25,33 +25,13 @@ st.set_page_config(
 # 2. Inject Custom CSS bawaan
 inject_custom_css()
 
-# --- TAMBAHKAN CSS GLOBAL CYBERPUNK DI SINI AGAR KELIHATAN ---
+# --- CSS GLOBAL CYBERPUNK MENYELURUH (TERMASUK STOCH-TREND RADAR & RUN SCREENING) ---
 st.markdown(
     """
     <style>
-    /* 1. Styling Universal untuk Tombol di Horizontal Block (Home, Watchlist, dll) */
+    /* 1. STYLING UNIVERSAL UNTUK SEMUA TOMBOL DI SELURUH APLIKASI */
+    .stButton button, 
     div[data-testid="stHorizontalBlock"] .stButton button,
-    .stButton button {
-        background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
-        border: 1.5px solid #00F3FF !important;
-        color: #00F3FF !important;
-        border-radius: 8px !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        font-weight: 700 !important;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    div[data-testid="stHorizontalBlock"] .stButton button:hover,
-    .stButton button:hover {
-        background: rgba(0, 243, 255, 0.2) !important;
-        color: #ffffff !important;
-        border-color: #FF007F !important;
-        box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
-        transform: translateY(-1px) !important;
-    }
-
-    /* 2. Styling untuk Kotak Tombol CHOOSE SCREENER di Kanan Atas (Popover) */
     [data-testid="stPopover"] > button {
         background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
         border: 1.5px solid #00F3FF !important;
@@ -59,26 +39,54 @@ st.markdown(
         border-radius: 8px !important;
         font-family: 'Share Tech Mono', monospace !important;
         font-weight: 700 !important;
-        box-shadow: 0 0 12px rgba(0, 243, 255, 0.4) !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.25) !important;
         transition: all 0.3s ease !important;
     }
     
+    .stButton button:hover,
+    div[data-testid="stHorizontalBlock"] .stButton button:hover,
     [data-testid="stPopover"] > button:hover {
         background: rgba(0, 243, 255, 0.2) !important;
         color: #ffffff !important;
         border-color: #FF007F !important;
-        box-shadow: 0 0 20px rgba(255, 0, 127, 0.7) !important;
+        box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
+        transform: translateY(-1px) !important;
     }
 
-    /* 3. Memastikan teks di dalam popover tombol screener tetap kontras */
+    /* 2. STYLING KHUSUS UNTUK TOMBOL "STOP" ATAU TOMBOL BAHAYA (OPSIONAL WARNA MERAH/PINK) */
+    /* Jika tombol Stop ingin bernuansa merah/pink cyberpunk */
+    .stButton button[kind="secondary"]:has(p:contains("Stop")),
+    .stButton button:has(div:contains("Stop")) {
+        border-color: #FF007F !important;
+        color: #FF007F !important;
+        box-shadow: 0 0 10px rgba(255, 0, 127, 0.3) !important;
+    }
+    
+    .stButton button[kind="secondary"]:has(p:contains("Stop")):hover,
+    .stButton button:has(div:contains("Stop")):hover {
+        background: rgba(255, 0, 127, 0.2) !important;
+        color: #FFFFFF !important;
+        border-color: #00F3FF !important;
+        box-shadow: 0 0 18px rgba(0, 243, 255, 0.6) !important;
+    }
+
+    /* 3. STYLING POPOVER & MENU SCREENER */
+    [data-testid="stPopoverBody"] {
+        background-color: #0d1b2a !important;
+        border: 1px solid #00F3FF !important;
+        border-radius: 8px !important;
+    }
+    
     [data-testid="stPopoverBody"] .stButton button {
         background: #161B22 !important;
         border: 1px solid #00F3FF !important;
         color: #00F3FF !important;
     }
+    
     [data-testid="stPopoverBody"] .stButton button:hover {
         border-color: #FF007F !important;
         color: #FFFFFF !important;
+        background: rgba(0, 243, 255, 0.15) !important;
     }
     </style>
     """,

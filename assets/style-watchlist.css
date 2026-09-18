@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap');
+
+/* Global Font & Theme Override */
+html, body, [class*="css"] {
+    font-family: 'Fira Code', monospace, sans-serif !important;
+    background-color: #050811 !important;
+    color: #00F0FF !important;
+}
+
+/* Cyberpunk Headers */
+h1, h2, h3, h4, h5, h6 {
+    color: #00F0FF !important;
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+    font-weight: 800 !important;
+    letter-spacing: 1.5px;
+}
+
+/* Neon Buttons */
+div.stButton > button {
+    background-color: #0A0E1A !important;
+    color: #00F0FF !important;
+    border: 1px solid #00F0FF !important;
+    border-radius: 4px !important;
+    font-weight: 700 !important;
+    transition: all 0.3s ease-in-out !important;
+    text-transform: uppercase;
+    box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
+}
+
+div.stButton > button:hover {
+    background-color: #00F0FF !important;
+    color: #050811 !important;
+    box-shadow: 0 0 15px #00F0FF, 0 0 25px #00F0FF !important;
+}
+
+/* Primary Button Neon Pink Accent */
+div.stButton > button[kind="primary"] {
+    background-color: #0A0E1A !important;
+    color: #FF007F !important;
+    border: 1px solid #FF007F !important;
+    box-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+}
+
+div.stButton > button[kind="primary"]:hover {
+    background-color: #FF007F !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 15px #FF007F, 0 0 25px #FF007F !important;
+}
+
+/* Cyber Inputs & Popovers */
+div[data-baseweb="input"] {
+    background-color: #0A0E1A !important;
+    border: 1px solid #00F0FF !important;
+    color: #00F0FF !important;
+}
+
+/* Expanders & Container Borders */
+div[data-aria-expanded="true"], div[data-aria-expanded="false"] {
+    background-color: #0A0E1A !important;
+    border: 1px solid #9D00FF !important;
+}
+
+/* Toast Styling */
+div[data-baseweb="toast"] {
+    background-color: #0A0E1A !important;
+    border: 1px solid #00FF66 !important;
+    color: #00FF66 !important;
+    box-shadow: 0 0 10px #00FF66;
+}

@@ -891,4 +891,6 @@ def render_tab_trade_planner():
 
             if not selected_rows.empty:
                 st.markdown("<br>", unsafe_allow_html=True)
-                render_trade_plan_cards(selected_rows, is_title_needed=True, is_single_mode=False)
+                checked_symbols = selected_rows["Symbol"].unique().tolist()
+                df_to_render = df_raw[df_raw["Symbol"].isin(checked_symbols)]
+                render_trade_plan_cards(df_to_render, is_title_needed=True, is_single_mode=False)

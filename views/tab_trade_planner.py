@@ -5,12 +5,14 @@ import streamlit as st
 
 from engines.trade_planner import TradePlanner
 
+# Import fungsi atau modul watchlist jika diperlukan
+# import watchlist  # Sesuaikan jika watchlist.py memiliki fungsi helper khusus
+
 
 def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
     """Reads ticker list from file inside data folder or fallback to root."""
     target_path = filename
     
-    # 🔧 Perbaikan logika pencarian file
     if not os.path.exists(target_path):
         alt_path = os.path.basename(filename)
         if os.path.exists(alt_path):
@@ -147,6 +149,35 @@ def clear_cache(cache_key):
     st.toast("Data Cache Cleared", icon="🧹")
 
 
+def add_tickers_to_watchlist(symbols_list):
+    """Menambahkan list ticker terpilih ke file/session watchlist.py"""
+    watchlist_file = os.path.join("data", "watchlist.txt") # Sesuaikan path file watchlist jika ada
+    # Fallback ke root jika folder data tidak ada
+    target_file = watchlist_file if os.path.exists("data") else "watchlist.txt"
+    
+    try:
+        existing = set()
+        if os.path.exists(target_file):
+            with open(target_file, "r", encoding="utf-8") as f:
+                existing = {line.strip().upper() for line in f if line.strip()}
+        
+        added_count = 0
+        with open(target_file, "a", encoding="utf-8") as f:
+            for sym in symbols_list:
+                clean_sym = sym.strip().upper()
+                if clean_sym not in existing:
+                    f.write(f"{clean_sym}\n")
+                    existing.add(clean_sym)
+                    added_count += 1
+        
+        if added_count > 0:
+            st.toast(f"Berhasil menambahkan {added_count} saham ke Watchlist!", icon="⭐")
+        else:
+            st.toast("Saham terpilih sudah ada di dalam Watchlist.", icon="ℹ️")
+    except Exception as e:
+        st.error(f"Gagal menyimpan ke watchlist: {e}")
+
+
 def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="blue"):
     """Reusable Dashboard Card Component."""
     badge_html = (
@@ -262,26 +293,12 @@ def render_tab_trade_planner():
     st.markdown(
         """
         <style>
-        /* Keyframe Animasi Dot Nyala-Redup (Pulsing Glow) */
         @keyframes pulseGlow {
-            0% {
-                opacity: 0.3;
-                box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF;
-                transform: scale(0.9);
-            }
-            50% {
-                opacity: 1;
-                box-shadow: 0 0 12px #00F3FF, 0 0 22px #00F3FF, 0 0 32px #10b981;
-                transform: scale(1.15);
-            }
-            100% {
-                opacity: 0.3;
-                box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF;
-                transform: scale(0.9);
-            }
+            0% { opacity: 0.3; box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF; transform: scale(0.9); }
+            50% { opacity: 1; box-shadow: 0 0 12px #00F3FF, 0 0 22px #00F3FF, 0 0 32px #10b981; transform: scale(1.15); }
+            100% { opacity: 0.3; box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF; transform: scale(0.9); }
         }
 
-        /* Banner Header Ringkas */
         .header-banner {
             border: 1px solid #00F3FF;
             box-shadow: 0 0 14px rgba(0, 243, 255, 0.4), inset 0 0 14px rgba(0, 243, 255, 0.15);
@@ -298,7 +315,6 @@ def render_tab_trade_planner():
             width: 100%;
         }
 
-        /* Dot Glowing Rata Tengah Di Atas Judul */
         .top-glowing-dot {
             width: 10px;
             height: 10px;
@@ -318,7 +334,6 @@ def render_tab_trade_planner():
             line-height: 1.2;
         }
 
-        /* Styling Judul-Judul Penting */
         .glow-title {
             display: flex;
             align-items: center;
@@ -333,7 +348,6 @@ def render_tab_trade_planner():
             margin-bottom: 10px;
         }
 
-        /* Indikator Dot Cyan Biasa */
         .cyan-dot {
             width: 10px;
             height: 10px;
@@ -344,7 +358,6 @@ def render_tab_trade_planner():
             flex-shrink: 0;
         }
 
-        /* Custom Styling Tombol */
         div.stButton > button {
             border: 1px solid #00F3FF !important;
             box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
@@ -371,7 +384,6 @@ def render_tab_trade_planner():
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.8) !important;
         }
 
-        /* Card Styling */
         .card {
             background-color: #0f172a;
             border-radius: 6px;
@@ -553,7 +565,6 @@ def render_tab_trade_planner():
                 render_trade_plan_cards(df_single_res, is_title_needed=False)
 
     else:
-        # 🔧 PERBAIKAN: Gunakan pemanggilan tanpa argumen agar fungsi mengarahkan ke 'data/daftar_saham.txt' atau 'daftar_saham.txt'
         all_tickers = load_daftar_saham()
         if not all_tickers:
             st.error("❌ File `daftar_saham.txt` tidak ditemukan di folder `data/` maupun di direktori utama!")
@@ -665,7 +676,8 @@ def render_tab_trade_planner():
 
             st.write("")
 
-            h_left, h_center, h_right = st.columns([2.5, 1, 1], vertical_alignment="center")
+            # 🔧 PERUBAHAN KOLOM HEADER: Menambahkan tombol "+ Add to Watchlist" di sebelah "Clear Cache"
+            h_left, h_btn1, h_btn2, h_right = st.columns([2, 1, 1, 1], vertical_alignment="center")
             with h_left:
                 st.markdown(
                     f"""
@@ -676,7 +688,51 @@ def render_tab_trade_planner():
                     """,
                     unsafe_allow_html=True,
                 )
-            with h_center:
+            
+            # Placeholder editor data table di bawah nanti mendefinisikan selected_rows
+            # Kita tampung logic tombol Add to Watchlist dan Clear Cache di sini
+            
+            if "editor_key_version" not in st.session_state:
+                st.session_state["editor_key_version"] = 0
+
+            current_editor_key = f"batch_editor_v{st.session_state['editor_key_version']}"
+
+            df_table = df.copy()
+            df_table.insert(0, "Select", False)
+
+            edited_df = st.data_editor(
+                df_table[["Select"] + ["Symbol", "Score", "Grade", "Strategy", "Last Price", "Zone Position", "Buy Range", "Stop Loss (SL)", "TP 1", "TP 2", "Potential Gain", "SL Risk", "Risk-Reward Ratio", "Candlestick Pattern"]],
+                column_config={
+                    "Select": st.column_config.CheckboxColumn(
+                        "Select",
+                        help="Check to view detailed Trade Plan cards",
+                        default=False,
+                    ),
+                    "Symbol": st.column_config.TextColumn("Symbol"),
+                    "Score": st.column_config.NumberColumn("Score", format="%d"),
+                    "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
+                    "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
+                    "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
+                    "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
+                },
+                disabled=["Symbol", "Score", "Grade", "Strategy", "Last Price", "Zone Position", "Buy Range", "Stop Loss (SL)", "TP 1", "TP 2", "Potential Gain", "SL Risk", "Risk-Reward Ratio", "Candlestick Pattern"],
+                use_container_width=True,
+                key=current_editor_key,
+            )
+
+            selected_rows = edited_df[edited_df["Select"] == True]
+            num_checked = len(selected_rows)
+
+            # Render tombol aksi di header atas menggunakan data selected_rows yang sudah terdeteksi
+            with h_btn1:
+                if st.button("⭐ + Add to Watchlist", use_container_width=True, key="btn_add_watchlist"):
+                    if num_checked > 0:
+                        symbols_to_add = selected_rows["Symbol"].tolist()
+                        add_tickers_to_watchlist(symbols_to_add)
+                    else:
+                        st.warning("⚠️ Centang minimal 1 saham di tabel terlebih dahulu!")
+
+            with h_btn2:
                 if st.button("🗑️ Clear Cache", use_container_width=True, key="btn_clear_batch"):
                     clear_cache(active_cache_key)
                     st.rerun()
@@ -697,73 +753,25 @@ def render_tab_trade_planner():
             else:
                 st.info("💡 Select the checkbox on any row to display its detailed Trade Plan card.")
 
-                display_cols = [
-                    "Symbol",
-                    "Score",
-                    "Grade",
-                    "Strategy",
-                    "Last Price",
-                    "Zone Position",
-                    "Buy Range",
-                    "Stop Loss (SL)",
-                    "TP 1",
-                    "TP 2",
-                    "Potential Gain",
-                    "SL Risk",
-                    "Risk-Reward Ratio",
-                    "Candlestick Pattern",
-                ]
+            col_chk_status, col_chk_btn = st.columns([3, 1], vertical_alignment="center")
+            with col_chk_status:
+                if num_checked > 0:
+                    st.markdown(
+                        f"📌 **Selected:** `{num_checked}` stock(s) loaded for detailed view.",
+                        unsafe_allow_html=True,
+                    )
+            with col_chk_btn:
+                if num_checked > 0:
+                    if st.button("🧹 Clear Selection", use_container_width=True, key="btn_clear_selection"):
+                        st.session_state["editor_key_version"] += 1
+                        st.toast("Selection cleared", icon="✅")
+                        st.rerun()
 
-                if "editor_key_version" not in st.session_state:
-                    st.session_state["editor_key_version"] = 0
-
-                current_editor_key = f"batch_editor_v{st.session_state['editor_key_version']}"
-
-                df_table = df.copy()
-                df_table.insert(0, "Select", False)
-
-                edited_df = st.data_editor(
-                    df_table[["Select"] + display_cols],
-                    column_config={
-                        "Select": st.column_config.CheckboxColumn(
-                            "Select",
-                            help="Check to view detailed Trade Plan cards",
-                            default=False,
-                        ),
-                        "Symbol": st.column_config.TextColumn("Symbol"),
-                        "Score": st.column_config.NumberColumn("Score", format="%d"),
-                        "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
-                        "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
-                        "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
-                        "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
-                    },
-                    disabled=display_cols,
-                    use_container_width=True,
-                    key=current_editor_key,
-                )
-
-                selected_rows = edited_df[edited_df["Select"] == True]
-                num_checked = len(selected_rows)
-
-                col_chk_status, col_chk_btn = st.columns([3, 1], vertical_alignment="center")
-                with col_chk_status:
-                    if num_checked > 0:
-                        st.markdown(
-                            f"📌 **Selected:** `{num_checked}` stock(s) loaded for detailed view.",
-                            unsafe_allow_html=True,
-                        )
-                with col_chk_btn:
-                    if num_checked > 0:
-                        if st.button("🧹 Clear Selection", use_container_width=True, key="btn_clear_selection"):
-                            st.session_state["editor_key_version"] += 1
-                            st.toast("Selection cleared", icon="✅")
-                            st.rerun()
-
-                if not selected_rows.empty:
-                    st.write("")
-                    selected_symbols = selected_rows["Symbol"].tolist()
-                    df_selected_full = df[df["Symbol"].isin(selected_symbols)]
-                    render_trade_plan_cards(df_selected_full, is_title_needed=True)
+            if not selected_rows.empty:
+                st.write("")
+                selected_symbols = selected_rows["Symbol"].tolist()
+                df_selected_full = df[df["Symbol"].isin(selected_symbols)]
+                render_trade_plan_cards(df_selected_full, is_title_needed=True)
 
     # --- FOOTER ---
     st.markdown(

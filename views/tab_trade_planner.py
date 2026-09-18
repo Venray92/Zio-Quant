@@ -233,7 +233,7 @@ def draw_card(title, value, subtext, badge_text="", variant="blue", value_color=
 
 
 def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False):
-    """Renders Trade Plan Cards for given stocks Dataframe dengan pilihan dropdown strategi."""
+    """Renders Trade Plan Cards for given stocks Dataframe dengan dropdown strategi rapi di sebelah kiri."""
     if is_title_needed:
         st.markdown(
             f"""
@@ -256,21 +256,35 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
         selected_strat = suggested_strat
         if is_single_mode and len(strategies) > 1:
             st.write("")
-            col_lbl, col_sel = st.columns([1.2, 3])
+            # Mengatur ukuran kolom agar dropdown kecil dan berada di sebelah kiri
+            col_lbl, col_sel, col_space = st.columns([1.1, 1.8, 4.5], vertical_alignment="center")
             with col_lbl:
-                st.markdown(f"<div style='padding-top:8px; font-weight:700; color:#00F3FF;'>Pilih Strategi:</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-weight:700; color:#00F3FF; font-size:0.95rem;'>Pilih Strategi:</div>", unsafe_allow_html=True)
             with col_sel:
-                default_idx = strategies.index(suggested_strat) if suggested_strat in strategies else 0
-                selected_strat = st.selectbox(
+                # Mapping nama kode pendek ke nama panjang yang rapi
+                label_map = {
+                    "BOW": "Buy On Weakness",
+                    "BOB": "Buy On Breakout"
+                }
+                reverse_map = {v: k for k, v in label_map.items()}
+                
+                display_options = [label_map.get(s, s) for s in strategies]
+                default_display = label_map.get(suggested_strat, display_options[0])
+                default_idx = display_options.index(default_display) if default_display in display_options else 0
+                
+                chosen_display = st.selectbox(
                     "Strategy",
-                    options=strategies,
+                    options=display_options,
                     index=default_idx,
                     key=f"strat_select_{sym}",
                     label_visibility="collapsed"
                 )
+                selected_strat = reverse_map.get(chosen_display, chosen_display)
 
         row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
         
+        # Tampilkan nama strategi lengkap pada badge kartu
+        strat_display_name = "Buy On Weakness" if row['Strategy'] == "BOW" else ("Buy On Breakout" if row['Strategy'] == "BOB" else row['Strategy'])
         is_suggestion = " (Suggestion)" if row.get("Strategy") == row.get("Suggested Strategy") else ""
 
         st.markdown(
@@ -278,7 +292,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px 20px; margin-top: 15px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <span style="font-size: 1.5rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
-                    <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {row['Strategy']}{is_suggestion}</span>
+                    <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {strat_display_name}{is_suggestion}</span>
                     <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
                     <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
                 </div>
@@ -346,7 +360,6 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             """,
             unsafe_allow_html=True,
         )
-
 
 def render_tab_trade_planner():
     # 🎨 CUSTOM CSS STYLING

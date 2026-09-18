@@ -16,7 +16,7 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 1.5px;
 }
 
-/* Neon Buttons (Standard) */
+/* Neon Buttons (Standard) - Tanpa cahaya berlebih saat hover & teks tetap terang */
 div.stButton > button {
     font-family: 'Share Tech Mono', monospace !important;
     background-color: #0A0E1A !important;
@@ -24,31 +24,32 @@ div.stButton > button {
     border: 1px solid #00F0FF !important;
     border-radius: 4px !important;
     font-weight: 400 !important;
-    transition: all 0.3s ease-in-out !important;
+    transition: all 0.2s ease-in-out !important;
     text-transform: none;
-    box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
+    box-shadow: none !important;
 }
 
 div.stButton > button:hover {
-    background-color: #00F0FF !important;
-    color: #050811 !important;
-    box-shadow: 0 0 15px #00F0FF, 0 0 25px #00F0FF !important;
+    background-color: #121A2E !important; /* Hanya sedikit lebih terang, tidak silau */
+    color: #00F0FF !important;            /* Teks tetap konsisten (tidak jadi hitam) */
+    border-color: #00F0FF !important;
+    box-shadow: none !important;          /* Menghilangkan efek cahaya/glow saat hover */
 }
 
-/* Primary Button (Solid Cyan Glow) */
+/* Primary Button (Solid Cyan) - Tanpa cahaya berlebih saat hover */
 div.stButton > button[kind="primary"] {
     font-family: 'Share Tech Mono', monospace !important;
     background-color: #00F0FF !important;
     color: #050811 !important;
     border: 1px solid #00F0FF !important;
     font-weight: 400 !important;
-    box-shadow: 0 0 12px rgba(0, 240, 255, 0.6) !important;
+    box-shadow: none !important;
 }
 
 div.stButton > button[kind="primary"]:hover {
-    background-color: #80F7FF !important;
-    color: #050811 !important;
-    box-shadow: 0 0 20px #00F0FF, 0 0 35px #00F0FF !important;
+    background-color: #33F3FF !important;
+    color: #050811 !important;            /* Teks tetap gelap agar kontras dengan background cerah */
+    box-shadow: none !important;          /* Menghilangkan efek cahaya/glow */
 }
 
 /* Cyber Inputs & Popovers */

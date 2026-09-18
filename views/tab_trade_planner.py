@@ -9,13 +9,15 @@ from engines.trade_planner import TradePlanner
 def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
     """Reads ticker list from file inside data folder or fallback to root."""
     target_path = filename
+    
+    # 🔧 Perbaikan logika pencarian file
     if not os.path.exists(target_path):
-        # Fallback to root directory if data/ folder path doesn't exist
         alt_path = os.path.basename(filename)
         if os.path.exists(alt_path):
             target_path = alt_path
         else:
             return []
+
     try:
         with open(target_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -551,9 +553,10 @@ def render_tab_trade_planner():
                 render_trade_plan_cards(df_single_res, is_title_needed=False)
 
     else:
-        all_tickers = load_daftar_saham("daftar_saham.txt")
+        # 🔧 PERBAIKAN: Gunakan pemanggilan tanpa argumen agar fungsi mengarahkan ke 'data/daftar_saham.txt' atau 'daftar_saham.txt'
+        all_tickers = load_daftar_saham()
         if not all_tickers:
-            st.error("❌ File `daftar_saham.txt` not found!")
+            st.error("❌ File `daftar_saham.txt` tidak ditemukan di folder `data/` maupun di direktori utama!")
             return
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")

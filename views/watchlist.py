@@ -7,20 +7,6 @@ import yfinance as yf
 from engines.trade_planner import TradePlanner
 
 STORAGE_FILE = "watchlist_storage.json"
-CSS_FILE = os.path.join("assets", "style-watchlist.css")
-
-
-# ==========================================
-# CYBERPUNK CUSTOM CSS LOADER
-# ==========================================
-def inject_cyberpunk_css():
-    """Membaca dan menerapkan styling dari file CSS eksternal di folder assets."""
-    if os.path.exists(CSS_FILE):
-        with open(CSS_FILE, "r", encoding="utf-8") as f:
-            css_content = f.read()
-        st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
-    else:
-        st.warning(f"[SYS_WARN] File '{CSS_FILE}' tidak ditemukan. Pastikan folder 'assets' sudah dibuat.")
 
 
 # ==========================================
@@ -63,7 +49,7 @@ def save_watchlist_to_file(data):
         with open(STORAGE_FILE, "w") as f:
             json.dump(data, f, indent=4)
     except Exception as e:
-        st.error(f"[SYSTEM_ERROR] Gagal menyimpan data: {e}")
+        st.error(f"Gagal menyimpan data: {e}")
 
 
 @st.cache_data(ttl=60)
@@ -135,42 +121,9 @@ def calculate_rr_ratios(row):
     return rr_tp1_str, rr_tp2_str
 
 
-def sanitize_pink_colors(html_content):
-    """Mengganti string warna magenta/pink/purple bawaan ke warna Cyan & Theme-friendly."""
-    if not isinstance(html_content, str):
-        return html_content
-
-    color_map = {
-        "#FF007F": "#00F0FF",
-        "#ff007f": "#00F0FF",
-        "#9D00FF": "#00F0FF",
-        "#9d00ff": "#00F0FF",
-        "#E2B6FF": "#00F0FF",
-        "#e2b6ff": "#00F0FF",
-        "rgba(255, 0, 127": "rgba(0, 240, 255",
-        "rgba(157, 0, 255": "rgba(0, 240, 255",
-    }
-    for old_color, new_color in color_map.items():
-        html_content = html_content.replace(old_color, new_color)
-
-    return html_content
-
-
 def render_trade_plan_only(ticker_symbol, key_suffix):
     """Renders the Trade Plan Recommendation component for the selected ticker."""
-    st.markdown(
-        f"""
-        <div style="background: #0A0E1A; border: 1px solid #00F0FF; box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); padding: 10px 14px; margin-bottom: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 14px; font-weight: 800; color: #00F0FF; text-shadow: 0 0 5px #00F0FF;">
-                ⚡ LIVE_TRADE_PLAN // <span style="color: #00F0FF; text-shadow: 0 0 5px #00F0FF;">{ticker_symbol}</span>
-            </div>
-            <div style="font-size: 11px; color: #8B949E; font-weight: 700;">
-                SYS_STATUS: <span style="color: #00FF66; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.write(f"### Live Trade Plan: {ticker_symbol}")
 
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
@@ -178,9 +131,9 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
     safe_container_id = clean_ticker.replace(".", "_")
     tv_symbol = f"IDX:{clean_ticker}"
 
-    with st.expander(f"📈 TradingView Chart: {ticker_symbol}", expanded=False):
+    with st.expander(f"TradingView Chart: {ticker_symbol}", expanded=False):
         tv_html = f"""
-        <div class="tradingview-widget-container" style="height:500px; width:100%; border-radius:4px; overflow:hidden; border: 1px solid #00F0FF; margin-top: 5px; margin-bottom: 8px;">
+        <div class="tradingview-widget-container" style="height:500px; width:100%;">
           <div id="tv_chart_container_{safe_container_id}" style="height:100%; width:100%;"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
@@ -193,7 +146,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                 "theme": "dark",
                 "style": "1",
                 "locale": "en",
-                "toolbar_bg": "#0A0E1A",
+                "toolbar_bg": "#f1f3f6",
                 "enable_publishing": false,
                 "hide_side_toolbar": false,
                 "allow_symbol_change": true,
@@ -205,16 +158,11 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         </div>
         """
         components.html(tv_html, height=510)
-        st.markdown(
-            "<div style='font-size: 11px; color: #6C7A9C; margin-bottom: 8px; font-weight: 500;'>"
-            "💡 *Lakukan screenshot jika Anda membuat tarikan garis/analisa visual.*"
-            "</div>",
-            unsafe_allow_html=True,
-        )
+        st.caption("Lakukan screenshot jika Anda membuat tarikan garis/analisa visual.")
 
     period_selected = "3mo"
 
-    with st.spinner(f"🌐 FETCHING CYBER MATRIX FOR {ticker_symbol}..."):
+    with st.spinner(f"Memuat data untuk {ticker_symbol}..."):
         try:
             planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
             if hasattr(planner, "fetch_and_prepare_data"):
@@ -227,10 +175,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
             )
 
             if df_plan is not None and not df_plan.empty:
-                st.markdown(
-                    '<div style="font-size: 12px; font-weight: 800; color: #00F0FF; text-shadow: 0 0 5px #00F0FF; margin-top: 14px; margin-bottom: 10px; letter-spacing: 1px;">🎯 TRADE PLAN RECOMMENDATION</div>',
-                    unsafe_allow_html=True,
-                )
+                st.write("#### Trade Plan Recommendation")
 
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
@@ -251,102 +196,33 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                     tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
                     tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
 
-                    posisi_color = "#00FF66" if "Buy Zone" in posisi and "Below" not in posisi else "#00F0FF"
-
-                    is_suggestion = (idx == 0)
-                    prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
-                    expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
-
-                    copyable_text = f"=== TRADE PLAN: {ticker_symbol} ===\\nStrategy: {plan_type}\\nGrade: {grade}\\nScore: {score}/100\\nArea Buy: {area_buy}\\nStop Loss: {stop_loss}\\nTarget 1 (TP1): {tp1}\\nTarget 2 (TP2): {tp2}\\nStatus Posisi: {posisi}\\n==============================="
+                    prefix_label = "Suggestion" if idx == 0 else "Other"
+                    expander_title = f"Plan #{plan_no} ({plan_type}) - Grade: {grade} - Score: {score}"
 
                     with st.expander(expander_title, expanded=False):
-                        unique_btn_id = f"copy_btn_wl_{key_suffix}_{idx}"
-                        
-                        copy_btn_component = f"""
-                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
-                            <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 4px 10px; border-radius: 4px; font-weight: 800; font-size: 10px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
-                                📋 COPY PLAN
-                            </button>
-                        </div>
-                        <script>
-                        const textToCopy_{unique_btn_id} = `{copyable_text}`;
-                        const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
-                        btn_{unique_btn_id}.onclick = function() {{
-                            navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
-                                btn_{unique_btn_id}.innerText = "✅ COPIED!";
-                                btn_{unique_btn_id}.style.background = "#00FF66";
-                                setTimeout(function() {{
-                                    btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
-                                    btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
-                                }}, 2000);
-                            }}).catch(function(err) {{
-                                console.error('Gagal menyalin text: ', err);
-                            }});
-                        }};
-                        </script>
-                        """
-                        components.html(copy_btn_component, height=35)
-
-                        card_html = f"""
-                        <div style="background: #060913; border: 1px solid #00F0FF; border-left: 4px solid #00F0FF; box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); border-radius: 4px; padding: 12px; margin-top: 4px; margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #2A2F45; padding-bottom: 8px; margin-bottom: 10px;">
-                                <div>
-                                    <span style="background: #00F0FF; color: #050811; font-weight: 900; font-size: 10px; padding: 3px 8px; border-radius: 2px; text-shadow: none;">#{plan_no} {plan_type}</span>
-                                    <span style="font-size: 12px; font-weight: 700; color: #FFFFFF; margin-left: 8px;">GRADE: {grade}</span>
-                                </div>
-                                <div style="background: rgba(0, 240, 255, 0.1); border: 1px solid #00F0FF; color: #00F0FF; font-weight: 800; padding: 2px 10px; border-radius: 10px; font-size: 10px; text-shadow: 0 0 4px #00F0FF;">
-                                    SCORE: {score}
-                                </div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; text-align: center;">
-                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
-                                    <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">BUY AREA</div>
-                                    <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; margin-top: 2px;">{area_buy}</div>
-                                </div>
-                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
-                                    <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">STOP LOSS</div>
-                                    <div style="font-size: 12px; font-weight: 800; color: #00F0FF; margin-top: 2px;">{stop_loss}</div>
-                                </div>
-                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
-                                    <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 1</div>
-                                    <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp1}</div>
-                                </div>
-                                <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
-                                    <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 2</div>
-                                    <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp2}</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 10px; background-color: #03050B; padding: 6px 10px; border-radius: 2px; border: 1px solid #1A1F35;">
-                                <span style="color: #6C7A9C; font-weight: 600;">POSISI HARGA SAAT INI:</span>
-                                <span style="font-weight: 800; color: {posisi_color}; text-shadow: 0 0 5px {posisi_color};">{posisi}</span>
-                            </div>
-                        </div>
-                        """
-
-                        card_html = sanitize_pink_colors(card_html)
-                        st.markdown(card_html, unsafe_allow_html=True)
+                        st.write(f"**Strategi:** {plan_type}")
+                        st.write(f"**Grade:** {grade} | **Score:** {score}/100")
+                        st.write(f"**Area Buy:** {area_buy}")
+                        st.write(f"**Stop Loss:** {stop_loss}")
+                        st.write(f"**Target 1 (TP1):** {tp1}")
+                        st.write(f"**Target 2 (TP2):** {tp2}")
+                        st.write(f"**Posisi Harga:** {posisi}")
 
                         rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
-                        with st.expander(
-                            f"⚙️ PARAMETERS & R:R RATIO #{plan_no} ({plan_type})",
-                            expanded=False,
-                        ):
-                            c1, c2 = st.columns(2)
-                            with c1:
-                                st.metric(label="R:R ( Target 1 )", value=rr_tp1_val)
-                            with c2:
-                                st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.metric(label="R:R (Target 1)", value=rr_tp1_val)
+                        with c2:
+                            st.metric(label="R:R (Target 2)", value=rr_tp2_val)
 
         except Exception as e:
-            st.error(f"[SYSTEM_FAILURE] Gagal memuat Trade Plan: {e}")
+            st.error(f"Gagal memuat Trade Plan: {e}")
 
 
 # ==========================================
 # MAIN RENDER FUNCTION
 # ==========================================
 def render_page_watchlist():
-    inject_cyberpunk_css()
-
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
 
@@ -399,10 +275,8 @@ def render_page_watchlist():
             item["Last Price"] = lp
             item["Change Pct"] = chg
 
-    st.markdown(
-        "<h3 style='margin-bottom: 14px;'>📡 WATCHLIST // TERMINAL</h3>",
-        unsafe_allow_html=True,
-    )
+    st.title("Watchlist")
+    st.markdown("---")
 
     col_left, col_right = st.columns([1.2, 1.8], gap="medium")
 
@@ -413,8 +287,8 @@ def render_page_watchlist():
         h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
         with h_col1:
-            with st.popover("➕ Add", use_container_width=True):
-                st.caption("SYSTEM // QUICK ADD")
+            with st.popover("Add Ticker", use_container_width=True):
+                st.write("Tambah Ticker Baru")
                 inputs = []
                 ver = st.session_state["add_form_version"]
 
@@ -433,11 +307,11 @@ def render_page_watchlist():
 
                 c_add, c_save = st.columns(2)
                 with c_add:
-                    if st.button("＋ Row", key="btn_add_more_field", use_container_width=True):
+                    if st.button("Tambah Baris", key="btn_add_more_field", use_container_width=True):
                         st.session_state["quick_add_count"] += 1
                         st.rerun()
                 with c_save:
-                    if st.button("Save", key="btn_quick_add_save", type="primary", use_container_width=True):
+                    if st.button("Simpan", key="btn_quick_add_save", type="primary", use_container_width=True):
                         if inputs:
                             added_count = 0
                             existing_tickers = {x["Ticker"] for x in st.session_state["watchlist_data"]}
@@ -459,22 +333,22 @@ def render_page_watchlist():
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["add_form_version"] += 1
                             st.session_state["quick_add_count"] = 1
-                            st.toast(f"{added_count} Tickers Injected!", icon="🚀")
+                            st.success(f"{added_count} Ticker berhasil ditambahkan!")
                             st.rerun()
 
         with h_col2:
-            with st.popover("🗑️ Manage", use_container_width=True):
-                st.caption("SYSTEM // PURGE DATA")
+            with st.popover("Manage", use_container_width=True):
+                st.write("Kelola Watchlist")
                 del_ver = st.session_state["batch_del_version"]
                 enable_batch_delete = st.checkbox(
-                    "Delete Mode",
+                    "Mode Hapus",
                     value=False,
                     key=f"chk_mode_hapus_v{del_ver}",
                 )
 
                 if enable_batch_delete:
                     if st.button(
-                        "Delete Selected",
+                        "Hapus Terpilih",
                         key=f"btn_execute_batch_delete_v{del_ver}",
                         type="primary",
                         use_container_width=True,
@@ -497,21 +371,19 @@ def render_page_watchlist():
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["selected_cards"].clear()
                             st.session_state["batch_del_version"] += 1
-                            st.toast("Data Successfully Deleted!", icon="🗑️")
+                            st.success("Data berhasil dihapus!")
                             st.rerun()
 
                 st.markdown("---")
-                st.caption("SYSTEM // RESET ALL")
-                
                 if not st.session_state["confirm_delete_all"]:
-                    if st.button("Delete All Watchlist", key="btn_init_delete_all", use_container_width=True):
+                    if st.button("Hapus Semua Watchlist", key="btn_init_delete_all", use_container_width=True):
                         st.session_state["confirm_delete_all"] = True
                         st.rerun()
                 else:
-                    st.warning("⚠️ Hapus seluruh watchlist?")
+                    st.warning("Yakin ingin menghapus seluruh watchlist?")
                     col_yes, col_no = st.columns(2)
                     with col_yes:
-                        if st.button("Yes", key="btn_confirm_del_all_yes", type="primary", use_container_width=True):
+                        if st.button("Ya", key="btn_confirm_del_all_yes", type="primary", use_container_width=True):
                             st.session_state["watchlist_data"] = []
                             if "watchlist" in st.session_state:
                                 st.session_state["watchlist"] = []
@@ -520,16 +392,16 @@ def render_page_watchlist():
                             st.session_state["selected_watchlist_ticker"] = None
                             st.session_state["confirm_delete_all"] = False
                             st.session_state["batch_del_version"] += 1
-                            st.toast("All Watchlist Cleared!", icon="💥")
+                            st.success("Semua watchlist dikosongkan!")
                             st.rerun()
                     with col_no:
-                        if st.button("No", key="btn_confirm_del_all_no", use_container_width=True):
+                        if st.button("Tidak", key="btn_confirm_del_all_no", use_container_width=True):
                             st.session_state["confirm_delete_all"] = False
                             st.rerun()
 
         with h_col3:
-            with st.popover("⚡ Sort", use_container_width=True):
-                st.caption("SYSTEM // SORTING")
+            with st.popover("Sort", use_container_width=True):
+                st.write("Urutkan")
                 st.session_state["sort_filter"] = st.selectbox(
                     "Sort By",
                     [
@@ -547,7 +419,7 @@ def render_page_watchlist():
         with col_search:
             st.text_input(
                 "Search",
-                placeholder="🔍 FILTER_TICKER...",
+                placeholder="Cari Ticker...",
                 label_visibility="collapsed",
                 key="input_search_ticker_field",
             )
@@ -573,7 +445,7 @@ def render_page_watchlist():
                 df_export = pd.DataFrame(display_list)
                 csv_data = df_export.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    label="📥",
+                    label="CSV",
                     data=csv_data,
                     file_name="watchlist_export.csv",
                     mime="text/csv",
@@ -581,7 +453,7 @@ def render_page_watchlist():
                     help="Export Watchlist to CSV"
                 )
             else:
-                st.button("📥", disabled=True, use_container_width=True, help="Data kosong")
+                st.button("CSV", disabled=True, use_container_width=True)
 
         with st.container(height=580):
             if display_list:
@@ -617,33 +489,10 @@ def render_page_watchlist():
                     with c_card:
                         is_active = st.session_state["selected_watchlist_ticker"] == ticker_raw
                         
-                        card_border = "#00F0FF" if is_active else "#1A1F35"
-                        glow_effect = "box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);" if is_active else ""
-                        bg_card = "#0A0E1A" if is_active else "#060913"
+                        st.write(f"**{clean_ticker}** - {notes_tag}")
+                        st.write(f"Harga: {price_str} | Perubahan: {pct_str}")
 
-                        pct_color = "#00FF66" if pct_change and pct_change > 0 else "#FF4D4D" if pct_change and pct_change < 0 else "#8B949E"
-
-                        st.markdown(
-                            f"""
-                            <div style="background: {bg_card}; border: 1px solid {card_border}; {glow_effect} border-radius: 4px; padding: 10px; margin-bottom: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <div style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{clean_ticker}</div>
-                                        <div style="font-size: 10px; color: #6C7A9C;">🔹 {notes_tag}</div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 13px; font-weight: 800; color: #00F0FF;">{price_str}</div>
-                                        <div style="font-size: 11px; font-weight: 800; color: {pct_color}; text-shadow: 0 0 4px {pct_color};">
-                                            {pct_str}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-
-                        btn_label = "⚡ ACTIVE_VIEW" if is_active else f"📊 PLAN {clean_ticker}"
+                        btn_label = "Aktif" if is_active else f"Pilih {clean_ticker}"
 
                         if st.button(
                             btn_label,
@@ -653,8 +502,9 @@ def render_page_watchlist():
                         ):
                             st.session_state["selected_watchlist_ticker"] = ticker_raw
                             st.rerun()
+                    st.markdown("---")
             else:
-                st.caption("NO_DATA_FOUND // Tidak ada saham yang ditemukan.")
+                st.info("Tidak ada saham yang ditemukan.")
 
     # ==========================================
     # RIGHT COLUMN: TRADE PLAN VIEW
@@ -668,4 +518,4 @@ def render_page_watchlist():
                 key_suffix=f"wl_{selected_ticker.replace('.', '_')}",
             )
         else:
-            st.info("SELECT_TARGET // Pilih salah satu saham dari daftar pantauan di sebelah kiri.")
+            st.info("Pilih salah satu saham dari daftar pantauan di sebelah kiri.")

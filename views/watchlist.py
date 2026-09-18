@@ -6,8 +6,6 @@ import yfinance as yf
 from engines.trade_planner import TradePlanner
 
 STORAGE_FILE = "watchlist_storage.json"
-
-# UBAH PATH FILE CSS KE FOLDER ASSETS
 CSS_FILE = os.path.join("assets", "style-watchlist.css")
 
 
@@ -136,6 +134,27 @@ def calculate_rr_ratios(row):
     return rr_tp1_str, rr_tp2_str
 
 
+def sanitize_pink_colors(html_content):
+    """Mengganti string warna magenta/pink/purple bawaan ke warna Cyan & Theme-friendly."""
+    if not isinstance(html_content, str):
+        return html_content
+
+    color_map = {
+        "#FF007F": "#00F0FF",
+        "#ff007f": "#00F0FF",
+        "#9D00FF": "#00F0FF",
+        "#9d00ff": "#00F0FF",
+        "#E2B6FF": "#00F0FF",
+        "#e2b6ff": "#00F0FF",
+        "rgba(255, 0, 127": "rgba(0, 240, 255",
+        "rgba(157, 0, 255": "rgba(0, 240, 255",
+    }
+    for old_color, new_color in color_map.items():
+        html_content = html_content.replace(old_color, new_color)
+
+    return html_content
+
+
 def render_trade_plan_only(ticker_symbol, key_suffix):
     """Renders the Trade Plan Recommendation component for the selected ticker."""
     st.markdown(
@@ -174,10 +193,10 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
-                    plan_type = row.get("Type", row.get("Strategy", f"Plan #{plan_no}"))
-                    score = row.get("Score", 0)
-                    grade = row.get("Grade", "N/A")
-                    posisi = row.get("Posisi Harga", row.get("Status", "-"))
+                    plan_type = str(row.get("Type", row.get("Strategy", f"Plan #{plan_no}")))
+                    score = str(row.get("Score", 0))
+                    grade = str(row.get("Grade", "N/A"))
+                    posisi = str(row.get("Posisi Harga", row.get("Status", "-")))
 
                     range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
                     range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
@@ -191,7 +210,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                     tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
                     tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
 
-                    posisi_color = "#00FF66" if "Buy Zone" in str(posisi) else "#00F0FF"
+                    posisi_color = "#00FF66" if "Buy Zone" in posisi and "Below" not in posisi else "#00F0FF"
 
                     card_html = f"""
                     <div style="background: #060913; border: 1px solid #00F0FF; border-left: 4px solid #00F0FF; box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); border-radius: 4px; padding: 12px; margin-bottom: 12px;">
@@ -228,6 +247,8 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                         </div>
                     </div>
                     """
+
+                    card_html = sanitize_pink_colors(card_html)
                     st.markdown(card_html, unsafe_allow_html=True)
 
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
@@ -249,14 +270,11 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 # MAIN RENDER FUNCTION
 # ==========================================
 def render_page_watchlist():
-    # Inject Cyberpunk Theme CSS dari file eksternal
     inject_cyberpunk_css()
 
-    # Session State Initialization
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
 
-    # Dynamic Sync with Global "watchlist" State
     if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
         existing_tickers = {x["Ticker"] for x in st.session_state["watchlist_data"]}
         has_new = False
@@ -286,7 +304,6 @@ def render_page_watchlist():
         if has_new:
             save_watchlist_to_file(st.session_state["watchlist_data"])
 
-    # Additional Session State Variables
     defaults = {
         "add_form_version": 0,
         "sort_filter": "Default",
@@ -300,7 +317,6 @@ def render_page_watchlist():
         if key not in st.session_state:
             st.session_state[key] = val
 
-    # Fetch Real-time Market Data
     for item in st.session_state["watchlist_data"]:
         lp, chg = fetch_stock_quote(item["Ticker"])
         if lp is not None:
@@ -320,7 +336,6 @@ def render_page_watchlist():
     with col_left:
         h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
-        # 1. Quick Add Popover
         with h_col1:
             with st.popover("➕ Tambah", use_container_width=True):
                 st.caption("SYSTEM // QUICK ADD")
@@ -371,7 +386,6 @@ def render_page_watchlist():
                             st.toast(f"{added_count} Ticker Diinjeksi!", icon="🚀")
                             st.rerun()
 
-        # 2. Batch Delete Popover
         with h_col2:
             with st.popover("🗑️ Kelola", use_container_width=True):
                 st.caption("SYSTEM // PURGE DATA")
@@ -410,7 +424,6 @@ def render_page_watchlist():
                             st.toast("Data Berhasil Dihapus!", icon="🗑️")
                             st.rerun()
 
-        # 3. Sort Popover
         with h_col3:
             with st.popover("⚡ Sort", use_container_width=True):
                 st.caption("SYSTEM // SORTING")
@@ -426,7 +439,6 @@ def render_page_watchlist():
                     label_visibility="collapsed",
                 )
 
-        # Search Bar UI
         search_val = st.session_state["input_search_ticker_field"].strip().upper()
         if search_val:
             c_search, c_clear = st.columns([3.2, 0.8])
@@ -451,7 +463,6 @@ def render_page_watchlist():
                     on_click=clear_search_callback,
                 )
 
-        # Filter & Sort Data Display
         display_list = list(st.session_state["watchlist_data"])
         if search_val:
             display_list = [x for x in display_list if search_val in x["Ticker"]]
@@ -467,7 +478,6 @@ def render_page_watchlist():
             key_func, rev = sort_key_map[st.session_state["sort_filter"]]
             display_list.sort(key=key_func, reverse=rev)
 
-        # Scrollable Cards View
         with st.container(height=580):
             if display_list:
                 if not st.session_state["selected_watchlist_ticker"]:
@@ -502,13 +512,12 @@ def render_page_watchlist():
                     with c_card:
                         is_active = st.session_state["selected_watchlist_ticker"] == ticker_raw
                         
-                        # Dynamic Styling for Active vs Inactive Card
                         card_border = "#00F0FF" if is_active else "#1A1F35"
                         glow_effect = "box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);" if is_active else ""
                         bg_card = "#0A0E1A" if is_active else "#060913"
 
-                        # Menjaga persentase negatif tetap merah/pink (#FF007F) agar terlihat sebagai loss, atau ganti ke cyan jika ingin seragam
-                        pct_color = "#00FF66" if pct_change and pct_change > 0 else "#FF007F" if pct_change and pct_change < 0 else "#8B949E"
+                        # Persentase penurunan menggunakan warna merah soft standar pasar saham (#FF4D4D)
+                        pct_color = "#00FF66" if pct_change and pct_change > 0 else "#FF4D4D" if pct_change and pct_change < 0 else "#8B949E"
 
                         st.markdown(
                             f"""
@@ -530,7 +539,7 @@ def render_page_watchlist():
                             unsafe_allow_html=True,
                         )
 
-                        btn_label = "📍 ACTIVE_VIEW" if is_active else f"📊 PLAN {clean_ticker}"
+                        btn_label = "⚡ ACTIVE_VIEW" if is_active else f"📊 PLAN {clean_ticker}"
 
                         if st.button(
                             btn_label,

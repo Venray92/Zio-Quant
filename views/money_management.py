@@ -1,7 +1,11 @@
 import math
 from typing import Dict, Any, Tuple, Optional
 
+# views/money_management.py
 
+def render_page_money_management():
+    # Isi logika streamlit kamu di sini
+    pass
 # ==============================================================================
 # 1. STRATEGY RULES CONSTANTS
 # ==============================================================================

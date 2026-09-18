@@ -1,13 +1,6 @@
 import math
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Tuple
 import streamlit as st
-import plotly.graph_objects as go
-
-# Safe import TradePlanner dari modul backend
-try:
-    from engines.trade_planner import TradePlanner
-except ImportError:
-    TradePlanner = None
 
 
 # ==============================================================================
@@ -42,42 +35,7 @@ PROFILE_RULES = {
 
 
 # ==============================================================================
-# 2. HELPER & SYNC LOGIC
-# ==============================================================================
-def format_ticker_symbol(raw_ticker: str) -> Tuple[str, str]:
-    clean = raw_ticker.upper().replace(".JK", "").strip() or "COCO"
-    return clean, f"{clean}.JK"
-
-
-def sync_trade_plan_action(full_ticker: str, plan_type: str, clean_ticker: str):
-    """Callback/Fungsi sinkronisasi tanpa memicu infinite loop."""
-    if not TradePlanner:
-        st.error("Modul `TradePlanner` tidak ditemukan.")
-        return
-
-    try:
-        planner = TradePlanner(ticker=full_ticker)
-        planner.fetch_and_prepare_data()
-        df_plan = planner.generate_trade_plan()
-
-        matched = df_plan[df_plan["Type"] == plan_type]
-        if matched.empty:
-            matched = df_plan
-
-        row = matched.iloc[0]
-
-        # Update Session State untuk Widget Input
-        st.session_state["val_entry_price"] = float(row["Range Buy Min"])
-        st.session_state["val_sl_price"] = float(row["Stop Loss"])
-        st.session_state["val_tp1_price"] = float(row["TP 1"])
-        st.session_state["val_tp2_price"] = float(row["TP 2"])
-        st.toast(f"Berhasil sinkronisasi Trade Plan untuk {clean_ticker}!", icon="✅")
-    except Exception as e:
-        st.error(f"Gagal sinkronisasi {clean_ticker}: {e}")
-
-
-# ==============================================================================
-# 3. CORE CALCULATION ENGINE
+# 2. CORE CALCULATION ENGINE
 # ==============================================================================
 class MoneyManagementEngine:
     def __init__(
@@ -216,137 +174,59 @@ class MoneyManagementEngine:
 
 
 # ==============================================================================
-# 4. STREAMLIT UI RENDER FUNCTION
+# 3. STREAMLIT UI RENDER FUNCTION
 # ==============================================================================
 def render_page_money_management():
-    """Render utama Halaman Money Management."""
-    st.title("MONEY MANAGEMENT ENGINE")
+    st.markdown("## 💰 MONEY MANAGEMENT ENGINE")
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
-
-    # Inisialisasi default session state tanpa konflik key
-    if "val_entry_price" not in st.session_state:
-        st.session_state["val_entry_price"] = 125.0
-    if "val_sl_price" not in st.session_state:
-        st.session_state["val_sl_price"] = 120.0
-    if "val_tp1_price" not in st.session_state:
-        st.session_state["val_tp1_price"] = 151.0
-    if "val_tp2_price" not in st.session_state:
-        st.session_state["val_tp2_price"] = 216.0
 
     col_input, col_output = st.columns([1.1, 1.9], gap="large")
 
-    # --------------------------------------------------------------------------
-    # KOLOM 1: CONTROL PARAMETERS
-    # --------------------------------------------------------------------------
     with col_input:
-        st.subheader("⚙️ SYSTEM CONTROLS")
+        st.subheader("⚙️ CONTROL PARAMETERS")
 
-        with st.expander("CAPITAL & TRADER PROFILE", expanded=True):
-            capital = st.number_input(
-                "Total Capital (IDR)",
-                min_value=1_000_000,
-                value=100_000_000,
-                step=5_000_000,
-                format="%d",
-                key="mm_capital_input",
-            )
-            trading_style = st.selectbox(
-                "Trading Strategy Profile",
-                list(PROFILE_RULES.keys()),
-                index=1,
-                key="mm_style_select",
-            )
-            risk_pct = st.slider(
-                "Max Risk Tolerance per Trade (%)",
-                min_value=0.25,
-                max_value=10.0,
-                value=1.0,
-                step=0.25,
-                key="mm_risk_slider",
-            )
-            rule = PROFILE_RULES[trading_style]
-            st.caption(f"*{rule['desc']}*")
+        capital = st.number_input(
+            "Total Capital (IDR)",
+            min_value=1_000_000,
+            value=100_000_000,
+            step=5_000_000,
+            key="mm_cap",
+        )
+        trading_style = st.selectbox(
+            "Trading Strategy Profile",
+            list(PROFILE_RULES.keys()),
+            index=1,
+            key="mm_style",
+        )
+        risk_pct = st.slider(
+            "Max Risk Tolerance per Trade (%)",
+            min_value=0.25,
+            max_value=10.0,
+            value=1.0,
+            step=0.25,
+            key="mm_risk",
+        )
 
-        with st.expander("TRADE EXECUTION SETUP", expanded=True):
-            ticker_input = st.text_input(
-                "Ticker Code",
-                value="COCO",
-                key="mm_raw_ticker_input",
-                placeholder="COCO / BBCA",
-            ).strip()
+        st.markdown("---")
+        st.subheader("🎯 TRADE SETUP")
 
-            clean_ticker, full_ticker = format_ticker_symbol(ticker_input)
+        c_entry, c_sl = st.columns(2)
+        with c_entry:
+            entry_price = st.number_input("Entry Price", min_value=1.0, value=125.0, key="mm_entry")
+        with c_sl:
+            sl_price = st.number_input("Stop Loss (SL)", min_value=1.0, value=120.0, key="mm_sl")
 
-            st.caption("Trade Strategy Type")
-            c_chk1, c_chk2 = st.columns(2)
-            with c_chk1:
-                chk_bow = st.checkbox("BOW (Buy on Weakness)", value=True, key="chk_strat_bow")
-            with c_chk2:
-                chk_bob = st.checkbox("BOB (Buy on Breakout)", value=False, key="chk_strat_bob")
+        c_tp1, c_tp2 = st.columns(2)
+        with c_tp1:
+            tp1_price = st.number_input("Target Price 1", min_value=1.0, value=151.0, key="mm_tp1")
+        with c_tp2:
+            tp2_price = st.number_input("Target Price 2", min_value=1.0, value=216.0, key="mm_tp2")
 
-            active_plan_type = "BOW" if chk_bow else "BOB"
+        fee_buy_pct = 0.15
+        fee_sell_pct = 0.25
 
-            if st.button("Sync with Trade Planner", use_container_width=True, key="btn_sync_tp"):
-                sync_trade_plan_action(full_ticker, active_plan_type, clean_ticker)
-
-            # Form Entry Inputs
-            c_entry, c_sl = st.columns(2)
-            with c_entry:
-                entry_price = st.number_input(
-                    "Entry Price",
-                    min_value=1.0,
-                    step=1.0,
-                    value=st.session_state["val_entry_price"],
-                    key="val_entry_price",
-                )
-            with c_sl:
-                sl_price = st.number_input(
-                    "Stop Loss (SL)",
-                    min_value=1.0,
-                    step=1.0,
-                    value=st.session_state["val_sl_price"],
-                    key="val_sl_price",
-                )
-
-            c_tp1, c_tp2 = st.columns(2)
-            with c_tp1:
-                tp1_price = st.number_input(
-                    "Target Price 1",
-                    min_value=1.0,
-                    step=1.0,
-                    value=st.session_state["val_tp1_price"],
-                    key="val_tp1_price",
-                )
-            with c_tp2:
-                tp2_price = st.number_input(
-                    "Target Price 2",
-                    min_value=1.0,
-                    step=1.0,
-                    value=st.session_state["val_tp2_price"],
-                    key="val_tp2_price",
-                )
-
-        with st.expander("BROKERAGE FEES", expanded=False):
-            fee_buy_pct = st.number_input(
-                "Buy Fee (%)",
-                min_value=0.0,
-                value=0.15,
-                step=0.01,
-                key="mm_fee_buy",
-            )
-            fee_sell_pct = st.number_input(
-                "Sell Fee (%)",
-                min_value=0.0,
-                value=0.25,
-                step=0.01,
-                key="mm_fee_sell",
-            )
-
-    # --------------------------------------------------------------------------
-    # KOLOM 2: ANALYTICS OUTPUT
-    # --------------------------------------------------------------------------
     with col_output:
-        st.subheader("📊 POSITION SIZING ANALYTICS")
+        st.subheader("📊 POSITION SIZING RESULT")
 
         engine = MoneyManagementEngine(
             capital=capital,
@@ -367,29 +247,10 @@ def render_page_money_management():
 
         res = engine.calculate()
 
-        # Display Top Metrics
         m1, m2, m3 = st.columns(3)
-        with m1:
-            st.metric(
-                label="RECOMMENDED SIZE",
-                value=f"{res['final_lot']:,} LOT",
-                delta=f"{res['final_shares']:,} Lembar",
-                delta_color="off",
-            )
-        with m2:
-            st.metric(
-                label="TOTAL BUY VALUE",
-                value=f"Rp {res['total_buy_value']:,.0f}",
-                delta=f"Alloc: {res['capital_alloc_pct']:.1f}% Modal",
-                delta_color="off",
-            )
-        with m3:
-            st.metric(
-                label="RISK / REWARD",
-                value=f"1 : {res['rrr_tp1']:.2f}",
-                delta=res["rrr_status"],
-                delta_color="normal" if res["rrr_tp1"] >= 1.5 else "inverse",
-            )
+        m1.metric("RECOMMENDED SIZE", f"{res['final_lot']:,} LOT", f"{res['final_shares']:,} Lembar")
+        m2.metric("TOTAL BUY VALUE", f"Rp {res['total_buy_value']:,.0f}", f"Alloc: {res['capital_alloc_pct']:.1f}% Modal")
+        m3.metric("RISK / REWARD", f"1 : {res['rrr_tp1']:.2f}", res["rrr_status"])
 
         if res["is_capped"]:
             st.info(
@@ -397,7 +258,6 @@ def render_page_money_management():
                 f"namun dibatasi maksimal **{res['final_lot']:,} Lot** sesuai batas profil {trading_style} ({res['max_alloc_pct']}%)."
             )
 
-        # Partial Profit Plan
         st.markdown("---")
         st.subheader("🎯 PARTIAL PROFIT TAKING PLAN")
         sc1, sc2 = st.columns(2)
@@ -408,65 +268,9 @@ def render_page_money_management():
             st.markdown("##### TAHAP 1: SELL 50% @ TP1")
             st.write(f"• Size: **{tp1_data['lot']:,} Lot** @ **Rp {tp1_data['target_price']:,.0f}**")
             st.write(f"• Est. Profit: **+Rp {tp1_data['estimated_profit']:,.0f}**")
-            st.caption(f"💡 {tp1_data['action']}")
 
         with sc2:
             st.markdown("##### TAHAP 2: SELL 50% @ TP2")
             st.write(f"• Size: **{tp2_data['lot']:,} Lot** @ **Rp {tp2_data['target_price']:,.0f}**")
             st.write(f"• Est. Profit: **+Rp {tp2_data['estimated_profit']:,.0f}**")
             st.write(f"• Total Profit Est: **+Rp {res['partial_tp']['total_potential_profit']:,.0f}**")
-
-        # Visualizers (Plotly)
-        st.markdown("---")
-        st.subheader("📈 RISK & PORTFOLIO EXPOSURE")
-        v1, v2 = st.columns(2)
-
-        with v1:
-            fig_gauge = go.Figure(
-                go.Indicator(
-                    mode="gauge+number",
-                    value=res["actual_risk_pct"],
-                    number={"suffix": "%"},
-                    title={"text": "Actual Portfolio Risk"},
-                    domain={"x": [0, 1], "y": [0, 1]},
-                    gauge={
-                        "axis": {"range": [0, max(10.0, risk_pct * 1.5)]},
-                        "bar": {"color": "#00F3FF"},
-                        "steps": [
-                            {"range": [0, risk_pct], "color": "#1b263b"},
-                            {"range": [risk_pct, 10.0], "color": "#FF007F"},
-                        ],
-                    },
-                )
-            )
-            fig_gauge.update_layout(
-                height=220,
-                margin=dict(l=20, r=20, t=30, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                font={"color": "#FFFFFF"},
-            )
-            st.plotly_chart(fig_gauge, use_container_width=True)
-
-        with v2:
-            fig_donut = go.Figure(
-                data=[
-                    go.Pie(
-                        labels=[f"Posisi {clean_ticker}", "Cash Off"],
-                        values=[
-                            res["exposure"]["used_capital"],
-                            res["exposure"]["cash_remaining"],
-                        ],
-                        hole=0.6,
-                        marker_colors=["#00F3FF", "#1b263b"],
-                    )
-                ]
-            )
-            fig_donut.update_layout(
-                height=220,
-                title={"text": "Capital Allocation"},
-                margin=dict(l=10, r=10, t=30, b=10),
-                showlegend=True,
-                paper_bgcolor="rgba(0,0,0,0)",
-                font={"color": "#FFFFFF"},
-            )
-            st.plotly_chart(fig_donut, use_container_width=True)

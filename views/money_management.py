@@ -11,22 +11,23 @@ except ImportError:
 
 
 # ==============================================================================
-# CYBERPUNK COLOR INJECTION (Cyan untuk System Controls, Magenta untuk Analytics)
+# CYBERPUNK COLOR INJECTION (Cyan untuk Sisi Kiri, Magenta untuk Sisi Kanan)
 # ==============================================================================
 def inject_custom_theme():
     st.markdown(
         """
         <style>
-            /* 1. Warna Cyan untuk System Controls (Sebelah Kiri) */
-            h3:has(+ div [data-testid="stExpander"]),
+            /* 1. Warna Cyan untuk System Controls (Sisi Kiri) - Termasuk Judul & Teks */
+            div[data-testid="column"]:nth-of-type(1) h1,
+            div[data-testid="column"]:nth-of-type(1) h2,
+            div[data-testid="column"]:nth-of-type(1) h3,
+            div[data-testid="column"]:nth-of-type(1) h4,
+            div[data-testid="column"]:nth-of-type(1) h5,
+            div[data-testid="column"]:nth-of-type(1) p,
+            div[data-testid="column"]:nth-of-type(1) span,
+            div[data-testid="column"]:nth-of-type(1) label,
             .stExpander summary span,
-            .stExpander p,
-            label.st-bp,
-            div[data-baseweb="form-control"] label,
-            .stTextInput label,
-            .stNumberInput label,
-            .stSelectbox label,
-            .stSlider label {
+            .stExpander p {
                 color: #00FFFF !important;
             }
             
@@ -46,9 +47,11 @@ def inject_custom_theme():
                 color: #00FFFF !important;
             }
 
-            /* 2. Warna Magenta untuk Sisi Kanan (Position Sizing Analytics & Kontainer Hasil) */
+            /* 2. Warna Magenta untuk Sisi Kanan (Position Sizing Analytics & Konten) */
+            div[data-testid="column"]:nth-of-type(2) h1,
             div[data-testid="column"]:nth-of-type(2) h2,
             div[data-testid="column"]:nth-of-type(2) h3,
+            div[data-testid="column"]:nth-of-type(2) h4,
             div[data-testid="column"]:nth-of-type(2) h5,
             div[data-testid="column"]:nth-of-type(2) p,
             div[data-testid="column"]:nth-of-type(2) span,
@@ -56,17 +59,20 @@ def inject_custom_theme():
                 color: #FF00FF !important;
             }
 
-            /* Mengubah Kotak Metrik di Sebelah Kanan menjadi Border Magenta */
+            /* Border Kotak Metrik di Sebelah Kanan */
             div[data-testid="column"]:nth-of-type(2) div[data-testid="stMetric"] {
                 border: 1px solid #FF00FF !important;
                 padding: 10px;
                 border-radius: 5px;
             }
 
-            /* Mengubah Kotak Warning/Peringatan yang tadinya Kuning menjadi Magenta */
+            /* 3. Background dan Border Kotak Peringatan (Warning) Berubah Jadi Magenta */
             div[data-testid="stAlert"] {
-                background-color: rgba(255, 0, 255, 0.1) !important;
+                background-color: #2b002b !important; /* Magenta gelap sebagai background */
                 border: 1px solid #FF00FF !important;
+                color: #FF00FF !important;
+            }
+            div[data-testid="stAlert"] p {
                 color: #FF00FF !important;
             }
         </style>
@@ -176,16 +182,15 @@ def render_page_money_management():
         st.subheader("System Controls")
 
         with st.expander("Capital & Trader Profile", expanded=True):
-            # Menggunakan text_input agar bebas tanpa titik, koma, atau IDR
-            raw_capital_str = st.text_input(
+            # Menggunakan number_input kembali agar ada pemisah titik ribuan otomatis
+            capital = st.number_input(
                 "Total Capital (IDR)",
-                value="100000000",
-                key="mm_capital_text_input"
+                min_value=1_000_000,
+                value=100_000_000,
+                step=5_000_000,
+                format="%d",
+                key="mm_capital_input",
             )
-            try:
-                capital = float(raw_capital_str.replace(".", "").replace(",", "").strip())
-            except ValueError:
-                capital = 100000000.0
 
             trading_style = st.selectbox(
                 "Trading Strategy Profile",

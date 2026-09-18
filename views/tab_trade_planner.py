@@ -85,7 +85,7 @@ def process_single_ticker(ticker_code: str):
                 "TP 1": int(tp1) if pd.notnull(tp1) else 0,
                 "TP 2": int(tp2) if pd.notnull(tp2) else 0,
                 "Potential Gain": f"+{pot_gain_tp1}%",
-                "Potential Gain TP2": f"+{pot_gain_tp2}%",
+                "Potential Gain TP2": f"+{pot_gain_tp2}%",  # <-- Kolom ini yang sebelumnya kurang
                 "SL Risk": f"-{pot_risk}%",
                 "Risk-Reward Ratio": f"1 : {rr_val}",
                 "RR_Val": float(rr_val),

@@ -149,31 +149,58 @@ def clear_cache(cache_key):
     st.toast("Data Cache Cleared", icon="🧹")
 
 
+import json
+
 def add_tickers_to_watchlist(symbols_list):
-    """Menambahkan list ticker terpilih ke file/session watchlist.py"""
-    watchlist_file = os.path.join("data", "watchlist.txt") # Sesuaikan path file watchlist jika ada
-    # Fallback ke root jika folder data tidak ada
-    target_file = watchlist_file if os.path.exists("data") else "watchlist.txt"
+    """Menambahkan list ticker terpilih ke file JSON watchlist_storage.json (sinkron dengan watchlist.py)"""
+    storage_file = "watchlist_storage.json"
     
     try:
-        existing = set()
-        if os.path.exists(target_file):
-            with open(target_file, "r", encoding="utf-8") as f:
-                existing = {line.strip().upper() for line in f if line.strip()}
+        # 1. Muat data JSON yang ada (atau buat list kosong jika belum ada)
+        watchlist_data = []
+        if os.path.exists(storage_file):
+            try:
+                with open(storage_file, "r", encoding="utf-8") as f:
+                    watchlist_data = json.load(f)
+            except Exception:
+                watchlist_data = []
+        
+        # 2. Ambil daftar ticker yang sudah ada untuk mencegah duplikasi
+        existing_tickers = set()
+        for item in watchlist_data:
+            if isinstance(item, str):
+                existing_tickers.add(item.upper())
+            elif isinstance(item, dict):
+                t = item.get("Ticker", "")
+                if t:
+                    existing_tickers.add(t.upper())
         
         added_count = 0
-        with open(target_file, "a", encoding="utf-8") as f:
-            for sym in symbols_list:
-                clean_sym = sym.strip().upper()
-                if clean_sym not in existing:
-                    f.write(f"{clean_sym}\n")
-                    existing.add(clean_sym)
-                    added_count += 1
+        active_screener_name = st.session_state.get("active_screener_name", "Trade Planner Screener")
+
+        # 3. Masukkan ticker baru dengan format struktur dictionary JSON watchlist.py
+        for sym in symbols_list:
+            clean_sym = sym.strip().upper()
+            formatted = clean_sym if clean_sym.endswith(".JK") else f"{clean_sym}.JK"
+            
+            if formatted not in existing_tickers and clean_sym not in existing_tickers:
+                watchlist_data.append({
+                    "Ticker": formatted,
+                    "Notes": active_screener_name,
+                    "Target Price": 0
+                })
+                existing_tickers.add(formatted)
+                existing_tickers.add(clean_sym)
+                added_count += 1
         
+        # 4. Simpan kembali ke file JSON
         if added_count > 0:
+            with open(storage_file, "w", encoding="utf-8") as f:
+                json.dump(watchlist_data, f, indent=4)
             st.toast(f"Berhasil menambahkan {added_count} saham ke Watchlist!", icon="⭐")
         else:
             st.toast("Saham terpilih sudah ada di dalam Watchlist.", icon="ℹ️")
+            
     except Exception as e:
         st.error(f"Gagal menyimpan ke watchlist: {e}")
 

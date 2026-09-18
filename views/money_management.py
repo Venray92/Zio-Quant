@@ -17,34 +17,33 @@ def inject_cyan_theme():
     st.markdown(
         """
         <style>
-            /* Warna Teks & Judul spesifik di area System Controls (Kolom Input / Expander) menjadi Cyan */
-            div[data-testid="column"]:nth-of-type(1) h1, 
-            div[data-testid="column"]:nth-of-type(1) h2, 
-            div[data-testid="column"]:nth-of-type(1) h3, 
-            div[data-testid="column"]:nth-of-type(1) h4, 
-            div[data-testid="column"]:nth-of-type(1) h5, 
-            div[data-testid="column"]:nth-of-type(1) h6, 
-            div[data-testid="column"]:nth-of-type(1) .stMarkdown p, 
-            div[data-testid="column"]:nth-of-type(1) label,
-            div[data-testid="column"]:nth-of-type(1) .streamlit-expanderHeader {
+            /* 1. Mengubah warna teks judul, label, dan expander di area System Controls */
+            h3:has(+ div [data-testid="stExpander"]),
+            .stExpander summary span,
+            .stExpander p,
+            label.st-bp,
+            div[data-baseweb="form-control"] label,
+            .stTextInput label,
+            .stNumberInput label,
+            .stSelectbox label,
+            .stSlider label {
                 color: #00FFFF !important;
             }
             
-            /* Border pada Input, Selectbox, dan Textbox di area System Controls menjadi Cyan */
-            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="input"] > div, 
-            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="select"] > div, 
-            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="base-input"] {
-                border-color: #00FFFF !important;
-            }
-            
-            /* Border pada Expander (Capital & Trader Profile, Trade Execution, Brokerage Fees) */
-            div[data-testid="column"]:nth-of-type(1) .streamlit-expanderHeader {
+            /* 2. Mengubah border pada Expander, Input, Selectbox, dan Textbox menjadi Cyan */
+            .stExpander {
                 border: 1px solid #00FFFF !important;
                 border-radius: 4px;
             }
             
-            /* Border dan Teks pada Tombol di dalam System Controls */
-            div[data-testid="column"]:nth-of-type(1) .stButton > button {
+            div[data-baseweb="input"] > div, 
+            div[data-baseweb="select"] > div, 
+            div[data-baseweb="base-input"] {
+                border-color: #00FFFF !important;
+            }
+            
+            /* 3. Mengubah border dan teks pada Tombol di area input */
+            .stButton > button {
                 border: 1px solid #00FFFF !important;
                 color: #00FFFF !important;
             }
@@ -52,7 +51,6 @@ def inject_cyan_theme():
         """,
         unsafe_allow_html=True,
     )
-
 
 # ==============================================================================
 # 1. STRATEGY RULES CONSTANTS

@@ -1,70 +1,76 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap');
+import os
+import streamlit as st
 
-/* Global Font & Theme Override */
-html, body, [class*="css"] {
-    font-family: 'Fira Code', monospace, sans-serif !important;
-    background-color: #050811 !important;
-    color: #00F0FF !important;
-}
+# Fungsi untuk memuat file CSS khusus Watchlist
+def load_watchlist_css(css_file_path):
+    if os.path.exists(css_file_path):
+        with open(css_file_path, "r") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    else:
+        st.warning(f"File CSS Watchlist tidak ditemukan di {css_file_path}, menggunakan fallback default.")
 
-/* Cyberpunk Headers */
-h1, h2, h3, h4, h5, h6 {
-    color: #00F0FF !important;
-    text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
-    font-weight: 800 !important;
-    letter-spacing: 1.5px;
-}
+def render_watchlist():
+    # Load Cyberpunk Watchlist CSS
+    load_watchlist_css("assets/style-watchlist.css")
+    
+    st.markdown("## 📡 CYBERPUNK WATCHLIST & RADAR")
+    st.markdown("Pantau pergerakan aset dan status sinyal teknikal secara *real-time*.")
+    
+    # Form Input untuk Menambah Aset Baru
+    with st.form("add_watchlist_form"):
+        st.markdown("### ➕ Tambah Aset ke Radar")
+        
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            symbol_input = st.text_input("Simbol Aset (Cth: BBCA, BTCUSD)", value="")
+        with col_f2:
+            target_price = st.number_input("Target Harga ($ / Rp)", value=0.0, step=100.0)
+        with col_f3:
+            category = st.selectbox("Kategori Sektor", ["Crypto", "Saham US", "Saham IDX", "Forex"])
+            
+        submitted = st.form_submit_button("Tambahkan ke Watchlist", type="primary")
+        if submitted:
+            if symbol_input:
+                st.success(f"Aset {symbol_input.upper()} berhasil ditambahkan ke radar pemantauan!")
+            else:
+                st.error("Simbol aset tidak boleh kosong.")
 
-/* Neon Buttons (Standard) */
-div.stButton > button {
-    background-color: #0A0E1A !important;
-    color: #00F0FF !important;
-    border: 1px solid #00F0FF !important;
-    border-radius: 4px !important;
-    font-weight: 700 !important;
-    transition: all 0.3s ease-in-out !important;
-    text-transform: uppercase;
-    box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
-}
+    st.markdown("---")
+    st.markdown("### 📊 ACTIVE WATCHLIST RADAR")
+    
+    # Simulasi Tabel Watchlist Bergaya Cyberpunk
+    watchlist_data = [
+        {"Symbol": "BBCA.JK", "Price": "10,250", "Change": "+1.48%", "Status": "BULLISH DIV", "Action": "ACCUMULATE"},
+        {"Symbol": "BTC/USD", "Price": "68,450.00", "Change": "-0.65%", "Status": "CONSOLIDATING", "Action": "WAIT"},
+        {"Symbol": "NVDA", "Price": "890.12", "Change": "+3.20%", "Status": "BREAKOUT", "Action": "STRONG BUY"},
+    ]
+    
+    for item in watchlist_data:
+        # Membuat kontainer list mirip card
+        with st.container():
+            col1, col2, col3, col4, col5 = st.columns([1.5, 1.5, 1.5, 2, 1.5])
+            
+            with col1:
+                st.markdown(f"**{item['Symbol']}**")
+            with col2:
+                st.markdown(f"`{item['Price']}`")
+            with col3:
+                change_color = "#00FF66" if "+" in item['Change'] else "#FF3366"
+                st.markdown(f"<span style='color: {change_color}; font-weight: bold;'>{item['Change']}</span>", unsafe_allow_html=True)
+            with col4:
+                st.markdown(f"<code style='background: rgba(0,240,255,0.1); padding: 2px 6px; border-radius: 3px;'>{item['Status']}</code>", unsafe_allow_html=True)
+            with col5:
+                if st.button("Hapus", key=f"del_{item['Symbol']}"):
+                    st.toast(f"Aset {item['Symbol']} dihapus dari radar.", icon="🗑️")
+        
+        st.markdown("<hr style='margin: 5px 0px; border-color: #005577;'>", unsafe_allow_html=True)
 
-div.stButton > button:hover {
-    background-color: #00F0FF !important;
-    color: #050811 !important;
-    box-shadow: 0 0 15px #00F0FF, 0 0 25px #00F0FF !important;
-}
+    # Contoh Expander Cyberpunk
+    with st.expander("🛠️ Konfigurasi Alarm / Webhook Sinyal"):
+        st.markdown("""
+        * **Telegram Webhook**: Aktif (Menerima notifikasi otomatis saat kondisi *Breakout* tercapai).
+        * **Auto-Scan Interval**: Setiap 15 Menit sesi market berjalan.
+        """)
 
-/* Primary Button (Diubah dari Pink ke Solid Cyan Glow) */
-div.stButton > button[kind="primary"] {
-    background-color: #00F0FF !important;
-    color: #050811 !important;
-    border: 1px solid #00F0FF !important;
-    font-weight: 800 !important;
-    box-shadow: 0 0 12px rgba(0, 240, 255, 0.6) !important;
-}
-
-div.stButton > button[kind="primary"]:hover {
-    background-color: #80F7FF !important;
-    color: #050811 !important;
-    box-shadow: 0 0 20px #00F0FF, 0 0 35px #00F0FF !important;
-}
-
-/* Cyber Inputs & Popovers */
-div[data-baseweb="input"] {
-    background-color: #0A0E1A !important;
-    border: 1px solid #00F0FF !important;
-    color: #00F0FF !important;
-}
-
-/* Expanders & Container Borders (Diubah dari Ungu ke Dark Cyan/Blue) */
-div[data-aria-expanded="true"], div[data-aria-expanded="false"] {
-    background-color: #0A0E1A !important;
-    border: 1px solid #005577 !important;
-}
-
-/* Toast Styling */
-div[data-baseweb="toast"] {
-    background-color: #0A0E1A !important;
-    border: 1px solid #00FF66 !important;
-    color: #00FF66 !important;
-    box-shadow: 0 0 10px #00FF66;
-}
+if __name__ == "__main__":
+    render_watchlist()

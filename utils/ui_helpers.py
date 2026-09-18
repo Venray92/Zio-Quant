@@ -5,21 +5,13 @@ import streamlit.components.v1 as components
 from engines.trade_planner import TradePlanner
 
 
-# ==============================================================================
-# FUNGSI 1: INJECT CSS KUSTOM (Menyelesaikan Error app.py)
-# ==============================================================================
 def inject_custom_css():
-    """Mengimpor style CSS eksternal dari assets/style.css"""
     css_path = os.path.join("assets", "style.css")
-    
     if os.path.exists(css_path):
         with open(css_path, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
-# ==============================================================================
-# FUNGSI 2: HELPER FORMAT ANGKA UNTUK TAMPILAN
-# ==============================================================================
 def _format_val(val):
     if pd.isna(val) or val is None or val == "" or val == "-":
         return "-"
@@ -30,9 +22,6 @@ def _format_val(val):
         return str(val)
 
 
-# ==============================================================================
-# FUNGSI 3: HELPER PEMBERSIH ANGKA UNTUK KALKULASI
-# ==============================================================================
 def _clean_num(val):
     if pd.isna(val) or val is None or val == "" or val == "-":
         return None
@@ -44,9 +33,6 @@ def _clean_num(val):
         return None
 
 
-# ==============================================================================
-# FUNGSI 4: KALKULASI RISK TO REWARD RATIO (R:R)
-# ==============================================================================
 def calculate_rr_ratios(row):
     buy_val = _clean_num(
         row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None)))
@@ -60,26 +46,20 @@ def calculate_rr_ratios(row):
 
     if buy_val and sl_val and (buy_val > sl_val):
         risk = buy_val - sl_val
-        
         if tp1_val and tp1_val > buy_val:
             rr_tp1_str = f"1 : {((tp1_val - buy_val) / risk):.1f}"
-            
         if tp2_val and tp2_val > buy_val:
             rr_tp2_str = f"1 : {((tp2_val - buy_val) / risk):.1f}"
 
     return rr_tp1_str, rr_tp2_str
 
 
-# ==============================================================================
-# FUNGSI 5: RENDER INLINE TRADE PLANNER (KOMPONEN UI UTAMA)
-# ==============================================================================
 def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screener"):
     st.markdown("---")
 
     if "watchlist" not in st.session_state:
         st.session_state["watchlist"] = []
 
-    # 1. RENDER HEADER FUTURISTIK MENGGUNAKAN HTML/CSS
     st.markdown(
         f"""
         <div class="live-plan-header">
@@ -94,7 +74,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
         unsafe_allow_html=True,
     )
 
-    # 2. DROPDOWN PERIODE & BUTTON ADD TO WATCHLIST
     col_select, _, col_btn = st.columns([1, 2, 1], vertical_alignment="bottom")
 
     with col_select:
@@ -107,7 +86,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
 
     with col_btn:
         clean_ticker_code = ticker_symbol.upper().strip()
-
         existing_list = [
             x.get("Ticker", x) if isinstance(x, dict) else str(x)
             for x in st.session_state["watchlist"]
@@ -134,14 +112,12 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                 st.session_state["watchlist"].append(
                     {"Ticker": clean_ticker_code, "Notes": active_source}
                 )
-
                 st.toast(
                     f"🚀 **{clean_ticker_code}** ({active_source}) berhasil ditambahkan ke Watchlist!",
                     icon="📌",
                 )
                 st.rerun()
 
-    # 3. EMBED WIDGET CHART TRADINGVIEW INTERAKTIF DALAM EXPANDER (DEFAULT DITUTUP)
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
     )
@@ -175,7 +151,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
         </div>
         """
         components.html(tv_html, height=560)
-
         st.markdown(
             "<div style='font-size: 11px; color: #8B949E; margin-bottom: 10px; font-weight: 500;'>"
             "💡 *Harap lakukan screenshot chart jika Anda membuat tarikan garis/analisa visual.*"
@@ -183,7 +158,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
             unsafe_allow_html=True,
         )
 
-    # 4. KARTU REKOMENDASI TRADE PLAN
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
             planner = TradePlanner(
@@ -230,27 +204,15 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                         "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
                     )
 
-                    # Label Expander Berdasarkan Suggestion / Other
                     is_suggestion = (idx == 0)
                     prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
                     expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
 
-                    copyable_text = f"""=== TRADE PLAN: {ticker_symbol} ===
-Strategy: {plan_type}
-Grade: {grade}
-Score: {score}/100
-Area Buy: {area_buy}
-Stop Loss: {stop_loss}
-Target 1 (TP1): {tp1}
-Target 2 (TP2): {tp2}
-Status Posisi: {posisi}
-==============================="""
+                    copyable_text = f"=== TRADE PLAN: {ticker_symbol} ===\\nStrategy: {plan_type}\\nGrade: {grade}\\nScore: {score}/100\\nArea Buy: {area_buy}\\nStop Loss: {stop_loss}\\nTarget 1 (TP1): {tp1}\\nTarget 2 (TP2): {tp2}\\nStatus Posisi: {posisi}\\n==============================="
 
                     with st.expander(expander_title, expanded=False):
-                        
                         unique_btn_id = f"copy_btn_{key_suffix}_{idx}"
                         
-                        # Komponen HTML untuk tombol copy interaktif di sebelah score
                         card_html = f"""
                         <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
@@ -300,7 +262,7 @@ Status Posisi: {posisi}
                                 setTimeout(function() {{
                                     btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
                                     btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #38BDF8 100%)";
-                                }, 2000);
+                                }}, 2000);
                             }}).catch(function(err) {{
                                 console.error('Gagal menyalin text: ', err);
                             }});

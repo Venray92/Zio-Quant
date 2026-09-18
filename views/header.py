@@ -15,26 +15,29 @@ def get_logo_base64(file_path="logo.jpg"):
 def render_header():
     """Menampilkan Header Bar (Logo di kiri, CHOOSE SCREENER di kanan)."""
 
-    # Inject CSS khusus untuk Popover & Styling Tombol Aktif (Cyberpunk Neon)
+    # Inject CSS khusus untuk Popover & Styling Tombol Aktif (Cyberpunk Neon & Hijau Permanen)
     st.markdown(
         """
         <style>
-        /* Styling Utama Tombol Popover CHOOSE SCREENER */
+        /* Tombol CHOOSE SCREENER Selalu Menyala Hijau Neon Permanen */
         [data-testid="stPopover"] > button {
             background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
-            border: 1.5px solid #00F3FF !important;
-            color: #00F3FF !important;
+            border: 1.5px solid #00FF66 !important;
+            color: #00FF66 !important;
             border-radius: 8px !important;
             font-family: 'Share Tech Mono', monospace !important;
             font-weight: 700 !important;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.25) !important;
+            box-shadow: 0 0 12px rgba(0, 255, 102, 0.4) !important;
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.6) !important;
             transition: all 0.3s ease !important;
         }
+        
         [data-testid="stPopover"] > button:hover {
-            background: rgba(0, 243, 255, 0.2) !important;
+            background: rgba(0, 255, 102, 0.2) !important;
             color: #ffffff !important;
-            border-color: #FF007F !important;
-            box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
+            border-color: #00FF66 !important;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.8) !important;
+            text-shadow: 0 0 10px #ffffff !important;
         }
 
         /* Styling Tombol di dalam Popover Menu (Default) */
@@ -155,33 +158,10 @@ def render_welcome():
             <p style="color: #8A8B98; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
                 Pilih strategi screening saham IHSG di menu <strong style="color:#00F3FF;">CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.
             </p>
-            <div style="display: inline-block; background: rgba(0, 243, 255, 0.05); border: 1px solid #00F3FF; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
-                STATUS: <span style="color: #00F3FF; font-weight: bold; text-shadow: 0 0 5px #00F3FF;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT]</span>
+            <div style="display: inline-block; background: rgba(0, 255, 102, 0.05); border: 1px solid #00FF66; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
+                STATUS: <span style="color: #00FF66; font-weight: bold; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span> | ENGINE: <span style="color: #00FF66; font-weight: bold;">[QUANT]</span>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-<style>
-        /* Tombol CHOOSE SCREENER Selalu Menyala Hijau Neon Permanen */
-        [data-testid="stPopover"] > button {
-            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
-            border: 1.5px solid #00FF66 !important;
-            color: #00FF66 !important;
-            border-radius: 8px !important;
-            font-family: 'Share Tech Mono', monospace !important;
-            font-weight: 700 !important;
-            box-shadow: 0 0 12px rgba(0, 255, 102, 0.4) !important;
-            text-shadow: 0 0 8px rgba(0, 255, 102, 0.6) !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        [data-testid="stPopover"] > button:hover {
-            background: rgba(0, 255, 102, 0.2) !important;
-            color: #ffffff !important;
-            border-color: #00FF66 !important;
-            box-shadow: 0 0 20px rgba(0, 255, 102, 0.8) !important;
-            text-shadow: 0 0 10px #ffffff !important;
-        }
-        </style>

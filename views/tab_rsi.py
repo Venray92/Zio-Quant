@@ -384,13 +384,13 @@ def render_tab_rsi():
 
         has_results = "rsi_stats" in st.session_state
 
-     if has_results:
+    if has_results:
             st.markdown(
                 '<div class="cyber-section-label">⚙ CHOOSE SCREENER MODE</div>',
                 unsafe_allow_html=True,
             )
 
-            # --- BAGIAN INI YANG DIUBAH (DIBAGI JADI 2 KOLOM) ---
+            # --- BAGIAN KOLOM DROPDOWN & TOMBOL EXPORT ---
             col_filter, col_export = st.columns([1, 2])
 
             with col_filter:
@@ -405,25 +405,25 @@ def render_tab_rsi():
                 )
             
             with col_export:
-                # Tombol Export di sebelah kanan dropdown
-                if st.button("📥 Export Semua Saham"):
-                    # Tentukan dataframe aktif yang akan di-export
-                    df_export = (
-                        st.session_state.get("df_rsi_bullish", pd.DataFrame())
-                        if screener_mode == "Bullish"
-                        else st.session_state.get("df_rsi_bearish", pd.DataFrame())
+                # Menyiapkan data yang aktif untuk di-export langsung
+                df_export = (
+                    st.session_state.get("df_rsi_bullish", pd.DataFrame())
+                    if screener_mode == "Bullish"
+                    else st.session_state.get("df_rsi_bearish", pd.DataFrame())
+                )
+                
+                if not df_export.empty:
+                    csv_data = df_export.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label=f"📥 Export {screener_mode} CSV",
+                        data=csv_data,
+                        file_name=f"screening_{screener_mode.lower()}.csv",
+                        mime="text/csv",
+                        use_container_width=True
                     )
-                    if not df_export.empty:
-                        csv_data = df_export.to_csv(index=False).encode('utf-8')
-                        st.download_button(
-                            label="Klik Disini untuk Download CSV",
-                            data=csv_data,
-                            file_name=f"hasil_screening_{screener_mode.lower()}.csv",
-                            mime="text/csv",
-                        )
-                    else:
-                        st.warning("Tidak ada data untuk di-export.")
-            # ----------------------------------------------------
+                else:
+                    st.button("📥 Export Kosong", disabled=True, use_container_width=True)
+            # ---------------------------------------------
 
             st.session_state["active_rsi_type"] = screener_mode
 
@@ -440,7 +440,7 @@ def render_tab_rsi():
             )
 
             if not df_target.empty:
-                # BUNGKUS DENGAN SCROLLABLE CONTAINER (800px sesuai kode Anda)
+                # BUNGKUS DENGAN SCROLLABLE CONTAINER (800px)
                 with st.container(height=800, border=False):
                     for idx, row in df_target.iterrows():
                         ticker = str(row.get("Ticker", row.get("Saham", "")))

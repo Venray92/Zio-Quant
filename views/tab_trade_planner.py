@@ -257,7 +257,7 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
         if is_single_mode and len(strategies) > 1:
             st.write("")
             # Mengatur ukuran kolom agar dropdown kecil dan berada di sebelah kiri
-            col_lbl, col_sel, col_space = st.columns([1.1, 1.8, 4.5], vertical_alignment="center")
+            col_lbl, col_sel, col_space = st.columns([1.0, 1.2, 5.5], vertical_alignment="center")
             with col_lbl:
                 st.markdown(f"<div style='font-weight:700; color:#00F3FF; font-size:0.95rem;'>Pilih Strategi:</div>", unsafe_allow_html=True)
             with col_sel:

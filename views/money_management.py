@@ -2,6 +2,7 @@ import math
 import os
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Safe import TradePlanner dari modul backend
 try:
@@ -15,7 +16,6 @@ except ImportError:
 # ==============================================================================
 def inject_cyberpunk_theme():
     """Membaca file CSS eksternal dari folder assets dan memasangnya ke Streamlit."""
-    # Arahkan path ke dalam folder assets
     css_file_path = os.path.join("assets", "style-money-management.css")
 
     if os.path.exists(css_file_path):
@@ -96,7 +96,6 @@ def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> boo
 # ==============================================================================
 def render_page_money_management():
     """Render utama Halaman Money Management."""
-    # Eksekusi Pemaksaan CSS Cyberpunk Eksternal
     inject_cyberpunk_theme()
 
     # Header Utama
@@ -148,14 +147,16 @@ def render_page_money_management():
             st.session_state.setdefault("input_tp1_price", 151.0)
             st.session_state.setdefault("input_tp2_price", 216.0)
 
-            raw_ticker_default = (
-                st.session_state.get("mm_ticker", "COCO")
+            # Mengambil ticker dari session state watchlist jika ada, atau default ke COCO
+            default_ticker_val = (
+                st.session_state.get("selected_watchlist_ticker", "COCO")
                 .upper()
                 .replace(".JK", "")
             )
+
             ticker_input = st.text_input(
                 "Ticker Code",
-                value=raw_ticker_default,
+                value=default_ticker_val,
                 key="mm_raw_ticker_input",
             ).strip()
 
@@ -233,7 +234,10 @@ def render_page_money_management():
     # KOLOM 2: ANALYTICS OUTPUT
     # --------------------------------------------------------------------------
     with col_output:
-        st.markdown("### 🎯 POSITION SIZING ANALYTICS")
+        # Header title dengan tombol copy plan di sebelah kanan
+        c_title, c_btn = st.columns([2.5, 1], vertical_alignment="center")
+        with c_title:
+            st.markdown("### 🎯 POSITION SIZING ANALYTICS")
 
         # Validasi Input Logic
         if sl_price >= entry_price:
@@ -280,6 +284,47 @@ def render_page_money_management():
             reward_tp1 / risk_per_share_raw if risk_per_share_raw > 0 else 0
         )
         is_capped = (lot_by_cap < lot_by_risk) and (lot_by_risk > 0)
+
+        # Teks untuk fitur Copy MM Plan
+        mm_copyable_text = f"""=== MONEY MANAGEMENT PLAN: {clean_ticker} ===
+Profile: {trading_style}
+Capital: Rp {capital:,.0f}
+Entry Price: Rp {entry_price:,.0f}
+Stop Loss: Rp {sl_price:,.0f}
+Target 1: Rp {tp1_price:,.0f}
+Target 2: Rp {tp2_price:,.0f}
+----------------------------------------
+Recommended Size: {final_lot:,} Lot ({final_shares:,} Lembar)
+Total Buy Value: Rp {total_buy_value:,.0f} ({(total_buy_value/capital)*100:.1f}%)
+Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
+========================================"""
+
+        with c_btn:
+            btn_id_mm = "copy_btn_money_management"
+            copy_mm_html = f"""
+            <div style="display: flex; justify-content: flex-end; align-items: center;">
+                <button id="{btn_id_mm}" style="background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
+                    📋 COPY PLAN
+                </button>
+            </div>
+            <script>
+            const textToCopy_{btn_id_mm} = `{mm_copyable_text}`;
+            const btn_{btn_id_mm} = document.getElementById("{btn_id_mm}");
+            btn_{btn_id_mm}.onclick = function() {{
+                navigator.clipboard.writeText(textToCopy_{btn_id_mm}).then(function() {{
+                    btn_{btn_id_mm}.innerText = "✅ COPIED!";
+                    btn_{btn_id_mm}.style.background = "#00FF66";
+                    setTimeout(function() {{
+                        btn_{btn_id_mm}.innerText = "📋 COPY PLAN";
+                        btn_{btn_id_mm}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
+                    }}, 2000);
+                }}).catch(function(err) {{
+                    console.error('Gagal menyalin text: ', err);
+                }});
+            }};
+            </script>
+            """
+            components.html(copy_mm_html, height=35)
 
         # 3 Card Neon Display
         m1, m2, m3 = st.columns(3)

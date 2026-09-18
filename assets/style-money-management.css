@@ -92,34 +92,24 @@ input {
     font-weight: bold !important;
     font-family: 'Share Tech Mono', monospace !important;
 }
+
 /* ==========================================
    6. BUTTON STYLING (NEON GLOW)
    ========================================== */
-div.stButton > button,
-div.stButton > button p,
-div.stButton > button span {
+div.stButton > button {
     background: #161B22 !important;
     color: #00F3FF !important;
-    border: none !important; /* Atau biarkan border jika ingin tetap ada garisnya */
+    border: 1px solid #00F3FF !important;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
     font-weight: 800 !important;
     letter-spacing: 1.5px !important;
     text-transform: none !important;
-    text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
     transition: all 0.2s ease-in-out !important;
 }
 
-/* Memastikan border luar tombol tetap konsisten dengan gaya cyberpunk */
-div.stButton > button {
-    border: 1px solid #00F3FF !important;
-    box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
-}
-
-div.stButton > button:hover,
-div.stButton > button:hover p,
-div.stButton > button:hover span {
+div.stButton > button:hover {
     background: #00F3FF !important;
     color: #161B22 !important;
-    text-shadow: none !important;
     box-shadow: 0 0 20px #00F3FF !important;
 }
 
@@ -164,16 +154,4 @@ div[data-testid="stExpander"] details summary p {
     background: rgba(255,0,85,0.15); 
     color: #FF0055; 
     border: 1px solid #FF0055; 
-}
-
-/* Menyeragamkan ukuran font, padding, dan warna tombol menu atas di semua halaman */
-div[data-testid="stHorizontalBlock"] div.stButton > button,
-div[data-testid="stHorizontalBlock"] div.stButton > button p,
-div[data-testid="stHorizontalBlock"] div.stButton > button span {
-    font-size: 14px !important;
-    font-weight: 700 !important;
-    color: #00F3FF !important;
-    letter-spacing: 1px !important;
-    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6) !important;
-    width: 100% !important;
 }

@@ -1,3 +1,4 @@
+import base64
 import os
 import pandas as pd
 import streamlit as st
@@ -67,7 +68,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                 📊 LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
             </div>
             <div style="font-size: 12px; color: #8B949E; font-weight: 600;">
-                SYSTEM STATUS: <span style="color: #00E676;">ONLINE</span>
+                SYSTEM STATUS: <span style="color: #00F3FF; text-shadow: 0 0 5px #00F3FF;">ONLINE</span>
             </div>
         </div>
         """,
@@ -201,20 +202,18 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                     tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
 
                     posisi_color = (
-                        "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
+                        "#00F3FF" if "Buy Zone" in str(posisi) else "#F59E0B"
                     )
 
                     is_suggestion = (idx == 0)
                     prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
                     expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
 
-                    # Teks format bersih untuk disalin
                     copyable_text = f"=== TRADE PLAN: {ticker_symbol} ===\\nStrategy: {plan_type}\\nGrade: {grade}\\nScore: {score}/100\\nArea Buy: {area_buy}\\nStop Loss: {stop_loss}\\nTarget 1 (TP1): {tp1}\\nTarget 2 (TP2): {tp2}\\nStatus Posisi: {posisi}\\n==============================="
 
                     with st.expander(expander_title, expanded=False):
                         unique_btn_id = f"copy_btn_{key_suffix}_{idx}"
                         
-                        # Menggunakan komponen widget kecil HTML/JS terisolasi agar tombol pas di sebelah score dan langsung copy ke clipboard
                         copy_btn_component = f"""
                         <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
                             <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #38BDF8 100%); color: #0E1117; border: none; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 10px; cursor: pointer; box-shadow: 0 0 8px rgba(168, 85, 247, 0.4); transition: all 0.2s;">
@@ -227,7 +226,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                         btn_{unique_btn_id}.onclick = function() {{
                             navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
                                 btn_{unique_btn_id}.innerText = "✅ COPIED!";
-                                btn_{unique_btn_id}.style.background = "#00E676";
+                                btn_{unique_btn_id}.style.background = "#00F3FF";
                                 setTimeout(function() {{
                                     btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
                                     btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #38BDF8 100%)";
@@ -241,10 +240,10 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                         components.html(copy_btn_component, height=35)
 
                         card_html = f"""
-                        <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-top: 4px; margin-bottom: 16px;">
+                        <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00F3FF; border-radius: 12px; padding: 18px; margin-top: 4px; margin-bottom: 16px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
                                 <div>
-                                    <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
+                                    <span style="background: linear-gradient(90deg, #00F3FF 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
                                     <span style="font-size: 13px; font-weight: 700; color: #E6EDF3; margin-left: 8px;">{grade}</span>
                                 </div>
                                 <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
@@ -260,13 +259,13 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                                     <div style="font-size: 10px; color: #FF5252; font-weight: 800;">Stop Loss</div>
                                     <div style="font-size: 15px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>
                                 </div>
-                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                    <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 1</div>
-                                    <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>
+                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 243, 255, 0.2);">
+                                    <div style="font-size: 10px; color: #00F3FF; font-weight: 800;">Target 1</div>
+                                    <div style="font-size: 15px; font-weight: 800; color: #00F3FF; margin-top: 4px;">{tp1}</div>
                                 </div>
-                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                    <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 2</div>
-                                    <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>
+                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 243, 255, 0.2);">
+                                    <div style="font-size: 10px; color: #00F3FF; font-weight: 800;">Target 2</div>
+                                    <div style="font-size: 15px; font-weight: 800; color: #00F3FF; margin-top: 4px;">{tp2}</div>
                                 </div>
                             </div>
                             <div style="display: flex; justify-content: space-between; font-size: 12px; background-color: #0E1117; padding: 10px 14px; border-radius: 8px; border: 1px solid #21262D;">

@@ -166,7 +166,7 @@ def render_tab_rsi():
             border: 1.5px solid #30363D !important;
         }
         .stButton button[kind="secondary"]:hover {
-            border-color: #00F3FF !important;
+            border-color: #FF007F !important;
             color: #FFFFFF !important;
             box-shadow: 0 0 12px rgba(0, 243, 255, 0.4) !important;
         }

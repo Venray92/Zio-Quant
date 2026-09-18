@@ -265,10 +265,8 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             default_idx = display_options.index(default_display) if default_display in display_options else 0
             
             if is_single_mode:
-                # Single mode: Dropdown, spasi, Copy, Watchlist, Clear
                 col_drop, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
             else:
-                # Batch mode: Dropdown, spasi, Copy, Watchlist (dimentokkan ke kanan)
                 col_drop, col_space, col_c, col_w = st.columns([1.5, 1.4, 1.0, 1.0], vertical_alignment="bottom")
 
             with col_drop:
@@ -850,8 +848,11 @@ def render_tab_trade_planner():
                     unsafe_allow_html=True,
                 )
 
-            if "editor_key_version" not in st.session_state:
-                st.session_state["editor_key_version"] = 0
+            # Inisialisasi state untuk versi uncheck / clear centang tabel
+            if "batch_uncheck_trigger" not in st.session_state:
+                st.session_state["batch_uncheck_trigger"] = 0
+
+            editor_key = f"batch_editor_v{st.session_state['batch_uncheck_trigger']}"
 
             df_table = df.copy()
             df_table.insert(0, "Select", False)
@@ -873,24 +874,31 @@ def render_tab_trade_planner():
                 },
                 disabled=[col for col in df.columns if col != "Select"],
                 use_container_width=True,
-                key=f"batch_editor_v{st.session_state['editor_key_version']}"
+                key=editor_key
             )
 
             selected_rows = edited_df[edited_df["Select"] == True]
 
-            # Tombol aksi Global Batch (Add Watchlist & Clear Data)
-            c_act1, c_act2, c_act3 = st.columns([1, 1, 2], vertical_alignment="bottom")
-            with c_act1:
+            # Tombol aksi Batch: Watchlist di kanan, Copy di sebelah kiri Watchlist, dan tombol Clear Centang (*Uncheck*)
+            c_act_clear, c_act_copy, c_act_wl = st.columns([1, 1, 1], vertical_alignment="bottom")
+            with c_act_clear:
+                if st.button("🗑️ Clear Centang", use_container_width=True, key="btn_clear_checks"):
+                    st.session_state["batch_uncheck_trigger"] += 1
+                    st.rerun()
+            with c_act_copy:
+                if st.button("📋 Copy Terpilih", use_container_width=True, key="btn_copy_batch_selected"):
+                    if not selected_rows.empty:
+                        symbols_copied = ", ".join(selected_rows["Symbol"].unique().tolist())
+                        st.toast(f"Berhasil menyalin rencana untuk: {symbols_copied}", icon="📋")
+                    else:
+                        st.toast("Pilih minimal satu saham dicentang pada tabel di atas.", icon="⚠️")
+            with c_act_wl:
                 if st.button("⭐ Watchlist Terpilih", use_container_width=True, key="btn_wl_batch_selected"):
                     if not selected_rows.empty:
                         symbols_to_add = selected_rows["Symbol"].unique().tolist()
                         add_tickers_to_watchlist(symbols_to_add)
                     else:
                         st.toast("Pilih minimal satu saham dicentang pada tabel di atas.", icon="⚠️")
-            with c_act2:
-                if st.button("🗑️ Clear Cache", use_container_width=True, key="btn_clear_batch"):
-                    clear_cache(active_cache_key)
-                    st.rerun()
 
             if not selected_rows.empty:
                 st.markdown("<br>", unsafe_allow_html=True)

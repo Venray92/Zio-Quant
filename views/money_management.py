@@ -16,7 +16,7 @@ except ImportError:
 def inject_cyberpunk_theme():
     """Menerapkan styling CSS bertema Cyberpunk / High-Tech Trading Dashboard
 
-    ke seluruh komponen interface Streamlit Money Management.
+    secara menyeluruh ke komponen kustom dan elemen bawaan Streamlit.
     """
     cyberpunk_css = """
     <style>
@@ -30,89 +30,147 @@ def inject_cyberpunk_theme():
         --cyber-yellow: #ffe600;
         --cyber-green: #00ff66;
         --cyber-text-muted: #8d9bb0;
-        --cyber-glow-cyan: rgba(0, 243, 255, 0.25);
-        --cyber-glow-pink: rgba(255, 0, 85, 0.25);
+        --cyber-glow-cyan: rgba(0, 243, 255, 0.3);
+        --cyber-glow-pink: rgba(255, 0, 85, 0.3);
     }
 
     /* Container Card Style */
     .cyber-card {
-        background-color: var(--cyber-card-bg);
-        border: 1px solid var(--cyber-card-border);
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        position: relative;
-        overflow: hidden;
+        background-color: var(--cyber-card-bg) !important;
+        border: 1px solid var(--cyber-card-border) !important;
+        border-radius: 8px !important;
+        padding: 20px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+        position: relative !important;
+        overflow: hidden !important;
     }
     
     .cyber-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent);
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important; left: 0 !important; right: 0 !important;
+        height: 2px !important;
+        background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent) !important;
     }
 
     /* Dynamic Badges */
     .cyber-badge {
-        padding: 4px 12px;
-        border-radius: 4px;
-        font-weight: 800;
-        font-size: 12px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        display: inline-block;
+        padding: 4px 12px !important;
+        border-radius: 4px !important;
+        font-weight: 800 !important;
+        font-size: 11px !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase !important;
+        display: inline-block !important;
     }
     .cyber-badge-cyan {
-        background-color: rgba(0, 243, 255, 0.1);
-        color: var(--cyber-cyan);
-        border: 1px solid var(--cyber-cyan);
-        box-shadow: 0 0 10px var(--cyber-glow-cyan);
+        background-color: rgba(0, 243, 255, 0.1) !important;
+        color: var(--cyber-cyan) !important;
+        border: 1px solid var(--cyber-cyan) !important;
+        box-shadow: 0 0 10px var(--cyber-glow-cyan) !important;
     }
     .cyber-badge-pink {
-        background-color: rgba(255, 0, 85, 0.1);
-        color: var(--cyber-pink);
-        border: 1px solid var(--cyber-pink);
-        box-shadow: 0 0 10px var(--cyber-glow-pink);
+        background-color: rgba(255, 0, 85, 0.1) !important;
+        color: var(--cyber-pink) !important;
+        border: 1px solid var(--cyber-pink) !important;
+        box-shadow: 0 0 10px var(--cyber-glow-pink) !important;
     }
     .cyber-badge-yellow {
-        background-color: rgba(255, 230, 0, 0.1);
-        color: var(--cyber-yellow);
-        border: 1px solid var(--cyber-yellow);
+        background-color: rgba(255, 230, 0, 0.1) !important;
+        color: var(--cyber-yellow) !important;
+        border: 1px solid var(--cyber-yellow) !important;
     }
 
-    /* Metric Label & Value Headers */
+    /* Typography Overrides */
     .cyber-label {
-        color: var(--cyber-text-muted);
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        margin-bottom: 4px;
+        color: var(--cyber-text-muted) !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase !important;
+        margin-bottom: 4px !important;
     }
     .cyber-value {
-        font-size: 24px;
-        font-weight: 900;
-        color: #ffffff;
-        font-family: 'Courier New', Courier, monospace;
+        font-size: 24px !important;
+        font-weight: 900 !important;
+        color: #ffffff !important;
+        font-family: 'Courier New', Courier, monospace !important;
     }
 
-    /* Section Subheaders */
+    /* Custom Titles */
     .cyber-header {
-        font-size: 14px;
-        font-weight: 800;
-        color: var(--cyber-cyan);
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        text-align: center;
-        margin-bottom: 2px;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        color: var(--cyber-cyan) !important;
+        letter-spacing: 1.5px !important;
+        text-transform: uppercase !important;
+        text-align: center !important;
+        margin-bottom: 2px !important;
     }
     .cyber-subheader {
-        font-size: 11px;
-        color: var(--cyber-text-muted);
-        text-align: center;
-        margin-bottom: 12px;
+        font-size: 11px !important;
+        color: var(--cyber-text-muted) !important;
+        text-align: center !important;
+        margin-bottom: 12px !important;
+    }
+
+    /* ==========================================================================
+       STREAMLIT NATIVE COMPONENTS OVERRIDES
+       ========================================================================== */
+    /* Input Fields (Text & Number) */
+    div[data-baseweb="input"] > div {
+        background-color: #12151e !important;
+        border: 1px solid var(--cyber-card-border) !important;
+        color: var(--cyber-cyan) !important;
+        border-radius: 6px !important;
+    }
+    div[data-baseweb="input"] input {
+        color: var(--cyber-cyan) !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Selectbox / Dropdown */
+    div[data-baseweb="select"] > div {
+        background-color: #12151e !important;
+        border: 1px solid var(--cyber-card-border) !important;
+        color: #ffffff !important;
+        border-radius: 6px !important;
+    }
+
+    /* Buttons */
+    div.stButton > button {
+        background-color: #12151e !important;
+        color: var(--cyber-cyan) !important;
+        border: 1px solid var(--cyber-cyan) !important;
+        font-weight: 700 !important;
+        letter-spacing: 1px !important;
+        border-radius: 6px !important;
+        transition: all 0.3s ease !important;
+    }
+    div.stButton > button:hover {
+        background-color: var(--cyber-cyan) !important;
+        color: #000000 !important;
+        box-shadow: 0 0 15px var(--cyber-cyan) !important;
+    }
+
+    /* Expander Container & Header */
+    .stExpander {
+        background-color: #0d0f17 !important;
+        border: 1px solid var(--cyber-card-border) !important;
+        border-radius: 8px !important;
+        margin-bottom: 10px !important;
+    }
+    .stExpander > details > summary {
+        color: var(--cyber-cyan) !important;
+        font-weight: 700 !important;
+    }
+
+    /* Radio Buttons & Labels */
+    div[role="radiogroup"] label p {
+        color: #ffffff !important;
+        font-weight: 600 !important;
     }
     </style>
     """
@@ -191,7 +249,7 @@ def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> boo
 # ==============================================================================
 def render_page_money_management():
     """Halaman utama kalkulator Position Sizing & Money Management."""
-    # Inject styling Cyberpunk
+    # Inject styling Cyberpunk ke halaman
     inject_cyberpunk_theme()
 
     # Header Halaman

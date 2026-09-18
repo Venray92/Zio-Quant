@@ -152,7 +152,6 @@ def add_tickers_to_watchlist(symbols_list):
     storage_file = "watchlist_storage.json"
     
     try:
-        # 1. Muat data JSON yang ada (atau buat list kosong jika belum ada)
         watchlist_data = []
         if os.path.exists(storage_file):
             try:
@@ -161,7 +160,6 @@ def add_tickers_to_watchlist(symbols_list):
             except Exception:
                 watchlist_data = []
         
-        # 2. Ambil daftar ticker yang sudah ada untuk mencegah duplikasi
         existing_tickers = set()
         for item in watchlist_data:
             if isinstance(item, str):
@@ -174,7 +172,6 @@ def add_tickers_to_watchlist(symbols_list):
         added_count = 0
         active_screener_name = st.session_state.get("active_screener_name", "Trade Planner Screener")
 
-        # 3. Masukkan ticker baru dengan format struktur dictionary JSON
         for sym in symbols_list:
             clean_sym = sym.strip().upper()
             formatted = clean_sym if clean_sym.endswith(".JK") else f"{clean_sym}.JK"
@@ -187,7 +184,6 @@ def add_tickers_to_watchlist(symbols_list):
                 }
                 watchlist_data.append(new_item)
                 
-                # Sinkronkan langsung ke session_state agar instan terbaca watchlist.py
                 if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
                     st.session_state["watchlist"].append(new_item)
                 if "watchlist_data" in st.session_state and isinstance(st.session_state["watchlist_data"], list):
@@ -197,7 +193,6 @@ def add_tickers_to_watchlist(symbols_list):
                 existing_tickers.add(clean_sym)
                 added_count += 1
         
-        # 4. Simpan kembali ke file JSON
         if added_count > 0:
             with open(storage_file, "w", encoding="utf-8") as f:
                 json.dump(watchlist_data, f, indent=4)
@@ -317,6 +312,8 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
             """,
             unsafe_allow_html=True,
         )
+
+
 def render_tab_trade_planner():
     # 🎨 CUSTOM CSS STYLING
     st.markdown(
@@ -566,13 +563,13 @@ def render_tab_trade_planner():
                 ]
                 run_batch_execution(list_to_scan, cache_key="df_screener_single")
 
-       active_cache_key = "df_screener_single"
+        active_cache_key = "df_screener_single"
 
         if active_cache_key in st.session_state:
             df_single_res = st.session_state[active_cache_key]
 
             st.write("")
-            # Sesuaikan kolom header agar ada tempat untuk tombol Add to Watchlist di sebelah Clear Data
+            # Header dengan Tombol Add to Watchlist di sebelah Clear Data
             h_left, h_btn_wl, h_right = st.columns([2.2, 1.2, 1], vertical_alignment="center")
             
             with h_left:
@@ -600,7 +597,6 @@ def render_tab_trade_planner():
             if df_single_res.empty:
                 st.warning("⚠️ No valid data returned for the selected tickers.")
             else:
-                # Panggil kembali fungsi render standar tanpa tombol tambahan di kartu
                 render_trade_plan_cards(df_single_res, is_title_needed=False)
 
     else:

@@ -9,6 +9,10 @@ except ImportError:
     TradePlanner = None
 
 
+def render_page_money():
+    st.title("💰 Money")
+    # Tulis isi halaman money kamu di sini
+
 # ==============================================================================
 # 1. STRATEGY RULES CONSTANTS
 # ==============================================================================

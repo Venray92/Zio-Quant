@@ -10,7 +10,9 @@ from views.tab_trade_planner import render_tab_trade_planner
 
 # Import modul halaman baru
 from views.watchlist import render_page_watchlist
-from views.money import render_page_money  # <-- Menggunakan file views/money.py
+from views.money_management import (
+    render_page_money_management,
+)
 
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
@@ -23,7 +25,7 @@ st.set_page_config(
 # 2. Inject Custom CSS bawaan
 inject_custom_css()
 
-# --- CSS GLOBAL CYBERPUNK MENYELURUH ---
+# --- CSS GLOBAL CYBERPUNK MENYELURUH (TERMASUK STOCH-TREND RADAR & RUN SCREENING) ---
 st.markdown(
     """
     <style>
@@ -51,7 +53,8 @@ st.markdown(
         transform: translateY(-1px) !important;
     }
 
-    /* 2. STYLING KHUSUS UNTUK TOMBOL BAHAYA/STOP */
+    /* 2. STYLING KHUSUS UNTUK TOMBOL "STOP" ATAU TOMBOL BAHAYA (OPSIONAL WARNA MERAH/PINK) */
+    /* Jika tombol Stop ingin bernuansa merah/pink cyberpunk */
     .stButton button[kind="secondary"]:has(p:contains("Stop")),
     .stButton button:has(div:contains("Stop")) {
         border-color: #FF007F !important;
@@ -89,6 +92,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+# -------------------------------------------------------------
 
 # 3. Inisialisasi Session State
 if "selected_page" not in st.session_state:
@@ -100,7 +104,7 @@ if "selected_screener" not in st.session_state:
 if "active_screener_name" not in st.session_state:
     st.session_state["active_screener_name"] = "Screener"
 
-# 4. Render Layout Atas
+# 4. Render Layout Atas (Header -> Top Nav -> Divider)
 render_header()
 render_top_nav()
 render_header_divider()
@@ -126,8 +130,8 @@ if page == "home":
 elif page == "watchlist":
     render_page_watchlist()
 
-elif page == "money":
-    render_page_money()
+elif page == "money_management":
+    render_page_money_management()
 
 elif page == "how_to":
     st.title("💡 How To")

@@ -92,24 +92,34 @@ input {
     font-weight: bold !important;
     font-family: 'Share Tech Mono', monospace !important;
 }
-
 /* ==========================================
    6. BUTTON STYLING (NEON GLOW)
    ========================================== */
-div.stButton > button {
+div.stButton > button,
+div.stButton > button p,
+div.stButton > button span {
     background: #161B22 !important;
     color: #00F3FF !important;
-    border: 1px solid #00F3FF !important;
-    box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
+    border: none !important; /* Atau biarkan border jika ingin tetap ada garisnya */
     font-weight: 800 !important;
     letter-spacing: 1.5px !important;
     text-transform: none !important;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.8) !important;
     transition: all 0.2s ease-in-out !important;
 }
 
-div.stButton > button:hover {
+/* Memastikan border luar tombol tetap konsisten dengan gaya cyberpunk */
+div.stButton > button {
+    border: 1px solid #00F3FF !important;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
+}
+
+div.stButton > button:hover,
+div.stButton > button:hover p,
+div.stButton > button:hover span {
     background: #00F3FF !important;
     color: #161B22 !important;
+    text-shadow: none !important;
     box-shadow: 0 0 20px #00F3FF !important;
 }
 

@@ -40,7 +40,7 @@ def fetch_rsi_worker(ticker, max_retries=1):
 
 
 def render_tab_rsi():
-    # Style CSS Full Cyberpunk & Neon Futuristic
+    # Style CSS Full Cyberpunk & Neon Futuristic (Dengan Perbaikan Border Tombol)
     st.markdown(
         """
         <style>
@@ -99,6 +99,9 @@ def render_tab_rsi():
             gap: 6px;
         }
 
+        /* =========================================================
+            2. PERBAIKAN UTAMA: STYLING BORDER & WARNA TOMBOL STREAMLIT
+            ========================================================= */
         /* Tombol Run Screening */
         div[data-testid="stColumn"]:has(div[key="btn_run_rsi_screener"]) button {
             background: linear-gradient(135deg, #00F3FF 0%, #00FF66 100%) !important;
@@ -106,13 +109,14 @@ def render_tab_rsi():
             font-weight: 900 !important;
             letter-spacing: 1px !important;
             text-transform: uppercase !important;
-            border: none !important;
+            border: 1.5px solid #00F3FF !important;
             border-radius: 6px !important;
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.5) !important;
             transition: all 0.25s ease-in-out !important;
         }
         div[data-testid="stColumn"]:has(div[key="btn_run_rsi_screener"]) button:hover {
             transform: translateY(-2px) scale(1.02) !important;
+            border-color: #00FF66 !important;
             box-shadow: 0 0 25px rgba(0, 255, 102, 0.8) !important;
         }
 
@@ -123,44 +127,48 @@ def render_tab_rsi():
             font-weight: 900 !important;
             letter-spacing: 1px !important;
             text-transform: uppercase !important;
-            border: none !important;
+            border: 1.5px solid #FF007F !important;
             border-radius: 6px !important;
             box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
             transition: all 0.25s ease-in-out !important;
         }
         div[data-testid="stColumn"]:has(div[key="btn_stop_rsi_screener"]) button:hover {
             transform: translateY(-2px) scale(1.02) !important;
+            border-color: #00F3FF !important;
             box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
         }
 
-        div[data-testid="stColumn"] button[kind="primary"],
-        div[data-testid="stColumn"] button[kind="secondary"] {
-            transition: all 0.25s ease-in-out !important;
+        /* General Streamlit Buttons (Primary & Secondary / SELECT Buttons) */
+        .stButton button {
             border-radius: 6px !important;
             font-weight: 800 !important;
+            transition: all 0.25s ease-in-out !important;
         }
 
-        div[data-testid="stColumn"] button[kind="primary"] {
+        /* Primary Button (Selected State) - Border Tegas Cyan/Neon */
+        .stButton button[kind="primary"] {
             background: linear-gradient(135deg, #FF007F 0%, #00F3FF 100%) !important;
             color: #FFFFFF !important;
-            border: 1px solid #00F3FF !important;
+            border: 1.5px solid #00F3FF !important;
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
             text-shadow: 0 0 6px rgba(0,0,0,0.8) !important;
         }
-        div[data-testid="stColumn"] button[kind="primary"]:hover {
+        .stButton button[kind="primary"]:hover {
+            border-color: #FF007F !important;
             box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
             transform: translateY(-1px) !important;
         }
 
-        div[data-testid="stColumn"] button[kind="secondary"] {
+        /* Secondary Button (Unselected State) - Border Gelap / Neon Halus */
+        .stButton button[kind="secondary"] {
             background-color: #161B22 !important;
             color: #00F3FF !important;
-            border: 1px solid #30363D !important;
+            border: 1.5px solid #30363D !important;
         }
-        div[data-testid="stColumn"] button[kind="secondary"]:hover {
+        .stButton button[kind="secondary"]:hover {
             border-color: #00F3FF !important;
             color: #FFFFFF !important;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4) !important;
         }
 
         div[data-testid="stSelectbox"] > div > div {
@@ -369,8 +377,6 @@ def render_tab_rsi():
                 unsafe_allow_html=True,
             )
 
-            # --- BAGIAN KOLOM DROPDOWN & TOMBOL EXPORT ---
-           # --- UBAH RASIO MENJADI LEBIH BESAR DI KIRI (DROPDOWN) & KECIL DI KANAN (EXPORT) ---
             col_filter, col_export = st.columns([3.2, 0.8])
 
             with col_filter:
@@ -394,15 +400,17 @@ def render_tab_rsi():
                 if not df_export.empty:
                     csv_data = df_export.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label="📥",  # Hanya berisi icon
+                        label="📥",
                         data=csv_data,
                         file_name=f"screening_{screener_mode.lower()}.csv",
                         mime="text/csv",
                         use_container_width=True,
-                        help=f"Export {screener_mode} to CSV" # Tooltip saat kursor diarahkan ke tombol
+                        key=f"download_{screener_mode.lower()}",
+                        help=f"Export {screener_mode} to CSV"
                     )
                 else:
-                    st.button("📥", disabled=True, use_container_width=True, help="Data kosong")
+                    st.button("📥", disabled=True, use_container_width=True, key=f"download_empty_{screener_mode.lower()}", help="Data kosong")
+            
             st.session_state["active_rsi_type"] = screener_mode
 
             st.markdown(

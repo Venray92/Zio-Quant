@@ -10,9 +10,7 @@ from views.tab_trade_planner import render_tab_trade_planner
 
 # Import modul halaman baru
 from views.watchlist import render_page_watchlist
-from views.money_management import (
-    render_page_money_management,  # <-- TAMBAHKAN IMPORT INI
-)
+from views.money_management import render_page_money_management
 
 # 1. Konfigurasi Halaman Streamlit
 st.set_page_config(
@@ -22,7 +20,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. Inject Custom CSS
+# 2. Inject Custom CSS dari assets/styleupdate.css
 inject_custom_css()
 
 # 3. Inisialisasi Session State
@@ -32,7 +30,6 @@ if "selected_page" not in st.session_state:
 if "selected_screener" not in st.session_state:
     st.session_state["selected_screener"] = None
 
-# Inisialisasi active_screener_name
 if "active_screener_name" not in st.session_state:
     st.session_state["active_screener_name"] = "Screener"
 
@@ -45,7 +42,6 @@ render_header_divider()
 page = st.session_state["selected_page"]
 
 if page == "home":
-    # Jika di halaman Home, tampilkan screener terpilih atau halaman Welcome
     screener = st.session_state.get("selected_screener", None)
 
     if screener is None:
@@ -54,7 +50,6 @@ if page == "home":
         st.session_state["active_screener_name"] = "RSI Screener"
         render_tab_rsi()
     elif screener == "stoch_psar":
-        # Tagging eksplisit untuk Stoch-Trend Radar
         st.session_state["active_screener_name"] = "Stoch-Trend Radar"
         render_tab_stoch_psar()
     elif screener == "trade_plan":

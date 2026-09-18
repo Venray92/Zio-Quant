@@ -11,71 +11,41 @@ except ImportError:
 
 
 # ==============================================================================
-# CYBERPUNK COLOR INJECTION (Cyan untuk Sisi Kiri, Magenta untuk Sisi Kanan & Alert)
+# CYBERPUNK COLOR INJECTION (Hanya Warna Teks & Border Cyan untuk System Controls)
 # ==============================================================================
-def inject_custom_theme():
+def inject_cyan_theme():
     st.markdown(
         """
         <style>
-            /* 1. Warna Cyan Mutlak untuk Seluruh Teks & Label di Sisi Kiri (System Controls) */
-            div[data-testid="column"]:nth-of-type(1) h1,
-            div[data-testid="column"]:nth-of-type(1) h2,
-            div[data-testid="column"]:nth-of-type(1) h3,
-            div[data-testid="column"]:nth-of-type(1) h4,
-            div[data-testid="column"]:nth-of-type(1) h5,
-            div[data-testid="column"]:nth-of-type(1) p,
-            div[data-testid="column"]:nth-of-type(1) span,
-            div[data-testid="column"]:nth-of-type(1) label,
-            div[data-testid="column"]:nth-of-type(1) .stExpander summary span,
-            div[data-testid="column"]:nth-of-type(1) div[data-testid="stMarkdownContainer"] p {
+            /* 1. Mengubah warna teks judul, label, dan expander di area System Controls */
+            h3:has(+ div [data-testid="stExpander"]),
+            .stExpander summary span,
+            .stExpander p,
+            label.st-bp,
+            div[data-baseweb="form-control"] label,
+            .stTextInput label,
+            .stNumberInput label,
+            .stSelectbox label,
+            .stSlider label {
                 color: #00FFFF !important;
             }
             
-            /* Border Expander & Input Sisi Kiri Cyan */
-            div[data-testid="column"]:nth-of-type(1) .stExpander {
+            /* 2. Mengubah border pada Expander, Input, Selectbox, dan Textbox menjadi Cyan */
+            .stExpander {
                 border: 1px solid #00FFFF !important;
                 border-radius: 4px;
             }
             
-            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="input"] > div, 
-            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="select"] > div, 
-            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="base-input"] {
+            div[data-baseweb="input"] > div, 
+            div[data-baseweb="select"] > div, 
+            div[data-baseweb="base-input"] {
                 border-color: #00FFFF !important;
             }
             
-            div[data-testid="column"]:nth-of-type(1) .stButton > button {
+            /* 3. Mengubah border dan teks pada Tombol di area input */
+            .stButton > button {
                 border: 1px solid #00FFFF !important;
                 color: #00FFFF !important;
-            }
-
-            /* 2. Warna Magenta untuk Sisi Kanan (Position Sizing Analytics) */
-            div[data-testid="column"]:nth-of-type(2) h1,
-            div[data-testid="column"]:nth-of-type(2) h2,
-            div[data-testid="column"]:nth-of-type(2) h3,
-            div[data-testid="column"]:nth-of-type(2) h4,
-            div[data-testid="column"]:nth-of-type(2) h5,
-            div[data-testid="column"]:nth-of-type(2) p,
-            div[data-testid="column"]:nth-of-type(2) span,
-            div[data-testid="column"]:nth-of-type(2) label {
-                color: #FF00FF !important;
-            }
-
-            div[data-testid="column"]:nth-of-type(2) div[data-testid="stMetric"] {
-                border: 1px solid #FF00FF !important;
-                padding: 10px;
-                border-radius: 5px;
-            }
-
-            /* 3. Kotak Peringatan (Toleransi Risk): Background Magenta #FF0055, Teks Putih */
-            div[data-testid="stAlert"] {
-                background-color: #FF0055 !important;
-                border: 1px solid #FF00FF !important;
-                color: #FFFFFF !important;
-            }
-            div[data-testid="stAlert"] p, 
-            div[data-testid="stAlert"] span, 
-            div[data-testid="stAlert"] strong {
-                color: #FFFFFF !important;
             }
         </style>
         """,
@@ -152,23 +122,13 @@ def clear_ticker_callback():
     st.session_state["selected_watchlist_ticker"] = ""
 
 
-def toggle_bow():
-    """Memastikan hanya salah satu checkbox (BOW/BOB) yang aktif."""
-    if st.session_state.get("chk_strat_bow", False):
-        st.session_state["chk_strat_bob"] = False
-
-def toggle_bob():
-    """Memastikan hanya salah satu checkbox (BOW/BOB) yang aktif."""
-    if st.session_state.get("chk_strat_bob", False):
-        st.session_state["chk_strat_bow"] = False
-
-
 # ==============================================================================
 # 3. MAIN RENDER FUNCTION
 # ==============================================================================
 def render_page_money_management():
     """Render utama Halaman Money Management."""
-    inject_custom_theme()
+    # Terapkan injeksi warna tema Cyan khusus area System Controls
+    inject_cyan_theme()
 
     st.title("Money Management Engine")
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
@@ -178,31 +138,20 @@ def render_page_money_management():
     col_input, col_output = st.columns([1.1, 1.9], gap="large")
 
     # --------------------------------------------------------------------------
-    # KOLOM 1: PARAMETER INPUT CONTROL
+    # KOLOM 1: PARAMETER INPUT CONTROL (System Controls, Profile, Setup, Fees)
     # --------------------------------------------------------------------------
     with col_input:
         st.subheader("System Controls")
 
         with st.expander("Capital & Trader Profile", expanded=True):
-            # Inisialisasi state capital jika belum ada
-            if "mm_capital_val" not in st.session_state:
-                st.session_state["mm_capital_val"] = 100_000_000
-
-            # Input teks interaktif agar pemisah titik ribuan muncul secara dinamis
-            raw_cap_input = st.text_input(
+            capital = st.number_input(
                 "Total Capital (IDR)",
-                value=f"{st.session_state['mm_capital_val']:,}".replace(",", "."),
-                key="mm_capital_text_formatting"
+                min_value=1_000_000,
+                value=100_000_000,
+                step=5_000_000,
+                format="%d",
+                key="mm_capital_input",
             )
-
-            # Konversi string berformat titik kembali menjadi float/integer
-            try:
-                clean_cap_str = raw_cap_input.replace(".", "").replace(",", "").strip()
-                capital = float(clean_cap_str) if clean_cap_str else 100_000_000.0
-                st.session_state["mm_capital_val"] = capital
-            except ValueError:
-                capital = st.session_state["mm_capital_val"]
-
             trading_style = st.selectbox(
                 "Trading Strategy Profile",
                 list(PROFILE_RULES.keys()),
@@ -264,9 +213,9 @@ def render_page_money_management():
             st.write("Trade Strategy Type (Checklist)")
             c_chk1, c_chk2 = st.columns(2)
             with c_chk1:
-                chk_bow = st.checkbox("BOW (Buy on Weakness)", value=True, key="chk_strat_bow", on_change=toggle_bow)
+                chk_bow = st.checkbox("BOW (Buy on Weakness)", value=True, key="chk_strat_bow")
             with c_chk2:
-                chk_bob = st.checkbox("BOB (Buy on Breakout)", value=False, key="chk_strat_bob", on_change=toggle_bob)
+                chk_bob = st.checkbox("BOB (Buy on Breakout)", value=False, key="chk_strat_bob")
 
             active_plan_type = "BOW" if chk_bow else ("BOB" if chk_bob else "BOW")
 
@@ -378,7 +327,7 @@ def render_page_money_management():
         )
         is_capped = (lot_by_cap < lot_by_risk) and (lot_by_risk > 0)
 
-        # 3 Metrics Display
+        # 3 Metrics Display (Default Streamlit)
         m1, m2, m3 = st.columns(3)
         m1.metric("Recommended Size", f"{final_lot:,} Lot", f"{final_shares:,} Lembar")
         m2.metric("Total Buy Value", f"Rp {total_buy_value:,.0f}", f"Alloc: {(total_buy_value/capital)*100:.1f}%")
@@ -425,7 +374,7 @@ def render_page_money_management():
             st.write(f"- Est. Profit: **+Rp {p_tp2:,.0f}**")
             st.write(f"- Total Potential Profit: **+Rp {total_potential_profit:,.0f}**")
 
-        # Plotly Visualizers
+        # Plotly Visualizers (Default layout)
         st.markdown("---")
         st.subheader("Risk Visualizer & Exposure")
 

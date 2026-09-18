@@ -1,27 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
 /* Global Font & Theme Override */
 html, body, [class*="css"] {
-    font-family: 'Fira Code', monospace, sans-serif !important;
+    font-family: 'Share Tech Mono', monospace !important;
     background-color: #050811 !important;
     color: #00F0FF !important;
 }
 
 /* Cyberpunk Headers */
 h1, h2, h3, h4, h5, h6 {
+    font-family: 'Share Tech Mono', monospace !important;
     color: #00F0FF !important;
     text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
-    font-weight: 800 !important;
+    font-weight: 400 !important;
     letter-spacing: 1.5px;
 }
 
 /* Neon Buttons (Standard) */
 div.stButton > button {
+    font-family: 'Share Tech Mono', monospace !important;
     background-color: #0A0E1A !important;
     color: #00F0FF !important;
     border: 1px solid #00F0FF !important;
     border-radius: 4px !important;
-    font-weight: 700 !important;
+    font-weight: 400 !important;
     transition: all 0.3s ease-in-out !important;
     text-transform: uppercase;
     box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
@@ -33,12 +35,13 @@ div.stButton > button:hover {
     box-shadow: 0 0 15px #00F0FF, 0 0 25px #00F0FF !important;
 }
 
-/* Primary Button (Diubah dari Pink ke Solid Cyan Glow) */
+/* Primary Button (Solid Cyan Glow) */
 div.stButton > button[kind="primary"] {
+    font-family: 'Share Tech Mono', monospace !important;
     background-color: #00F0FF !important;
     color: #050811 !important;
     border: 1px solid #00F0FF !important;
-    font-weight: 800 !important;
+    font-weight: 400 !important;
     box-shadow: 0 0 12px rgba(0, 240, 255, 0.6) !important;
 }
 
@@ -50,12 +53,13 @@ div.stButton > button[kind="primary"]:hover {
 
 /* Cyber Inputs & Popovers */
 div[data-baseweb="input"] {
+    font-family: 'Share Tech Mono', monospace !important;
     background-color: #0A0E1A !important;
     border: 1px solid #00F0FF !important;
     color: #00F0FF !important;
 }
 
-/* Expanders & Container Borders (Diubah dari Ungu ke Dark Cyan/Blue) */
+/* Expanders & Container Borders */
 div[data-aria-expanded="true"], div[data-aria-expanded="false"] {
     background-color: #0A0E1A !important;
     border: 1px solid #005577 !important;
@@ -63,6 +67,7 @@ div[data-aria-expanded="true"], div[data-aria-expanded="false"] {
 
 /* Toast Styling */
 div[data-baseweb="toast"] {
+    font-family: 'Share Tech Mono', monospace !important;
     background-color: #0A0E1A !important;
     border: 1px solid #00FF66 !important;
     color: #00FF66 !important;

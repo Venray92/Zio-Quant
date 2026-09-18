@@ -62,6 +62,13 @@ def process_single_ticker(ticker_code: str):
             if entry_mid > 0
             else 0
         )
+        # --- Tambahan hitungan untuk Target 2 ---
+        pot_gain_tp2 = (
+            round(((p["TP 2"] - entry_mid) / entry_mid) * 100, 1)
+            if entry_mid > 0
+            else 0
+        )
+        # ----------------------------------------
         pot_risk = (
             round(((entry_mid - p["Stop Loss"]) / entry_mid) * 100, 1)
             if entry_mid > 0
@@ -284,11 +291,11 @@ def render_trade_plan_cards(df_data, is_title_needed=True):
                 variant="red",
                 value_color="red",
             )
-            draw_card(
+draw_card(
                 title="TARGET 2 (TP 2)",
                 value=f"Rp {row['TP 2']:,}",
                 subtext="Main swing target zone.",
-                badge_text=f"R:R {row['Risk-Reward Ratio']}",
+                badge_text=str(row["Potential Gain TP2"]),
                 variant="blue",
                 value_color="blue",
             )

@@ -15,7 +15,8 @@ except ImportError:
 # ==============================================================================
 def inject_cyberpunk_theme():
     """Membaca file CSS eksternal dan memasangnya ke halaman Streamlit."""
-    css_file_path = "style-money-management.css"
+    css_file_path =os.path.join( "style-money-management.css")
+   
 
     if os.path.exists(css_file_path):
         with open(css_file_path, "r") as f:

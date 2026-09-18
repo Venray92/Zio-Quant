@@ -27,30 +27,30 @@ def render_top_nav():
 
     cols = st.columns([1, 1, 1.2, 1, 2.5])
 
-    # 1. HOME (Reset Total Tampilan Kembali ke Welcome Screen)
+    # 1. HOME
     with cols[0]:
         if st.button("Home", key="nav_home", use_container_width=True):
             st.session_state["selected_page"] = "home"
             st.session_state["selected_screener"] = None
             st.rerun()
 
-    # 2. WATCHLIST (Reset screener agar status active hilang)
+    # 2. WATCHLIST
     with cols[1]:
         if st.button("Watchlist", key="nav_watchlist", use_container_width=True):
             st.session_state["selected_page"] = "watchlist"
-            st.session_state["selected_screener"] = None  # <-- RESET SCREENER
+            st.session_state["selected_screener"] = None
             st.rerun()
 
-    # 3. MONEY MANAGEMENT (Reset screener agar status active hilang)
+    # 3. MONEY MANAGEMENT (Diletakkan di sebelah Watchlist)
     with cols[2]:
         if st.button("Money Management", key="nav_mm", use_container_width=True):
             st.session_state["selected_page"] = "money_management"
-            st.session_state["selected_screener"] = None  # <-- RESET SCREENER
+            st.session_state["selected_screener"] = None
             st.rerun()
 
-    # 4. HOW TO (Reset screener agar status active hilang)
+    # 4. HOW TO
     with cols[3]:
         if st.button("How To", key="nav_howto", use_container_width=True):
             st.session_state["selected_page"] = "how_to"
-            st.session_state["selected_screener"] = None  # <-- RESET SCREENER
+            st.session_state["selected_screener"] = None
             st.rerun()

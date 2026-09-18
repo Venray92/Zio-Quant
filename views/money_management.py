@@ -106,7 +106,8 @@ def render_page_money_management():
 
     # Header Utama
     st.markdown(
-        "<h1>⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>", unsafe_allow_html=True
+        '<h1 style="color: #00F3FF !important; text-shadow: 0 0 12px rgba(0, 243, 255, 0.8) !important;">⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>', 
+        unsafe_allow_html=True
     )
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
     st.markdown("<br>", unsafe_allow_html=True)
@@ -118,7 +119,10 @@ def render_page_money_management():
     # KOLOM 1: PARAMETER INPUT CONTROL
     # --------------------------------------------------------------------------
     with col_input:
-        st.markdown("### ⚙️ SYSTEM CONTROLS")
+        st.markdown(
+            '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;">⚙️ SYSTEM CONTROLS</h3>', 
+            unsafe_allow_html=True
+        )
 
         with st.expander("👤 CAPITAL & TRADER PROFILE", expanded=True):
             capital = st.number_input(
@@ -261,7 +265,10 @@ def render_page_money_management():
     with col_output:
         c_title, c_btn = st.columns([2.5, 1], vertical_alignment="center")
         with c_title:
-            st.markdown("### 🎯 POSITION SIZING ANALYTICS")
+            st.markdown(
+                '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important; margin: 0;">🎯 POSITION SIZING ANALYTICS</h3>', 
+                unsafe_allow_html=True
+            )
 
         # Validasi Input Logic
         if sl_price >= entry_price:
@@ -415,7 +422,10 @@ Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
 
         # Partial Profit Taking Execution Plan
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### ✂️ PARTIAL PROFIT TAKING PLAN")
+        st.markdown(
+            '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;">✂️ PARTIAL PROFIT TAKING PLAN</h3>', 
+            unsafe_allow_html=True
+        )
 
         lot_tp1 = math.floor(final_lot * 0.5)
         lot_tp2 = final_lot - lot_tp1
@@ -459,7 +469,10 @@ Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
 
         # Plotly Visualizers
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 📈 RISK VISUALIZER & EXPOSURE")
+        st.markdown(
+            '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;">📈 RISK VISUALIZER & EXPOSURE</h3>', 
+            unsafe_allow_html=True
+        )
 
         v1, v2 = st.columns(2)
 

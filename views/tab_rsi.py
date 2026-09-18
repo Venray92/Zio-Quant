@@ -370,7 +370,7 @@ def render_tab_rsi():
             )
 
             # --- BAGIAN KOLOM DROPDOWN & TOMBOL EXPORT ---
-            # --- UBAH RASIO MENJADI LEBIH BESAR DI KIRI (DROPDOWN) & KECIL DI KANAN (EXPORT) ---
+           # --- UBAH RASIO MENJADI LEBIH BESAR DI KIRI (DROPDOWN) & KECIL DI KANAN (EXPORT) ---
             col_filter, col_export = st.columns([3.2, 0.8])
 
             with col_filter:

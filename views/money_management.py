@@ -11,6 +11,42 @@ except ImportError:
 
 
 # ==============================================================================
+# CYBERPUNK COLOR INJECTION (Hanya Warna & Border Cyan)
+# ==============================================================================
+def inject_cyan_theme():
+    st.markdown(
+        """
+        <style>
+            /* Warna Teks Utama & Judul menjadi Cyan */
+            h1, h2, h3, h4, h5, h6, .stMarkdown p, .stMetric label, .stMetric div {
+                color: #00FFFF !important;
+            }
+            
+            /* Border pada Input, Selectbox, dan Textbox menjadi Cyan */
+            div[data-baseweb="input"] > div, 
+            div[data-baseweb="select"] > div, 
+            div[data-baseweb="base-input"] {
+                border-color: #00FFFF !important;
+            }
+            
+            /* Border pada Expander */
+            .streamlit-expanderHeader {
+                border: 1px solid #00FFFF !important;
+                border-radius: 4px;
+            }
+            
+            /* Border pada Tombol Utama */
+            .stButton > button {
+                border: 1px solid #00FFFF !important;
+                color: #00FFFF !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ==============================================================================
 # 1. STRATEGY RULES CONSTANTS
 # ==============================================================================
 PROFILE_RULES = {
@@ -85,6 +121,9 @@ def clear_ticker_callback():
 # ==============================================================================
 def render_page_money_management():
     """Render utama Halaman Money Management."""
+    # Terapkan injeksi warna tema Cyan (Cyberpunk style element)
+    inject_cyan_theme()
+
     st.title("Money Management Engine")
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
     st.markdown("---")

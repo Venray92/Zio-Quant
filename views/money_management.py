@@ -11,32 +11,40 @@ except ImportError:
 
 
 # ==============================================================================
-# CYBERPUNK COLOR INJECTION (Hanya Warna & Border Cyan)
+# CYBERPUNK COLOR INJECTION (Hanya Warna Teks & Border Cyan untuk System Controls)
 # ==============================================================================
 def inject_cyan_theme():
     st.markdown(
         """
         <style>
-            /* Warna Teks Utama & Judul menjadi Cyan */
-            h1, h2, h3, h4, h5, h6, .stMarkdown p, .stMetric label, .stMetric div {
+            /* Warna Teks & Judul spesifik di area System Controls (Kolom Input / Expander) menjadi Cyan */
+            div[data-testid="column"]:nth-of-type(1) h1, 
+            div[data-testid="column"]:nth-of-type(1) h2, 
+            div[data-testid="column"]:nth-of-type(1) h3, 
+            div[data-testid="column"]:nth-of-type(1) h4, 
+            div[data-testid="column"]:nth-of-type(1) h5, 
+            div[data-testid="column"]:nth-of-type(1) h6, 
+            div[data-testid="column"]:nth-of-type(1) .stMarkdown p, 
+            div[data-testid="column"]:nth-of-type(1) label,
+            div[data-testid="column"]:nth-of-type(1) .streamlit-expanderHeader {
                 color: #00FFFF !important;
             }
             
-            /* Border pada Input, Selectbox, dan Textbox menjadi Cyan */
-            div[data-baseweb="input"] > div, 
-            div[data-baseweb="select"] > div, 
-            div[data-baseweb="base-input"] {
+            /* Border pada Input, Selectbox, dan Textbox di area System Controls menjadi Cyan */
+            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="input"] > div, 
+            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="select"] > div, 
+            div[data-testid="column"]:nth-of-type(1) div[data-baseweb="base-input"] {
                 border-color: #00FFFF !important;
             }
             
-            /* Border pada Expander */
-            .streamlit-expanderHeader {
+            /* Border pada Expander (Capital & Trader Profile, Trade Execution, Brokerage Fees) */
+            div[data-testid="column"]:nth-of-type(1) .streamlit-expanderHeader {
                 border: 1px solid #00FFFF !important;
                 border-radius: 4px;
             }
             
-            /* Border pada Tombol Utama */
-            .stButton > button {
+            /* Border dan Teks pada Tombol di dalam System Controls */
+            div[data-testid="column"]:nth-of-type(1) .stButton > button {
                 border: 1px solid #00FFFF !important;
                 color: #00FFFF !important;
             }
@@ -121,7 +129,7 @@ def clear_ticker_callback():
 # ==============================================================================
 def render_page_money_management():
     """Render utama Halaman Money Management."""
-    # Terapkan injeksi warna tema Cyan (Cyberpunk style element)
+    # Terapkan injeksi warna tema Cyan khusus area System Controls
     inject_cyan_theme()
 
     st.title("Money Management Engine")
@@ -132,7 +140,7 @@ def render_page_money_management():
     col_input, col_output = st.columns([1.1, 1.9], gap="large")
 
     # --------------------------------------------------------------------------
-    # KOLOM 1: PARAMETER INPUT CONTROL
+    # KOLOM 1: PARAMETER INPUT CONTROL (System Controls, Profile, Setup, Fees)
     # --------------------------------------------------------------------------
     with col_input:
         st.subheader("System Controls")

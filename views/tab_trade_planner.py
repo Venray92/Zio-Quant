@@ -848,7 +848,6 @@ def render_tab_trade_planner():
                     unsafe_allow_html=True,
                 )
 
-            # Inisialisasi state untuk versi uncheck / clear centang tabel
             if "batch_uncheck_trigger" not in st.session_state:
                 st.session_state["batch_uncheck_trigger"] = 0
 
@@ -879,19 +878,66 @@ def render_tab_trade_planner():
 
             selected_rows = edited_df[edited_df["Select"] == True]
 
-            # Tombol aksi Batch: Watchlist di kanan, Copy di sebelah kiri Watchlist, dan tombol Clear Centang (*Uncheck*)
+            # Siapkan teks gabungan untuk semua saham yang dicentang (untuk Copy Terpilih)
+            batch_copy_text = ""
+            if not selected_rows.empty:
+                checked_symbols_preview = selected_rows["Symbol"].unique().tolist()
+                df_to_preview = df_raw[df_raw["Symbol"].isin(checked_symbols_preview)]
+                
+                plan_blocks = []
+                for _, r in df_to_preview.iterrows():
+                    p_text = f"""=== TRADE PLAN: {r.get('Symbol', '')} ===
+Strategy: {r.get('Strategy', 'BOW')}
+Grade: {r.get('Grade', 'N/A')}
+Score: {r.get('Score', 0)}/100
+Last Price: Rp {r.get('Last Price', 0):,}
+Buy Range: {r.get('Buy Range', '-')}
+Stop Loss: Rp {r.get('Stop Loss (SL)', 0):,}
+Target 1 (TP1): Rp {r.get('TP 1', 0):,}
+Target 2 (TP2): Rp {r.get('TP 2', 0):,}
+Zone Position: {r.get('Zone Position', '-')}
+Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}
+==============================="""
+                    plan_blocks.append(p_text)
+                batch_copy_text = "\n\n".join(plan_blocks)
+
+            # Tombol aksi Batch: Clear Centang di kiri, Copy Terpilih di tengah, Watchlist Terpilih di kanan
             c_act_clear, c_act_copy, c_act_wl = st.columns([1, 1, 1], vertical_alignment="bottom")
+            
             with c_act_clear:
                 if st.button("🗑️ Clear Centang", use_container_width=True, key="btn_clear_checks"):
                     st.session_state["batch_uncheck_trigger"] += 1
                     st.rerun()
+
             with c_act_copy:
-                if st.button("📋 Copy Terpilih", use_container_width=True, key="btn_copy_batch_selected"):
-                    if not selected_rows.empty:
-                        symbols_copied = ", ".join(selected_rows["Symbol"].unique().tolist())
-                        st.toast(f"Berhasil menyalin rencana untuk: {symbols_copied}", icon="📋")
-                    else:
-                        st.toast("Pilih minimal satu saham dicentang pada tabel di atas.", icon="⚠️")
+                unique_batch_btn_id = "copy_btn_batch_all"
+                batch_copy_html = f"""
+                <button id="{unique_batch_btn_id}" style="width: 100%; background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 9px 10px; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
+                    📋 Copy Terpilih
+                </button>
+                <script>
+                const textToCopy_{unique_batch_btn_id} = `{batch_copy_text}`;
+                const btn_{unique_batch_btn_id} = document.getElementById("{unique_batch_btn_id}");
+                btn_{unique_batch_btn_id}.onclick = function() {{
+                    if (!textToCopy_{unique_batch_btn_id}.trim()) {{
+                        alert("Pilih minimal satu saham dicentang pada tabel di atas.");
+                        return;
+                    }}
+                    navigator.clipboard.writeText(textToCopy_{unique_batch_btn_id}).then(function() {{
+                        btn_{unique_batch_btn_id}.innerText = "✅ Copied!";
+                        btn_{unique_batch_btn_id}.style.background = "#00FF66";
+                        setTimeout(function() {{
+                            btn_{unique_batch_btn_id}.innerText = "📋 Copy Terpilih";
+                            btn_{unique_batch_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
+                        }}, 2000);
+                    }}).catch(function(err) {{
+                        console.error('Gagal menyalin text: ', err);
+                    }});
+                }};
+                </script>
+                """
+                components.html(batch_copy_html, height=45)
+
             with c_act_wl:
                 if st.button("⭐ Watchlist Terpilih", use_container_width=True, key="btn_wl_batch_selected"):
                     if not selected_rows.empty:

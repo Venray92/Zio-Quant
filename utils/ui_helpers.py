@@ -76,7 +76,7 @@ def calculate_rr_ratios(row):
 
 # ==============================================================================
 # FUNGSI 5: RENDER INLINE TRADE PLANNER (KOMPONEN UI UTAMA)
-# Menampilkan detail Trade Plan, TradingView Chart (dilipat), dan Fitur Watchlist
+# Menampilkan detail Trade Plan, TradingView Chart, dan Fitur Watchlist (Semua Dilipat)
 # ==============================================================================
 def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screener"):
     st.markdown("---")
@@ -188,7 +188,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
             unsafe_allow_html=True,
         )
 
-    # 4. KARTU REKOMENDASI TRADE PLAN (MEMANGGIL ENGINE TRADE PLANNER)
+    # 4. KARTU REKOMENDASI TRADE PLAN (MEMANGGIL ENGINE TRADE PLANNER) - DIBUNGKUS EXPANDER DEFAULT TUTUP
     with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
         try:
             planner = TradePlanner(
@@ -204,11 +204,6 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
             )
 
             if df_plan is not None and not df_plan.empty:
-                st.markdown(
-                    '<div class="section-title">🎯 Trade Plan Recommendation</div>',
-                    unsafe_allow_html=True,
-                )
-
                 for idx, row in df_plan.iterrows():
                     plan_no = idx + 1
                     plan_type = row.get(
@@ -240,58 +235,76 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                         "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
                     )
 
-                    card_html = f"""
-                    <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
-                            <div>
-                                <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
-                                <span style="font-size: 13px; font-weight: 700; color: #E6EDF3; margin-left: 8px;">{grade}</span>
-                            </div>
-                            <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
-                                SCORE: {score}
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                                <div style="font-size: 10px; color: #38BDF8; font-weight: 800;">Area Buy</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>
-                            </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2);">
-                                <div style="font-size: 10px; color: #FF5252; font-weight: 800;">Stop Loss</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>
-                            </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 1</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>
-                            </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 2</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>
-                            </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; background-color: #0E1117; padding: 10px 14px; border-radius: 8px; border: 1px solid #21262D;">
-                            <span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>
-                            <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
-                        </div>
-                    </div>
-                    """
-                    st.markdown(card_html, unsafe_allow_html=True)
+                    # Setiap kartu rekomendasi dibungkus expander agar tertutup default (mencegah lag)
+                    with st.expander(f"🎯 Trade Plan Recommendation #{plan_no}: {plan_type} ({ticker_symbol}) - Score: {score}", expanded=False):
+                        
+                        # Teks format untuk fitur Copy Plan dengan tombol salin otomatis bawaan
+                        copyable_text = f"""=== TRADE PLAN: {ticker_symbol} ===
+Strategy: {plan_type}
+Grade: {grade}
+Score: {score}/100
+Area Buy: {area_buy}
+Stop Loss: {stop_loss}
+Target 1 (TP1): {tp1}
+Target 2 (TP2): {tp2}
+Status Posisi: {posisi}
+==============================="""
+                        
+                        st.markdown("📋 **Copy Plan (Klik tombol salin di sudut kanan atas kode berikut):**")
+                        st.code(copyable_text, language="text")
 
-                    rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
+                        card_html = f"""
+                        <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px; margin-top: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
+                                <div>
+                                    <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
+                                    <span style="font-size: 13px; font-weight: 700; color: #E6EDF3; margin-left: 8px;">{grade}</span>
+                                </div>
+                                <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
+                                    SCORE: {score}
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
+                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                                    <div style="font-size: 10px; color: #38BDF8; font-weight: 800;">Area Buy</div>
+                                    <div style="font-size: 15px; font-weight: 800; color: #38BDF8; margin-top: 4px;">{area_buy}</div>
+                                </div>
+                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 82, 82, 0.2);">
+                                    <div style="font-size: 10px; color: #FF5252; font-weight: 800;">Stop Loss</div>
+                                    <div style="font-size: 15px; font-weight: 800; color: #FF5252; margin-top: 4px;">{stop_loss}</div>
+                                </div>
+                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                    <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 1</div>
+                                    <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp1}</div>
+                                </div>
+                                <div style="background: rgba(14, 17, 23, 0.9); padding: 12px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.2);">
+                                    <div style="font-size: 10px; color: #00E676; font-weight: 800;">Target 2</div>
+                                    <div style="font-size: 15px; font-weight: 800; color: #00E676; margin-top: 4px;">{tp2}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; background-color: #0E1117; padding: 10px 14px; border-radius: 8px; border: 1px solid #21262D;">
+                                <span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>
+                                <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
+                            </div>
+                        </div>
+                        """
+                        st.markdown(card_html, unsafe_allow_html=True)
 
-                    with st.expander(
-                        f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
-                        expanded=False,
-                    ):
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.metric(
-                                label="R:R ( Target 1 )", value=rr_tp1_val
-                            )
-                        with c2:
-                            st.metric(
-                                label="R:R ( Target 2 )", value=rr_tp2_val
-                            )
+                        rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
+
+                        with st.expander(
+                            f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
+                            expanded=False,
+                        ):
+                            c1, c2 = st.columns(2)
+                            with c1:
+                                st.metric(
+                                    label="R:R ( Target 1 )", value=rr_tp1_val
+                                )
+                            with c2:
+                                st.metric(
+                                    label="R:R ( Target 2 )", value=rr_tp2_val
+                                )
             else:
                 st.info(f"Tidak ada Trade Plan yang tersedia untuk **{ticker_symbol}** pada periode ini.")
 

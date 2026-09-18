@@ -2,7 +2,6 @@ import math
 import os
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 
 # Safe import TradePlanner dari modul backend
 try:
@@ -12,23 +11,7 @@ except ImportError:
 
 
 # ==============================================================================
-# 1. EXTERNAL CSS INJECTOR
-# ==============================================================================
-def inject_cyberpunk_theme():
-    """Membaca file CSS eksternal dari folder assets dan memasangnya ke Streamlit."""
-    css_file_path = os.path.join("assets", "style-money-management.css")
-
-    if os.path.exists(css_file_path):
-        with open(css_file_path, "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    else:
-        st.warning(
-            f"⚠️ File style `{css_file_path}` tidak ditemukan. Menggunakan tampilan default Streamlit."
-        )
-
-
-# ==============================================================================
-# 2. STRATEGY RULES CONSTANTS
+# 1. STRATEGY RULES CONSTANTS
 # ==============================================================================
 PROFILE_RULES = {
     "Scalping / Fast Trade": {
@@ -59,16 +42,16 @@ PROFILE_RULES = {
 
 
 # ==============================================================================
-# 3. HELPER FUNCTIONS
+# 2. HELPER FUNCTIONS
 # ==============================================================================
 def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> bool:
     """Mengambil data Trade Plan dari TradePlanner engine backend."""
     if not TradePlanner:
-        st.error("[SYS_ERR] Modul `TradePlanner` tidak ditemukan.")
+        st.error("Modul `TradePlanner` tidak ditemukan.")
         return False
 
     try:
-        with st.spinner(f"[SYNC] Syncing Trade Plan {full_ticker}..."):
+        with st.spinner(f"Syncing Trade Plan {full_ticker}..."):
             planner = TradePlanner(ticker=full_ticker)
             planner.fetch_and_prepare_data()
             df_plan = planner.generate_trade_plan()
@@ -87,7 +70,7 @@ def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> boo
             st.session_state["last_synced_type"] = plan_type
             return True
     except Exception as e:
-        st.error(f"[SYS_ERR] Gagal sinkronisasi {clean_ticker}: {e}")
+        st.error(f"Gagal sinkronisasi {clean_ticker}: {e}")
         return False
 
 
@@ -98,19 +81,13 @@ def clear_ticker_callback():
 
 
 # ==============================================================================
-# 4. MAIN RENDER FUNCTION
+# 3. MAIN RENDER FUNCTION
 # ==============================================================================
 def render_page_money_management():
     """Render utama Halaman Money Management."""
-    inject_cyberpunk_theme()
-
-    # Header Utama
-    st.markdown(
-        '<h1 style="color: #FFFFFF !important; font-size: 32px !important; text-shadow: 0 0 10px #00F3FF, 0 0 20px #00F3FF, 0 0 40px #00F3FF !important; margin-bottom: 0px;">⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>', 
-        unsafe_allow_html=True
-    )
+    st.title("Money Management Engine")
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
 
     # Grid Utama
     col_input, col_output = st.columns([1.1, 1.9], gap="large")
@@ -119,12 +96,9 @@ def render_page_money_management():
     # KOLOM 1: PARAMETER INPUT CONTROL
     # --------------------------------------------------------------------------
     with col_input:
-        st.markdown(
-            '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important; margin-top: 0px;">⚙️ SYSTEM CONTROLS</h2>', 
-            unsafe_allow_html=True
-        )
+        st.subheader("System Controls")
 
-        with st.expander("👤 CAPITAL & TRADER PROFILE", expanded=True):
+        with st.expander("Capital & Trader Profile", expanded=True):
             capital = st.number_input(
                 "Total Capital (IDR)",
                 min_value=1_000_000,
@@ -149,22 +123,22 @@ def render_page_money_management():
             )
 
             rule = PROFILE_RULES[trading_style]
-            st.caption(f"💡 *{rule['desc']}*")
+            st.info(f"{rule['desc']}")
 
-        with st.expander("📊 TRADE EXECUTION SETUP", expanded=True):
+        with st.expander("Trade Execution Setup", expanded=True):
             st.session_state.setdefault("input_entry_price", 125.0)
             st.session_state.setdefault("input_sl_price", 120.0)
             st.session_state.setdefault("input_tp1_price", 151.0)
             st.session_state.setdefault("input_tp2_price", 216.0)
 
-            # Fitur Pilih dari Watchlist (jika ada datanya di session state)
+            # Fitur Pilih dari Watchlist
             watchlist_items = st.session_state.get("watchlist_data", [])
             if watchlist_items:
                 wl_tickers = ["-- Pilih dari Watchlist --"] + [
                     x.get("Ticker", "").replace(".JK", "") for x in watchlist_items if isinstance(x, dict)
                 ]
                 selected_from_wl = st.selectbox(
-                    "📌 Ambil dari Watchlist",
+                    "Ambil dari Watchlist",
                     wl_tickers,
                     key="mm_select_from_watchlist"
                 )
@@ -184,24 +158,23 @@ def render_page_money_management():
                 ).strip()
 
             with col_tclear:
-                st.button("🧹 Clear", key="btn_clear_ticker", on_click=clear_ticker_callback, use_container_width=True)
+                st.button("Clear", key="btn_clear_ticker", on_click=clear_ticker_callback, use_container_width=True)
 
             clean_ticker = (
                 ticker_input.upper().replace(".JK", "").strip() or "COCO"
             )
             full_ticker = f"{clean_ticker}.JK"
 
-            st.markdown("<p style='font-size: 12px; color: #8d9bb0; margin-bottom: 4px;'>Trade Strategy Type (Checklist)</p>", unsafe_allow_html=True)
+            st.write("Trade Strategy Type (Checklist)")
             c_chk1, c_chk2 = st.columns(2)
             with c_chk1:
                 chk_bow = st.checkbox("BOW (Buy on Weakness)", value=True, key="chk_strat_bow")
             with c_chk2:
                 chk_bob = st.checkbox("BOB (Buy on Breakout)", value=False, key="chk_strat_bob")
 
-            # Tentukan tipe plan aktif berdasarkan checkbox
             active_plan_type = "BOW" if chk_bow else ("BOB" if chk_bob else "BOW")
 
-            if st.button("🔄 Sync with Trade Planner", use_container_width=True):
+            if st.button("Sync with Trade Planner", use_container_width=True):
                 if fetch_trade_plan(full_ticker, active_plan_type, clean_ticker):
                     st.rerun()
 
@@ -237,7 +210,7 @@ def render_page_money_management():
                     key="input_tp2_price",
                 )
 
-        with st.expander("🛠️ BROKERAGE FEES", expanded=False):
+        with st.expander("Brokerage Fees", expanded=False):
             fee_buy = (
                 st.number_input(
                     "Buy Fee (%)",
@@ -263,18 +236,11 @@ def render_page_money_management():
     # KOLOM 2: ANALYTICS OUTPUT
     # --------------------------------------------------------------------------
     with col_output:
-        c_title, c_btn = st.columns([2.5, 1], vertical_alignment="center")
-        with c_title:
-            st.markdown(
-                '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important; margin: 0;">🎯 POSITION SIZING ANALYTICS</h2>', 
-                unsafe_allow_html=True
-            )
+        st.subheader("Position Sizing Analytics")
 
         # Validasi Input Logic
         if sl_price >= entry_price:
-            st.error(
-                "❌ [LOGIC ERROR] Stop Loss (SL) harus LEBIH KECIL dari Harga Entry!"
-            )
+            st.error("Stop Loss (SL) harus LEBIH KECIL dari Harga Entry!")
             return
 
         # Core Calculation Engine
@@ -316,116 +282,28 @@ def render_page_money_management():
         )
         is_capped = (lot_by_cap < lot_by_risk) and (lot_by_risk > 0)
 
-        # Teks untuk fitur Copy MM Plan
-        strategies_active = []
-        if chk_bow: strategies_active.append("BOW")
-        if chk_bob: strategies_active.append("BOB")
-        strat_str = " & ".join(strategies_active) if strategies_active else active_plan_type
-
-        mm_copyable_text = f"""=== MONEY MANAGEMENT PLAN: {clean_ticker} ===
-Strategy: {strat_str} | Profile: {trading_style}
-Capital: Rp {capital:,.0f}
-Entry Price: Rp {entry_price:,.0f}
-Stop Loss: Rp {sl_price:,.0f}
-Target 1: Rp {tp1_price:,.0f}
-Target 2: Rp {tp2_price:,.0f}
-----------------------------------------
-Recommended Size: {final_lot:,} Lot ({final_shares:,} Lembar)
-Total Buy Value: Rp {total_buy_value:,.0f} ({(total_buy_value/capital)*100:.1f}%)
-Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
-========================================"""
-
-        with c_btn:
-            btn_id_mm = "copy_btn_money_management"
-            copy_mm_html = f"""
-            <div style="display: flex; justify-content: flex-end; align-items: center;">
-                <button id="{btn_id_mm}" style="background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
-                    📋 COPY PLAN
-                </button>
-            </div>
-            <script>
-            const textToCopy_{btn_id_mm} = `{mm_copyable_text}`;
-            const btn_{btn_id_mm} = document.getElementById("{btn_id_mm}");
-            btn_{btn_id_mm}.onclick = function() {{
-                navigator.clipboard.writeText(textToCopy_{btn_id_mm}).then(function() {{
-                    btn_{btn_id_mm}.innerText = "✅ COPIED!";
-                    btn_{btn_id_mm}.style.background = "#00FF66";
-                    setTimeout(function() {{
-                        btn_{btn_id_mm}.innerText = "📋 COPY PLAN";
-                        btn_{btn_id_mm}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
-                    }}, 2000);
-                }}).catch(function(err) {{
-                    console.error('Gagal menyalin text: ', err);
-                }});
-            }};
-            </script>
-            """
-            components.html(copy_mm_html, height=35)
-
-        # 3 Card Neon Display
+        # 3 Metrics Display (Default Streamlit)
         m1, m2, m3 = st.columns(3)
-
-        with m1:
-            st.markdown(
-                f"""
-                <div class="cyber-card">
-                    <div class="cyber-label">RECOMMENDED SIZE</div>
-                    <div class="cyber-value">{final_lot:,} LOT</div>
-                    <div style="font-size: 11px; color: #8d9bb0;">({final_shares:,} Lembar)</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        with m2:
-            st.markdown(
-                f"""
-                <div class="cyber-card">
-                    <div class="cyber-label">TOTAL BUY VALUE</div>
-                    <div class="cyber-value" style="color:#ffffff;">Rp {total_buy_value:,.0f}</div>
-                    <div style="font-size: 11px; color: #8d9bb0;">Alloc: {(total_buy_value/capital)*100:.1f}% Modal</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        with m3:
-            if rrr_tp1 >= 2.0:
-                rrr_badge = (
-                    '<span class="cyber-badge badge-cyan">EXCELLENT</span>'
-                )
-            elif rrr_tp1 >= 1.5:
-                rrr_badge = (
-                    '<span class="cyber-badge badge-yellow">ACCEPTABLE</span>'
-                )
-            else:
-                rrr_badge = (
-                    '<span class="cyber-badge badge-pink">POOR RISK</span>'
-                )
-
-            st.markdown(
-                f"""
-                <div class="cyber-card">
-                    <div class="cyber-label">RISK / REWARD</div>
-                    <div class="cyber-value" style="color:#ffe600;">1 : {rrr_tp1:.2f}</div>
-                    <div>{rrr_badge}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        m1.metric("Recommended Size", f"{final_lot:,} Lot", f"{final_shares:,} Lembar")
+        m2.metric("Total Buy Value", f"Rp {total_buy_value:,.0f}", f"Alloc: {(total_buy_value/capital)*100:.1f}%")
+        
+        if rrr_tp1 >= 2.0:
+            rrr_status = "EXCELLENT"
+        elif rrr_tp1 >= 1.5:
+            rrr_status = "ACCEPTABLE"
+        else:
+            rrr_status = "POOR RISK"
+        
+        m3.metric("Risk / Reward", f"1 : {rrr_tp1:.2f}", rrr_status)
 
         if is_capped:
             st.warning(
-                f"⚠️ **CAP ALERT:** Toleransi risk mengizinkan **{lot_by_risk:,} Lot**, "
+                f"Toleransi risk mengizinkan **{lot_by_risk:,} Lot**, "
                 f"namun dibatasi max **{final_lot:,} Lot** sesuai profil {trading_style} ({max_alloc_pct}%)."
             )
 
-        # Partial Profit Taking Execution Plan
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(
-            '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important;">✂️ PARTIAL PROFIT TAKING PLAN</h2>', 
-            unsafe_allow_html=True
-        )
+        st.markdown("---")
+        st.subheader("Partial Profit Taking Plan")
 
         lot_tp1 = math.floor(final_lot * 0.5)
         lot_tp2 = final_lot - lot_tp1
@@ -440,39 +318,20 @@ Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
 
         sc1, sc2 = st.columns(2)
         with sc1:
-            st.markdown(
-                f"""
-                <div class="cyber-card">
-                    <h4 style="margin:0; color:#00f3ff; font-size:14px;">TAHAP 1: SELL 50% @ TP1</h4>
-                    <p style="margin:6px 0; font-size:13px; color:#ffffff;">Jual <b>{lot_tp1:,} Lot</b> @ <b>Rp {tp1_price:,.0f}</b></p>
-                    <p style="margin:0; font-size:12px; color:#8d9bb0;">Est. Profit: <b style="color:#00ff66;">+Rp {p_tp1:,.0f}</b></p>
-                    <hr style="margin:10px 0; border-color:#1e2638;">
-                    <span style="font-size:11px; color:#ffe600;">📌 Action: Set Break-Even SL @ Rp {entry_price:,.0f}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.markdown("##### TAHAP 1: SELL 50% @ TP1")
+            st.write(f"- Size: **{lot_tp1:,} Lot** @ **Rp {tp1_price:,.0f}**")
+            st.write(f"- Est. Profit: **+Rp {p_tp1:,.0f}**")
+            st.caption(f"Action: Set Break-Even SL @ Rp {entry_price:,.0f}")
 
         with sc2:
-            st.markdown(
-                f"""
-                <div class="cyber-card">
-                    <h4 style="margin:0; color:#00f3ff; font-size:14px;">TAHAP 2: SELL 50% @ TP2</h4>
-                    <p style="margin:6px 0; font-size:13px; color:#ffffff;">Jual <b>{lot_tp2:,} Lot</b> @ <b>Rp {tp2_price:,.0f}</b></p>
-                    <p style="margin:0; font-size:12px; color:#8d9bb0;">Est. Profit: <b style="color:#00ff66;">+Rp {p_tp2:,.0f}</b></p>
-                    <hr style="margin:10px 0; border-color:#1e2638;">
-                    <span style="font-size:11px; color:#00f3ff;">💰 Total Potential: <b style="color:#00ff66;">+Rp {total_potential_profit:,.0f}</b></span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.markdown("##### TAHAP 2: SELL 50% @ TP2")
+            st.write(f"- Size: **{lot_tp2:,} Lot** @ **Rp {tp2_price:,.0f}**")
+            st.write(f"- Est. Profit: **+Rp {p_tp2:,.0f}**")
+            st.write(f"- Total Potential Profit: **+Rp {total_potential_profit:,.0f}**")
 
-        # Plotly Visualizers
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(
-            '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important;">📈 RISK VISUALIZER & EXPOSURE</h2>', 
-            unsafe_allow_html=True
-        )
+        # Plotly Visualizers (Default layout)
+        st.markdown("---")
+        st.subheader("Risk Visualizer & Exposure")
 
         v1, v2 = st.columns(2)
 
@@ -481,30 +340,16 @@ Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
                 go.Indicator(
                     mode="gauge+number",
                     value=actual_risk_pct,
-                    number={"suffix": "%", "font": {"color": "#00f3ff"}},
+                    number={"suffix": "%"},
                     domain={"x": [0, 1], "y": [0, 1]},
                     gauge={
                         "axis": {"range": [0, max(10.0, risk_pct * 1.5)]},
-                        "bar": {
-                            "color": (
-                                "#00f3ff"
-                                if actual_risk_pct <= risk_pct
-                                else "#ff0055"
-                            )
-                        },
-                        "steps": [
-                            {"range": [0, risk_pct], "color": "#0d111a"},
-                            {"range": [risk_pct, 10.0], "color": "#1c0812"},
-                        ],
                     },
                 )
             )
             fig_gauge.update_layout(
                 height=180,
                 margin=dict(l=20, r=20, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font={"color": "#ffffff"},
             )
             st.plotly_chart(fig_gauge, use_container_width=True)
 
@@ -516,16 +361,12 @@ Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
                         labels=[f"Posisi {clean_ticker}", "Cash"],
                         values=[total_cost_with_fee, cash_left],
                         hole=0.6,
-                        marker_colors=["#00f3ff", "#1e2638"],
                     )
                 ]
             )
             fig_donut.update_layout(
                 height=180,
                 margin=dict(l=10, r=10, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font={"color": "#ffffff"},
-                showlegend=False,
+                showlegend=True,
             )
             st.plotly_chart(fig_donut, use_container_width=True)

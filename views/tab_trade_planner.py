@@ -856,7 +856,7 @@ def render_tab_trade_planner():
                 st.write("")
                 selected_symbols = selected_rows["Symbol"].tolist()
                 df_selected_full = df[df["Symbol"].isin(selected_symbols)]
-                render_trade_plan_cards(df_selected_full, is_title_needed=True, is_single_mode=False)
+                render_trade_plan_cards(df_selected_full, is_title_needed=True, is_single_mode=True)
 
     # --- FOOTER ---
     st.markdown(

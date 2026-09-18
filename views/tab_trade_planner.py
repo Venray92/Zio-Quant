@@ -7,11 +7,17 @@ from engines.trade_planner import TradePlanner
 
 
 def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
-    """Reads ticker list from file inside data folder."""
-    if not os.path.exists(filename):
-        return []
+    """Reads ticker list from file inside data folder or fallback to root."""
+    target_path = filename
+    if not os.path.exists(target_path):
+        # Fallback to root directory if data/ folder path doesn't exist
+        alt_path = os.path.basename(filename)
+        if os.path.exists(alt_path):
+            target_path = alt_path
+        else:
+            return []
     try:
-        with open(filename, "r") as f:
+        with open(target_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         tickers = [
             line.strip().upper()
@@ -273,7 +279,7 @@ def render_tab_trade_planner():
             }
         }
 
-        /* Banner Header Ringkas (Background Gelap, Lebar Tetap, Tinggi Ringkas, Rata Tengah) */
+        /* Banner Header Ringkas */
         .header-banner {
             border: 1px solid #00F3FF;
             box-shadow: 0 0 14px rgba(0, 243, 255, 0.4), inset 0 0 14px rgba(0, 243, 255, 0.15);
@@ -310,7 +316,7 @@ def render_tab_trade_planner():
             line-height: 1.2;
         }
 
-        /* Styling Judul-Judul Penting + Gradasi + Glowing */
+        /* Styling Judul-Judul Penting */
         .glow-title {
             display: flex;
             align-items: center;
@@ -336,7 +342,7 @@ def render_tab_trade_planner():
             flex-shrink: 0;
         }
 
-        /* Custom Styling Tombol (Border & Primary Cyan Neon Glow, Mengganti Warna Merah Default) */
+        /* Custom Styling Tombol */
         div.stButton > button {
             border: 1px solid #00F3FF !important;
             box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
@@ -473,7 +479,7 @@ def render_tab_trade_planner():
         is_batch = current_mode == "batch"
         btn_type_batch = "primary" if is_batch else "secondary"
         if st.button(
-            " Batch Screener\n Analysis",
+            " Batch Screener Analysis",
             use_container_width=True,
             type=btn_type_batch,
             key="btn_card_batch",
@@ -552,7 +558,6 @@ def render_tab_trade_planner():
 
         col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
         with col_info:
-            # 🔒 Teks disederhanakan tanpa menampilkan nama file & total ticker
             st.info("💡 **Click Run To Screen All Ticker**")
         with col_batch_btn:
             if st.button("Run Screener", type="primary", use_container_width=True):

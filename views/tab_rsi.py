@@ -415,7 +415,7 @@ def render_tab_rsi():
 
             if not df_target.empty:
                 # BUNGKUS DENGAN SCROLLABLE CONTAINER (550px)
-                with st.container(height=700, border=False):
+                with st.container(height=750, border=False):
                     for idx, row in df_target.iterrows():
                         ticker = str(row.get("Ticker", row.get("Saham", "")))
                         saham = row.get("Saham", ticker.replace(".JK", ""))

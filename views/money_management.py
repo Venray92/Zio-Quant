@@ -49,38 +49,31 @@ def format_ticker_symbol(raw_ticker: str) -> Tuple[str, str]:
     return clean, f"{clean}.JK"
 
 
-def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> bool:
+def sync_trade_plan_action(full_ticker: str, plan_type: str, clean_ticker: str):
+    """Callback/Fungsi sinkronisasi tanpa memicu infinite loop."""
     if not TradePlanner:
-        st.error("[SYS_ERR] Modul `TradePlanner` tidak ditemukan.")
-        return False
+        st.error("Modul `TradePlanner` tidak ditemukan.")
+        return
 
     try:
-        with st.spinner(f"[SYNC] Syncing Trade Plan {full_ticker}..."):
-            planner = TradePlanner(ticker=full_ticker)
-            planner.fetch_and_prepare_data()
-            df_plan = planner.generate_trade_plan()
+        planner = TradePlanner(ticker=full_ticker)
+        planner.fetch_and_prepare_data()
+        df_plan = planner.generate_trade_plan()
 
-            matched = df_plan[df_plan["Type"] == plan_type]
-            if matched.empty:
-                matched = df_plan
+        matched = df_plan[df_plan["Type"] == plan_type]
+        if matched.empty:
+            matched = df_plan
 
-            row = matched.iloc[0]
+        row = matched.iloc[0]
 
-            st.session_state["input_entry_price"] = float(row["Range Buy Min"])
-            st.session_state["input_sl_price"] = float(row["Stop Loss"])
-            st.session_state["input_tp1_price"] = float(row["TP 1"])
-            st.session_state["input_tp2_price"] = float(row["TP 2"])
-            st.session_state["last_synced_ticker"] = clean_ticker
-            st.session_state["last_synced_type"] = plan_type
-            return True
+        # Update Session State untuk Widget Input
+        st.session_state["val_entry_price"] = float(row["Range Buy Min"])
+        st.session_state["val_sl_price"] = float(row["Stop Loss"])
+        st.session_state["val_tp1_price"] = float(row["TP 1"])
+        st.session_state["val_tp2_price"] = float(row["TP 2"])
+        st.toast(f"Berhasil sinkronisasi Trade Plan untuk {clean_ticker}!", icon="✅")
     except Exception as e:
-        st.error(f"[SYS_ERR] Gagal sinkronisasi {clean_ticker}: {e}")
-        return False
-
-
-def clear_ticker_callback():
-    st.session_state["mm_raw_ticker_input"] = ""
-    st.session_state["selected_watchlist_ticker"] = ""
+        st.error(f"Gagal sinkronisasi {clean_ticker}: {e}")
 
 
 # ==============================================================================
@@ -192,7 +185,7 @@ class MoneyManagementEngine:
             "final_shares": final_shares,
             "total_buy_value": total_buy_value,
             "total_cost_with_fee": total_cost_with_fee,
-            "capital_alloc_pct": (total_buy_value / self.capital) * 100.0,
+            "capital_alloc_pct": (total_buy_value / self.capital) * 100.0 if self.capital > 0 else 0.0,
             "actual_risk_idr": actual_risk_idr,
             "actual_risk_pct": actual_risk_pct,
             "rrr_tp1": rrr_tp1,
@@ -230,20 +223,23 @@ def render_page_money_management():
     st.title("MONEY MANAGEMENT ENGINE")
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
 
-    # Set Session State Defaults
-    st.session_state.setdefault("input_entry_price", 125.0)
-    st.session_state.setdefault("input_sl_price", 120.0)
-    st.session_state.setdefault("input_tp1_price", 151.0)
-    st.session_state.setdefault("input_tp2_price", 216.0)
+    # Inisialisasi default session state tanpa konflik key
+    if "val_entry_price" not in st.session_state:
+        st.session_state["val_entry_price"] = 125.0
+    if "val_sl_price" not in st.session_state:
+        st.session_state["val_sl_price"] = 120.0
+    if "val_tp1_price" not in st.session_state:
+        st.session_state["val_tp1_price"] = 151.0
+    if "val_tp2_price" not in st.session_state:
+        st.session_state["val_tp2_price"] = 216.0
 
-    # Layout Grid Utama
     col_input, col_output = st.columns([1.1, 1.9], gap="large")
 
     # --------------------------------------------------------------------------
     # KOLOM 1: CONTROL PARAMETERS
     # --------------------------------------------------------------------------
     with col_input:
-        st.header("SYSTEM CONTROLS")
+        st.subheader("⚙️ SYSTEM CONTROLS")
 
         with st.expander("CAPITAL & TRADER PROFILE", expanded=True):
             capital = st.number_input(
@@ -272,44 +268,15 @@ def render_page_money_management():
             st.caption(f"*{rule['desc']}*")
 
         with st.expander("TRADE EXECUTION SETUP", expanded=True):
-            # Watchlist Dropdown Sync
-            watchlist_items = st.session_state.get("watchlist_data", [])
-            if watchlist_items:
-                wl_tickers = ["-- Pilih dari Watchlist --"] + [
-                    x.get("Ticker", "").replace(".JK", "")
-                    for x in watchlist_items
-                    if isinstance(x, dict)
-                ]
-                selected_from_wl = st.selectbox(
-                    "Ambil dari Watchlist",
-                    wl_tickers,
-                    key="mm_select_from_watchlist",
-                )
-                if selected_from_wl != "-- Pilih dari Watchlist --":
-                    st.session_state["mm_raw_ticker_input"] = selected_from_wl
-
-            # Input Ticker & Clear Button
-            col_tinput, col_tclear = st.columns([3, 1], vertical_alignment="bottom")
-            with col_tinput:
-                default_ticker = st.session_state.get("mm_raw_ticker_input", "COCO")
-                ticker_input = st.text_input(
-                    "Ticker Code",
-                    value=default_ticker,
-                    key="mm_raw_ticker_input",
-                    placeholder="COCO / BBCA",
-                ).strip()
-
-            with col_tclear:
-                st.button(
-                    "Clear",
-                    key="btn_clear_ticker",
-                    on_click=clear_ticker_callback,
-                    use_container_width=True,
-                )
+            ticker_input = st.text_input(
+                "Ticker Code",
+                value="COCO",
+                key="mm_raw_ticker_input",
+                placeholder="COCO / BBCA",
+            ).strip()
 
             clean_ticker, full_ticker = format_ticker_symbol(ticker_input)
 
-            # Strategy Checklist
             st.caption("Trade Strategy Type")
             c_chk1, c_chk2 = st.columns(2)
             with c_chk1:
@@ -317,27 +284,28 @@ def render_page_money_management():
             with c_chk2:
                 chk_bob = st.checkbox("BOB (Buy on Breakout)", value=False, key="chk_strat_bob")
 
-            active_plan_type = "BOW" if chk_bow else ("BOB" if chk_bob else "BOW")
+            active_plan_type = "BOW" if chk_bow else "BOB"
 
-            if st.button("Sync with Trade Planner", use_container_width=True):
-                if fetch_trade_plan(full_ticker, active_plan_type, clean_ticker):
-                    st.rerun()
+            if st.button("Sync with Trade Planner", use_container_width=True, key="btn_sync_tp"):
+                sync_trade_plan_action(full_ticker, active_plan_type, clean_ticker)
 
-            # Entry, SL, TP Inputs
+            # Form Entry Inputs
             c_entry, c_sl = st.columns(2)
             with c_entry:
                 entry_price = st.number_input(
                     "Entry Price",
                     min_value=1.0,
                     step=1.0,
-                    key="input_entry_price",
+                    value=st.session_state["val_entry_price"],
+                    key="val_entry_price",
                 )
             with c_sl:
                 sl_price = st.number_input(
                     "Stop Loss (SL)",
                     min_value=1.0,
                     step=1.0,
-                    key="input_sl_price",
+                    value=st.session_state["val_sl_price"],
+                    key="val_sl_price",
                 )
 
             c_tp1, c_tp2 = st.columns(2)
@@ -346,14 +314,16 @@ def render_page_money_management():
                     "Target Price 1",
                     min_value=1.0,
                     step=1.0,
-                    key="input_tp1_price",
+                    value=st.session_state["val_tp1_price"],
+                    key="val_tp1_price",
                 )
             with c_tp2:
                 tp2_price = st.number_input(
                     "Target Price 2",
                     min_value=1.0,
                     step=1.0,
-                    key="input_tp2_price",
+                    value=st.session_state["val_tp2_price"],
+                    key="val_tp2_price",
                 )
 
         with st.expander("BROKERAGE FEES", expanded=False):
@@ -376,9 +346,8 @@ def render_page_money_management():
     # KOLOM 2: ANALYTICS OUTPUT
     # --------------------------------------------------------------------------
     with col_output:
-        st.header("POSITION SIZING ANALYTICS")
+        st.subheader("📊 POSITION SIZING ANALYTICS")
 
-        # Inisialisasi Engine & Eksekusi Kalkulasi
         engine = MoneyManagementEngine(
             capital=capital,
             trading_style=trading_style,
@@ -398,7 +367,7 @@ def render_page_money_management():
 
         res = engine.calculate()
 
-        # Display Metrik Utama
+        # Display Top Metrics
         m1, m2, m3 = st.columns(3)
         with m1:
             st.metric(
@@ -423,31 +392,33 @@ def render_page_money_management():
             )
 
         if res["is_capped"]:
-            st.warning(
-                f"Toleransi risk mengizinkan {res['lot_by_risk']:,} Lot, "
-                f"namun dibatasi max {res['final_lot']:,} Lot sesuai profil {trading_style} ({res['max_alloc_pct']}%)."
+            st.info(
+                f"ℹ️ Toleransi risk mengizinkan **{res['lot_by_risk']:,} Lot**, "
+                f"namun dibatasi maksimal **{res['final_lot']:,} Lot** sesuai batas profil {trading_style} ({res['max_alloc_pct']}%)."
             )
 
-        # Rencana Partial Profit Taking
-        st.subheader("PARTIAL PROFIT TAKING PLAN")
+        # Partial Profit Plan
+        st.markdown("---")
+        st.subheader("🎯 PARTIAL PROFIT TAKING PLAN")
         sc1, sc2 = st.columns(2)
         tp1_data = res["partial_tp"]["tp1"]
         tp2_data = res["partial_tp"]["tp2"]
 
         with sc1:
-            st.markdown("### TAHAP 1: SELL 50% @ TP1")
-            st.write(f"Jual **{tp1_data['lot']:,} Lot** @ **Rp {tp1_data['target_price']:,.0f}**")
-            st.write(f"Est. Profit: **+Rp {tp1_data['estimated_profit']:,.0f}**")
-            st.caption(f"Action: {tp1_data['action']}")
+            st.markdown("##### TAHAP 1: SELL 50% @ TP1")
+            st.write(f"• Size: **{tp1_data['lot']:,} Lot** @ **Rp {tp1_data['target_price']:,.0f}**")
+            st.write(f"• Est. Profit: **+Rp {tp1_data['estimated_profit']:,.0f}**")
+            st.caption(f"💡 {tp1_data['action']}")
 
         with sc2:
-            st.markdown("### TAHAP 2: SELL 50% @ TP2")
-            st.write(f"Jual **{tp2_data['lot']:,} Lot** @ **Rp {tp2_data['target_price']:,.0f}**")
-            st.write(f"Est. Profit: **+Rp {tp2_data['estimated_profit']:,.0f}**")
-            st.write(f"Total Potential: **+Rp {res['partial_tp']['total_potential_profit']:,.0f}**")
+            st.markdown("##### TAHAP 2: SELL 50% @ TP2")
+            st.write(f"• Size: **{tp2_data['lot']:,} Lot** @ **Rp {tp2_data['target_price']:,.0f}**")
+            st.write(f"• Est. Profit: **+Rp {tp2_data['estimated_profit']:,.0f}**")
+            st.write(f"• Total Profit Est: **+Rp {res['partial_tp']['total_potential_profit']:,.0f}**")
 
-        # Plotly Visualizers
-        st.subheader("RISK VISUALIZER & EXPOSURE")
+        # Visualizers (Plotly)
+        st.markdown("---")
+        st.subheader("📈 RISK & PORTFOLIO EXPOSURE")
         v1, v2 = st.columns(2)
 
         with v1:
@@ -456,19 +427,23 @@ def render_page_money_management():
                     mode="gauge+number",
                     value=res["actual_risk_pct"],
                     number={"suffix": "%"},
+                    title={"text": "Actual Portfolio Risk"},
                     domain={"x": [0, 1], "y": [0, 1]},
                     gauge={
                         "axis": {"range": [0, max(10.0, risk_pct * 1.5)]},
+                        "bar": {"color": "#00F3FF"},
                         "steps": [
-                            {"range": [0, risk_pct]},
-                            {"range": [risk_pct, 10.0]},
+                            {"range": [0, risk_pct], "color": "#1b263b"},
+                            {"range": [risk_pct, 10.0], "color": "#FF007F"},
                         ],
                     },
                 )
             )
             fig_gauge.update_layout(
-                height=180,
-                margin=dict(l=20, r=20, t=10, b=10),
+                height=220,
+                margin=dict(l=20, r=20, t=30, b=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                font={"color": "#FFFFFF"},
             )
             st.plotly_chart(fig_gauge, use_container_width=True)
 
@@ -476,23 +451,22 @@ def render_page_money_management():
             fig_donut = go.Figure(
                 data=[
                     go.Pie(
-                        labels=[f"Posisi {clean_ticker}", "Cash"],
+                        labels=[f"Posisi {clean_ticker}", "Cash Off"],
                         values=[
                             res["exposure"]["used_capital"],
                             res["exposure"]["cash_remaining"],
                         ],
                         hole=0.6,
+                        marker_colors=["#00F3FF", "#1b263b"],
                     )
                 ]
             )
             fig_donut.update_layout(
-                height=180,
-                margin=dict(l=10, r=10, t=10, b=10),
-                showlegend=False,
+                height=220,
+                title={"text": "Capital Allocation"},
+                margin=dict(l=10, r=10, t=30, b=10),
+                showlegend=True,
+                paper_bgcolor="rgba(0,0,0,0)",
+                font={"color": "#FFFFFF"},
             )
             st.plotly_chart(fig_donut, use_container_width=True)
-
-
-# Untuk testing lokal/langsung
-if __name__ == "__main__":
-    render_page_money_management()

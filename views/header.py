@@ -15,10 +15,10 @@ def get_logo_base64(file_path="logo.jpg"):
 def render_header():
     """Menampilkan Header Bar (Logo di kiri, CHOOSE SCREENER di kanan)."""
 
-    # Inject CSS khusus untuk Popover & Styling Tombol Aktif (Cyberpunk Neon & Hijau Permanen)
+    # Inject CSS khusus untuk Popover & Styling Tombol Aktif (Cyberpunk Neon Biru)
     st.markdown(
         """
-<style>
+        <style>
         /* Tombol CHOOSE SCREENER Menjadi Neon Biru Permanen */
         [data-testid="stPopover"] > button {
             background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
@@ -39,7 +39,6 @@ def render_header():
             box-shadow: 0 0 20px rgba(0, 240, 255, 0.8) !important;
             text-shadow: 0 0 10px #ffffff !important;
         }
-        
 
         /* Styling Tombol di dalam Popover Menu (Default) */
         div[data-testid="stPopoverBody"] button {
@@ -60,7 +59,7 @@ def render_header():
             box-shadow: 0 0 12px rgba(255, 0, 127, 0.6) !important;
         }
 
-        /* STYLING KHUSUS UNTUK TOMBOL YANG SEDANG AKTIF (AGAR TETAP MENYALA DI SEMUA TAB) */
+        /* STYLING KHUSUS UNTUK TOMBOL YANG SEDANG AKTIF */
         div[data-testid="stPopoverBody"] button:has(p:contains("[ACTIVE]")),
         div[data-testid="stPopoverBody"] button:has(div:contains("[ACTIVE]")) {
             background: linear-gradient(135deg, rgba(0, 243, 255, 0.25) 0%, rgba(255, 0, 127, 0.25) 100%) !important;
@@ -141,7 +140,7 @@ def render_header():
 
 
 def render_header_divider():
-    """Menampilkan garis pembatas hijau neon di bawah top navigation."""
+    """Menampilkan garis pembatas neon biru di bawah top navigation."""
     st.markdown(
         "<hr style='margin-top: 8px; margin-bottom: 24px; border: 0; height: 1px; background: linear-gradient(90deg, #00F3FF, transparent);'>",
         unsafe_allow_html=True,
@@ -159,8 +158,8 @@ def render_welcome():
             <p style="color: #8A8B98; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
                 Pilih strategi screening saham IHSG di menu <strong style="color:#00F3FF;">CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.
             </p>
-            <div style="display: inline-block; background: rgba(0, 255, 102, 0.05); border: 1px solid #00FF66; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
-                STATUS: <span style="color: #00FF66; font-weight: bold; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span> | ENGINE: <span style="color: #00FF66; font-weight: bold;">[QUANT]</span>
+            <div style="display: inline-block; background: rgba(0, 243, 255, 0.05); border: 1px solid #00F3FF; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
+                STATUS: <span style="color: #00F3FF; font-weight: bold; text-shadow: 0 0 5px #00F3FF;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT]</span>
             </div>
         </div>
         """,

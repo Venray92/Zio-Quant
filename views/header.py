@@ -15,6 +15,50 @@ def get_logo_base64(file_path="logo.jpg"):
 def render_header():
     """Menampilkan Header Bar (Logo di kiri, CHOOSE SCREENER di kanan)."""
 
+    # Inject CSS khusus untuk Popover & Tombol Screener bergaya Cyberpunk
+    st.markdown(
+        """
+        <style>
+        /* Styling Utama Tombol Popover CHOOSE SCREENER */
+        [data-testid="stPopover"] > button {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
+            border: 1px solid #00F3FF !important;
+            color: #00F3FF !important;
+            border-radius: 8px !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.25) !important;
+            transition: all 0.3s ease !important;
+        }
+        [data-testid="stPopover"] > button:hover {
+            background: rgba(0, 243, 255, 0.2) !important;
+            color: #ffffff !important;
+            border-color: #00F3FF !important;
+            box-shadow: 0 0 18px rgba(0, 243, 255, 0.6) !important;
+        }
+
+        /* Styling Tombol di dalam Popover Menu (RSI, Stoch, Trade Plan) */
+        div[data-testid="stPopoverBody"] button {
+            background: #0d1b2a !important;
+            border: 1px solid rgba(0, 243, 255, 0.4) !important;
+            color: #00F3FF !important;
+            border-radius: 6px !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            font-weight: 600 !important;
+            margin-bottom: 4px !important;
+            transition: all 0.2s ease !important;
+        }
+        div[data-testid="stPopoverBody"] button:hover {
+            background: #00F3FF !important;
+            color: #0d1b2a !important;
+            border-color: #00F3FF !important;
+            box-shadow: 0 0 12px #00F3FF !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Cek query param reset dari logo
     if st.query_params.get("reset") == "true":
         st.session_state["selected_screener"] = None
@@ -60,46 +104,25 @@ def render_header():
             curr = st.session_state.get("selected_screener")
 
             # 1. RSI Matrix
-            cls_rsi = "btn-active" if curr == "rsi" else ""
             badge_rsi = " [ACTIVE] ✔" if curr == "rsi" else ""
-            st.markdown(f'<div class="{cls_rsi}">', unsafe_allow_html=True)
-            if st.button(
-                f"1. RSI MATRIX{badge_rsi}",
-                key="btn_rsi",
-                use_container_width=True,
-            ):
+            if st.button(f"1. RSI MATRIX{badge_rsi}", key="btn_rsi", use_container_width=True):
                 st.session_state["selected_screener"] = "rsi"
-                st.session_state["selected_page"] = "home"  # FORCE KE HOME PAGE
+                st.session_state["selected_page"] = "home"
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
 
             # 2. Stoch Radar
-            cls_stoch = "btn-active" if curr == "stoch_psar" else ""
             badge_stoch = " [ACTIVE] ✔" if curr == "stoch_psar" else ""
-            st.markdown(f'<div class="{cls_stoch}">', unsafe_allow_html=True)
-            if st.button(
-                f"2. STOCH-TREND RADAR{badge_stoch}",
-                key="btn_stoch",
-                use_container_width=True,
-            ):
+            if st.button(f"2. STOCH-TREND RADAR{badge_stoch}", key="btn_stoch", use_container_width=True):
                 st.session_state["selected_screener"] = "stoch_psar"
-                st.session_state["selected_page"] = "home"  # FORCE KE HOME PAGE
+                st.session_state["selected_page"] = "home"
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
 
             # 3. Trade Plan Entry
-            cls_tp = "btn-active" if curr == "trade_plan" else ""
             badge_tp = " [ACTIVE] ✔" if curr == "trade_plan" else ""
-            st.markdown(f'<div class="{cls_tp}">', unsafe_allow_html=True)
-            if st.button(
-                f"3. TRADE PLAN ENTRY{badge_tp}",
-                key="btn_tp",
-                use_container_width=True,
-            ):
+            if st.button(f"3. TRADE PLAN ENTRY{badge_tp}", key="btn_tp", use_container_width=True):
                 st.session_state["selected_screener"] = "trade_plan"
-                st.session_state["selected_page"] = "home"  # FORCE KE HOME PAGE
+                st.session_state["selected_page"] = "home"
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_header_divider():

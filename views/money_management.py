@@ -106,7 +106,7 @@ def render_page_money_management():
 
     # Header Utama
     st.markdown(
-        '<h1 style="color: #00F3FF !important; text-shadow: 0 0 12px rgba(0, 243, 255, 0.8) !important;">⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>', 
+        '<h1 style="color: #FFFFFF !important; font-size: 32px !important; text-shadow: 0 0 10px #00F3FF, 0 0 20px #00F3FF, 0 0 40px #00F3FF !important; margin-bottom: 0px;">⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>', 
         unsafe_allow_html=True
     )
     st.caption("System Execution & Position Sizing Analytics for IDX Trading")
@@ -120,7 +120,7 @@ def render_page_money_management():
     # --------------------------------------------------------------------------
     with col_input:
         st.markdown(
-            '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;">⚙️ SYSTEM CONTROLS</h3>', 
+            '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important; margin-top: 0px;">⚙️ SYSTEM CONTROLS</h2>', 
             unsafe_allow_html=True
         )
 
@@ -266,7 +266,7 @@ def render_page_money_management():
         c_title, c_btn = st.columns([2.5, 1], vertical_alignment="center")
         with c_title:
             st.markdown(
-                '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important; margin: 0;">🎯 POSITION SIZING ANALYTICS</h3>', 
+                '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important; margin: 0;">🎯 POSITION SIZING ANALYTICS</h2>', 
                 unsafe_allow_html=True
             )
 
@@ -423,7 +423,7 @@ Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
         # Partial Profit Taking Execution Plan
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;">✂️ PARTIAL PROFIT TAKING PLAN</h3>', 
+            '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important;">✂️ PARTIAL PROFIT TAKING PLAN</h2>', 
             unsafe_allow_html=True
         )
 
@@ -470,7 +470,7 @@ Risk/Reward Ratio: 1 : {rrr_tp1:.2f}
         # Plotly Visualizers
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            '<h3 style="color: #00F3FF !important; text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;">📈 RISK VISUALIZER & EXPOSURE</h3>', 
+            '<h2 style="color: #FFFFFF !important; font-size: 20px !important; text-shadow: 0 0 8px #00F3FF, 0 0 15px #00F3FF !important;">📈 RISK VISUALIZER & EXPOSURE</h2>', 
             unsafe_allow_html=True
         )
 

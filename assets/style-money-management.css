@@ -34,21 +34,16 @@
     box-shadow: 0 0 15px rgba(255, 0, 85, 0.2) !important;
 }
 
-/* 4. TYPOGRAPHY & TEXT OVERRIDES (JUDUL & TEKS MENJADI CYAN NEON) */
-h1, h2, h3, h4, h5, h6 {
+/* 4. TYPOGRAPHY & TEXT OVERRIDES (JUDUL & TEKS MENJADI CYAN NEON TERANG) */
+h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
     color: #00F3FF !important;
-    text-shadow: 0 0 10px rgba(0, 243, 255, 0.6) !important;
+    text-shadow: 0 0 12px rgba(0, 243, 255, 0.8), 0 0 25px rgba(0, 243, 255, 0.4) !important;
     letter-spacing: 1.5px !important;
+    font-weight: 800 !important;
 }
 
-p, span, label, .stMarkdown {
+p, span, label {
     color: #C0C5D0 !important;
-}
-
-.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-    color: #00F3FF !important;
-    text-shadow: 0 0 10px rgba(0, 243, 255, 0.8) !important;
-    letter-spacing: 1.5px !important;
 }
 
 .cyber-label {

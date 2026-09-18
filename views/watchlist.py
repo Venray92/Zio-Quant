@@ -172,6 +172,47 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
+    # 1. EMBED TRADINGVIEW CHART DALAM EXPANDER (DEFAULT DITUTUP / COLLAPSED)
+    clean_ticker = (
+        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
+    )
+    safe_container_id = clean_ticker.replace(".", "_")
+    tv_symbol = f"IDX:{clean_ticker}"
+
+    with st.expander(f"📈 TradingView Chart: {ticker_symbol}", expanded=False):
+        tv_html = f"""
+        <div class="tradingview-widget-container" style="height:500px; width:100%; border-radius:4px; overflow:hidden; border: 1px solid #00F0FF; margin-top: 5px; margin-bottom: 8px;">
+          <div id="tv_chart_container_{safe_container_id}" style="height:100%; width:100%;"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+          if (typeof TradingView !== 'undefined') {{
+              new TradingView.widget({{
+                "autosize": true,
+                "symbol": "{tv_symbol}",
+                "interval": "D",
+                "timezone": "Asia/Jakarta",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#0A0E1A",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "save_image": true,
+                "container_id": "tv_chart_container_{safe_container_id}"
+              }});
+          }}
+          </script>
+        </div>
+        """
+        components.html(tv_html, height=510)
+        st.markdown(
+            "<div style='font-size: 11px; color: #6C7A9C; margin-bottom: 8px; font-weight: 500;'>"
+            "💡 *Lakukan screenshot jika Anda membuat tarikan garis/analisa visual.*"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
     period_selected = "3mo"
 
     with st.spinner(f"🌐 FETCHING CYBER MATRIX FOR {ticker_symbol}..."):
@@ -188,7 +229,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
             if df_plan is not None and not df_plan.empty:
                 st.markdown(
-                    '<div style="font-size: 12px; font-weight: 800; color: #00F0FF; text-shadow: 0 0 5px #00F0FF; margin-bottom: 10px; letter-spacing: 1px;">🎯 TRADE PLAN RECOMMENDATION</div>',
+                    '<div style="font-size: 12px; font-weight: 800; color: #00F0FF; text-shadow: 0 0 5px #00F0FF; margin-top: 14px; margin-bottom: 10px; letter-spacing: 1px;">🎯 TRADE PLAN RECOMMENDATION</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -213,7 +254,6 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
                     posisi_color = "#00FF66" if "Buy Zone" in posisi and "Below" not in posisi else "#00F0FF"
 
-                    # Pengaturan Label Expander Sesuai Suggestion/Other
                     is_suggestion = (idx == 0)
                     prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
                     expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
@@ -475,7 +515,6 @@ def render_page_watchlist():
                     label_visibility="collapsed",
                 )
 
-        # --- FITUR PENCARIAN & TOMBOL EXPORT IKON KECIL DI SEBELAHNYA ---
         col_search, col_export = st.columns([3.2, 0.8], vertical_alignment="bottom")
 
         with col_search:

@@ -73,7 +73,7 @@ span:not(.cyber-badge):not(.cyber-value) {
     font-weight: 900 !important;
     color: #00F3FF !important;
     text-shadow: 0 0 10px rgba(0, 243, 255, 0.8) !important;
-    font-family: 'Courier New', monospace !important;
+   font-family: 'Share Tech Mono', monospace !important;
 }
 
 /* ==========================================

@@ -1,7 +1,3 @@
-# ==========================================
-# 1. IMPORTS & GLOBAL CONFIGURATION
-# ==========================================
-# Library standar, pengolahan data, UI Streamlit, market data, dan modul kustom
 import json
 import os
 import pandas as pd
@@ -9,26 +5,102 @@ import streamlit as st
 import yfinance as yf
 from engines.trade_planner import TradePlanner
 
-# File lokal untuk menyimpan data watchlist secara permanen
 STORAGE_FILE = "watchlist_storage.json"
 
 
 # ==========================================
-# 2. DATA & STORAGE MANAGEMENT
+# CYBERPUNK CUSTOM CSS
+# ==========================================
+def inject_cyberpunk_css():
+    st.markdown(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap');
+
+        /* Global Font & Theme Override */
+        html, body, [class*="css"] {
+            font-family: 'Fira Code', monospace, sans-serif !important;
+            background-color: #050811 !important;
+            color: #00F0FF !important;
+        }
+
+        /* Cyberpunk Headers */
+        h1, h2, h3, h4, h5, h6 {
+            color: #00F0FF !important;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+            font-weight: 800 !important;
+            letter-spacing: 1.5px;
+        }
+
+        /* Neon Buttons */
+        div.stButton > button {
+            background-color: #0A0E1A !important;
+            color: #00F0FF !important;
+            border: 1px solid #00F0FF !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+            transition: all 0.3s ease-in-out !important;
+            text-transform: uppercase;
+            box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
+        }
+
+        div.stButton > button:hover {
+            background-color: #00F0FF !important;
+            color: #050811 !important;
+            box-shadow: 0 0 15px #00F0FF, 0 0 25px #00F0FF !important;
+        }
+
+        /* Primary Button Neon Pink Accent */
+        div.stButton > button[kind="primary"] {
+            background-color: #0A0E1A !important;
+            color: #FF007F !important;
+            border: 1px solid #FF007F !important;
+            box-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+        }
+
+        div.stButton > button[kind="primary"]:hover {
+            background-color: #FF007F !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 0 15px #FF007F, 0 0 25px #FF007F !important;
+        }
+
+        /* Cyber Inputs & Popovers */
+        div[data-baseweb="input"] {
+            background-color: #0A0E1A !important;
+            border: 1px solid #00F0FF !important;
+            color: #00F0FF !important;
+        }
+
+        /* Expanders & Container Borders */
+        div[data-aria-expanded="true"], div[data-aria-expanded="false"] {
+            background-color: #0A0E1A !important;
+            border: 1px solid #9D00FF !important;
+        }
+
+        /* Toast Styling */
+        div[data-baseweb="toast"] {
+            background-color: #0A0E1A !important;
+            border: 1px solid #00FF66 !important;
+            color: #00FF66 !important;
+            box-shadow: 0 0 10px #00FF66;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ==========================================
+# DATA & STORAGE MANAGEMENT
 # ==========================================
 def load_watchlist_from_file():
-    """
-    Memuat data watchlist dari file JSON lokal.
-    Melakukan normalisasi format ticker (menambahkan suffix '.JK' jika belum ada).
-    Mengembalikan data default jika file tidak ditemukan atau error.
-    """
+    """Memuat data watchlist dari file JSON lokal."""
     if os.path.exists(STORAGE_FILE):
         try:
             with open(STORAGE_FILE, "r") as f:
                 data = json.load(f)
                 normalized = []
                 for item in data:
-                    # Jika item berbentuk string
                     if isinstance(item, str):
                         normalized.append(
                             {
@@ -37,7 +109,6 @@ def load_watchlist_from_file():
                                 "Target Price": 0,
                             }
                         )
-                    # Jika item berbentuk dictionary/object
                     elif isinstance(item, dict):
                         ticker = item.get("Ticker", "")
                         if ticker:
@@ -47,7 +118,6 @@ def load_watchlist_from_file():
         except Exception:
             pass
 
-    # Default fallback data jika penyimpanan lokal kosong/error
     return [
         {"Ticker": "BBCA.JK", "Notes": "Manual Added", "Target Price": 10500},
         {"Ticker": "TLKM.JK", "Notes": "Manual Added", "Target Price": 3200},
@@ -55,22 +125,17 @@ def load_watchlist_from_file():
 
 
 def save_watchlist_to_file(data):
-    """
-    Menyimpan list data watchlist ke file JSON lokal dengan format rapi (indentation=4).
-    """
+    """Menyimpan data watchlist ke file JSON."""
     try:
         with open(STORAGE_FILE, "w") as f:
             json.dump(data, f, indent=4)
     except Exception as e:
-        st.error(f"Gagal menyimpan data: {e}")
+        st.error(f"[SYSTEM_ERROR] Gagal menyimpan data: {e}")
 
 
 @st.cache_data(ttl=60)
 def fetch_stock_quote(ticker_symbol):
-    """
-    Mengambil harga pasar terbaru dan persentase perubahan harian dari Yahoo Finance.
-    Cache aktif selama 60 detik untuk efisiensi API.
-    """
+    """Mengambil harga terbaru dan persentase perubahan dari Yahoo Finance."""
     try:
         symbol = ticker_symbol if ticker_symbol.endswith(".JK") else f"{ticker_symbol}.JK"
         stock = yf.Ticker(symbol)
@@ -90,20 +155,13 @@ def fetch_stock_quote(ticker_symbol):
 
 
 def clear_search_callback():
-    """
-    Callback function untuk mengosongkan input pencarian ticker.
-    """
     st.session_state["input_search_ticker_field"] = ""
 
 
 # ==========================================
-# 3. TRADE PLAN HELPERS & COMPUTATION
+# TRADE PLAN HELPERS
 # ==========================================
 def _format_val(val):
-    """
-    Helper untuk memformat angka menjadi format string berpemisah ribuan (e.g. 10,500).
-    Mengembalikan '-' jika nilai kosong atau invalid.
-    """
     if pd.isna(val) or val is None or val in ["", "-"]:
         return "-"
     try:
@@ -114,9 +172,6 @@ def _format_val(val):
 
 
 def _clean_num(val):
-    """
-    Helper untuk membersihkan nilai string angka (menghapus koma) dan mengubahnya ke tipe float.
-    """
     if pd.isna(val) or val is None or val in ["", "-"]:
         return None
     try:
@@ -128,10 +183,7 @@ def _clean_num(val):
 
 
 def calculate_rr_ratios(row):
-    """
-    Menhitung rasio Risk to Reward (R:R) untuk Target Price 1 & Target Price 2.
-    Rasio dihitung berdasarkan rentang harga beli dan titik stop loss.
-    """
+    """Menghitung rasio Risk to Reward untuk Target 1 & Target 2."""
     buy_val = _clean_num(row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))))
     sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
     tp1_val = _clean_num(row.get("TP 1", row.get("TP1", row.get("Target 1", None))))
@@ -150,23 +202,16 @@ def calculate_rr_ratios(row):
     return rr_tp1_str, rr_tp2_str
 
 
-# ==========================================
-# 4. TRADE PLAN COMPONENT UI
-# ==========================================
 def render_trade_plan_only(ticker_symbol, key_suffix):
-    """
-    Menampilkan komponen analisis Live Trade Plan untuk ticker yang sedang dipilih.
-    Memanggil TradePlanner engine dan menampilkan rekomendasinya dalam bentuk Card UI & Metric.
-    """
-    # Header Live Status
+    """Renders the Trade Plan Recommendation component for the selected ticker."""
     st.markdown(
         f"""
-        <div class="live-plan-header" style="padding: 8px 12px; margin-bottom: 10px;">
-            <div class="live-plan-title" style="font-size: 14px;">
-                📊 LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
+        <div style="background: #0A0E1A; border: 1px solid #00F0FF; box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); padding: 10px 14px; margin-bottom: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 14px; font-weight: 800; color: #00F0FF; text-shadow: 0 0 5px #00F0FF;">
+                ⚡ LIVE_TRADE_PLAN // <span style="color: #FF007F; text-shadow: 0 0 5px #FF007F;">{ticker_symbol}</span>
             </div>
-            <div style="font-size: 11px; color: #8B949E; font-weight: 600;">
-                SYSTEM STATUS: <span style="color: #00E676;">ONLINE</span>
+            <div style="font-size: 11px; color: #8B949E; font-weight: 700;">
+                SYS_STATUS: <span style="color: #00FF66; text-shadow: 0 0 5px #00FF66;">[ONLINE]</span>
             </div>
         </div>
         """,
@@ -175,8 +220,7 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
 
     period_selected = "3mo"
 
-    # Proses analisis data melalui TradePlanner
-    with st.spinner(f"⚡ Menganalisis Trade Plan {ticker_symbol}..."):
+    with st.spinner(f"🌐 FETCHING CYBER MATRIX FOR {ticker_symbol}..."):
         try:
             planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
             if hasattr(planner, "fetch_and_prepare_data"):
@@ -188,10 +232,9 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                 else None
             )
 
-            # Render UI jika rekomendasi plan ditemukan
             if df_plan is not None and not df_plan.empty:
                 st.markdown(
-                    '<div class="section-title" style="font-size: 13px; margin-bottom: 8px;">🎯 TRADE PLAN RECOMMENDATION</div>',
+                    '<div style="font-size: 12px; font-weight: 800; color: #9D00FF; text-shadow: 0 0 5px #9D00FF; margin-bottom: 10px; letter-spacing: 1px;">🎯 TRADE PLAN RECOMMENDATION</div>',
                     unsafe_allow_html=True,
                 )
 
@@ -214,50 +257,48 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                     tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
                     tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
 
-                    posisi_color = "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
+                    posisi_color = "#00FF66" if "Buy Zone" in str(posisi) else "#FF007F"
 
-                    # HTML Card UI untuk menampilkan rincian Trade Plan
                     card_html = f"""
-                    <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 4px solid #00E676; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 8px; margin-bottom: 10px;">
+                    <div style="background: #060913; border: 1px solid #9D00FF; border-left: 4px solid #00F0FF; box-shadow: 0 0 8px rgba(157, 0, 255, 0.3); border-radius: 4px; padding: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #2A2F45; padding-bottom: 8px; margin-bottom: 10px;">
                             <div>
-                                <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 11px; padding: 2px 8px; border-radius: 4px;">#{plan_no} {plan_type}</span>
-                                <span style="font-size: 12px; font-weight: 700; color: #E6EDF3; margin-left: 6px;">{grade}</span>
+                                <span style="background: #00F0FF; color: #050811; font-weight: 900; font-size: 10px; padding: 3px 8px; border-radius: 2px; text-shadow: none;">#{plan_no} {plan_type}</span>
+                                <span style="font-size: 12px; font-weight: 700; color: #FFFFFF; margin-left: 8px;">GRADE: {grade}</span>
                             </div>
-                            <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 2px 10px; border-radius: 12px; font-size: 11px;">
+                            <div style="background: rgba(157, 0, 255, 0.2); border: 1px solid #9D00FF; color: #E2B6FF; font-weight: 800; padding: 2px 10px; border-radius: 10px; font-size: 10px; text-shadow: 0 0 4px #9D00FF;">
                                 SCORE: {score}
                             </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; text-align: center;">
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                                <div style="font-size: 9px; color: #38BDF8; font-weight: 800;">Area Buy</div>
-                                <div style="font-size: 13px; font-weight: 800; color: #38BDF8; margin-top: 2px;">{area_buy}</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; text-align: center;">
+                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 240, 255, 0.4);">
+                                <div style="font-size: 9px; color: #00F0FF; font-weight: 700;">BUY AREA</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; margin-top: 2px;">{area_buy}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(255, 82, 82, 0.2);">
-                                <div style="font-size: 9px; color: #FF5252; font-weight: 800;">Stop Loss</div>
-                                <div style="font-size: 13px; font-weight: 800; color: #FF5252; margin-top: 2px;">{stop_loss}</div>
+                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(255, 0, 127, 0.4);">
+                                <div style="font-size: 9px; color: #FF007F; font-weight: 700;">STOP LOSS</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #FF007F; margin-top: 2px;">{stop_loss}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 9px; color: #00E676; font-weight: 800;">Target 1</div>
-                                <div style="font-size: 13px; font-weight: 800; color: #00E676; margin-top: 2px;">{tp1}</div>
+                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
+                                <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 1</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp1}</div>
                             </div>
-                            <div style="background: rgba(14, 17, 23, 0.9); padding: 8px; border-radius: 6px; border: 1px solid rgba(0, 230, 118, 0.2);">
-                                <div style="font-size: 9px; color: #00E676; font-weight: 800;">Target 2</div>
-                                <div style="font-size: 13px; font-weight: 800; color: #00E676; margin-top: 2px;">{tp2}</div>
+                            <div style="background: #0A0E1A; padding: 8px 4px; border-radius: 2px; border: 1px solid rgba(0, 255, 102, 0.4);">
+                                <div style="font-size: 9px; color: #00FF66; font-weight: 700;">TARGET 2</div>
+                                <div style="font-size: 12px; font-weight: 800; color: #00FF66; margin-top: 2px;">{tp2}</div>
                             </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 11px; background-color: #0E1117; padding: 6px 10px; border-radius: 6px; border: 1px solid #21262D;">
-                            <span style="color: #8B949E; font-weight: 600;">Posisi Harga Saat Ini:</span>
-                            <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
+                        <div style="display: flex; justify-content: space-between; font-size: 10px; background-color: #03050B; padding: 6px 10px; border-radius: 2px; border: 1px solid #1A1F35;">
+                            <span style="color: #6C7A9C; font-weight: 600;">POSISI HARGA SAAT INI:</span>
+                            <span style="font-weight: 800; color: {posisi_color}; text-shadow: 0 0 5px {posisi_color};">{posisi}</span>
                         </div>
                     </div>
                     """
                     st.markdown(card_html, unsafe_allow_html=True)
 
-                    # Expander R:R Metric
                     rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
                     with st.expander(
-                        f"⚙️ Parameter Lengkap & Rasio R:R #{plan_no} ({plan_type})",
+                        f"⚙️ PARAMETERS & R:R RATIO #{plan_no} ({plan_type})",
                         expanded=False,
                     ):
                         c1, c2 = st.columns(2)
@@ -267,24 +308,21 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
                             st.metric(label="R:R ( Target 2 )", value=rr_tp2_val)
 
         except Exception as e:
-            st.error(f"Gagal memuat Trade Plan: {e}")
+            st.error(f"[SYSTEM_FAILURE] Gagal memuat Trade Plan: {e}")
 
 
 # ==========================================
-# 5. MAIN PAGE RENDERER (WATCHLIST MAIN UI)
+# MAIN RENDER FUNCTION
 # ==========================================
 def render_page_watchlist():
-    """
-    Fungsi utama untuk merender seluruh halaman Watchlist.
-    Mengatur state management, sinkronisasi data, kontrol UI kolom kiri & kanan.
-    """
-    # ------------------------------------------
-    # 5.1 Initial Session State & Sync Data
-    # ------------------------------------------
+    # Inject Cyberpunk Theme CSS
+    inject_cyberpunk_css()
+
+    # Session State Initialization
     if "watchlist_data" not in st.session_state:
         st.session_state["watchlist_data"] = load_watchlist_from_file()
 
-    # Sinkronisasi dinamis jika ada penambahan dari state "watchlist" global (misal: dari fitur Screener)
+    # Dynamic Sync with Global "watchlist" State
     if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
         existing_tickers = {x["Ticker"] for x in st.session_state["watchlist_data"]}
         has_new = False
@@ -314,7 +352,7 @@ def render_page_watchlist():
         if has_new:
             save_watchlist_to_file(st.session_state["watchlist_data"])
 
-    # Inisialisasi default variabel session state internal halaman
+    # Additional Session State Variables
     defaults = {
         "add_form_version": 0,
         "sort_filter": "Default",
@@ -328,7 +366,7 @@ def render_page_watchlist():
         if key not in st.session_state:
             st.session_state[key] = val
 
-    # Fetch data harga terbaru untuk semua item di watchlist
+    # Fetch Real-time Market Data
     for item in st.session_state["watchlist_data"]:
         lp, chg = fetch_stock_quote(item["Ticker"])
         if lp is not None:
@@ -336,23 +374,22 @@ def render_page_watchlist():
             item["Change Pct"] = chg
 
     st.markdown(
-        "<h4 style='margin-bottom: 12px; font-weight: 700; color: #E6EDF3;'>WATCHLIST</h4>",
+        "<h3 style='margin-bottom: 14px;'>📡 WATCHLIST // TERMINAL</h3>",
         unsafe_allow_html=True,
     )
 
-    # Membagi layout utama menjadi 2 kolom: Kiri (Daftar Saham) & Kanan (Detail Trade Plan)
     col_left, col_right = st.columns([1.2, 1.8], gap="medium")
 
-    # ------------------------------------------
-    # 5.2 LEFT COLUMN: WATCHLIST LIST & CONTROLS
-    # ------------------------------------------
+    # ==========================================
+    # LEFT COLUMN: WATCHLIST CARDS
+    # ==========================================
     with col_left:
         h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
-        # --- Sub-fitur 1: Quick Add Popover ---
+        # 1. Quick Add Popover
         with h_col1:
             with st.popover("➕ Tambah", use_container_width=True):
-                st.caption("Quick Add Ticker")
+                st.caption("SYSTEM // QUICK ADD")
                 inputs = []
                 ver = st.session_state["add_form_version"]
 
@@ -397,13 +434,13 @@ def render_page_watchlist():
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["add_form_version"] += 1
                             st.session_state["quick_add_count"] = 1
-                            st.toast(f"{added_count} Saham ditambahkan!", icon="🚀")
+                            st.toast(f"{added_count} Ticker Diinjeksi!", icon="🚀")
                             st.rerun()
 
-        # --- Sub-fitur 2: Batch Delete Popover ---
+        # 2. Batch Delete Popover
         with h_col2:
             with st.popover("🗑️ Kelola", use_container_width=True):
-                st.caption("Batch Delete")
+                st.caption("SYSTEM // PURGE DATA")
                 del_ver = st.session_state["batch_del_version"]
                 enable_batch_delete = st.checkbox(
                     "Mode Hapus",
@@ -420,7 +457,7 @@ def render_page_watchlist():
                     ):
                         if st.session_state["selected_cards"]:
                             to_remove = set(st.session_state["selected_cards"])
-                            
+
                             st.session_state["watchlist_data"] = [
                                 x for x in st.session_state["watchlist_data"]
                                 if x["Ticker"] not in to_remove
@@ -436,13 +473,13 @@ def render_page_watchlist():
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["selected_cards"].clear()
                             st.session_state["batch_del_version"] += 1
-                            st.toast("Saham berhasil dihapus!", icon="🗑️")
+                            st.toast("Data Berhasil Dihapus!", icon="🗑️")
                             st.rerun()
 
-        # --- Sub-fitur 3: Sorting Popover ---
+        # 3. Sort Popover
         with h_col3:
             with st.popover("⚡ Sort", use_container_width=True):
-                st.caption("Urutkan Tampilan")
+                st.caption("SYSTEM // SORTING")
                 st.session_state["sort_filter"] = st.selectbox(
                     "Sort By",
                     [
@@ -455,7 +492,7 @@ def render_page_watchlist():
                     label_visibility="collapsed",
                 )
 
-        # --- Sub-fitur 4: Search Bar ---
+        # Search Bar UI
         search_val = st.session_state["input_search_ticker_field"].strip().upper()
         if search_val:
             c_search, c_clear = st.columns([3.2, 0.8])
@@ -466,7 +503,7 @@ def render_page_watchlist():
         with c_search:
             st.text_input(
                 "Search",
-                placeholder="🔍 Cari kode saham...",
+                placeholder="🔍 FILTER_TICKER...",
                 label_visibility="collapsed",
                 key="input_search_ticker_field",
             )
@@ -480,7 +517,7 @@ def render_page_watchlist():
                     on_click=clear_search_callback,
                 )
 
-        # --- Sub-fitur 5: Filtering & Sorting Execution ---
+        # Filter & Sort Data Display
         display_list = list(st.session_state["watchlist_data"])
         if search_val:
             display_list = [x for x in display_list if search_val in x["Ticker"]]
@@ -496,7 +533,7 @@ def render_page_watchlist():
             key_func, rev = sort_key_map[st.session_state["sort_filter"]]
             display_list.sort(key=key_func, reverse=rev)
 
-        # --- Sub-fitur 6: Scrollable Cards View ---
+        # Scrollable Cards View
         with st.container(height=580):
             if display_list:
                 if not st.session_state["selected_watchlist_ticker"]:
@@ -529,48 +566,49 @@ def render_page_watchlist():
                         c_card = st.container()
 
                     with c_card:
-                        with st.container(border=True):
-                            col_info, col_price = st.columns([1.3, 1])
+                        is_active = st.session_state["selected_watchlist_ticker"] == ticker_raw
+                        
+                        # Dynamic Styling for Active vs Inactive Card
+                        card_border = "#00F0FF" if is_active else "#1A1F35"
+                        glow_effect = "box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);" if is_active else ""
+                        bg_card = "#0A0E1A" if is_active else "#060913"
 
-                            with col_info:
-                                st.markdown(
-                                    f"<div style='font-size: 15px; font-weight: 800; color: #E6EDF3;'>{clean_ticker}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                                st.caption(f"🔹 {notes_tag}")
+                        st.markdown(
+                            f"""
+                            <div style="background: {bg_card}; border: 1px solid {card_border}; {glow_effect} border-radius: 4px; padding: 10px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-size: 15px; font-weight: 800; color: #FFFFFF;">{clean_ticker}</div>
+                                        <div style="font-size: 10px; color: #6C7A9C;">🔹 {notes_tag}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 13px; font-weight: 800; color: #00F0FF;">{price_str}</div>
+                                        <div style="font-size: 11px; font-weight: 800; color: {'#00FF66' if pct_change and pct_change > 0 else '#FF007F' if pct_change and pct_change < 0 else '#8B949E'}; text-shadow: 0 0 4px {'#00FF66' if pct_change and pct_change > 0 else '#FF007F'};">
+                                            {pct_str}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
-                            with col_price:
-                                st.markdown(
-                                    f"<div style='text-align: right; font-size: 13px; font-weight: 700;'>{price_str}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                                color_code = (
-                                    "#00C853" if pct_change and pct_change > 0
-                                    else "#D50000" if pct_change and pct_change < 0
-                                    else "#757575"
-                                )
-                                st.markdown(
-                                    f"<div style='text-align: right; font-size: 11px; color: {color_code}; font-weight: 700;'>{pct_str}</div>",
-                                    unsafe_allow_html=True,
-                                )
+                        btn_label = "📍 ACTIVE_VIEW" if is_active else f"📊 PLAN {clean_ticker}"
 
-                            is_active = st.session_state["selected_watchlist_ticker"] == ticker_raw
-                            btn_label = "📍 Aktif Dilihat" if is_active else f"📊 Trade Plan {clean_ticker}"
-
-                            if st.button(
-                                btn_label,
-                                key=f"btn_select_{clean_ticker}_{idx}",
-                                use_container_width=True,
-                                type="primary" if is_active else "secondary",
-                            ):
-                                st.session_state["selected_watchlist_ticker"] = ticker_raw
-                                st.rerun()
+                        if st.button(
+                            btn_label,
+                            key=f"btn_select_{clean_ticker}_{idx}",
+                            use_container_width=True,
+                            type="primary" if is_active else "secondary",
+                        ):
+                            st.session_state["selected_watchlist_ticker"] = ticker_raw
+                            st.rerun()
             else:
-                st.caption("Tidak ada saham yang ditemukan.")
+                st.caption("NO_DATA_FOUND // Tidak ada saham yang ditemukan.")
 
-    # ------------------------------------------
-    # 5.3 RIGHT COLUMN: TRADE PLAN DISPLAY
-    # ------------------------------------------
+    # ==========================================
+    # RIGHT COLUMN: TRADE PLAN VIEW
+    # ==========================================
     with col_right:
         selected_ticker = st.session_state.get("selected_watchlist_ticker")
 
@@ -580,4 +618,4 @@ def render_page_watchlist():
                 key_suffix=f"wl_{selected_ticker.replace('.', '_')}",
             )
         else:
-            st.info("Pilih salah satu saham dari daftar pantauan di sebelah kiri.")
+            st.info("SELECT_TARGET // Pilih salah satu saham dari daftar pantauan di sebelah kiri.")

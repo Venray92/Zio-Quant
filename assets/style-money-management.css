@@ -166,10 +166,14 @@ div[data-testid="stExpander"] details summary p {
     border: 1px solid #FF0055; 
 }
 
-/* Memaksa semua tombol navigasi atas agar ukurannya seragam & tidak melebar sendiri */
-div[data-testid="stHorizontalBlock"] .stButton button {
+/* Menyeragamkan ukuran font, padding, dan warna tombol menu atas di semua halaman */
+div[data-testid="stHorizontalBlock"] div.stButton > button,
+div[data-testid="stHorizontalBlock"] div.stButton > button p,
+div[data-testid="stHorizontalBlock"] div.stButton > button span {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #00F3FF !important;
+    letter-spacing: 1px !important;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6) !important;
     width: 100% !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
 }

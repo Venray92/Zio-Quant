@@ -15,7 +15,7 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 1.5px;
 }
 
-/* Neon Buttons */
+/* Neon Buttons (Standard) */
 div.stButton > button {
     background-color: #0A0E1A !important;
     color: #00F0FF !important;
@@ -33,18 +33,19 @@ div.stButton > button:hover {
     box-shadow: 0 0 15px #00F0FF, 0 0 25px #00F0FF !important;
 }
 
-/* Primary Button Neon Pink Accent */
+/* Primary Button (Diubah dari Pink ke Solid Cyan Glow) */
 div.stButton > button[kind="primary"] {
-    background-color: #0A0E1A !important;
-    color: #FF007F !important;
-    border: 1px solid #FF007F !important;
-    box-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+    background-color: #00F0FF !important;
+    color: #050811 !important;
+    border: 1px solid #00F0FF !important;
+    font-weight: 800 !important;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.6) !important;
 }
 
 div.stButton > button[kind="primary"]:hover {
-    background-color: #FF007F !important;
-    color: #FFFFFF !important;
-    box-shadow: 0 0 15px #FF007F, 0 0 25px #FF007F !important;
+    background-color: #80F7FF !important;
+    color: #050811 !important;
+    box-shadow: 0 0 20px #00F0FF, 0 0 35px #00F0FF !important;
 }
 
 /* Cyber Inputs & Popovers */
@@ -54,10 +55,10 @@ div[data-baseweb="input"] {
     color: #00F0FF !important;
 }
 
-/* Expanders & Container Borders */
+/* Expanders & Container Borders (Diubah dari Ungu ke Dark Cyan/Blue) */
 div[data-aria-expanded="true"], div[data-aria-expanded="false"] {
     background-color: #0A0E1A !important;
-    border: 1px solid #9D00FF !important;
+    border: 1px solid #005577 !important;
 }
 
 /* Toast Styling */

@@ -11,31 +11,7 @@ warnings.filterwarnings("ignore")
 DEFAULT_SAHAM_LIST = sorted(
     list(
         set([
-            "ISAT.JK", "ACES.JK", "ADHI.JK", "ADRO.JK", "AGRO.JK", "AALI.JK",
-            "AKRA.JK", "AMMN.JK", "AMRT.JK", "ANTM.JK", "APLN.JK", "ARTO.JK",
-            "ASII.JK", "ASRI.JK", "AUTO.JK", "AVIA.JK", "BBCA.JK", "BBHI.JK",
-            "BBNI.JK", "BBRI.JK", "BBTN.JK", "BCIC.JK", "BDMN.JK", "BELI.JK",
-            "BIRD.JK", "BJBR.JK", "BJTM.JK", "BMRI.JK", "BMTR.JK", "BNGA.JK",
-            "BREN.JK", "BRIS.JK", "BRPT.JK", "BSDE.JK", "BUKA.JK", "BUMI.JK",
-            "BYAN.JK", "CITA.JK", "CLEO.JK", "CMRY.JK", "CPIN.JK", "CTRA.JK",
-            "CUAN.JK", "DCII.JK", "DEWA.JK", "DILD.JK", "DKFT.JK", "DOID.JK",
-            "DRMA.JK", "DSNG.JK", "EAST.JK", "EDGE.JK", "ELSA.JK", "EMTK.JK",
-            "ENRG.JK", "ESSA.JK", "EXCL.JK", "FILM.JK", "GEMS.JK", "GJTL.JK",
-            "GOTO.JK", "HAIS.JK", "HEAL.JK", "HRUM.JK", "ICBP.JK", "INAF.JK",
-            "INCO.JK", "INDF.JK", "INDY.JK", "INKP.JK", "INTP.JK", "IPCC.JK",
-            "IPCM.JK", "IRRA.JK", "ITMG.JK", "JKON.JK", "JPFA.JK", "JSPT.JK",
-            "KAEF.JK", "KEEN.JK", "KIJA.JK", "KLBF.JK", "LEAD.JK", "LSIP.JK",
-            "MAIN.JK", "MAPA.JK", "MAPI.JK", "MBAP.JK", "MBMA.JK", "MCAS.JK",
-            "MDKA.JK", "MEDC.JK", "MEDS.JK", "MIKA.JK", "MNCN.JK", "MPMX.JK",
-            "MTDL.JK", "MYOR.JK", "NCKL.JK", "NELY.JK", "NRCA.JK", "PANI.JK",
-            "PANR.JK", "PGAS.JK", "PGEO.JK", "PNBN.JK", "POWR.JK", "PRDA.JK",
-            "PSAB.JK", "PSSI.JK", "PTBA.JK", "PTPP.JK", "PWON.JK", "RAAM.JK",
-            "RALS.JK", "SAME.JK", "SCMA.JK", "SIDO.JK", "SILO.JK", "SMBR.JK",
-            "SMDR.JK", "SMGR.JK", "SMRA.JK", "SMSM.JK", "SSIA.JK", "SSMS.JK",
-            "STAA.JK", "TAPG.JK", "TBIG.JK", "TCPI.JK", "TINS.JK", "TKIM.JK",
-            "TLKM.JK", "TMAS.JK", "TOBA.JK", "TOTL.JK", "TOWR.JK", "TPIA.JK",
-            "TSPC.JK", "UNTR.JK", "UNVR.JK", "WEGE.JK", "WIFI.JK", "WIKA.JK",
-            "WINS.JK", "WOOD.JK",
+            "ISAT.JK"
         ])
     )
 )

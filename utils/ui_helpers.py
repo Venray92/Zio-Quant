@@ -5,6 +5,17 @@ import streamlit.components.v1 as components
 from engines.trade_planner import TradePlanner
 
 
+
+def inject_custom_css():
+    css_file_path = "assets/styleupdate.css"
+    try:
+        with open(css_file_path, "r") as f:
+            css_content = f.read()
+            st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.warning(f"File CSS tidak ditemukan di: {css_file_path}")
+
+
 def inject_custom_css():
     css_path = os.path.join("assets", "style.css")
     if os.path.exists(css_path):

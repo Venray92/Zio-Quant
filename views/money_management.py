@@ -11,174 +11,135 @@ except ImportError:
 
 
 # ==============================================================================
-# 1. CYBERPUNK THEME ENGINE (CSS & STYLING INJECTION)
+# 1. CYBERPUNK THEME ENGINE (AGGRESSIVE CSS OVERRIDE)
 # ==============================================================================
 def inject_cyberpunk_theme():
-    """Menerapkan styling CSS bertema Cyberpunk / High-Tech Trading Dashboard
+    """Memaksa seluruh layout Streamlit (Background, Cards, Input, Button, Text)
 
-    secara menyeluruh ke komponen kustom dan elemen bawaan Streamlit.
+    menggunakan Tema Cyberpunk Neon secara menyeluruh.
     """
     cyberpunk_css = """
     <style>
-    /* Global Cyberpunk Palette Variables */
-    :root {
-        --cyber-bg-dark: #0a0b10;
-        --cyber-card-bg: #12151e;
-        --cyber-card-border: #1e2638;
-        --cyber-cyan: #00f3ff;
-        --cyber-pink: #ff0055;
-        --cyber-yellow: #ffe600;
-        --cyber-green: #00ff66;
-        --cyber-text-muted: #8d9bb0;
-        --cyber-glow-cyan: rgba(0, 243, 255, 0.3);
-        --cyber-glow-pink: rgba(255, 0, 85, 0.3);
+    /* 1. OVERRIDE ROOT STREAMLIT THEME */
+    :root, [data-testid="stAppViewContainer"], .stApp {
+        --background-color: #05070a !important;
+        --secondary-background-color: #0d111a !important;
+        --primary-color: #00f3ff !important;
+        --text-color: #00f3ff !important;
+        background-color: #05070a !important;
+        color: #00f3ff !important;
+        font-family: 'Segoe UI', Roboto, monospace !important;
     }
 
-    /* Container Card Style */
+    /* 2. BACKGROUND GLOBAL APLIKASI */
+    .stAppViewContainer, .main, [data-testid="stHeader"] {
+        background-color: #05070a !important;
+    }
+
+    /* 3. CARD & CONTAINER CUSTOM */
     .cyber-card {
-        background-color: var(--cyber-card-bg) !important;
-        border: 1px solid var(--cyber-card-border) !important;
-        border-radius: 8px !important;
-        padding: 20px !important;
-        margin-bottom: 20px !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+        background: #0c1017 !important;
+        border: 1px solid #00f3ff !important;
+        border-radius: 6px !important;
+        padding: 16px !important;
+        margin-bottom: 15px !important;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2), inset 0 0 10px rgba(0, 243, 255, 0.05) !important;
         position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    .cyber-card::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 0 !important; left: 0 !important; right: 0 !important;
-        height: 2px !important;
-        background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent) !important;
     }
 
-    /* Dynamic Badges */
-    .cyber-badge {
-        padding: 4px 12px !important;
-        border-radius: 4px !important;
-        font-weight: 800 !important;
-        font-size: 11px !important;
-        letter-spacing: 1px !important;
-        text-transform: uppercase !important;
-        display: inline-block !important;
-    }
-    .cyber-badge-cyan {
-        background-color: rgba(0, 243, 255, 0.1) !important;
-        color: var(--cyber-cyan) !important;
-        border: 1px solid var(--cyber-cyan) !important;
-        box-shadow: 0 0 10px var(--cyber-glow-cyan) !important;
-    }
-    .cyber-badge-pink {
-        background-color: rgba(255, 0, 85, 0.1) !important;
-        color: var(--cyber-pink) !important;
-        border: 1px solid var(--cyber-pink) !important;
-        box-shadow: 0 0 10px var(--cyber-glow-pink) !important;
-    }
-    .cyber-badge-yellow {
-        background-color: rgba(255, 230, 0, 0.1) !important;
-        color: var(--cyber-yellow) !important;
-        border: 1px solid var(--cyber-yellow) !important;
+    .cyber-card-pink {
+        background: #140810 !important;
+        border: 1px solid #ff0055 !important;
+        border-radius: 6px !important;
+        padding: 16px !important;
+        margin-bottom: 15px !important;
+        box-shadow: 0 0 15px rgba(255, 0, 85, 0.2) !important;
     }
 
-    /* Typography Overrides */
-    .cyber-label {
-        color: var(--cyber-text-muted) !important;
-        font-size: 12px !important;
-        font-weight: 700 !important;
-        letter-spacing: 1px !important;
-        text-transform: uppercase !important;
-        margin-bottom: 4px !important;
-    }
-    .cyber-value {
-        font-size: 24px !important;
-        font-weight: 900 !important;
+    /* 4. TYPOGRAPHY & TEXT OVERRIDES */
+    h1, h2, h3, h4, h5, h6, label, .stMarkdown, p, span {
         color: #ffffff !important;
-        font-family: 'Courier New', Courier, monospace !important;
     }
-
-    /* Custom Titles */
-    .cyber-header {
-        font-size: 14px !important;
-        font-weight: 800 !important;
-        color: var(--cyber-cyan) !important;
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: #00f3ff !important;
+        text-shadow: 0 0 8px rgba(0, 243, 255, 0.6) !important;
+        letter-spacing: 1.5px !important;
+    }
+    .cyber-label {
+        color: #8d9bb0 !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
         letter-spacing: 1.5px !important;
         text-transform: uppercase !important;
-        text-align: center !important;
-        margin-bottom: 2px !important;
     }
-    .cyber-subheader {
-        font-size: 11px !important;
-        color: var(--cyber-text-muted) !important;
-        text-align: center !important;
-        margin-bottom: 12px !important;
-    }
-
-    /* ==========================================================================
-       STREAMLIT NATIVE COMPONENTS OVERRIDES
-       ========================================================================== */
-    /* Input Fields (Text & Number) */
-    div[data-baseweb="input"] > div {
-        background-color: #12151e !important;
-        border: 1px solid var(--cyber-card-border) !important;
-        color: var(--cyber-cyan) !important;
-        border-radius: 6px !important;
-    }
-    div[data-baseweb="input"] input {
-        color: var(--cyber-cyan) !important;
-        font-family: 'Courier New', Courier, monospace !important;
-        font-weight: 700 !important;
-    }
-    
-    /* Selectbox / Dropdown */
-    div[data-baseweb="select"] > div {
-        background-color: #12151e !important;
-        border: 1px solid var(--cyber-card-border) !important;
-        color: #ffffff !important;
-        border-radius: 6px !important;
+    .cyber-value {
+        font-size: 26px !important;
+        font-weight: 900 !important;
+        color: #00f3ff !important;
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.8) !important;
+        font-family: 'Courier New', monospace !important;
     }
 
-    /* Buttons */
+    /* 5. INPUT FIELDS (TEXT, NUMBER, SELECTBOX) */
+    div[data-baseweb="input"], div[data-baseweb="select"] > div {
+        background-color: #0d111a !important;
+        border: 1px solid #00f3ff !important;
+        border-radius: 4px !important;
+        box-shadow: 0 0 5px rgba(0, 243, 255, 0.3) !important;
+    }
+    input {
+        color: #00f3ff !important;
+        background-color: transparent !important;
+        font-weight: bold !important;
+        font-family: 'Courier New', monospace !important;
+    }
+
+    /* 6. BUTTON STYLING (NEON GLOW) */
     div.stButton > button {
-        background-color: #12151e !important;
-        color: var(--cyber-cyan) !important;
-        border: 1px solid var(--cyber-cyan) !important;
-        font-weight: 700 !important;
-        letter-spacing: 1px !important;
-        border-radius: 6px !important;
-        transition: all 0.3s ease !important;
+        background: #05070a !important;
+        color: #00f3ff !important;
+        border: 1px solid #00f3ff !important;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
+        font-weight: 800 !important;
+        letter-spacing: 1.5px !important;
+        text-transform: uppercase !important;
+        transition: all 0.2s ease-in-out !important;
     }
     div.stButton > button:hover {
-        background-color: var(--cyber-cyan) !important;
-        color: #000000 !important;
-        box-shadow: 0 0 15px var(--cyber-cyan) !important;
+        background: #00f3ff !important;
+        color: #05070a !important;
+        box-shadow: 0 0 20px #00f3ff !important;
     }
 
-    /* Expander Container & Header */
-    .stExpander {
-        background-color: #0d0f17 !important;
-        border: 1px solid var(--cyber-card-border) !important;
-        border-radius: 8px !important;
-        margin-bottom: 10px !important;
+    /* 7. EXPANDER / ACCORDION */
+    div[data-testid="stExpander"] {
+        background-color: #080c14 !important;
+        border: 1px solid #1e2638 !important;
+        border-radius: 6px !important;
     }
-    .stExpander > details > summary {
-        color: var(--cyber-cyan) !important;
+    div[data-testid="stExpander"] details summary p {
+        color: #00f3ff !important;
         font-weight: 700 !important;
     }
 
-    /* Radio Buttons & Labels */
-    div[role="radiogroup"] label p {
-        color: #ffffff !important;
-        font-weight: 600 !important;
+    /* 8. BADGES */
+    .cyber-badge {
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+        letter-spacing: 1px;
     }
+    .badge-cyan { background: rgba(0,243,255,0.15); color: #00f3ff; border: 1px solid #00f3ff; }
+    .badge-yellow { background: rgba(255,230,0,0.15); color: #ffe600; border: 1px solid #ffe600; }
+    .badge-pink { background: rgba(255,0,85,0.15); color: #ff0055; border: 1px solid #ff0055; }
     </style>
     """
     st.markdown(cyberpunk_css, unsafe_allow_html=True)
 
 
 # ==============================================================================
-# 2. DATA CONSTANTS & TRADING RULES
+# 2. STRATEGY RULES CONSTANTS
 # ==============================================================================
 PROFILE_RULES = {
     "Scalping / Fast Trade": {
@@ -212,16 +173,13 @@ PROFILE_RULES = {
 # 3. HELPER FUNCTIONS
 # ==============================================================================
 def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> bool:
-    """Mengambil data Trade Plan dari TradePlanner engine backend
-
-    dan menyimpan nilai ke dalam Streamlit session_state.
-    """
+    """Mengambil data Trade Plan dari TradePlanner engine backend."""
     if not TradePlanner:
-        st.error("[SYS_ERR] Modul `TradePlanner` tidak dapat dimuat.")
+        st.error("[SYS_ERR] Modul `TradePlanner` tidak ditemukan.")
         return False
 
     try:
-        with st.spinner(f"[SYNCING] Mengambil Trade Plan {full_ticker}..."):
+        with st.spinner(f"[SYNC] Syncing Trade Plan {full_ticker}..."):
             planner = TradePlanner(ticker=full_ticker)
             planner.fetch_and_prepare_data()
             df_plan = planner.generate_trade_plan()
@@ -248,27 +206,25 @@ def fetch_trade_plan(full_ticker: str, plan_type: str, clean_ticker: str) -> boo
 # 4. MAIN RENDER FUNCTION
 # ==============================================================================
 def render_page_money_management():
-    """Halaman utama kalkulator Position Sizing & Money Management."""
-    # Inject styling Cyberpunk ke halaman
+    """Render utama Halaman Money Management."""
+    # Eksekusi Pemaksaan CSS Cyberpunk
     inject_cyberpunk_theme()
 
-    # Header Halaman
-    st.title("⚡ Cyberpunk Money Management Engine")
-    st.caption(
-        "Kalkulasi alokasi posisi & manajemen risiko transaksi IDX berbasis kustom presisi tinggi."
-    )
+    # Header Utama
+    st.markdown("<h1>⚡ CYBERPUNK MONEY MANAGEMENT ENGINE</h1>", unsafe_allow_html=True)
+    st.caption("System Execution & Position Sizing Analytics for IDX Trading")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # Layout Utama: 2 Kolom (Input Parameters vs Calculator Output)
+    # Grid Utama (Kolom Kiri Control, Kolom Kanan Output Analytics)
     col_input, col_output = st.columns([1.1, 1.9], gap="large")
 
     # --------------------------------------------------------------------------
-    # KOLOM 1: PARAMETER INPUT
+    # KOLOM 1: PARAMETER INPUT CONTROL
     # --------------------------------------------------------------------------
     with col_input:
-        st.subheader("⚙️ System Control Parameters")
+        st.markdown("### ⚙️ SYSTEM CONTROLS")
 
-        # Section 1: Capital & Profile
-        with st.expander("👤 Capital & Trader Profile", expanded=True):
+        with st.expander("👤 CAPITAL & TRADER PROFILE", expanded=True):
             capital = st.number_input(
                 "Total Capital (IDR)",
                 min_value=1_000_000,
@@ -295,28 +251,22 @@ def render_page_money_management():
             rule = PROFILE_RULES[trading_style]
             st.caption(f"💡 *{rule['desc']}*")
 
-        # Section 2: Trade Plan Parameters
-        with st.expander("📊 Trade Execution Setup", expanded=True):
-            # Inisialisasi default session_state jika belum ada
+        with st.expander("📊 TRADE EXECUTION SETUP", expanded=True):
             st.session_state.setdefault("input_entry_price", 125.0)
             st.session_state.setdefault("input_sl_price", 120.0)
             st.session_state.setdefault("input_tp1_price", 151.0)
             st.session_state.setdefault("input_tp2_price", 216.0)
 
             raw_ticker_default = (
-                st.session_state.get("mm_ticker", "COCO")
-                .upper()
-                .replace(".JK", "")
+                st.session_state.get("mm_ticker", "COCO").upper().replace(".JK", "")
             )
             ticker_input = st.text_input(
-                "Ticker Code (Tanpa .JK)",
+                "Ticker Code",
                 value=raw_ticker_default,
                 key="mm_raw_ticker_input",
             ).strip()
 
-            clean_ticker = (
-                ticker_input.upper().replace(".JK", "").strip() or "COCO"
-            )
+            clean_ticker = ticker_input.upper().replace(".JK", "").strip() or "COCO"
             full_ticker = f"{clean_ticker}.JK"
 
             plan_type = st.radio(
@@ -326,145 +276,98 @@ def render_page_money_management():
                 key="mm_plan_type_radio",
             )
 
-            # Button Sync
             if st.button("🔄 Sync with Trade Planner", use_container_width=True):
                 if fetch_trade_plan(full_ticker, plan_type, clean_ticker):
                     st.rerun()
 
-            # Entry & SL Inputs
             c_entry, c_sl = st.columns(2)
             with c_entry:
                 entry_price = st.number_input(
-                    "Entry Price",
-                    min_value=1.0,
-                    step=1.0,
-                    key="input_entry_price",
+                    "Entry Price", min_value=1.0, step=1.0, key="input_entry_price"
                 )
             with c_sl:
                 sl_price = st.number_input(
-                    "Stop Loss (SL)",
-                    min_value=1.0,
-                    step=1.0,
-                    key="input_sl_price",
+                    "Stop Loss (SL)", min_value=1.0, step=1.0, key="input_sl_price"
                 )
 
-            # TP1 & TP2 Inputs
             c_tp1, c_tp2 = st.columns(2)
             with c_tp1:
                 tp1_price = st.number_input(
-                    "Target Price 1",
-                    min_value=1.0,
-                    step=1.0,
-                    key="input_tp1_price",
+                    "Target Price 1", min_value=1.0, step=1.0, key="input_tp1_price"
                 )
             with c_tp2:
                 tp2_price = st.number_input(
-                    "Target Price 2",
-                    min_value=1.0,
-                    step=1.0,
-                    key="input_tp2_price",
+                    "Target Price 2", min_value=1.0, step=1.0, key="input_tp2_price"
                 )
 
-        # Section 3: Fees Sekuritas
-        with st.expander("🛠️ Brokerage Fee Structure", expanded=False):
+        with st.expander("🛠️ BROKERAGE FEES", expanded=False):
             fee_buy = (
                 st.number_input(
-                    "Buy Fee (%)",
-                    min_value=0.0,
-                    value=0.15,
-                    step=0.01,
-                    key="mm_fee_buy",
+                    "Buy Fee (%)", min_value=0.0, value=0.15, step=0.01, key="mm_fee_buy"
                 )
                 / 100
             )
             fee_sell = (
                 st.number_input(
-                    "Sell Fee (%)",
-                    min_value=0.0,
-                    value=0.25,
-                    step=0.01,
-                    key="mm_fee_sell",
+                    "Sell Fee (%)", min_value=0.0, value=0.25, step=0.01, key="mm_fee_sell"
                 )
                 / 100
             )
 
     # --------------------------------------------------------------------------
-    # KOLOM 2: HASIL KALKULASI LOGIKA POSITION SIZING
+    # KOLOM 2: ANALYTICS OUTPUT
     # --------------------------------------------------------------------------
     with col_output:
-        st.subheader("🎯 Position Sizing Analytics Output")
+        st.markdown("### 🎯 POSITION SIZING ANALYTICS")
 
-        # Proteksi Logika Input
+        # Validasi Input Logic
         if sl_price >= entry_price:
-            st.error(
-                "❌ [LOGIC ERROR] Stop Loss (SL) harus LEBIH KECIL dari Entry Price."
-            )
+            st.error("❌ [LOGIC ERROR] Stop Loss (SL) harus LEBIH KECIL dari Harga Entry!")
             return
 
-        if tp1_price <= entry_price:
-            st.warning(
-                "⚠️ [WARN] Target Price 1 sebaiknya lebih besar dari harga Entry."
-            )
-
-        # ----------------------------------------------------------------------
-        # HITUNG RISK & SIZING (ENGINE CORE)
-        # ----------------------------------------------------------------------
+        # Core Calculation Engine
         max_risk_allowed_idr = capital * (risk_pct / 100)
         risk_per_share_raw = entry_price - sl_price
         total_risk_per_share_with_fee = (entry_price * (1 + fee_buy)) - (
             sl_price * (1 - fee_sell)
         )
 
-        # Sizing berdasarkan Batas Risk
-        raw_shares_by_risk = (
-            max_risk_allowed_idr / total_risk_per_share_with_fee
-        )
+        raw_shares_by_risk = max_risk_allowed_idr / total_risk_per_share_with_fee
         lot_by_risk = math.floor(raw_shares_by_risk / 100)
 
-        # Sizing berdasarkan Max Alokasi Modal Profil
         max_alloc_pct = rule["max_alloc"]
         max_capital_allowed = capital * (max_alloc_pct / 100)
         lot_by_cap = math.floor(
             max_capital_allowed / (entry_price * 100 * (1 + fee_buy))
         )
 
-        # Keputusan Final Lot
         final_lot = min(lot_by_risk, lot_by_cap)
         final_shares = final_lot * 100
         total_buy_value = final_shares * entry_price
         total_cost_with_fee = total_buy_value * (1 + fee_buy)
 
-        # Realized Risk
         actual_risk_idr = (
             (final_shares * entry_price * (1 + fee_buy))
             - (final_shares * sl_price * (1 - fee_sell))
             if final_lot > 0
             else 0.0
         )
-        actual_risk_pct = (
-            (actual_risk_idr / capital) * 100 if capital > 0 else 0.0
-        )
+        actual_risk_pct = (actual_risk_idr / capital) * 100 if capital > 0 else 0.0
 
-        # Risk Reward Ratio (RRR)
         reward_tp1 = tp1_price - entry_price
-        rrr_tp1 = (
-            reward_tp1 / risk_per_share_raw if risk_per_share_raw > 0 else 0
-        )
-
+        rrr_tp1 = reward_tp1 / risk_per_share_raw if risk_per_share_raw > 0 else 0
         is_capped = (lot_by_cap < lot_by_risk) and (lot_by_risk > 0)
 
-        # ----------------------------------------------------------------------
-        # METRIC CARDS DISPLAY (CYBERPUNK THEME)
-        # ----------------------------------------------------------------------
+        # 3 Card Neon Display
         m1, m2, m3 = st.columns(3)
 
         with m1:
             st.markdown(
                 f"""
                 <div class="cyber-card">
-                    <div class="cyber-label">Recommended Size</div>
-                    <div class="cyber-value" style="color:var(--cyber-cyan);">{final_lot:,} LOT</div>
-                    <div style="font-size: 11px; color: var(--cyber-text-muted);">({final_shares:,} Lembar)</div>
+                    <div class="cyber-label">RECOMMENDED SIZE</div>
+                    <div class="cyber-value">{final_lot:,} LOT</div>
+                    <div style="font-size: 11px; color: #8d9bb0;">({final_shares:,} Lembar)</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -474,9 +377,9 @@ def render_page_money_management():
             st.markdown(
                 f"""
                 <div class="cyber-card">
-                    <div class="cyber-label">Total Buy Value</div>
-                    <div class="cyber-value">Rp {total_buy_value:,.0f}</div>
-                    <div style="font-size: 11px; color: var(--cyber-text-muted);">Allocation: {(total_buy_value/capital)*100:.1f}% Modal</div>
+                    <div class="cyber-label">TOTAL BUY VALUE</div>
+                    <div class="cyber-value" style="color:#ffffff;">Rp {total_buy_value:,.0f}</div>
+                    <div style="font-size: 11px; color: #8d9bb0;">Alloc: {(total_buy_value/capital)*100:.1f}% Modal</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -484,38 +387,32 @@ def render_page_money_management():
 
         with m3:
             if rrr_tp1 >= 2.0:
-                rrr_badge_class = "cyber-badge-cyan"
-                rrr_status = "EXCELLENT"
+                rrr_badge = '<span class="cyber-badge badge-cyan">EXCELLENT</span>'
             elif rrr_tp1 >= 1.5:
-                rrr_badge_class = "cyber-badge-yellow"
-                rrr_status = "ACCEPTABLE"
+                rrr_badge = '<span class="cyber-badge badge-yellow">ACCEPTABLE</span>'
             else:
-                rrr_badge_class = "cyber-badge-pink"
-                rrr_status = "POOR RISK"
+                rrr_badge = '<span class="cyber-badge badge-pink">POOR RISK</span>'
 
             st.markdown(
                 f"""
                 <div class="cyber-card">
-                    <div class="cyber-label">Risk/Reward (TP1)</div>
-                    <div class="cyber-value">1 : {rrr_tp1:.2f}</div>
-                    <span class="cyber-badge {rrr_badge_class}">{rrr_status}</span>
+                    <div class="cyber-label">RISK / REWARD</div>
+                    <div class="cyber-value" style="color:#ffe600;">1 : {rrr_tp1:.2f}</div>
+                    <div>{rrr_badge}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-        # Warning jika jumlah lot terkena Cap Profil Trading
         if is_capped:
             st.warning(
-                f"⚠️ **[CAP ALERT] Size Dibatasi Strategy Profile!** Toleransi risk mengizinkan **{lot_by_risk:,} Lot**, "
-                f"tetapi dibatasi menjadi **{final_lot:,} Lot** agar tidak melewati alokasi max {max_alloc_pct}% ({trading_style})."
+                f"⚠️ **CAP ALERT:** Toleransi risk mengizinkan **{lot_by_risk:,} Lot**, "
+                f"namun dibatasi max **{final_lot:,} Lot** sesuai profil {trading_style} ({max_alloc_pct}%)."
             )
 
-        # ----------------------------------------------------------------------
-        # SCALING OUT / PARTIAL PROFIT TAKING PLANNER
-        # ----------------------------------------------------------------------
-        st.markdown("---")
-        st.subheader("✂️ Partial Profit Taking Execution Plan")
+        # Partial Profit Taking Execution Plan
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("### ✂️ PARTIAL PROFIT TAKING PLAN")
 
         lot_tp1 = math.floor(final_lot * 0.5)
         lot_tp2 = final_lot - lot_tp1
@@ -533,11 +430,11 @@ def render_page_money_management():
             st.markdown(
                 f"""
                 <div class="cyber-card">
-                    <h4 style="margin:0; color:var(--cyber-cyan); font-size:15px;">Tahap 1: Sell 50% Lot @ TP1</h4>
-                    <p style="margin:6px 0; font-size:13px;">Jual <b>{lot_tp1:,} Lot</b> @ <b>Rp {tp1_price:,.0f}</b></p>
-                    <p style="margin:0; font-size:12px; color:var(--cyber-text-muted);">Estimated Profit: <b style="color:var(--cyber-green);">+Rp {p_tp1:,.0f}</b></p>
-                    <hr style="margin:10px 0; border-color:var(--cyber-card-border);">
-                    <span style="font-size:11px; color:var(--cyber-yellow);">📌 Action: Geser SL sisa lot ke Break Even (Rp {entry_price:,.0f})</span>
+                    <h4 style="margin:0; color:#00f3ff; font-size:14px;">TAHAP 1: SELL 50% @ TP1</h4>
+                    <p style="margin:6px 0; font-size:13px; color:#ffffff;">Jual <b>{lot_tp1:,} Lot</b> @ <b>Rp {tp1_price:,.0f}</b></p>
+                    <p style="margin:0; font-size:12px; color:#8d9bb0;">Est. Profit: <b style="color:#00ff66;">+Rp {p_tp1:,.0f}</b></p>
+                    <hr style="margin:10px 0; border-color:#1e2638;">
+                    <span style="font-size:11px; color:#ffe600;">📌 Action: Set Break-Even SL @ Rp {entry_price:,.0f}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -547,86 +444,43 @@ def render_page_money_management():
             st.markdown(
                 f"""
                 <div class="cyber-card">
-                    <h4 style="margin:0; color:var(--cyber-cyan); font-size:15px;">Tahap 2: Sell 50% Lot @ TP2</h4>
-                    <p style="margin:6px 0; font-size:13px;">Jual <b>{lot_tp2:,} Lot</b> @ <b>Rp {tp2_price:,.0f}</b></p>
-                    <p style="margin:0; font-size:12px; color:var(--cyber-text-muted);">Estimated Profit: <b style="color:var(--cyber-green);">+Rp {p_tp2:,.0f}</b></p>
-                    <hr style="margin:10px 0; border-color:var(--cyber-card-border);">
-                    <span style="font-size:11px; color:var(--cyber-cyan);">💰 Max Potential Return: <b style="color:var(--cyber-green);">+Rp {total_potential_profit:,.0f}</b></span>
+                    <h4 style="margin:0; color:#00f3ff; font-size:14px;">TAHAP 2: SELL 50% @ TP2</h4>
+                    <p style="margin:6px 0; font-size:13px; color:#ffffff;">Jual <b>{lot_tp2:,} Lot</b> @ <b>Rp {tp2_price:,.0f}</b></p>
+                    <p style="margin:0; font-size:12px; color:#8d9bb0;">Est. Profit: <b style="color:#00ff66;">+Rp {p_tp2:,.0f}</b></p>
+                    <hr style="margin:10px 0; border-color:#1e2638;">
+                    <span style="font-size:11px; color:#00f3ff;">💰 Total Potential: <b style="color:#00ff66;">+Rp {total_potential_profit:,.0f}</b></span>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-        # ----------------------------------------------------------------------
-        # PLOTLY CYBERPUNK CHARTS VISUALIZATION
-        # ----------------------------------------------------------------------
-        st.markdown("---")
-        st.subheader("📈 Risk Visualizer & Capital Exposure")
+        # Plotly Visualizers
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("### 📈 RISK VISUALIZER & EXPOSURE")
 
         v1, v2 = st.columns(2)
 
-        # Plot 1: Gauge Risk Tracker
         with v1:
-            st.markdown(
-                f'<div class="cyber-header">Risk Exposure Ratio ({risk_pct}%)</div>',
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                f'<div class="cyber-subheader">Actual Risk IDR: Rp {actual_risk_idr:,.0f}</div>',
-                unsafe_allow_html=True,
-            )
-
             fig_gauge = go.Figure(
                 go.Indicator(
-                    mode="gauge+number+delta",
+                    mode="gauge+number",
                     value=actual_risk_pct,
-                    number={
-                        "suffix": "%",
-                        "valueformat": ".2f",
-                        "font": {
-                            "color": "#00f3ff",
-                            "family": "Courier New",
-                        },
-                    },
-                    delta={
-                        "reference": risk_pct,
-                        "relative": False,
-                        "position": "top",
-                    },
+                    number={"suffix": "%", "font": {"color": "#00f3ff"}},
                     domain={"x": [0, 1], "y": [0, 1]},
                     gauge={
-                        "axis": {
-                            "range": [0, max(10.0, risk_pct * 1.2)],
-                            "tickwidth": 1,
-                            "tickcolor": "#8d9bb0",
-                        },
+                        "axis": {"range": [0, max(10.0, risk_pct * 1.5)]},
                         "bar": {
-                            "color": (
-                                "#00f3ff"
-                                if actual_risk_pct <= risk_pct
-                                else "#ff0055"
-                            )
+                            "color": "#00f3ff" if actual_risk_pct <= risk_pct else "#ff0055"
                         },
                         "steps": [
-                            {
-                                "range": [0, risk_pct],
-                                "color": "rgba(0, 243, 255, 0.15)",
-                            },
-                            {
-                                "range": [risk_pct, 10.0],
-                                "color": "rgba(255, 0, 85, 0.15)",
-                            },
+                            {"range": [0, risk_pct], "color": "#0d111a"},
+                            {"range": [risk_pct, 10.0], "color": "#1c0812"},
                         ],
-                        "threshold": {
-                            "line": {"color": "#ffe600", "width": 4},
-                            "thickness": 0.75,
-                            "value": risk_pct,
-                        },
                     },
                 )
             )
             fig_gauge.update_layout(
-                height=220,
+                height=180,
                 margin=dict(l=20, r=20, t=10, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
@@ -634,46 +488,24 @@ def render_page_money_management():
             )
             st.plotly_chart(fig_gauge, use_container_width=True)
 
-        # Plot 2: Donut Capital Exposure Chart
         with v2:
-            st.markdown(
-                '<div class="cyber-header">Capital Allocation Exposure</div>',
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                '<div class="cyber-subheader">Position Value vs Available Liquidity</div>',
-                unsafe_allow_html=True,
-            )
-
             cash_left = max(0.0, capital - total_cost_with_fee)
             fig_donut = go.Figure(
                 data=[
                     go.Pie(
-                        labels=[
-                            f"Posisi {clean_ticker}",
-                            "Unallocated Liquidity",
-                        ],
+                        labels=[f"Posisi {clean_ticker}", "Cash"],
                         values=[total_cost_with_fee, cash_left],
                         hole=0.6,
                         marker_colors=["#00f3ff", "#1e2638"],
-                        hoverinfo="label+value+percent",
-                        textinfo="percent",
                     )
                 ]
             )
             fig_donut.update_layout(
-                height=220,
+                height=180,
                 margin=dict(l=10, r=10, t=10, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
                 font={"color": "#ffffff"},
-                showlegend=True,
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=-0.2,
-                    xanchor="center",
-                    x=0.5,
-                ),
+                showlegend=False,
             )
             st.plotly_chart(fig_donut, use_container_width=True)

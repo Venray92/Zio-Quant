@@ -72,7 +72,6 @@ def render_tab_stoch_psar():
         /* =========================================================
            3. STYLING STREAMLIT BUTTONS (RUN & STOP)
            ========================================================= */
-        /* Tombol Run Screening */
         div[data-testid="stColumn"]:has(div[key="btn_run_stoch_screener"]) button {
             background: linear-gradient(135deg, #00F3FF 0%, #00FF66 100%) !important;
             color: #050811 !important;
@@ -89,7 +88,6 @@ def render_tab_stoch_psar():
             box-shadow: 0 0 25px rgba(0, 255, 102, 0.8) !important;
         }
 
-        /* Tombol Stop */
         div[data-testid="stColumn"]:has(div[key="btn_stop_stoch_screener"]) button {
             background: linear-gradient(135deg, #FF007F 0%, #7928CA 100%) !important;
             color: #FFFFFF !important;
@@ -109,7 +107,6 @@ def render_tab_stoch_psar():
         /* =========================================================
            4. STYLING SELECT SAHAM BUTTON
            ========================================================= */
-        /* All Stock Selection Buttons */
         div[data-testid="stColumn"] button[kind="primary"],
         div[data-testid="stColumn"] button[kind="secondary"] {
             transition: all 0.25s ease-in-out !important;
@@ -117,7 +114,6 @@ def render_tab_stoch_psar():
             font-weight: 800 !important;
         }
 
-        /* Primary Button (Saat STATUS SELECTED / DITEKAN) */
         div[data-testid="stColumn"] button[kind="primary"] {
             background: linear-gradient(135deg, #FF007F 0%, #00F3FF 100%) !important;
             color: #FFFFFF !important;
@@ -130,7 +126,6 @@ def render_tab_stoch_psar():
             transform: translateY(-1px) !important;
         }
 
-        /* Secondary Button (Saat UNSELECTED) */
         div[data-testid="stColumn"] button[kind="secondary"] {
             background-color: #161B22 !important;
             color: #00F3FF !important;
@@ -215,7 +210,6 @@ def render_tab_stoch_psar():
     # LEFT PANEL: SCREENER CONTROL & STOCK LIST
     # =========================================================
     with col_left:
-        # Header Banner Cyberpunk dengan Glowing Status Dot
         st.markdown(
             """
             <div class="cyber-header-container">
@@ -351,15 +345,12 @@ def render_tab_stoch_psar():
             )
 
             if not df_target.empty:
-                # BUNGKUS DENGAN CONTAINER UNTUK SCROLLING (MAX HEIGHT)
                 with st.container(height=800, border=False):
                     for idx, row in df_target.iterrows():
                         ticker = str(row.get("Ticker", ""))
                         saham = ticker.replace(".JK", "")
                         score = row.get("Score", 0)
-
                         signal_desc = row.get("Detail Signal", "-")
-
                         close_price = row.get("Harga", 0)
                         change_pct = row.get("Change (%)", 0.0)
 
@@ -388,7 +379,6 @@ def render_tab_stoch_psar():
                             else "border: 1px solid #30363D; background-color: #161B22;"
                         )
 
-                        # Render Kartu Saham
                         st.markdown(
                             f"""
                             <div style="{border_style} border-radius: 8px; padding: 10px 12px; margin-bottom: 4px;">

@@ -9,7 +9,7 @@ from engines.trade_planner import TradePlanner
 STORAGE_FILE = "watchlist_storage.json"
 
 def render_page_watchlist():
-    # Desain Cyberpunk: Fokus pada permainan warna teks, border neon, tanpa mengubah font & layout
+    # Desain Cyberpunk: Hanya fokus pada permainan warna teks, border neon, dan efek glow, tanpa mengubah font & layout
     st.markdown(
         """
         <style>
@@ -32,238 +32,10 @@ def render_page_watchlist():
 
             /* Tombol Primary khusus agar tampil lebih mencolok ala Cyberpunk */
             .stButton > button[kind="primary"], .stButton > button[data-baseweb="button"]:has(div) {
-                /* Menyesuaikan aksen tombol aktif */
                 border-color: #ffee00 !important;
                 color: #ff007f !important;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-# ==========================================
-# DATA & STORAGE MANAGEMENT
-# ==========================================
-def load_watchlist_from_file():
-    """Memuat data watchlist dari file JSON lokal."""
-    if os.path.exists(STORAGE_FILE):
-        try:
-            with open(STORAGE_FILE, "r") as f:
-                data = json.load(f)
-                normalized = []
-                for item in data:
-                    if isinstance(item, str):
-                        normalized.append(
-                            {
-                                "Ticker": item if item.endswith(".JK") else f"{item}.JK",
-                                "Notes": "Watchlist",
-                                "Target Price": 0,
-                            }
-                        )
-                    elif isinstance(item, dict):
-                        ticker = item.get("Ticker", "")
-                        if ticker:
-                            item["Ticker"] = ticker if ticker.endswith(".JK") else f"{ticker}.JK"
-                            normalized.append(item)
-                return normalized
-        except Exception:
-            pass
-
-    return [
-        {"Ticker": "BBCA.JK", "Notes": "Manual Added", "Target Price": 10500},
-        {"Ticker": "TLKM.JK", "Notes": "Manual Added", "Target Price": 3200},
-    ]
-
-
-def save_watchlist_to_file(data):
-    """Menyimpan data watchlist ke file JSON."""
-    try:
-        with open(STORAGE_FILE, "w") as f:
-            json.dump(data, f, indent=4)
-    except Exception as e:
-        st.error(f"Gagal menyimpan data: {e}")
-
-
-@st.cache_data(ttl=60)
-def fetch_stock_quote(ticker_symbol):
-    """Mengambil harga terbaru dan persentase perubahan dari Yahoo Finance."""
-    try:
-        symbol = ticker_symbol if ticker_symbol.endswith(".JK") else f"{ticker_symbol}.JK"
-        stock = yf.Ticker(symbol)
-        fast_info = stock.fast_info
-
-        last_price = fast_info.last_price
-        prev_close = fast_info.previous_close
-
-        if last_price and prev_close:
-            pct_change = ((last_price - prev_close) / prev_close) * 100
-            return float(last_price), float(pct_change)
-        elif last_price:
-            return float(last_price), 0.0
-    except Exception:
-        pass
-    return None, None
-
-
-def clear_search_callback():
-    st.session_state["input_search_ticker_field"] = ""
-
-
-# ==========================================
-# TRADE PLAN HELPERS
-# ==========================================
-def _format_val(val):
-    if pd.isna(val) or val is None or val in ["", "-"]:
-        return "-"
-    try:
-        num = float(val)
-        return f"{int(num):,}" if num.is_integer() else f"{num:,.2f}"
-    except (ValueError, TypeError):
-        return str(val)
-
-
-def _clean_num(val):
-    if pd.isna(val) or val is None or val in ["", "-"]:
-        return None
-    try:
-        if isinstance(val, str):
-            val = val.replace(",", "").strip()
-        return float(val)
-    except Exception:
-        return None
-
-
-def calculate_rr_ratios(row):
-    """Menghitung rasio Risk to Reward untuk Target 1 & Target 2."""
-    buy_val = _clean_num(row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))))
-    sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
-    tp1_val = _clean_num(row.get("TP 1", row.get("TP1", row.get("Target 1", None))))
-    tp2_val = _clean_num(row.get("TP 2", row.get("TP2", row.get("Target 2", None))))
-
-    rr_tp1_str = "-"
-    rr_tp2_str = "-"
-
-    if buy_val and sl_val and (buy_val > sl_val):
-        risk = buy_val - sl_val
-        if tp1_val and tp1_val > buy_val:
-            rr_tp1_str = f"1 : {((tp1_val - buy_val) / risk):.1f}"
-        if tp2_val and tp2_val > buy_val:
-            rr_tp2_str = f"1 : {((tp2_val - buy_val) / risk):.1f}"
-
-    return rr_tp1_str, rr_tp2_str
-
-
-def render_trade_plan_only(ticker_symbol, key_suffix):
-    """Renders the Trade Plan Recommendation component for the selected ticker."""
-    st.write(f"### Live Trade Plan: {ticker_symbol}")
-
-    clean_ticker = (
-        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
-    )
-    safe_container_id = clean_ticker.replace(".", "_")
-    tv_symbol = f"IDX:{clean_ticker}"
-
-    with st.expander(f"TradingView Chart: {ticker_symbol}", expanded=False):
-        tv_html = f"""
-        <div class="tradingview-widget-container" style="height:500px; width:100%;">
-          <div id="tv_chart_container_{safe_container_id}" style="height:100%; width:100%;"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-          <script type="text/javascript">
-          if (typeof TradingView !== 'undefined') {{
-              new TradingView.widget({{
-                "autosize": true,
-                "symbol": "{tv_symbol}",
-                "interval": "D",
-                "timezone": "Asia/Jakarta",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
-                "hide_side_toolbar": false,
-                "allow_symbol_change": true,
-                "save_image": true,
-                "container_id": "tv_chart_container_{safe_container_id}"
-              }});
-          }}
-          </script>
-        </div>
-        """
-        components.html(tv_html, height=510)
-        st.caption("Lakukan screenshot jika Anda membuat tarikan garis/analisa visual.")
-
-    period_selected = "3mo"
-
-    with st.spinner(f"Memuat data untuk {ticker_symbol}..."):
-        try:
-            planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
-            if hasattr(planner, "fetch_and_prepare_data"):
-                planner.fetch_and_prepare_data()
-
-            df_plan = (
-                planner.generate_trade_plan()
-                if hasattr(planner, "generate_trade_plan")
-                else None
-            )
-
-            if df_plan is not None and not df_plan.empty:
-                st.write("#### Trade Plan Recommendation")
-
-                for idx, row in df_plan.iterrows():
-                    plan_no = idx + 1
-                    plan_type = str(row.get("Type", row.get("Strategy", f"Plan #{plan_no}")))
-                    score = str(row.get("Score", 0))
-                    grade = str(row.get("Grade", "N/A"))
-                    posisi = str(row.get("Posisi Harga", row.get("Status", "-")))
-
-                    range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
-                    range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
-                    area_buy = (
-                        f"{range_min} - {range_max}"
-                        if range_min != "-" and range_max != "-"
-                        else range_min
-                    )
-
-                    stop_loss = _format_val(row.get("Stop Loss", row.get("SL", "-")))
-                    tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
-                    tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
-
-                    prefix_label = "Suggestion" if idx == 0 else "Other"
-                    expander_title = f"Plan #{plan_no} ({plan_type}) - Grade: {grade} - Score: {score}"
-
-                    with st.expander(expander_title, expanded=False):
-                        st.write(f"**Strategi:** {plan_type}")
-                        st.write(f"**Grade:** {grade} | **Score:** {score}/100")
-                        st.write(f"**Area Buy:** {area_buy}")
-                        st.write(f"**Stop Loss:** {stop_loss}")
-                        st.write(f"**Target 1 (TP1):** {tp1}")
-                        st.write(f"**Target 2 (TP2):** {tp2}")
-                        st.write(f"**Posisi Harga:** {posisi}")
-
-                        rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.metric(label="R:R (Target 1)", value=rr_tp1_val)
-                        with c2:
-                            st.metric(label="R:R (Target 2)", value=rr_tp2_val)
-
-        except Exception as e:
-            st.error(f"Gagal memuat Trade Plan: {e}")
-
-
-# ==========================================
-# MAIN RENDER FUNCTION
-# ==========================================
-def render_page_watchlist():
-    # Menghapus paksa border hijau/glow global dari file lain khusus untuk halaman Watchlist
-    st.markdown(
-        """
-        <style>
-            .stButton > button, div[data-testid="stPopover"] > button {
-                border: 1px solid rgba(255, 255, 255, 0.2) !important;
-                box-shadow: none !important;
-            }
-            .stButton > button:hover, div[data-testid="stPopover"] > button:hover {
-                border-color: rgba(255, 255, 255, 0.5) !important;
+                background-color: #121826 !important;
+                box-shadow: 0 0 10px rgba(255, 238, 0, 0.5) !important;
             }
         </style>
         """,
@@ -566,3 +338,212 @@ def render_page_watchlist():
             )
         else:
             st.info("Pilih salah satu saham dari daftar pantauan di sebelah kiri.")
+
+
+# ==========================================
+# DATA & STORAGE MANAGEMENT HELPERS
+# ==========================================
+def load_watchlist_from_file():
+    """Memuat data watchlist dari file JSON lokal."""
+    if os.path.exists(STORAGE_FILE):
+        try:
+            with open(STORAGE_FILE, "r") as f:
+                data = json.load(f)
+                normalized = []
+                for item in data:
+                    if isinstance(item, str):
+                        normalized.append(
+                            {
+                                "Ticker": item if item.endswith(".JK") else f"{item}.JK",
+                                "Notes": "Watchlist",
+                                "Target Price": 0,
+                            }
+                        )
+                    elif isinstance(item, dict):
+                        ticker = item.get("Ticker", "")
+                        if ticker:
+                            item["Ticker"] = ticker if ticker.endswith(".JK") else f"{ticker}.JK"
+                            normalized.append(item)
+                return normalized
+        except Exception:
+            pass
+
+    return [
+        {"Ticker": "BBCA.JK", "Notes": "Manual Added", "Target Price": 10500},
+        {"Ticker": "TLKM.JK", "Notes": "Manual Added", "Target Price": 3200},
+    ]
+
+
+def save_watchlist_to_file(data):
+    """Menyimpan data watchlist ke file JSON."""
+    try:
+        with open(STORAGE_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        st.error(f"Gagal menyimpan data: {e}")
+
+
+@st.cache_data(ttl=60)
+def fetch_stock_quote(ticker_symbol):
+    """Mengambil harga terbaru dan persentase perubahan dari Yahoo Finance."""
+    try:
+        symbol = ticker_symbol if ticker_symbol.endswith(".JK") else f"{ticker_symbol}.JK"
+        stock = yf.Ticker(symbol)
+        fast_info = stock.fast_info
+
+        last_price = fast_info.last_price
+        prev_close = fast_info.previous_close
+
+        if last_price and prev_close:
+            pct_change = ((last_price - prev_close) / prev_close) * 100
+            return float(last_price), float(pct_change)
+        elif last_price:
+            return float(last_price), 0.0
+    except Exception:
+        pass
+    return None, None
+
+
+def clear_search_callback():
+    st.session_state["input_search_ticker_field"] = ""
+
+
+# ==========================================
+# TRADE PLAN HELPERS
+# ==========================================
+def _format_val(val):
+    if pd.isna(val) or val is None or val in ["", "-"]:
+        return "-"
+    try:
+        num = float(val)
+        return f"{int(num):,}" if num.is_integer() else f"{num:,.2f}"
+    except (ValueError, TypeError):
+        return str(val)
+
+
+def _clean_num(val):
+    if pd.isna(val) or val is None or val in ["", "-"]:
+        return None
+    try:
+        if isinstance(val, str):
+            val = val.replace(",", "").strip()
+        return float(val)
+    except Exception:
+        return None
+
+
+def calculate_rr_ratios(row):
+    """Menghitung rasio Risk to Reward untuk Target 1 & Target 2."""
+    buy_val = _clean_num(row.get("Range Buy Max", row.get("Buy Max", row.get("Buy Min", None))))
+    sl_val = _clean_num(row.get("Stop Loss", row.get("SL", None)))
+    tp1_val = _clean_num(row.get("TP 1", row.get("TP1", row.get("Target 1", None))))
+    tp2_val = _clean_num(row.get("TP 2", row.get("TP2", row.get("Target 2", None))))
+
+    rr_tp1_str = "-"
+    rr_tp2_str = "-"
+
+    if buy_val and sl_val and (buy_val > sl_val):
+        risk = buy_val - sl_val
+        if tp1_val and tp1_val > buy_val:
+            rr_tp1_str = f"1 : {((tp1_val - buy_val) / risk):.1f}"
+        if tp2_val and tp2_val > buy_val:
+            rr_tp2_str = f"1 : {((tp2_val - buy_val) / risk):.1f}"
+
+    return rr_tp1_str, rr_tp2_str
+
+
+def render_trade_plan_only(ticker_symbol, key_suffix):
+    """Renders the Trade Plan Recommendation component for the selected ticker."""
+    st.write(f"### Live Trade Plan: {ticker_symbol}")
+
+    clean_ticker = (
+        ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
+    )
+    safe_container_id = clean_ticker.replace(".", "_")
+    tv_symbol = f"IDX:{clean_ticker}"
+
+    with st.expander(f"TradingView Chart: {ticker_symbol}", expanded=False):
+        tv_html = f"""
+        <div class="tradingview-widget-container" style="height:500px; width:100%;">
+          <div id="tv_chart_container_{safe_container_id}" style="height:100%; width:100%;"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+          if (typeof TradingView !== 'undefined') {{
+              new TradingView.widget({{
+                "autosize": true,
+                "symbol": "{tv_symbol}",
+                "interval": "D",
+                "timezone": "Asia/Jakarta",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "save_image": true,
+                "container_id": "tv_chart_container_{safe_container_id}"
+              }});
+          }}
+          </script>
+        </div>
+        """
+        components.html(tv_html, height=510)
+        st.caption("Lakukan screenshot jika Anda membuat tarikan garis/analisa visual.")
+
+    period_selected = "3mo"
+
+    with st.spinner(f"Memuat data untuk {ticker_symbol}..."):
+        try:
+            planner = TradePlanner(ticker=ticker_symbol.upper(), period=period_selected)
+            if hasattr(planner, "fetch_and_prepare_data"):
+                planner.fetch_and_prepare_data()
+
+            df_plan = (
+                planner.generate_trade_plan()
+                if hasattr(planner, "generate_trade_plan")
+                else None
+            )
+
+            if df_plan is not None and not df_plan.empty:
+                st.write("#### Trade Plan Recommendation")
+
+                for idx, row in df_plan.iterrows():
+                    plan_no = idx + 1
+                    plan_type = str(row.get("Type", row.get("Strategy", f"Plan #{plan_no}")))
+                    score = str(row.get("Score", 0))
+                    grade = str(row.get("Grade", "N/A"))
+                    posisi = str(row.get("Posisi Harga", row.get("Status", "-")))
+
+                    range_min = _format_val(row.get("Range Buy Min", row.get("Buy Min", "-")))
+                    range_max = _format_val(row.get("Range Buy Max", row.get("Buy Max", "-")))
+                    area_buy = (
+                        f"{range_min} - {range_max}"
+                        if range_min != "-" and range_max != "-"
+                        else range_min
+                    )
+
+                    stop_loss = _format_val(row.get("Stop Loss", row.get("SL", "-")))
+                    tp1 = _format_val(row.get("TP 1", row.get("TP1", "-")))
+                    tp2 = _format_val(row.get("TP 2", row.get("TP2", "-")))
+
+                    expander_title = f"Plan #{plan_no} ({plan_type}) - Grade: {grade} - Score: {score}"
+
+                    with st.expander(expander_title, expanded=False):
+                        st.write(f"**Strategi:** {plan_type}")
+                        st.write(f"**Grade:** {grade} | **Score:** {score}/100")
+                        st.write(f"**Area Buy:** {area_buy}")
+                        st.write(f"**Stop Loss:** {stop_loss}")
+                        st.write(f"**Target 1 (TP1):** {tp1}")
+                        st.write(f"**Target 2 (TP2):** {tp2}")
+                        st.write(f"**Posisi Harga:** {posisi}")
+
+                        rr_tp1_val, rr_tp2_val = calculate_rr_ratios(row)
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.metric(label="R:R (Target 1)", value=rr_tp1_val)
+                        with c2:
+                            st.metric(label="R:R (Target 2)", value=rr_tp2_val)
+
+        except Exception as e:
+            st.error(f"Gagal memuat Trade Plan: {e}")

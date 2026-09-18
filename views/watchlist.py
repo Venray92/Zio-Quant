@@ -1,25 +1,27 @@
-import json
 import os
+import json
 import pandas as pd
 import streamlit as st
 import yfinance as yf
 from engines.trade_planner import TradePlanner
 
 STORAGE_FILE = "watchlist_storage.json"
-CSS_FILE = "style-watchlist.css"
+
+# UBAH PATH FILE CSS KE FOLDER ASSETS
+CSS_FILE = os.path.join("assets", "style-watchlist.css")
 
 
 # ==========================================
 # CYBERPUNK CUSTOM CSS LOADER
 # ==========================================
 def inject_cyberpunk_css():
-    """Membaca dan menerapkan styling dari file CSS eksternal."""
+    """Membaca dan menerapkan styling dari file CSS eksternal di folder assets."""
     if os.path.exists(CSS_FILE):
-        with open(CSS_FILE, "r") as f:
+        with open(CSS_FILE, "r", encoding="utf-8") as f:
             css_content = f.read()
         st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
     else:
-        st.warning(f"[SYS_WARN] File {CSS_FILE} tidak ditemukan.")
+        st.warning(f"[SYS_WARN] File '{CSS_FILE}' tidak ditemukan. Pastikan folder 'assets' sudah dibuat.")
 
 
 # ==========================================

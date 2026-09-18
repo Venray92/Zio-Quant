@@ -247,14 +247,13 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
     for sym in symbols:
         df_sym = df_data[df_data["Symbol"] == sym]
         
-        strategies = df_sym["Strategy"].tolist()
+        strategies = df_sym["Strategy"].tolist() if "Strategy" in df_sym.columns else ["BOW"]
         suggested_strat = df_sym["Suggested Strategy"].iloc[0] if "Suggested Strategy" in df_sym.columns else strategies[0]
         
         selected_strat = suggested_strat
         if len(strategies) > 1:
             st.write("")
             
-            # Mapping nama kode pendek ke nama panjang
             label_map = {
                 "BOW": "Buy On Weakness",
                 "BOB": "Buy On Breakout"
@@ -265,8 +264,8 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             default_display = label_map.get(suggested_strat, display_options[0])
             default_idx = display_options.index(default_display) if default_display in display_options else 0
             
-            # Mengatur tata letak: Dropdown di kiri, dan tombol aksi (Watchlist, Copy Plan, Clear Data) di kanan
-            col_drop, col_space, col_w, col_c, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
+            # Tata letak: Dropdown di kiri (1.5), spacer (1.2), tombol Copy di kiri, Watchlist di kanan, Clear di ujung kanan
+            col_drop, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
             
             with col_drop:
                 st.markdown(
@@ -287,75 +286,107 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
             selected_strat = reverse_map.get(chosen_display, chosen_display)
 
             row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
-
-            # Teks untuk fitur Copy Plan
-            copyable_text = f"""=== TRADE PLAN: {row['Symbol']} ===
-Strategy: {row['Strategy']}
-Grade: {row['Grade']}
-Score: {row['Score']}/100
-Last Price: Rp {row['Last Price']:,}
-Buy Range: {row['Buy Range']}
-Stop Loss: Rp {row['Stop Loss (SL)']:,}
-Target 1 (TP1): Rp {row['TP 1']:,}
-Target 2 (TP2): Rp {row['TP 2']:,}
-Zone Position: {row['Zone Position']}
-Risk-Reward: {row['Risk-Reward Ratio']}
-==============================="""
-
-            unique_btn_id = f"copy_btn_tp_{sym}_{row['Strategy']}"
-
-            with col_w:
-                if st.button("⭐ Watchlist", key=f"btn_wl_{sym}", use_container_width=True):
-                    add_tickers_to_watchlist([sym])
-
-            with col_c:
-                # Tombol Copy Plan interaktif
-                copy_html = f"""
-                <button id="{unique_btn_id}" style="width: 100%; background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 7px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
-                    📋 Copy
-                </button>
-                <script>
-                const textToCopy_{unique_btn_id} = `{copyable_text}`;
-                const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
-                btn_{unique_btn_id}.onclick = function() {{
-                    navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
-                        btn_{unique_btn_id}.innerText = "✅ Copied";
-                        btn_{unique_btn_id}.style.background = "#00FF66";
-                        setTimeout(function() {{
-                            btn_{unique_btn_id}.innerText = "📋 Copy";
-                            btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
-                        }}, 2000);
-                    }}).catch(function(err) {{
-                        console.error('Gagal menyalin text: ', err);
-                    }});
-                }};
-                </script>
-                """
-                components.html(copy_html, height=36)
-
-            with col_cl:
-                if is_single_mode:
-                    if st.button("🗑️ Clear", key=f"btn_clr_{sym}", use_container_width=True):
-                        st.session_state.pop("df_screener_single", None)
-                        st.rer()
-
         else:
             row = df_sym.iloc[0]
+            if is_single_mode:
+                col_drop_dummy, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
+            else:
+                col_drop_dummy, col_space, col_c, col_w = st.columns([1.5, 1.6, 0.9, 0.9], vertical_alignment="bottom")
 
-        strat_display_name = "Buy On Weakness" if row['Strategy'] == "BOW" else ("Buy On Breakout" if row['Strategy'] == "BOB" else row['Strategy'])
-        is_suggestion = " (Suggestion)" if row.get("Strategy") == row.get("Suggested Strategy") else ""
+            with col_drop_dummy:
+                label_map = {"BOW": "Buy On Weakness", "BOB": "Buy On Breakout"}
+                strat_code = str(row.get("Strategy", "BOW"))
+                st.markdown(
+                    f"""
+                    <div style="font-weight: 700; color: #00F3FF; font-size: 0.85rem; margin-bottom: 2px;">
+                        Pilih Strategi:
+                    </div>
+                    <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 10px; color: #cbd5e1; font-size: 0.9rem;">
+                        {label_map.get(strat_code, strat_code)}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+        # Aman dari KeyError jika kolom opsional tidak ada di row
+        p_gain_tp2 = row.get("Potential Gain TP2", "+0%")
+        sl_risk_val = row.get("SL Risk", "-0%")
+        tp1_val = row.get("TP 1", 0)
+        tp2_val = row.get("TP 2", 0)
+        sl_val = row.get("Stop Loss (SL)", 0)
+        score_val = row.get("Score", 0)
+        grade_val = row.get("Grade", "N/A")
+        last_price_val = row.get("Last Price", 0)
+        buy_range_val = row.get("Buy Range", "-")
+        zone_pos_val = row.get("Zone Position", "-")
+        rr_ratio_val = row.get("Risk-Reward Ratio", "1 : 0")
+        candle_val = row.get("Candlestick Pattern", "-")
+        warning_val = row.get("Analysis & Risk Warning", "-")
+        strat_code_val = row.get("Strategy", "BOW")
+
+        copyable_text = f"""=== TRADE PLAN: {sym} ===
+Strategy: {strat_code_val}
+Grade: {grade_val}
+Score: {score_val}/100
+Last Price: Rp {last_price_val:,}
+Buy Range: {buy_range_val}
+Stop Loss: Rp {sl_val:,}
+Target 1 (TP1): Rp {tp1_val:,}
+Target 2 (TP2): Rp {tp2_val:,}
+Zone Position: {zone_pos_val}
+Risk-Reward: {rr_ratio_val}
+==============================="""
+
+        unique_btn_id = f"copy_btn_tp_{sym}_{strat_code_val}"
+
+        with col_c:
+            copy_html = f"""
+            <button id="{unique_btn_id}" style="width: 100%; background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 7px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
+                📋 Copy
+            </button>
+            <script>
+            const textToCopy_{unique_btn_id} = `{copyable_text}`;
+            const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
+            btn_{unique_btn_id}.onclick = function() {{
+                navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
+                    btn_{unique_btn_id}.innerText = "✅ Copied";
+                    btn_{unique_btn_id}.style.background = "#00FF66";
+                    setTimeout(function() {{
+                        btn_{unique_btn_id}.innerText = "📋 Copy";
+                        btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
+                    }}, 2000);
+                }}).catch(function(err) {{
+                    console.error('Gagal menyalin text: ', err);
+                }});
+            }};
+            </script>
+            """
+            components.html(copy_html, height=36)
+
+        with col_w:
+            if st.button("⭐ Watchlist", key=f"btn_wl_{sym}_{strat_code_val}", use_container_width=True):
+                add_tickers_to_watchlist([sym])
+
+        if is_single_mode:
+            with col_cl:
+                if st.button("🗑️ Clear", key=f"btn_clr_{sym}", use_container_width=True):
+                    st.session_state.pop("df_screener_single", None)
+                    st.rerun()
+
+        strat_display_name = "Buy On Weakness" if strat_code_val == "BOW" else ("Buy On Breakout" if strat_code_val == "BOB" else strat_code_val)
+        is_suggestion = " (Suggestion)" if strat_code_val == row.get("Suggested Strategy") else ""
 
         st.markdown(
             f"""
             <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 20px; margin-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <span style="font-size: 1.4rem; font-weight: 800; color: #00F3FF;">{row['Symbol']}</span>
+                    <span style="font-size: 1.4rem; font-weight: 800; color: #00F3FF;">{sym}</span>
                     <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {strat_display_name}{is_suggestion}</span>
-                    <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {row['Grade']}</span>
-                    <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {row['Score']}/100</span>
+                    <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {grade_val}</span>
+                    <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {score_val}/100</span>
                 </div>
                 <div style="color: #94a3b8; font-size: 0.9rem;">
-                    Last Price: <strong style="color: #00F3FF; font-size: 1.1rem;">Rp {row['Last Price']:,}</strong>
+                    Last Price: <strong style="color: #00F3FF; font-size: 1.1rem;">Rp {last_price_val:,}</strong>
                 </div>
             </div>
             """,
@@ -366,17 +397,17 @@ Risk-Reward: {row['Risk-Reward Ratio']}
         with col1:
             draw_card(
                 title="BUY RANGE / ENTRY ZONE",
-                value=str(row["Buy Range"]),
-                subtext=f"Status: {row['Zone Position']}",
-                badge_text=str(row["Zone Position"]),
+                value=str(buy_range_val),
+                subtext=f"Status: {zone_pos_val}",
+                badge_text=str(zone_pos_val),
                 variant="blue",
                 value_color="blue",
             )
             draw_card(
                 title="TARGET 1 (TP 1)",
-                value=f"Rp {row['TP 1']:,}",
+                value=f"Rp {tp1_val:,}",
                 subtext="Initial profit target / partial exit.",
-                badge_text=str(row["Potential Gain"]),
+                badge_text=str(row.get("Potential Gain", "+0%")),
                 variant="green",
                 value_color="green",
             )
@@ -384,17 +415,17 @@ Risk-Reward: {row['Risk-Reward Ratio']}
         with col2:
             draw_card(
                 title="STOP LOSS (SL)",
-                value=f"Rp {row['Stop Loss (SL)']:,}",
+                value=f"Rp {sl_val:,}",
                 subtext="Risk management limit.",
-                badge_text=str(row["SL Risk"]),
+                badge_text=str(sl_risk_val),
                 variant="red",
                 value_color="red",
             )
             draw_card(
                 title="TARGET 2 (TP 2)",
-                value=f"Rp {row['TP 2']:,}",
+                value=f"Rp {tp2_val:,}",
                 subtext="Main swing target zone.",
-                badge_text=str(row["Potential Gain TP2"]),
+                badge_text=str(p_gain_tp2),
                 variant="blue",
                 value_color="blue",
             )
@@ -404,15 +435,15 @@ Risk-Reward: {row['Risk-Reward Ratio']}
             <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">RISK : REWARD</span>
-                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{row['Risk-Reward Ratio']}</span>
+                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{rr_ratio_val}</span>
                 </div>
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">CANDLESTICK PATTERN</span>
-                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{row['Candlestick Pattern']}</span>
+                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{candle_val}</span>
                 </div>
                 <div style="grid-column: span 2;">
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">ANALYSIS & WARNING</span>
-                    <span style="font-size: 0.88rem; color: #ef4444; font-weight: 600;">{row['Analysis & Risk Warning']}</span>
+                    <span style="font-size: 0.88rem; color: #ef4444; font-weight: 600;">{warning_val}</span>
                 </div>
             </div>
             """,
@@ -823,7 +854,7 @@ def render_tab_trade_planner():
             df_table.insert(0, "Select", False)
 
             edited_df = st.data_editor(
-                df_table[["Select"] + ["Symbol", "Score", "Grade", "Strategy", "Last Price", "Zone Position", "Buy Range", "Stop Loss (SL)", "TP 1", "TP 2", "Potential Gain", "SL Risk", "Risk-Reward Ratio", "Candlestick Pattern"]],
+                df_table[["Select"] + [col for col in df.columns if col != "Select"]],
                 column_config={
                     "Select": st.column_config.CheckboxColumn(
                         "Select",
@@ -837,7 +868,7 @@ def render_tab_trade_planner():
                     "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
                     "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
                 },
-                disabled=["Symbol", "Score", "Grade", "Strategy", "Last Price", "Zone Position", "Buy Range", "Stop Loss (SL)", "TP 1", "TP 2", "Potential Gain", "SL Risk", "Risk-Reward Ratio", "Candlestick Pattern"],
+                disabled=[col for col in df.columns if col != "Select"],
                 use_container_width=True,
                 key=f"batch_editor_v{st.session_state['editor_key_version']}"
             )

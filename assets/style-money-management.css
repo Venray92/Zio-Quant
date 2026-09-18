@@ -165,3 +165,11 @@ div[data-testid="stExpander"] details summary p {
     color: #FF0055; 
     border: 1px solid #FF0055; 
 }
+
+/* Memaksa semua tombol navigasi atas agar ukurannya seragam & tidak melebar sendiri */
+div[data-testid="stHorizontalBlock"] .stButton button {
+    width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}

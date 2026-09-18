@@ -1,113 +1,90 @@
-/* 1. OVERRIDE ROOT STREAMLIT THEME */
-:root, [data-testid="stAppViewContainer"], .stApp {
-    --background-color: #05070a !important;
-    --secondary-background-color: #0d111a !important;
-    --primary-color: #00f3ff !important;
-    --text-color: #00f3ff !important;
-    background-color: #05070a !important;
-    color: #00f3ff !important;
-    font-family: 'Segoe UI', Roboto, monospace !important;
-}
+import os
+import streamlit as st
 
-/* 2. BACKGROUND GLOBAL APLIKASI */
-.stAppViewContainer, .main, [data-testid="stHeader"] {
-    background-color: #05070a !important;
-}
+# Fungsi untuk memuat file CSS khusus Money Management
+def load_css(css_file_path):
+    if os.path.exists(css_file_path):
+        with open(css_file_path, "r") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    else:
+        # Fallback inline jika file css belum terbaca
+        st.warning(f"File CSS tidak ditemukan di {css_file_path}, menggunakan default style.")
 
-/* 3. CARD & CONTAINER CUSTOM */
-.cyber-card {
-    background: #0c1017 !important;
-    border: 1px solid #00f3ff !important;
-    border-radius: 6px !important;
-    padding: 16px !important;
-    margin-bottom: 15px !important;
-    box-shadow: 0 0 15px rgba(0, 243, 255, 0.2), inset 0 0 10px rgba(0, 243, 255, 0.05) !important;
-    position: relative !important;
-}
+def render_money_management():
+    # Load CSS Cyberpunk
+    load_css("assets/style-money-management.css")
+    
+    st.markdown("## ⚡ CYBERPUNK MONEY MANAGEMENT & POSITION SIZING")
+    st.markdown("Kalkulasi risiko presisi tinggi untuk mengamankan portofolio trading Anda dari likuidasi.")
+    
+    # Layout Input Menggunakan Kolom
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown('<p class="cyber-label">Total Capital / Saldo Akun ($)</p>', unsafe_allow_html=True)
+        account_balance = st.number_input("Capital", value=1000.0, step=100.0, label_visibility="collapsed")
+        
+        st.markdown('<p class="cyber-label">Risiko per Trade (%)</p>', unsafe_allow_html=True)
+        risk_pct = st.slider("Risk %", min_value=0.1, max_value=10.0, value=1.0, step=0.1, label_visibility="collapsed")
+        
+    with col2:
+        st.markdown('<p class="cyber-label">Entry Price ($)</p>', unsafe_allow_html=True)
+        entry_price = st.number_input("Entry", value=100.0, step=1.0, label_visibility="collapsed")
+        
+        st.markdown('<p class="cyber-label">Stop Loss Price ($)</p>', unsafe_allow_html=True)
+        stop_loss = st.number_input("Stop Loss", value=95.0, step=1.0, label_visibility="collapsed")
 
-.cyber-card-pink {
-    background: #140810 !important;
-    border: 1px solid #ff0055 !important;
-    border-radius: 6px !important;
-    padding: 16px !important;
-    margin-bottom: 15px !important;
-    box-shadow: 0 0 15px rgba(255, 0, 85, 0.2) !important;
-}
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Kalkulasi Otomatis
+    risk_amount_dollar = account_balance * (risk_pct / 100.0)
+    price_risk_per_unit = abs(entry_price - stop_loss)
+    
+    if price_risk_per_unit > 0:
+        position_size_units = risk_amount_dollar / price_risk_per_unit
+        total_position_value = position_size_units * entry_price
+    else:
+        position_size_units = 0
+        total_position_value = 0
 
-/* 4. TYPOGRAPHY & TEXT OVERRIDES */
-h1, h2, h3, h4, h5, h6, label, .stMarkdown, p, span {
-    color: #ffffff !important;
-}
-.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-    color: #00f3ff !important;
-    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6) !important;
-    letter-spacing: 1.5px !important;
-}
-.cyber-label {
-    color: #8d9bb0 !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 1.5px !important;
-    text-transform: uppercase !important;
-}
-.cyber-value {
-    font-size: 26px !important;
-    font-weight: 900 !important;
-    color: #00f3ff !important;
-    text-shadow: 0 0 10px rgba(0, 243, 255, 0.8) !important;
-    font-family: 'Courier New', monospace !important;
-}
+    # Tampilan Hasil dengan Cyber Card & Style Khusus
+    st.markdown("### 📊 HASIL KALKULASI & METRIK RISIKO")
+    
+    res_col1, res_col2, res_col3 = st.columns(3)
+    
+    with res_col1:
+        st.markdown(f"""
+        <div class="cyber-card">
+            <p class="cyber-label">Maksimal Risiko ($)</p>
+            <p class="cyber-value">${risk_amount_dollar:,.2f}</p>
+            <span class="cyber-badge badge-cyan">RISK TOLERANCE</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with res_col2:
+        st.markdown(f"""
+        <div class="cyber-card">
+            <p class="cyber-label">Ukuran Posisi (Units)</p>
+            <p class="cyber-value">{position_size_units:,.2f}</p>
+            <span class="cyber-badge badge-yellow">LOT / SHARES</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with res_col3:
+        st.markdown(f"""
+        <div class="cyber-card-pink">
+            <p class="cyber-label" style="color: #ff0055 !important;">Total Nilai Posisi</p>
+            <p class="cyber-value" style="color: #ff0055 !important; text-shadow: 0 0 10px rgba(255,0,85,0.8);">${total_position_value:,.2f}</p>
+            <span class="cyber-badge badge-pink">EXPOSURE</span>
+        </div>
+        """, unsafe_applies_html=True if 'unsafe_applies_html' in globals() else True, unsafe_allow_html=True)
 
-/* 5. INPUT FIELDS (TEXT, NUMBER, SELECTBOX) */
-div[data-baseweb="input"], div[data-baseweb="select"] > div {
-    background-color: #0d111a !important;
-    border: 1px solid #00f3ff !important;
-    border-radius: 4px !important;
-    box-shadow: 0 0 5px rgba(0, 243, 255, 0.3) !important;
-}
-input {
-    color: #00f3ff !important;
-    background-color: transparent !important;
-    font-weight: bold !important;
-    font-family: 'Courier New', monospace !important;
-}
+    # Tambahan Expander untuk Panduan Risk/Reward
+    with st.expander("💡 Tips & Panduan Manajemen Risiko Cyberpunk"):
+        st.markdown("""
+        * **Disiplin Risk %**: Jangan pernah mengubah persentase risiko melebihi batas maksimal kenyamanan psikologis Anda (biasanya 1% - 2% per transaksi).
+        * **Stop Loss Mutlak**: Selalu letakkan Stop Loss sesuai dengan struktur teknikal market, bukan berdasarkan seberapa besar uang yang ingin Anda relakan.
+        """)
 
-/* 6. BUTTON STYLING (NEON GLOW) */
-div.stButton > button {
-    background: #05070a !important;
-    color: #00f3ff !important;
-    border: 1px solid #00f3ff !important;
-    box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
-    font-weight: 800 !important;
-    letter-spacing: 1.5px !important;
-    text-transform: uppercase !important;
-    transition: all 0.2s ease-in-out !important;
-}
-div.stButton > button:hover {
-    background: #00f3ff !important;
-    color: #05070a !important;
-    box-shadow: 0 0 20px #00f3ff !important;
-}
-
-/* 7. EXPANDER / ACCORDION */
-div[data-testid="stExpander"] {
-    background-color: #080c14 !important;
-    border: 1px solid #1e2638 !important;
-    border-radius: 6px !important;
-}
-div[data-testid="stExpander"] details summary p {
-    color: #00f3ff !important;
-    font-weight: 700 !important;
-}
-
-/* 8. BADGES */
-.cyber-badge {
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: bold;
-    letter-spacing: 1px;
-}
-.badge-cyan { background: rgba(0,243,255,0.15); color: #00f3ff; border: 1px solid #00f3ff; }
-.badge-yellow { background: rgba(255,230,0,0.15); color: #ffe600; border: 1px solid #ffe600; }
-.badge-pink { background: rgba(255,0,85,0.15); color: #ff0055; border: 1px solid #ff0055; }
+if __name__ == "__main__":
+    render_money_management()

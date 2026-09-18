@@ -370,7 +370,8 @@ def render_tab_rsi():
             )
 
             # --- BAGIAN KOLOM DROPDOWN & TOMBOL EXPORT ---
-            col_filter, col_export = st.columns([1, 2])
+           # --- UBAH RASIO MENJADI LEBIH BESAR DI KIRI (DROPDOWN) & KECIL DI KANAN (EXPORT) ---
+            col_filter, col_export = st.columns([3.2, 0.8])
 
             with col_filter:
                 screener_mode = st.selectbox(
@@ -393,15 +394,15 @@ def render_tab_rsi():
                 if not df_export.empty:
                     csv_data = df_export.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label=f"📥 Export {screener_mode} CSV",
+                        label="📥",  # Hanya berisi icon
                         data=csv_data,
                         file_name=f"screening_{screener_mode.lower()}.csv",
                         mime="text/csv",
-                        use_container_width=True
+                        use_container_width=True,
+                        help=f"Export {screener_mode} to CSV" # Tooltip saat kursor diarahkan ke tombol
                     )
                 else:
-                    st.button("📥 Export Kosong", disabled=True, use_container_width=True)
-
+                    st.button("📥", disabled=True, use_container_width=True, help="Data kosong")
             st.session_state["active_rsi_type"] = screener_mode
 
             st.markdown(

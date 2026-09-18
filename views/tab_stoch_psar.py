@@ -324,15 +324,41 @@ def render_tab_stoch_psar():
                 unsafe_allow_html=True,
             )
 
-            screener_mode = st.selectbox(
-                "Choose Signal Mode",
-                options=["Golden Cross (Buy)", "Dead Cross (Sell)"],
-                index=0
-                if "Buy" in st.session_state.get("active_stoch_type", "Golden Cross (Buy)")
-                else 1,
-                key="stoch_screener_mode_select",
-                label_visibility="collapsed",
-            )
+            # --- DROPDOWN LEBAR DI KIRI & TOMBOL EXPORT IKON KECIL DI KANAN ---
+            col_filter, col_export = st.columns([3.2, 0.8], vertical_alignment="bottom")
+
+            with col_filter:
+                screener_mode = st.selectbox(
+                    "Choose Signal Mode",
+                    options=["Golden Cross (Buy)", "Dead Cross (Sell)"],
+                    index=0
+                    if "Buy" in st.session_state.get("active_stoch_type", "Golden Cross (Buy)")
+                    else 1,
+                    key="stoch_screener_mode_select",
+                    label_visibility="collapsed",
+                )
+            
+            with col_export:
+                is_gc_tab_export = "Buy" in screener_mode
+                df_export = (
+                    st.session_state.get("df_gc_data", pd.DataFrame())
+                    if is_gc_tab_export
+                    else st.session_state.get("df_dc_data", pd.DataFrame())
+                )
+                
+                if not df_export.empty:
+                    csv_data = df_export.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥",
+                        data=csv_data,
+                        file_name=f"stoch_screening_{'buy' if is_gc_tab_export else 'sell'}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        help=f"Export {screener_mode} to CSV"
+                    )
+                else:
+                    st.button("📥", disabled=True, use_container_width=True, help="Data kosong")
+
             st.session_state["active_stoch_type"] = screener_mode
 
             st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)

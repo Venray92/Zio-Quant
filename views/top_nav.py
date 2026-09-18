@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def render_top_nav():
-    # Inject CSS untuk mengatur posisi tombol dan margin bawah
+    # Inject CSS untuk mengatur posisi tombol dan tema Cyberpunk
     st.markdown(
         """
         <style>
@@ -12,13 +12,29 @@ def render_top_nav():
             margin-bottom: 0px !important;
         }
 
+        /* Styling Cyberpunk untuk tombol navigasi */
         button[key*="nav_"] {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
+            border: 1px solid #00F3FF !important;
+            color: #00F3FF !important;
+            border-radius: 6px !important;
             margin-bottom: 0px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             gap: 8px !important;
-            font-weight: 600 !important;
+            font-weight: 700 !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.2) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        /* Efek Hover Cyberpunk */
+        button[key*="nav_"]:hover {
+            background: rgba(0, 243, 255, 0.15) !important;
+            border-color: #00F3FF !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
         }
         </style>
         """,

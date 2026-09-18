@@ -8,7 +8,38 @@ from engines.trade_planner import TradePlanner
 
 STORAGE_FILE = "watchlist_storage.json"
 
+def render_page_watchlist():
+    # Desain Cyberpunk: Fokus pada permainan warna teks, border neon, tanpa mengubah font & layout
+    st.markdown(
+        """
+        <style>
+            /* Mengubah styling tombol di Watchlist menjadi gaya Cyberpunk */
+            .stButton > button, div[data-testid="stPopover"] > button {
+                background-color: #0b0f19 !important;
+                color: #00ffcc !important; /* Teks Cyan Neon */
+                border: 1px solid #ff007f !important; /* Border Pink/Magenta Neon */
+                box-shadow: 0 0 8px rgba(255, 0, 127, 0.4) !important;
+                transition: all 0.3s ease;
+            }
+            
+            /* Efek saat kursor diarahkan (hover) */
+            .stButton > button:hover, div[data-testid="stPopover"] > button:hover {
+                background-color: #121826 !important;
+                color: #ffee00 !important; /* Teks berubah jadi Kuning Neon */
+                border-color: #00ffcc !important; /* Border berubah jadi Cyan Neon */
+                box-shadow: 0 0 12px rgba(0, 255, 204, 0.6) !important;
+            }
 
+            /* Tombol Primary khusus agar tampil lebih mencolok ala Cyberpunk */
+            .stButton > button[kind="primary"], .stButton > button[data-baseweb="button"]:has(div) {
+                /* Menyesuaikan aksen tombol aktif */
+                border-color: #ffee00 !important;
+                color: #ff007f !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 # ==========================================
 # DATA & STORAGE MANAGEMENT
 # ==========================================

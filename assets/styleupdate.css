@@ -1,0 +1,31 @@
+/* Import Font JetBrains Mono dari Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
+/* 1. Global: Font & Warna Background Utama (Gelap ala Cyberpunk) */
+html, body, [class*="st-"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    background-color: #0A0A12 !important;
+    color: #C0C0D0 !important;
+}
+
+/* 2. Tombol (Button): Warna gelap, teks jelas, hover aman tidak menyilaukan */
+.stButton>button {
+    background-color: #12121F !important;
+    color: #00F0FF !important;
+    border: 1px solid #2A2A4A !important;
+    border-radius: 4px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.stButton>button:hover {
+    background-color: #1A1A2E !important;
+    color: #00F0FF !important;
+    border-color: #00F0FF !important;
+    box-shadow: none !important; /* Sengaja dimatikan biar gak bikin silau/sakit mata */
+}
+
+/* 3. Border & Kartu/Container: Garis tipis rapi */
+div[data-testid="stVerticalBlock"] > div, div[data-testid="stHorizontalBlock"] > div {
+    border-color: #1E1E3F !important;
+}

@@ -11,8 +11,8 @@ def render_tab_stoch_psar():
         """
         <style>
         /* =========================================================
-            1. CYBERPUNK HEADER BANNER
-            ========================================================= */
+           1. CYBERPUNK HEADER BANNER
+           ========================================================= */
         .cyber-header-container {
             position: relative;
             background: linear-gradient(135deg, rgba(255, 0, 127, 0.2) 0%, rgba(0, 243, 255, 0.2) 100%);
@@ -53,8 +53,8 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-            2. SECTION LABEL "CHOOSE SIGNAL MODE"
-            ========================================================= */
+           2. SECTION LABEL "CHOOSE SIGNAL MODE"
+           ========================================================= */
         .cyber-section-label {
             font-size: 11px;
             font-weight: 800;
@@ -70,8 +70,8 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-            3. STYLING STREAMLIT BUTTONS (RUN & STOP)
-            ========================================================= */
+           3. STYLING STREAMLIT BUTTONS (RUN & STOP)
+           ========================================================= */
         div[data-testid="stColumn"]:has(div[key="btn_run_stoch_screener"]) button {
             background: linear-gradient(135deg, #00F3FF 0%, #00FF66 100%) !important;
             color: #050811 !important;
@@ -105,8 +105,8 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-            4. STYLING SELECT SAHAM BUTTON
-            ========================================================= */
+           4. STYLING SELECT SAHAM BUTTON
+           ========================================================= */
         div[data-testid="stColumn"] button[kind="primary"],
         div[data-testid="stColumn"] button[kind="secondary"] {
             transition: all 0.25s ease-in-out !important;
@@ -138,8 +138,8 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-            5. STYLING SELECTBOX / DROPDOWN
-            ========================================================= */
+           5. STYLING SELECTBOX / DROPDOWN
+           ========================================================= */
         div[data-testid="stSelectbox"] > div > div {
             background-color: #0D1117 !important;
             border: 1.5px solid #00F3FF !important;
@@ -159,8 +159,8 @@ def render_tab_stoch_psar():
         }
 
         /* =========================================================
-            6. METRIC CARDS & CONTAINER STYLES
-            ========================================================= */
+           6. METRIC CARDS & CONTAINER STYLES
+           ========================================================= */
         .metric-card {
             background: #161B22;
             border: 1px solid #30363D;
@@ -324,6 +324,7 @@ def render_tab_stoch_psar():
                 unsafe_allow_html=True,
             )
 
+            # --- DROPDOWN LEBAR DI KIRI & TOMBOL EXPORT IKON KECIL DI KANAN ---
             col_filter, col_export = st.columns([3.2, 0.8], vertical_alignment="bottom")
 
             with col_filter:

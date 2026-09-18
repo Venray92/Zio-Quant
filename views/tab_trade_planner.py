@@ -6,9 +6,6 @@ import streamlit as st
 from engines.trade_planner import TradePlanner
 
 
-import os
-
-
 def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
     """Reads ticker list from file inside data folder."""
     if not os.path.exists(filename):

@@ -47,16 +47,16 @@ header[data-testid="stHeader"] {
 }
 
 /* ==========================================================================
-   CHOOSE SCREENER POPOVER & TOMBOL (HIJAU NEON PERMANEN)
+   CHOOSE SCREENER POPOVER & TOMBOL (HIJAU NEON PERMANEN - KUNCI UTAMA)
    ========================================================================== */
 [data-testid="stPopover"] {
     width: 100% !important;
 }
 
+/* Memaksa tombol popover selalu hijau neon baik sebelum maupun sesudah di-hover */
 [data-testid="stPopover"] > button,
 div[data-testid="stPopover"] button,
-button[data-baseweb="button"]:has(div:contains("CHOOSE SCREENER")),
-button[data-baseweb="button"]:has(p:contains("CHOOSE SCREENER")) {
+button[data-baseweb="button"] {
     background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
     border: 2px solid #00FF66 !important;
     color: #00FF66 !important;
@@ -69,6 +69,7 @@ button[data-baseweb="button"]:has(p:contains("CHOOSE SCREENER")) {
     text-shadow: 0 0 8px rgba(0, 255, 102, 0.8) !important;
 }
 
+/* Efek saat kursor berada di atas tombol */
 [data-testid="stPopover"] > button:hover,
 div[data-testid="stPopover"] button:hover {
     background: rgba(0, 255, 102, 0.25) !important;

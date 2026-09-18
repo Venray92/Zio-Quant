@@ -172,7 +172,6 @@ def render_trade_plan_only(ticker_symbol, key_suffix):
         unsafe_allow_html=True,
     )
 
-    # 1. EMBED TRADINGVIEW CHART DALAM EXPANDER (DEFAULT DITUTUP / COLLAPSED)
     clean_ticker = (
         ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
     )
@@ -388,6 +387,7 @@ def render_page_watchlist():
         "input_search_ticker_field": "",
         "selected_watchlist_ticker": None,
         "batch_del_version": 0,
+        "confirm_delete_all": False,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -413,7 +413,7 @@ def render_page_watchlist():
         h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
         with h_col1:
-            with st.popover("➕ Tambah", use_container_width=True):
+            with st.popover("➕ Add", use_container_width=True):
                 st.caption("SYSTEM // QUICK ADD")
                 inputs = []
                 ver = st.session_state["add_form_version"]
@@ -433,11 +433,11 @@ def render_page_watchlist():
 
                 c_add, c_save = st.columns(2)
                 with c_add:
-                    if st.button("＋ Baris", key="btn_add_more_field", use_container_width=True):
+                    if st.button("＋ Row", key="btn_add_more_field", use_container_width=True):
                         st.session_state["quick_add_count"] += 1
                         st.rerun()
                 with c_save:
-                    if st.button("Simpan", key="btn_quick_add_save", type="primary", use_container_width=True):
+                    if st.button("Save", key="btn_quick_add_save", type="primary", use_container_width=True):
                         if inputs:
                             added_count = 0
                             existing_tickers = {x["Ticker"] for x in st.session_state["watchlist_data"]}
@@ -459,22 +459,22 @@ def render_page_watchlist():
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["add_form_version"] += 1
                             st.session_state["quick_add_count"] = 1
-                            st.toast(f"{added_count} Ticker Diinjeksi!", icon="🚀")
+                            st.toast(f"{added_count} Tickers Injected!", icon="🚀")
                             st.rerun()
 
         with h_col2:
-            with st.popover("🗑️ Kelola", use_container_width=True):
+            with st.popover("🗑️ Manage", use_container_width=True):
                 st.caption("SYSTEM // PURGE DATA")
                 del_ver = st.session_state["batch_del_version"]
                 enable_batch_delete = st.checkbox(
-                    "Mode Hapus",
+                    "Delete Mode",
                     value=False,
                     key=f"chk_mode_hapus_v{del_ver}",
                 )
 
                 if enable_batch_delete:
                     if st.button(
-                        "Hapus Terpilih",
+                        "Delete Selected",
                         key=f"btn_execute_batch_delete_v{del_ver}",
                         type="primary",
                         use_container_width=True,
@@ -497,7 +497,34 @@ def render_page_watchlist():
                             save_watchlist_to_file(st.session_state["watchlist_data"])
                             st.session_state["selected_cards"].clear()
                             st.session_state["batch_del_version"] += 1
-                            st.toast("Data Berhasil Dihapus!", icon="🗑️")
+                            st.toast("Data Successfully Deleted!", icon="🗑️")
+                            st.rerun()
+
+                st.markdown("---")
+                st.caption("SYSTEM // RESET ALL")
+                
+                if not st.session_state["confirm_delete_all"]:
+                    if st.button("Delete All Watchlist", key="btn_init_delete_all", use_container_width=True):
+                        st.session_state["confirm_delete_all"] = True
+                        st.rerun()
+                else:
+                    st.warning("⚠️ Hapus seluruh watchlist?")
+                    col_yes, col_no = st.columns(2)
+                    with col_yes:
+                        if st.button("Yes", key="btn_confirm_del_all_yes", type="primary", use_container_width=True):
+                            st.session_state["watchlist_data"] = []
+                            if "watchlist" in st.session_state:
+                                st.session_state["watchlist"] = []
+                            save_watchlist_to_file([])
+                            st.session_state["selected_cards"].clear()
+                            st.session_state["selected_watchlist_ticker"] = None
+                            st.session_state["confirm_delete_all"] = False
+                            st.session_state["batch_del_version"] += 1
+                            st.toast("All Watchlist Cleared!", icon="💥")
+                            st.rerun()
+                    with col_no:
+                        if st.button("No", key="btn_confirm_del_all_no", use_container_width=True):
+                            st.session_state["confirm_delete_all"] = False
                             st.rerun()
 
         with h_col3:
@@ -558,7 +585,7 @@ def render_page_watchlist():
 
         with st.container(height=580):
             if display_list:
-                if not st.session_state["selected_watchlist_ticker"]:
+                if not st.session_state["selected_watchlist_ticker"] or not any(x["Ticker"] == st.session_state["selected_watchlist_ticker"] for x in display_list):
                     st.session_state["selected_watchlist_ticker"] = display_list[0]["Ticker"]
 
                 for idx, item in enumerate(display_list):

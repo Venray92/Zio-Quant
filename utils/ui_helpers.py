@@ -6,8 +6,7 @@ from engines.trade_planner import TradePlanner
 
 
 # ==============================================================================
-# FUNGSI 1: INJECT CSS KUSTOM
-# Menyuntikkan file assets/style.css ke Streamlit untuk custom styling
+# FUNGSI 1: INJECT CSS KUSTOM (Menyelesaikan Error app.py)
 # ==============================================================================
 def inject_custom_css():
     """Mengimpor style CSS eksternal dari assets/style.css"""
@@ -20,7 +19,6 @@ def inject_custom_css():
 
 # ==============================================================================
 # FUNGSI 2: HELPER FORMAT ANGKA UNTUK TAMPILAN
-# Mengonversi nilai numerik menjadi string berformat desimal / ribuan yang rapi
 # ==============================================================================
 def _format_val(val):
     if pd.isna(val) or val is None or val == "" or val == "-":
@@ -34,7 +32,6 @@ def _format_val(val):
 
 # ==============================================================================
 # FUNGSI 3: HELPER PEMBERSIH ANGKA UNTUK KALKULASI
-# Membersihkan string angka bercampur koma menjadi float murni
 # ==============================================================================
 def _clean_num(val):
     if pd.isna(val) or val is None or val == "" or val == "-":
@@ -49,7 +46,6 @@ def _clean_num(val):
 
 # ==============================================================================
 # FUNGSI 4: KALKULASI RISK TO REWARD RATIO (R:R)
-# Menghitung rasio Risk to Reward untuk Target 1 dan Target 2
 # ==============================================================================
 def calculate_rr_ratios(row):
     buy_val = _clean_num(
@@ -234,12 +230,11 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
                         "#10B981" if "Buy Zone" in str(posisi) else "#F59E0B"
                     )
 
-                    # Menentukan Label Expander Berdasarkan Suggestion / Indeks Pertama
+                    # Label Expander Berdasarkan Suggestion / Other
                     is_suggestion = (idx == 0)
                     prefix_label = "Trade Plan Suggestion" if is_suggestion else "Trade Plan Other"
                     expander_title = f"🎯 {prefix_label} #{plan_no} {plan_type} ({ticker_symbol}) - Score: {score}"
 
-                    # Teks yang akan disalin otomatis
                     copyable_text = f"""=== TRADE PLAN: {ticker_symbol} ===
 Strategy: {plan_type}
 Grade: {grade}
@@ -253,34 +248,9 @@ Status Posisi: {posisi}
 
                     with st.expander(expander_title, expanded=False):
                         
-                        # Menempatkan tombol Copy Plan di sebelah Score menggunakan komponen HTML/JS agar presisi
                         unique_btn_id = f"copy_btn_{key_suffix}_{idx}"
                         
-                        copy_component_html = f"""
-                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
-                            <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #38BDF8 100%); color: #0E1117; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transition: all 0.2s;">
-                                📋 COPY PLAN
-                            </button>
-                        </div>
-                        <script>
-                        const textToCopy_{unique_btn_id} = `{copyable_text}`;
-                        const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
-                        btn_{unique_btn_id}.onclick = function() {{
-                            navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
-                                btn_{unique_btn_id}.innerText = "✅ COPIED!";
-                                btn_{unique_btn_id}.style.background = "#00E676";
-                                setTimeout(function() {{
-                                    btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
-                                    btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #38BDF8 100%)";
-                                }, 2000);
-                            }}).catch(function(err) {{
-                                console.error('Gagal menyalin text: ', err);
-                            }});
-                        }};
-                        </script>
-                        """
-                        components.html(copy_component_html, height=45)
-
+                        # Komponen HTML untuk tombol copy interaktif di sebelah score
                         card_html = f"""
                         <div style="background: linear-gradient(135deg, #161B22 0%, #0D1117 100%); border: 1px solid #30363D; border-left: 5px solid #00E676; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262D; padding-bottom: 12px; margin-bottom: 14px;">
@@ -288,8 +258,13 @@ Status Posisi: {posisi}
                                     <span style="background: linear-gradient(90deg, #00E676 0%, #38BDF8 100%); color: #0E1117; font-weight: 900; font-size: 13px; padding: 4px 12px; border-radius: 6px;">#{plan_no} {plan_type}</span>
                                     <span style="font-size: 13px; font-weight: 700; color: #E6EDF3; margin-left: 8px;">{grade}</span>
                                 </div>
-                                <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
-                                    SCORE: {score}
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid #A855F7; color: #F3E8FF; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 12px;">
+                                        SCORE: {score}
+                                    </div>
+                                    <button id="{unique_btn_id}" style="background: linear-gradient(135deg, #A855F7 0%, #38BDF8 100%); color: #0E1117; border: none; padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transition: all 0.2s;">
+                                        📋 COPY PLAN
+                                    </button>
                                 </div>
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; text-align: center;">
@@ -315,6 +290,22 @@ Status Posisi: {posisi}
                                 <span style="font-weight: 800; color: {posisi_color};">{posisi}</span>
                             </div>
                         </div>
+                        <script>
+                        const textToCopy_{unique_btn_id} = `{copyable_text}`;
+                        const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
+                        btn_{unique_btn_id}.onclick = function() {{
+                            navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
+                                btn_{unique_btn_id}.innerText = "✅ COPIED!";
+                                btn_{unique_btn_id}.style.background = "#00E676";
+                                setTimeout(function() {{
+                                    btn_{unique_btn_id}.innerText = "📋 COPY PLAN";
+                                    btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #38BDF8 100%)";
+                                }, 2000);
+                            }}).catch(function(err) {{
+                                console.error('Gagal menyalin text: ', err);
+                            }});
+                        }};
+                        </script>
                         """
                         st.markdown(card_html, unsafe_allow_html=True)
 

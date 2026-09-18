@@ -45,8 +45,8 @@ def render_tab_rsi():
         """
         <style>
         /* =========================================================
-           1. CYBERPUNK HEADER BANNER & GLOWING STATUS DOT
-           ========================================================= */
+            1. CYBERPUNK HEADER BANNER & GLOWING STATUS DOT
+            ========================================================= */
         .cyber-header-container {
             position: relative;
             background: linear-gradient(135deg, rgba(255, 0, 127, 0.2) 0%, rgba(0, 243, 255, 0.2) 100%);
@@ -68,7 +68,6 @@ def render_tab_rsi():
             text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
             margin: 0;
         }
-        /* Styling 1 Titik Glowing Cyan di atas Teks */
         .cyber-status-dot {
             width: 10px;
             height: 10px;
@@ -86,9 +85,6 @@ def render_tab_rsi():
             100% { opacity: 0.5; box-shadow: 0 0 5px #00F3FF; }
         }
 
-        /* =========================================================
-           2. SECTION LABEL "CHOOSE SCREENER MODE"
-           ========================================================= */
         .cyber-section-label {
             font-size: 11px;
             font-weight: 800;
@@ -103,9 +99,6 @@ def render_tab_rsi():
             gap: 6px;
         }
 
-        /* =========================================================
-           3. STYLING STREAMLIT BUTTONS (RUN & STOP)
-           ========================================================= */
         /* Tombol Run Screening */
         div[data-testid="stColumn"]:has(div[key="btn_run_rsi_screener"]) button {
             background: linear-gradient(135deg, #00F3FF 0%, #00FF66 100%) !important;
@@ -140,9 +133,6 @@ def render_tab_rsi():
             box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
         }
 
-        /* =========================================================
-           4. STYLING SELECT SAHAM BUTTON (OVERRIDE WARNA MERAH)
-           ========================================================= */
         div[data-testid="stColumn"] button[kind="primary"],
         div[data-testid="stColumn"] button[kind="secondary"] {
             transition: all 0.25s ease-in-out !important;
@@ -173,9 +163,6 @@ def render_tab_rsi():
             box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
         }
 
-        /* =========================================================
-           5. STYLING SELECTBOX / DROPDOWN
-           ========================================================= */
         div[data-testid="stSelectbox"] > div > div {
             background-color: #0D1117 !important;
             border: 1.5px solid #00F3FF !important;
@@ -194,9 +181,6 @@ def render_tab_rsi():
             font-weight: 700 !important;
         }
 
-        /* =========================================================
-           6. METRIC CARDS & CONTAINER STYLES
-           ========================================================= */
         .metric-card {
             background: #161B22;
             border: 1px solid #30363D;
@@ -250,7 +234,6 @@ def render_tab_rsi():
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
     # =========================================================
     with col_left:
-        # Header Banner Cyberpunk dengan 1 Glowing Status Dot di Atas Teks
         st.markdown(
             """
             <div class="cyber-header-container">
@@ -293,17 +276,13 @@ def render_tab_rsi():
             success_count = 0
             failed_count = 0
 
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=8
-            ) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                 future_to_ticker = {
                     executor.submit(fetch_rsi_worker, t): t for t in all_tickers
                 }
                 completed = 0
 
-                for future in concurrent.futures.as_completed(
-                    future_to_ticker
-                ):
+                for future in concurrent.futures.as_completed(future_to_ticker):
                     if st.session_state.get("stop_rsi_scan", False):
                         pstatus_rsi.warning("Screening process cancelled.")
                         break
@@ -384,7 +363,7 @@ def render_tab_rsi():
 
         has_results = "rsi_stats" in st.session_state
 
-    if has_results:
+        if has_results:
             st.markdown(
                 '<div class="cyber-section-label">⚙ CHOOSE SCREENER MODE</div>',
                 unsafe_allow_html=True,
@@ -405,7 +384,6 @@ def render_tab_rsi():
                 )
             
             with col_export:
-                # Menyiapkan data yang aktif untuk di-export langsung
                 df_export = (
                     st.session_state.get("df_rsi_bullish", pd.DataFrame())
                     if screener_mode == "Bullish"
@@ -423,7 +401,6 @@ def render_tab_rsi():
                     )
                 else:
                     st.button("📥 Export Kosong", disabled=True, use_container_width=True)
-            # ---------------------------------------------
 
             st.session_state["active_rsi_type"] = screener_mode
 
@@ -440,7 +417,6 @@ def render_tab_rsi():
             )
 
             if not df_target.empty:
-                # BUNGKUS DENGAN SCROLLABLE CONTAINER (800px)
                 with st.container(height=800, border=False):
                     for idx, row in df_target.iterrows():
                         ticker = str(row.get("Ticker", row.get("Saham", "")))

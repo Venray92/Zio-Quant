@@ -155,3 +155,11 @@ div[data-testid="stExpander"] details summary p {
     color: #FF0055; 
     border: 1px solid #FF0055; 
 }
+
+/* Menimpa font bawaan pada teks di dalam tombol Streamlit */
+div.stButton > button p,
+div.stButton > button div,
+div.stButton > button span,
+[class*="st-emotion-cache"] {
+    font-family: 'Share Tech Mono', monospace !important;
+}

@@ -72,7 +72,9 @@ def render_tab_stoch_psar():
         /* =========================================================
            3. STYLING STREAMLIT BUTTONS (RUN & STOP)
            ========================================================= */
-        div[data-testid="stColumn"]:has(div[key="btn_run_stoch_screener"]) button {
+        /* Tombol Run Screening */
+        button[key="btn_run_stoch_screener"],
+        div[data-testid="stColumn"] button[kind="secondary"]:has(p:contains("Run")) {
             background: linear-gradient(135deg, #00F3FF 0%, #00FF66 100%) !important;
             color: #050811 !important;
             font-weight: 900 !important;
@@ -83,12 +85,15 @@ def render_tab_stoch_psar():
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.5) !important;
             transition: all 0.25s ease-in-out !important;
         }
-        div[data-testid="stColumn"]:has(div[key="btn_run_stoch_screener"]) button:hover {
+        button[key="btn_run_stoch_screener"]:hover {
             transform: translateY(-2px) scale(1.02) !important;
             box-shadow: 0 0 25px rgba(0, 255, 102, 0.8) !important;
+            color: #050811 !important;
         }
 
-        div[data-testid="stColumn"]:has(div[key="btn_stop_stoch_screener"]) button {
+        /* Tombol Stop */
+        button[key="btn_stop_stoch_screener"],
+        div[data-testid="stColumn"] button[kind="secondary"]:has(p:contains("Stop")) {
             background: linear-gradient(135deg, #FF007F 0%, #7928CA 100%) !important;
             color: #FFFFFF !important;
             font-weight: 900 !important;
@@ -99,42 +104,45 @@ def render_tab_stoch_psar():
             box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
             transition: all 0.25s ease-in-out !important;
         }
-        div[data-testid="stColumn"]:has(div[key="btn_stop_stoch_screener"]) button:hover {
+        button[key="btn_stop_stoch_screener"]:hover {
             transform: translateY(-2px) scale(1.02) !important;
             box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
+            color: #FFFFFF !important;
         }
 
         /* =========================================================
-           4. STYLING SELECT SAHAM BUTTON
+           4. STYLING SELECT SAHAM BUTTON (PRIMARY & SECONDARY)
            ========================================================= */
-        div[data-testid="stColumn"] button[kind="primary"],
-        div[data-testid="stColumn"] button[kind="secondary"] {
-            transition: all 0.25s ease-in-out !important;
-            border-radius: 6px !important;
-            font-weight: 800 !important;
-        }
-
-        div[data-testid="stColumn"] button[kind="primary"] {
+        /* Tombol Selected (Primary) */
+        .stButton button[kind="primary"] {
             background: linear-gradient(135deg, #FF007F 0%, #00F3FF 100%) !important;
             color: #FFFFFF !important;
-            border: 1px solid #00F3FF !important;
+            border: 1.5px solid #00F3FF !important;
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.6) !important;
+            border-radius: 6px !important;
+            font-weight: 800 !important;
             text-shadow: 0 0 6px rgba(0,0,0,0.8) !important;
         }
-        div[data-testid="stColumn"] button[kind="primary"]:hover {
+        .stButton button[kind="primary"]:hover {
             box-shadow: 0 0 25px rgba(255, 0, 127, 0.8) !important;
             transform: translateY(-1px) !important;
         }
 
-        div[data-testid="stColumn"] button[kind="secondary"] {
+        /* Tombol Select Saham Biasa (Secondary) di dalam list */
+        .stButton button[kind="secondary"] {
             background-color: #161B22 !important;
             color: #00F3FF !important;
-            border: 1px solid #30363D !important;
+            border: 1px solid #00F3FF !important;
+            border-radius: 6px !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.2) !important;
+            transition: all 0.25s ease-in-out !important;
         }
-        div[data-testid="stColumn"] button[kind="secondary"]:hover {
-            border-color: #00F3FF !important;
+        .stButton button[kind="secondary"]:hover {
+            border-color: #FF007F !important;
             color: #FFFFFF !important;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+            background: rgba(0, 243, 255, 0.15) !important;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
         }
 
         /* =========================================================

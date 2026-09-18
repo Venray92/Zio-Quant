@@ -656,16 +656,24 @@ def render_page_watchlist():
             else:
                 st.caption("NO_DATA_FOUND // Tidak ada saham yang ditemukan.")
 
-    # ==========================================
-    # RIGHT COLUMN: TRADE PLAN VIEW
+# ==========================================
+    # RIGHT COLUMN: LIVE TRADE PLAN & CHART  <--- TARUH BAGIAN INI DI SINI
     # ==========================================
     with col_right:
         selected_ticker = st.session_state.get("selected_watchlist_ticker")
-
+        
         if selected_ticker:
-            render_trade_plan_only(
-                ticker_symbol=selected_ticker,
-                key_suffix=f"wl_{selected_ticker.replace('.', '_')}",
-            )
+            render_trade_plan_only(selected_ticker, key_suffix="wl_terminal")
         else:
-            st.info("SELECT_TARGET // Pilih salah satu saham dari daftar pantauan di sebelah kiri.")
+            st.markdown(
+                """
+                <div style="background: #0A0E1A; border: 1px dashed #00F0FF; padding: 40px; text-align: center; border-radius: 4px; margin-top: 10px;">
+                    <div style="font-size: 16px; font-weight: 800; color: #00F0FF; margin-bottom: 8px;">📡 NO TANK SELECTED</div>
+                    <div style="font-size: 12px; color: #6C7A9C;">Silakan pilih salah satu aset dari kartu di sebelah kiri untuk menampilkan matrix dan Live Trade Plan.</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+if __name__ == "__main__":
+    render_page_watchlist()

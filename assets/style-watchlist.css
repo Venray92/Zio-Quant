@@ -1,76 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
-/* Global Font & Theme Override */
-html, body, [class*="css"] {
-    font-family: 'Share Tech Mono', monospace !important;
-    background-color: #050811 !important;
-    color: #00F0FF !important;
-}
-
-/* Cyberpunk Headers */
-h1, h2, h3, h4, h5, h6 {
+/* Paksa semua teks di dalam tombol Streamlit menjadi warna Cyan Terang */
+div.stButton > button, 
+div.stButton > button *, 
+div.stButton > button p, 
+div.stButton > button span {
     font-family: 'Share Tech Mono', monospace !important;
     color: #00F0FF !important;
-    text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
-    font-weight: 400 !important;
-    letter-spacing: 1.5px;
-}
-
-/* Neon Buttons (Standard) - Tanpa cahaya berlebih saat hover & teks tetap terang */
-div.stButton > button {
-    font-family: 'Share Tech Mono', monospace !important;
-    background-color: #0A0E1A !important;
-    color: #00F0FF !important;
-    border: 1px solid #00F0FF !important;
-    border-radius: 4px !important;
-    font-weight: 400 !important;
-    transition: all 0.2s ease-in-out !important;
-    text-transform: none;
     box-shadow: none !important;
 }
 
-div.stButton > button:hover {
-    background-color: #121A2E !important; /* Hanya sedikit lebih terang, tidak silau */
-    color: #00F0FF !important;            /* Teks tetap konsisten (tidak jadi hitam) */
-    border-color: #00F0FF !important;
-    box-shadow: none !important;          /* Menghilangkan efek cahaya/glow saat hover */
+/* Background dan border tombol normal */
+div.stButton > button {
+    background-color: #0A0E1A !important;
+    border: 1px solid #00F0FF !important;
+    border-radius: 4px !important;
+    font-weight: 400 !important;
+    transition: background-color 0.2s ease-in-out !important;
 }
 
-/* Primary Button (Solid Cyan) - Tanpa cahaya berlebih saat hover */
-div.stButton > button[kind="primary"] {
-    font-family: 'Share Tech Mono', monospace !important;
+/* Efek saat kursor lewat (hover) - TANPA cahaya/glow, hanya sedikit ubah background */
+div.stButton > button:hover {
+    background-color: #121A2E !important;
+    border-color: #00F0FF !important;
+    box-shadow: none !important;
+}
+div.stButton > button:hover * {
+    color: #00F0FF !important;
+}
+
+/* Khusus untuk Tombol Primary (Aktif) */
+div.stButton > button[kind="primary"],
+div.stButton > button[kind="primary"] *,
+div.stButton > button[kind="primary"] p,
+div.stButton > button[kind="primary"] span {
     background-color: #00F0FF !important;
-    color: #050811 !important;
+    color: #050811 !important; /* Teks gelap agar kontras di atas background cyan terang */
     border: 1px solid #00F0FF !important;
-    font-weight: 400 !important;
     box-shadow: none !important;
 }
 
 div.stButton > button[kind="primary"]:hover {
     background-color: #33F3FF !important;
-    color: #050811 !important;            /* Teks tetap gelap agar kontras dengan background cerah */
-    box-shadow: none !important;          /* Menghilangkan efek cahaya/glow */
+    box-shadow: none !important;
 }
-
-/* Cyber Inputs & Popovers */
-div[data-baseweb="input"] {
-    font-family: 'Share Tech Mono', monospace !important;
-    background-color: #0A0E1A !important;
-    border: 1px solid #00F0FF !important;
-    color: #00F0FF !important;
-}
-
-/* Expanders & Container Borders */
-div[data-aria-expanded="true"], div[data-aria-expanded="false"] {
-    background-color: #0A0E1A !important;
-    border: 1px solid #005577 !important;
-}
-
-/* Toast Styling */
-div[data-baseweb="toast"] {
-    font-family: 'Share Tech Mono', monospace !important;
-    background-color: #0A0E1A !important;
-    border: 1px solid #00FF66 !important;
-    color: #00FF66 !important;
-    box-shadow: 0 0 10px #00FF66;
+div.stButton > button[kind="primary"]:hover * {
+    color: #050811 !important;
 }

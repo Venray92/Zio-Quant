@@ -55,7 +55,7 @@ def calculate_rr_ratios(row):
     return rr_tp1_str, rr_tp2_str
 
 
-def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screener"):
+def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_name="Screener"):
     st.markdown("---")
 
     if "watchlist" not in st.session_state:
@@ -294,5 +294,5 @@ def render_inline_trade_planner(ticker_symbol, key_suffix, screener_name="Screen
             else:
                 st.info(f"Tidak ada Trade Plan yang tersedia untuk **{ticker_symbol}** pada periode ini.")
 
-except Exception as e:
-    st.exception(e)  # Ini akan menampilkan traceback detail lokasi errornya
+        except Exception as e:
+            st.exception(e)

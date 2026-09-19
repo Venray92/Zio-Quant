@@ -85,14 +85,16 @@ def _process_single_ticker(ticker):
         res_dc = None
 
         # =========================================================
-        # 1. GOLDEN CROSS (BULLISH)
+        # 1. GOLDEN CROSS (BULLISH) - WAJIB HARI INI HIJAU (change_pct > 0)
         # =========================================================
-        gc_today = (k1 < d1) and (k0 >= d0) and (k0 < 35)
-        gc_yesterday = (k2 < d2) and (k1 >= d1) and (k0 >= d0) and (k1 < 35)
+        is_green = change_pct > 0
+
+        gc_today = is_green and (k1 < d1) and (k0 >= d0) and (k0 < 35)
+        gc_yesterday = is_green and (k2 < d2) and (k1 >= d1) and (k0 >= d0) and (k1 < 35)
         gc_2days_ago = (
-            (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0) and (k2 < 35)
+            is_green and (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0) and (k2 < 35)
         )
-        is_almost_gc = (k0 <= d0) and ((d0 - k0) <= 3.0) and (k0 < 35) and (v0 > v1)
+        is_almost_gc = is_green and (k0 <= d0) and ((d0 - k0) <= 3.0) and (k0 < 35) and (v0 > v1)
 
         stoch_signal_gc = None
         if gc_today:
@@ -138,14 +140,16 @@ def _process_single_ticker(ticker):
             }
 
         # =========================================================
-        # 2. DEAD CROSS (BEARISH)
+        # 2. DEAD CROSS (BEARISH) - WAJIB HARI INI MERAH (change_pct < 0)
         # =========================================================
-        dc_today = (k1 > d1) and (k0 <= d0) and (k0 > 70)
-        dc_yesterday = (k2 > d2) and (k1 <= d1) and (k0 <= d0) and (k1 > 70)
+        is_red = change_pct < 0
+
+        dc_today = is_red and (k1 > d1) and (k0 <= d0) and (k0 > 70)
+        dc_yesterday = is_red and (k2 > d2) and (k1 <= d1) and (k0 <= d0) and (k1 > 70)
         dc_2days_ago = (
-            (k3 > d3) and (k2 <= d2) and (k1 <= d1) and (k0 <= d0) and (k2 > 70)
+            is_red and (k3 > d3) and (k2 <= d2) and (k1 <= d1) and (k0 <= d0) and (k2 > 70)
         )
-        is_almost_dc = (k0 >= d0) and ((k0 - d0) <= 3.0) and (k0 > 70)
+        is_almost_dc = is_red and (k0 >= d0) and ((k0 - d0) <= 3.0) and (k0 > 70)
 
         stoch_signal_dc = None
         if dc_today:

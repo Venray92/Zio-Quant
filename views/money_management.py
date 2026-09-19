@@ -66,7 +66,7 @@ def inject_custom_theme():
             /* Mengubah Kotak Warning/Peringatan yang tadinya Kuning menjadi Magenta */
             div[data-testid="stAlert"] {
                 background-color: rgba(255, 0, 255, 0.1) !important;
-                border: 1px solid #FF00FF !important;
+                border: 1px solid #FFD700 !important;
                 color: #FF00FF !important;
             }
         </style>

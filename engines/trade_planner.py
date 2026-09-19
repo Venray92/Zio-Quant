@@ -120,45 +120,44 @@ class TradePlanner:
 
         self._calculate_strong_levels()
 
-   @staticmethod
-def _filter_overlapping_levels(df_levels, col1, col2, prefix="Resistance"):
-    if df_levels.empty:
-        return pd.DataFrame()
+    @staticmethod
+    def _filter_overlapping_levels(df_levels, col1, col2, prefix="Resistance"):
+        if df_levels.empty:
+            return pd.DataFrame()
 
-    # Selalu prioritaskan berdasarkan TANGGAL TERBARU lebih dulu
-    if "Date" in df_levels.columns:
-        df_levels = df_levels.sort_values(by="Date", ascending=False)
+        # Selalu prioritaskan berdasarkan TANGGAL TERBARU lebih dulu
+        if "Date" in df_levels.columns:
+            df_levels = df_levels.sort_values(by="Date", ascending=False)
 
-    accepted_rows, accepted_ranges = [], []
-    for _, row in df_levels.iterrows():
-        r_min = min(row[col1], row[col2])
-        r_max = max(row[col1], row[col2])
-        overlap = False
-        for a_min, a_max in accepted_ranges:
-            if max(r_min, a_min) <= min(r_max, a_max):
-                overlap = True
-                break
-        if not overlap:
-            accepted_rows.append(row.to_dict())
-            accepted_ranges.append((r_min, r_max))
+        accepted_rows, accepted_ranges = [], []
+        for _, row in df_levels.iterrows():
+            r_min = min(row[col1], row[col2])
+            r_max = max(row[col1], row[col2])
+            overlap = False
+            for a_min, a_max in accepted_ranges:
+                if max(r_min, a_min) <= min(r_max, a_max):
+                    overlap = True
+                    break
+            if not overlap:
+                accepted_rows.append(row.to_dict())
+                accepted_ranges.append((r_min, r_max))
 
-    res_df = pd.DataFrame(accepted_rows)
-    
-    if not res_df.empty:
-        # Ambil 3 teratas berdasar tanggal terbaru, TANPA mere-sort harganya secara descending
-        res_df = res_df.head(3).reset_index(drop=True)
-        
-        ranks = [
-            f"1st {prefix} (Terdekat)"
-            if i == 0
-            else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
-            for i in range(len(res_df))
-        ]
-        res_df["Rank"] = ranks
+        res_df = pd.DataFrame(accepted_rows)
 
-    return res_df
+        if not res_df.empty:
+            res_df = res_df.head(3).reset_index(drop=True)
 
-def _calculate_strong_levels(self):
+            ranks = [
+                f"1st {prefix} (Terdekat)"
+                if i == 0
+                else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
+                for i in range(len(res_df))
+            ]
+            res_df["Rank"] = ranks
+
+        return res_df
+
+    def _calculate_strong_levels(self):
         # 1. Kumpulkan Resistance Mentah
         sorted_highs = self.highs_5.sort_values(by="Date", ascending=False)
         res_results = []

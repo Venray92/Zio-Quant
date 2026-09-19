@@ -53,7 +53,7 @@ def load_watchlist_from_file():
 
     return [
         {"Ticker": "BBCA.JK", "Notes": "Manual Added", "Target Price": 10500},
-        {"Ticker": "TLKM.JK", "Notes": "Manual Added", "Target Price": 3200},
+        
     ]
 
 

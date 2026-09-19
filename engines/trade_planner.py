@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+
 from scipy.signal import argrelextrema
 import yfinance as yf
 
@@ -169,11 +170,13 @@ class TradePlanner:
             if (idx + 1) in self.df.index:
                 body_tops.append(self.df.loc[idx + 1, "Body_Top"])
 
-            res_results.append({
-                "Date": row["Date"].strftime("%Y-%m-%d"),
-                "Body_Top": round(max(body_tops), 2),
-                "High": round(row["High"], 2),
-            })
+            res_results.append(
+                {
+                    "Date": row["Date"].strftime("%Y-%m-%d"),
+                    "Body_Top": round(max(body_tops), 2),
+                    "High": round(row["High"], 2),
+                }
+            )
 
         self.strong_resistance = self._filter_overlapping_levels(
             pd.DataFrame(res_results), "Body_Top", "High", prefix="Resistance"
@@ -192,11 +195,13 @@ class TradePlanner:
             if (idx + 1) in self.df.index:
                 body_bottoms.append(self.df.loc[idx + 1, "Body_Bottom"])
 
-            sup_results.append({
-                "Date": row["Date"].strftime("%Y-%m-%d"),
-                "Low": round(row["Low"], 2),
-                "Body_Bottom": round(min(body_bottoms), 2),
-            })
+            sup_results.append(
+                {
+                    "Date": row["Date"].strftime("%Y-%m-%d"),
+                    "Low": round(row["Low"], 2),
+                    "Body_Bottom": round(min(body_bottoms), 2),
+                }
+            )
 
         self.strong_support = self._filter_overlapping_levels(
             pd.DataFrame(sup_results), "Body_Bottom", "Low", prefix="Support"
@@ -533,25 +538,36 @@ class TradePlanner:
             )
 
         def find_target_2(target_1):
-            if not self.strong_resistance.empty:
-                valid_res = sorted(
-                    [
-                        p
-                        for p in self.strong_resistance["High"].values
-                        if (p - target_1) >= min_point_gap
-                    ]
-                )
-                if valid_res:
-                    return self.round_to_nearest_tick(valid_res[0])
+            if target_1 is None or pd.isna(target_1):
+                return None
 
-            sh_sorted = self.highs_15.sort_values(by="Date", ascending=False)
-            sh_valid = sh_sorted[(sh_sorted["High"] - target_1) >= min_point_gap]
-            if not sh_valid.empty:
-                return self.round_to_nearest_tick(sh_valid.iloc[0]["High"])
+            try:
+                min_tp2 = self.add_ticks(target_1, 10)
 
-            return self.round_to_nearest_tick(
-                target_1 + max(1.5 * self.atr_14, min_point_gap + 2)
-            )
+                if not self.strong_resistance.empty:
+                    valid_res = sorted(
+                        [
+                            p
+                            for p in self.strong_resistance["High"].values
+                            if p >= min_tp2
+                        ]
+                    )
+                    if valid_res:
+                        return self.round_to_nearest_tick(valid_res[0])
+
+                if not self.highs_15.empty:
+                    sh_sorted = self.highs_15.sort_values(
+                        by="Date", ascending=False
+                    )
+                    sh_valid = sh_sorted[sh_sorted["High"] >= min_tp2]
+                    if not sh_valid.empty:
+                        return self.round_to_nearest_tick(
+                            sh_valid.iloc[0]["High"]
+                        )
+
+                return min_tp2
+            except Exception:
+                return None
 
         candle_name, candle_bias = self.classify_candle()
 

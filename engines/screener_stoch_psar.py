@@ -43,8 +43,8 @@ def _process_single_ticker(ticker):
         # Persentase perubahan harga harian
         change_pct = ((c0 - c1) / c1) * 100 if c1 > 0 else 0.0
 
-        # Filter Likuiditas Minimum RP 500 Juta & Harga > 50
-        if c0 <= 50 or val0 < 500_000_000:
+        # Filter Likuiditas Minimum RP 1 Miliar & Harga > 70
+        if c0 <= 70 or val0 < 1_000_000_000:
             return None, None
 
         # Indikator Volume MA20
@@ -87,12 +87,12 @@ def _process_single_ticker(ticker):
         # =========================================================
         # 1. GOLDEN CROSS (BULLISH)
         # =========================================================
-        gc_today = (k1 < d1) and (k0 >= d0) and (k0 < 30)
-        gc_yesterday = (k2 < d2) and (k1 >= d1) and (k0 >= d0) and (k1 < 30)
+        gc_today = (k1 < d1) and (k0 >= d0) and (k0 < 35)
+        gc_yesterday = (k2 < d2) and (k1 >= d1) and (k0 >= d0) and (k1 < 35)
         gc_2days_ago = (
-            (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0) and (k2 < 30)
+            (k3 < d3) and (k2 >= d2) and (k1 >= d1) and (k0 >= d0) and (k2 < 35)
         )
-        is_almost_gc = (k0 <= d0) and ((d0 - k0) <= 3.0) and (k0 < 30)
+        is_almost_gc = (k0 <= d0) and ((d0 - k0) <= 3.0) and (k0 < 35) and (v0 > v1)
 
         stoch_signal_gc = None
         if gc_today:
@@ -149,13 +149,13 @@ def _process_single_ticker(ticker):
 
         stoch_signal_dc = None
         if dc_today:
-            stoch_signal_dc = {"type": "DC Hari Ini (H-0)", "score": -50, "code": "H0"}
+            stoch_signal_dc = {"type": "DC Hari Ini (H-0)", "score": -20, "code": "H0"}
         elif dc_yesterday:
-            stoch_signal_dc = {"type": "DC Kemarin (H-1)", "score": -40, "code": "H1"}
+            stoch_signal_dc = {"type": "DC Kemarin (H-1)", "score": -30, "code": "H1"}
         elif dc_2days_ago:
-            stoch_signal_dc = {"type": "DC 2 Hari Lalu (H-2)", "score": -30, "code": "H2"}
+            stoch_signal_dc = {"type": "DC 2 Hari Lalu (H-2)", "score": -40, "code": "H2"}
         elif is_almost_dc:
-            stoch_signal_dc = {"type": "Early DC Signal (Merapat)", "score": -20, "code": "EARLY"}
+            stoch_signal_dc = {"type": "Early DC Signal (Merapat)", "score": -10, "code": "EARLY"}
 
         if stoch_signal_dc:
             score = stoch_signal_dc["score"]

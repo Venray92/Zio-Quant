@@ -6,7 +6,7 @@ import streamlit as st
 def get_logo_base64(file_path="logo.jpg"):
     """Konversi file logo ke format base64."""
     if os.path.exists(file_path):
-        with open(file_path, "rb"):
+        with open(file_path, "rb") as f:
             data = f.read()
         return base64.b64encode(data).decode()
     return None

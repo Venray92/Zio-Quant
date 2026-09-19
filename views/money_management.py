@@ -376,7 +376,7 @@ def render_page_money_management():
         
         m3.metric("Risk / Reward", f"1 : {rrr_tp1:.2f}", rrr_status)
 
-if is_capped:
+        if is_capped:
             st.markdown(
                 f"""
                 <div style="background: rgba(0, 243, 255, 0.08); border: 1px solid #00F3FF; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #00F3FF; font-family: 'Share Tech Mono', monospace; font-size: 13px; box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);">
@@ -385,6 +385,8 @@ if is_capped:
                 """,
                 unsafe_allow_html=True,
             )
+
+        st.markdown("---")
 
         st.markdown("---")
         st.subheader("Partial Profit Taking Plan")

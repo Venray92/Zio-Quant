@@ -120,48 +120,46 @@ class TradePlanner:
 
         self._calculate_strong_levels()
 
-    @staticmethod
-    def _filter_overlapping_levels(df_levels, col1, col2, prefix="Resistance"):
-        if df_levels.empty:
-            return pd.DataFrame()
+   @staticmethod
+def _filter_overlapping_levels(df_levels, col1, col2, prefix="Resistance"):
+    if df_levels.empty:
+        return pd.DataFrame()
 
-        if "Date" in df_levels.columns:
-            df_levels = df_levels.sort_values(by="Date", ascending=False)
+    # Selalu prioritaskan berdasarkan TANGGAL TERBARU lebih dulu
+    if "Date" in df_levels.columns:
+        df_levels = df_levels.sort_values(by="Date", ascending=False)
 
-        accepted_rows, accepted_ranges = [], []
-        for _, row in df_levels.iterrows():
-            r_min = min(row[col1], row[col2])
-            r_max = max(row[col1], row[col2])
-            overlap = False
-            for a_min, a_max in accepted_ranges:
-                if max(r_min, a_min) <= min(r_max, a_max):
-                    overlap = True
-                    break
-            if not overlap:
-                accepted_rows.append(row.to_dict())
-                accepted_ranges.append((r_min, r_max))
+    accepted_rows, accepted_ranges = [], []
+    for _, row in df_levels.iterrows():
+        r_min = min(row[col1], row[col2])
+        r_max = max(row[col1], row[col2])
+        overlap = False
+        for a_min, a_max in accepted_ranges:
+            if max(r_min, a_min) <= min(r_max, a_max):
+                overlap = True
+                break
+        if not overlap:
+            accepted_rows.append(row.to_dict())
+            accepted_ranges.append((r_min, r_max))
 
-        res_df = pd.DataFrame(accepted_rows)
-        if not res_df.empty:
-            sort_ascending = True if prefix == "Resistance" else False
-            sort_by_col = col1 if col1 in res_df.columns else col2
-            res_df = (
-                res_df.sort_values(by=sort_by_col, ascending=sort_ascending)
-                .head(3)
-                .reset_index(drop=True)
-            )
+    res_df = pd.DataFrame(accepted_rows)
+    
+    if not res_df.empty:
+        # Ambil 3 teratas berdasar tanggal terbaru, TANPA mere-sort harganya secara descending
+        res_df = res_df.head(3).reset_index(drop=True)
+        
+        ranks = [
+            f"1st {prefix} (Terdekat)"
+            if i == 0
+            else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
+            for i in range(len(res_df))
+        ]
+        res_df["Rank"] = ranks
 
-            ranks = [
-                f"1st {prefix} (Terdekat)"
-                if i == 0
-                else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
-                for i in range(len(res_df))
-            ]
-            res_df["Rank"] = ranks
+    return res_df
 
-        return res_df
-
-    def _calculate_strong_levels(self):
+def _calculate_strong_levels(self):
+        # 1. Kumpulkan Resistance Mentah
         sorted_highs = self.highs_5.sort_values(by="Date", ascending=False)
         res_results = []
         for _, row in sorted_highs.iterrows():
@@ -172,18 +170,17 @@ class TradePlanner:
             if (idx + 1) in self.df.index:
                 body_tops.append(self.df.loc[idx + 1, "Body_Top"])
 
-            res_results.append(
-                {
-                    "Date": row["Date"].strftime("%Y-%m-%d"),
-                    "Body_Top": self.round_to_nearest_tick(max(body_tops)),
-                    "High": self.round_to_nearest_tick(row["High"]),
-                }
-            )
+            res_results.append({
+                "Date": row["Date"].strftime("%Y-%m-%d"),
+                "Body_Top": round(max(body_tops), 2),
+                "High": round(row["High"], 2),
+            })
 
         self.strong_resistance = self._filter_overlapping_levels(
             pd.DataFrame(res_results), "Body_Top", "High", prefix="Resistance"
         )
 
+        # 2. Kumpulkan Support Mentah
         recent_lows = self.lows_15.sort_values(
             by="Date", ascending=False
         ).head(5)
@@ -196,13 +193,11 @@ class TradePlanner:
             if (idx + 1) in self.df.index:
                 body_bottoms.append(self.df.loc[idx + 1, "Body_Bottom"])
 
-            sup_results.append(
-                {
-                    "Date": row["Date"].strftime("%Y-%m-%d"),
-                    "Low": self.round_to_nearest_tick(row["Low"]),
-                    "Body_Bottom": self.round_to_nearest_tick(min(body_bottoms)),
-                }
-            )
+            sup_results.append({
+                "Date": row["Date"].strftime("%Y-%m-%d"),
+                "Low": round(row["Low"], 2),
+                "Body_Bottom": round(min(body_bottoms), 2),
+            })
 
         self.strong_support = self._filter_overlapping_levels(
             pd.DataFrame(sup_results), "Body_Bottom", "Low", prefix="Support"

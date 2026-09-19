@@ -379,7 +379,7 @@ def detect_rsi_patterns_and_score(ticker):
                         if (
                             (right_p['Nilai'] > left_p['Nilai'])
                             and (val_rsi_right < val_rsi_left)
-                            and (70 <= val_rsi_right <= 100)
+                            and (60 <= val_rsi_right <= 100)
                         ):
                             pattern_type = 'Regular Bearish Divergence'
 
@@ -387,7 +387,7 @@ def detect_rsi_patterns_and_score(ticker):
                         elif (
                             (right_p['Nilai'] <= left_p['Nilai'])
                             and (val_rsi_right > val_rsi_left)
-                            and (30 <= val_rsi_right <= 50)
+                            and (30 <= val_rsi_right <= 60)
                         ):
                             pattern_type = 'Hidden Bearish Divergence'
 

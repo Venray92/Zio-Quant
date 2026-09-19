@@ -19,13 +19,15 @@ class TradePlanner:
 
     @staticmethod
     def get_tick_size(price: float) -> int:
-        if price < 200:
+        """Fraksi Harga Sesuai Regulasi Bursa Efek Indonesia (BEI)"""
+        p = float(price)
+        if p < 200:
             return 1
-        elif price < 500:
+        elif p < 500:
             return 2
-        elif price < 2000:
+        elif p < 2000:
             return 5
-        elif price < 5000:
+        elif p < 5000:
             return 10
         else:
             return 25
@@ -59,6 +61,10 @@ class TradePlanner:
     def fetch_and_prepare_data(self):
         stock = yf.Ticker(self.ticker)
         df = stock.history(period=self.period, interval="1d").reset_index()
+
+        # Handling yfinance multi-index columns jika ada
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [col[0] for col in df.columns]
 
         if df.empty or len(df) < 20:
             raise ValueError(
@@ -137,11 +143,14 @@ class TradePlanner:
 
         res_df = pd.DataFrame(accepted_rows)
         if not res_df.empty:
-            # Urutkan berdasarkan level harga agar Rank 1st selalu yang terdekat
             sort_ascending = True if prefix == "Resistance" else False
             sort_by_col = col1 if col1 in res_df.columns else col2
-            res_df = res_df.sort_values(by=sort_by_col, ascending=sort_ascending).head(3).reset_index(drop=True)
-            
+            res_df = (
+                res_df.sort_values(by=sort_by_col, ascending=sort_ascending)
+                .head(3)
+                .reset_index(drop=True)
+            )
+
             ranks = [
                 f"1st {prefix} (Terdekat)"
                 if i == 0
@@ -163,11 +172,13 @@ class TradePlanner:
             if (idx + 1) in self.df.index:
                 body_tops.append(self.df.loc[idx + 1, "Body_Top"])
 
-            res_results.append({
-                "Date": row["Date"].strftime("%Y-%m-%d"),
-                "Body_Top": self.round_to_nearest_tick(max(body_tops)),
-                "High": self.round_to_nearest_tick(row["High"]),
-            })
+            res_results.append(
+                {
+                    "Date": row["Date"].strftime("%Y-%m-%d"),
+                    "Body_Top": self.round_to_nearest_tick(max(body_tops)),
+                    "High": self.round_to_nearest_tick(row["High"]),
+                }
+            )
 
         self.strong_resistance = self._filter_overlapping_levels(
             pd.DataFrame(res_results), "Body_Top", "High", prefix="Resistance"
@@ -185,11 +196,13 @@ class TradePlanner:
             if (idx + 1) in self.df.index:
                 body_bottoms.append(self.df.loc[idx + 1, "Body_Bottom"])
 
-            sup_results.append({
-                "Date": row["Date"].strftime("%Y-%m-%d"),
-                "Low": self.round_to_nearest_tick(row["Low"]),
-                "Body_Bottom": self.round_to_nearest_tick(min(body_bottoms)),
-            })
+            sup_results.append(
+                {
+                    "Date": row["Date"].strftime("%Y-%m-%d"),
+                    "Low": self.round_to_nearest_tick(row["Low"]),
+                    "Body_Bottom": self.round_to_nearest_tick(min(body_bottoms)),
+                }
+            )
 
         self.strong_support = self._filter_overlapping_levels(
             pd.DataFrame(sup_results), "Body_Bottom", "Low", prefix="Support"
@@ -203,20 +216,32 @@ class TradePlanner:
             by="Date", ascending=False
         ).iloc[0]["High"]
         latest_low_val = (
-            self.lows_15.head(5).sort_values(by="Date", ascending=False).iloc[0]["Low"]
+            self.lows_15.head(5)
+            .sort_values(by="Date", ascending=False)
+            .iloc[0]["Low"]
         )
 
         last_market_close = self.df.iloc[-1]["Close"]
         midpoint_50 = (latest_high_val + latest_low_val) / 2.0
         direction_result = "BOB" if last_market_close >= midpoint_50 else "BOW"
 
-        return pd.DataFrame([{
-            "Swing High Terupdate": self.round_to_nearest_tick(latest_high_val),
-            "Swing Low Terupdate": self.round_to_nearest_tick(latest_low_val),
-            "Level 50%": self.round_to_nearest_tick(midpoint_50),
-            "Last Close Market": self.round_to_nearest_tick(last_market_close),
-            "Direction": direction_result,
-        }])
+        return pd.DataFrame(
+            [
+                {
+                    "Swing High Terupdate": self.round_to_nearest_tick(
+                        latest_high_val
+                    ),
+                    "Swing Low Terupdate": self.round_to_nearest_tick(
+                        latest_low_val
+                    ),
+                    "Level 50%": self.round_to_nearest_tick(midpoint_50),
+                    "Last Close Market": self.round_to_nearest_tick(
+                        last_market_close
+                    ),
+                    "Direction": direction_result,
+                }
+            ]
+        )
 
     def classify_candle(self):
         if len(self.df) < 20 or self.atr_14 <= 0:
@@ -488,15 +513,19 @@ class TradePlanner:
         return total_score, grade, pos_status, warning_str
 
     def generate_trade_plan(self):
-        min_point_gap = max(self.get_tick_size(self.df.iloc[-1]["Close"]) * 2, 5)
+        min_point_gap = max(
+            self.get_tick_size(self.df.iloc[-1]["Close"]) * 2, 5
+        )
 
         def find_target_1(min_val):
             if not self.strong_resistance.empty:
-                valid_res = sorted([
-                    p
-                    for p in self.strong_resistance["High"].values
-                    if (p - min_val) >= min_point_gap
-                ])
+                valid_res = sorted(
+                    [
+                        p
+                        for p in self.strong_resistance["High"].values
+                        if (p - min_val) >= min_point_gap
+                    ]
+                )
                 if valid_res:
                     return self.round_to_nearest_tick(valid_res[0])
 
@@ -511,11 +540,13 @@ class TradePlanner:
 
         def find_target_2(target_1):
             if not self.strong_resistance.empty:
-                valid_res = sorted([
-                    p
-                    for p in self.strong_resistance["High"].values
-                    if (p - target_1) >= min_point_gap
-                ])
+                valid_res = sorted(
+                    [
+                        p
+                        for p in self.strong_resistance["High"].values
+                        if (p - target_1) >= min_point_gap
+                    ]
+                )
                 if valid_res:
                     return self.round_to_nearest_tick(valid_res[0])
 

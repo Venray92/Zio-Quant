@@ -150,7 +150,7 @@ def render_welcome():
             <div style="display: inline-block; background: rgba(0, 243, 255, 0.05); border: 1px solid #00F3FF; color: #8A8B98; padding: 6px 16px; font-size: 11px; margin-bottom: 30px;">
                 STATUS: <span style="color: #00F3FF; font-weight: bold; text-shadow: 0 0 5px #00F3FF;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT]</span>
             </div>
-            <p style="color: #7A828E; font-size: 10px; line-height: 1.4; margin: 0 auto; max-width: 900px; font-weight: 400; letter-spacing: 0.3px;">
+            <p style="color: #00FF66; font-size: 10px; line-height: 1.4; margin: 0 auto; max-width: 900px; font-weight: 400; letter-spacing: 0.3px;">
                 Catatan: Semua data & trade plan di sini murni hasil analisa sistem/coding. Tidak ada jaminan 100% akurat. Pastikan selalu cek ulang chart dan terapkan money management. Do Your Own Research (DYOR) & Do With Your Own Risk (DWYOR)!
             </p>
         </div>""",

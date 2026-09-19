@@ -532,26 +532,32 @@ class TradePlanner:
                 min_val + max(1.5 * self.atr_14, min_point_gap + 2)
             )
 
-        def find_target_2(target_1):
+            def find_target_2(target_1):
+            # 1. Tentukan batas harga minimal untuk TP 2 (10 tick dari TP 1)
+            min_tp2 = self.add_ticks(target_1, 10)
+
+            # 2. Cari Resistance Kuat yang nilainya >= min_tp2
+            # Resistance yang di bawah min_tp2 (misal cuma beda 2 tick) otomatis ter-skip
             if not self.strong_resistance.empty:
                 valid_res = sorted(
                     [
                         p
                         for p in self.strong_resistance["High"].values
-                        if (p - target_1) >= min_point_gap
+                        if p >= min_tp2
                     ]
                 )
                 if valid_res:
                     return self.round_to_nearest_tick(valid_res[0])
 
+            # 3. Jika di strong_resistance tidak ada, cari di Swing High historis yang >= min_tp2
             sh_sorted = self.highs_15.sort_values(by="Date", ascending=False)
-            sh_valid = sh_sorted[(sh_sorted["High"] - target_1) >= min_point_gap]
+            sh_valid = sh_sorted[sh_sorted["High"] >= min_tp2]
             if not sh_valid.empty:
                 return self.round_to_nearest_tick(sh_valid.iloc[0]["High"])
 
-            return self.round_to_nearest_tick(
-                target_1 + max(1.5 * self.atr_14, min_point_gap + 2)
-            )
+            # 4. Jika tidak ada resistance lagi di atasnya (misal ATH/breakout),
+            # gunakan proyeksi default 10 tick di atas TP 1
+            return min_tp2
 
         candle_name, candle_bias = self.classify_candle()
 

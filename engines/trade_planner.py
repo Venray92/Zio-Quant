@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from scipy.signal import argrelextrema
 import yfinance as yf
 
 
@@ -56,9 +55,56 @@ class TradePlanner:
         tick = cls.get_tick_size(price)
         return round(round(price / tick) * tick, 2)
 
+    @staticmethod
+    def _find_flexible_swings(df):
+        """Mencari Swing High dan Swing Low secara bertingkat (order=3 -> order=2 -> order=1).
+
+        Memastikan candle paling anyar tetap terdeteksi jika baris di kanan
+        belum genap 3.
+        """
+        high_indices = []
+        low_indices = []
+
+        n = len(df)
+        highs = df["High"].values
+        lows = df["Low"].values
+
+        # 1. Cari Swing High
+        for i in range(n):
+            for ord_val in [3, 2, 1]:
+                left_start = max(0, i - ord_val)
+                right_end = min(n, i + ord_val + 1)
+
+                # Ambil window seadanya (fleksibel)
+                window_highs = highs[left_start:right_end]
+
+                # Jika harga saat ini adalah yang tertinggi di window
+                if highs[i] == np.max(window_highs):
+                    high_indices.append(i)
+                    break  # Sukses ketemu di order tertinggi yang memungkinkan
+
+        # 2. Cari Swing Low
+        for i in range(n):
+            for ord_val in [3, 2, 1]:
+                left_start = max(0, i - ord_val)
+                right_end = min(n, i + ord_val + 1)
+
+                # Ambil window seadanya (fleksibel)
+                window_lows = lows[left_start:right_end]
+
+                # Jika harga saat ini adalah yang terendah di window
+                if lows[i] == np.min(window_lows):
+                    low_indices.append(i)
+                    break  # Sukses ketemu di order tertinggi yang memungkinkan
+
+        return list(set(high_indices)), list(set(low_indices))
+
     def fetch_and_prepare_data(self):
         stock = yf.Ticker(self.ticker)
-        df = stock.history(period=self.period, interval="1d").reset_index()
+        # Menambahkan auto_adjust=False agar harga murni / unadjusted
+        df = stock.history(
+            period=self.period, interval="1d", auto_adjust=False
+        ).reset_index()
 
         if df.empty or len(df) < 20:
             raise ValueError(
@@ -85,14 +131,8 @@ class TradePlanner:
             atr_series.iloc[-1] if not pd.isna(atr_series.iloc[-1]) else 0.0
         )
 
-        # Swing Points Detection
-        order = 3
-        high_idx = argrelextrema(
-            df["High"].values, np.greater_equal, order=order
-        )[0]
-        low_idx = argrelextrema(
-            df["Low"].values, np.less_equal, order=order
-        )[0]
+        # Perbaikan: Menggunakan pendeteksi bertingkat (order=3 -> 2 -> 1)
+        high_idx, low_idx = self._find_flexible_swings(df)
 
         df["Swing_Type"] = ""
         df.loc[df.index.isin(high_idx), "Swing_Type"] = "Swing High"
@@ -137,15 +177,20 @@ class TradePlanner:
 
         res_df = pd.DataFrame(accepted_rows)
         if not res_df.empty:
-            # Urutkan berdasarkan level harga agar Rank 1st selalu yang terdekat
             sort_ascending = True if prefix == "Resistance" else False
             sort_by_col = col1 if col1 in res_df.columns else col2
-            res_df = res_df.sort_values(by=sort_by_col, ascending=sort_ascending).head(3).reset_index(drop=True)
-            
+            res_df = (
+                res_df.sort_values(by=sort_by_col, ascending=sort_ascending)
+                .head(3)
+                .reset_index(drop=True)
+            )
+
             ranks = [
                 f"1st {prefix} (Terdekat)"
                 if i == 0
-                else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
+                else (
+                    f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)"
+                )
                 for i in range(len(res_df))
             ]
             res_df["Rank"] = ranks
@@ -153,15 +198,19 @@ class TradePlanner:
         return res_df
 
     def _calculate_strong_levels(self):
+        """Perbaikan: Membandingkan Body secara fleksibel (maksimal 3 candle kiri
+
+        & 3 candle kanan).
+        """
         sorted_highs = self.highs_5.sort_values(by="Date", ascending=False)
         res_results = []
         for _, row in sorted_highs.iterrows():
             idx = row.name
-            body_tops = [row["Body_Top"]]
-            if idx > 0 and (idx - 1) in self.df.index:
-                body_tops.append(self.df.loc[idx - 1, "Body_Top"])
-            if (idx + 1) in self.df.index:
-                body_tops.append(self.df.loc[idx + 1, "Body_Top"])
+
+            # Rentang Fleksibel Maksimal 3 Kiri dan 3 Kanan
+            start_idx = max(0, idx - 3)
+            end_idx = min(len(self.df), idx + 4)
+            body_tops = self.df.loc[start_idx : end_idx - 1, "Body_Top"].values
 
             res_results.append({
                 "Date": row["Date"].strftime("%Y-%m-%d"),
@@ -179,11 +228,13 @@ class TradePlanner:
         sup_results = []
         for _, row in recent_lows.iterrows():
             idx = row.name
-            body_bottoms = [row["Body_Bottom"]]
-            if idx > 0 and (idx - 1) in self.df.index:
-                body_bottoms.append(self.df.loc[idx - 1, "Body_Bottom"])
-            if (idx + 1) in self.df.index:
-                body_bottoms.append(self.df.loc[idx + 1, "Body_Bottom"])
+
+            # Rentang Fleksibel Maksimal 3 Kiri dan 3 Kanan
+            start_idx = max(0, idx - 3)
+            end_idx = min(len(self.df), idx + 4)
+            body_bottoms = self.df.loc[
+                start_idx : end_idx - 1, "Body_Bottom"
+            ].values
 
             sup_results.append({
                 "Date": row["Date"].strftime("%Y-%m-%d"),
@@ -199,16 +250,21 @@ class TradePlanner:
         if self.highs_5.empty or self.lows_15.empty:
             return pd.DataFrame()
 
-        latest_high_val = self.highs_5.sort_values(
-            by="Date", ascending=False
-        ).iloc[0]["High"]
+        latest_high_val = (
+            self.highs_5.sort_values(by="Date", ascending=False)
+            .iloc[0]["High"]
+        )
         latest_low_val = (
-            self.lows_15.head(5).sort_values(by="Date", ascending=False).iloc[0]["Low"]
+            self.lows_15.head(5)
+            .sort_values(by="Date", ascending=False)
+            .iloc[0]["Low"]
         )
 
         last_market_close = self.df.iloc[-1]["Close"]
         midpoint_50 = (latest_high_val + latest_low_val) / 2.0
-        direction_result = "BOB" if last_market_close >= midpoint_50 else "BOW"
+        direction_result = (
+            "BOB" if last_market_close >= midpoint_50 else "BOW"
+        )
 
         return pd.DataFrame([{
             "Swing High Terupdate": self.round_to_nearest_tick(latest_high_val),
@@ -488,7 +544,9 @@ class TradePlanner:
         return total_score, grade, pos_status, warning_str
 
     def generate_trade_plan(self):
-        min_point_gap = max(self.get_tick_size(self.df.iloc[-1]["Close"]) * 2, 5)
+        min_point_gap = max(
+            self.get_tick_size(self.df.iloc[-1]["Close"]) * 2, 5
+        )
 
         def find_target_1(min_val):
             if not self.strong_resistance.empty:
@@ -501,7 +559,9 @@ class TradePlanner:
                     return self.round_to_nearest_tick(valid_res[0])
 
             sh_sorted = self.highs_15.sort_values(by="Date", ascending=False)
-            sh_valid = sh_sorted[(sh_sorted["High"] - min_val) >= min_point_gap]
+            sh_valid = sh_sorted[
+                (sh_sorted["High"] - min_val) >= min_point_gap
+            ]
             if not sh_valid.empty:
                 return self.round_to_nearest_tick(sh_valid.iloc[0]["High"])
 
@@ -520,7 +580,9 @@ class TradePlanner:
                     return self.round_to_nearest_tick(valid_res[0])
 
             sh_sorted = self.highs_15.sort_values(by="Date", ascending=False)
-            sh_valid = sh_sorted[(sh_sorted["High"] - target_1) >= min_point_gap]
+            sh_valid = sh_sorted[
+                (sh_sorted["High"] - target_1) >= min_point_gap
+            ]
             if not sh_valid.empty:
                 return self.round_to_nearest_tick(sh_valid.iloc[0]["High"])
 
@@ -544,7 +606,9 @@ class TradePlanner:
         target_2_bow = find_target_2(target_1_bow)
         risk_bow = rb_bow_min - stop_loss_bow
         reward_bow = target_1_bow - rb_bow_min
-        rr_val_bow = round(reward_bow / risk_bow, 1) if risk_bow > 0 else 0.0
+        rr_val_bow = (
+            round(reward_bow / risk_bow, 1) if risk_bow > 0 else 0.0
+        )
 
         score_bow, grade_bow, pos_bow, warn_bow = (
             self.calculate_score_and_warnings(
@@ -574,7 +638,9 @@ class TradePlanner:
         target_2_bob = find_target_2(target_1_bob)
         risk_bob = base_bob_high - stop_loss_bob
         reward_bob = target_1_bob - base_bob_high
-        rr_val_bob = round(reward_bob / risk_bob, 1) if risk_bob > 0 else 0.0
+        rr_val_bob = (
+            round(reward_bob / risk_bob, 1) if risk_bob > 0 else 0.0
+        )
 
         score_bob, grade_bob, pos_bob, warn_bob = (
             self.calculate_score_and_warnings(

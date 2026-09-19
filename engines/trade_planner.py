@@ -57,9 +57,10 @@ class TradePlanner:
 
     @staticmethod
     def _find_flexible_swings(df):
-        """Pendeteksi Swing yang lebih toleran terhadap puncak/lembah lokal.
+        """Mencari Swing High dan Swing Low secara bertingkat (order=3 -> order=2 -> order=1).
 
-        Menggunakan window dinamis tanpa melewatkan harga ekstrem lokal.
+        Memastikan candle paling anyar tetap terdeteksi jika baris di kanan
+        belum genap 3.
         """
         high_indices = []
         low_indices = []
@@ -68,45 +69,39 @@ class TradePlanner:
         highs = df["High"].values
         lows = df["Low"].values
 
-        # Menggunakan skala window dari paling fleksibel (1) ke paling ketat (3)
+        # 1. Cari Swing High
         for i in range(n):
-            # Swing High Detection
-            is_high = False
             for ord_val in [3, 2, 1]:
                 left_start = max(0, i - ord_val)
                 right_end = min(n, i + ord_val + 1)
 
-                # Toleransi >= agar jika ada harga kembar tetap terdeteksi
-                if highs[i] >= np.max(highs[left_start:right_end]):
-                    # Validasi tambahan: harus lebih tinggi dari minimal 1 tetangganya jika window > 1
-                    if (i > 0 and highs[i] > highs[i - 1]) or (
-                        i < n - 1 and highs[i] > highs[i + 1]
-                    ):
-                        is_high = True
-                        break
-            if is_high:
-                high_indices.append(i)
+                # Ambil window seadanya (fleksibel)
+                window_highs = highs[left_start:right_end]
 
-            # Swing Low Detection
-            is_low = False
+                # Jika harga saat ini adalah yang tertinggi di window
+                if highs[i] == np.max(window_highs):
+                    high_indices.append(i)
+                    break  # Sukses ketemu di order tertinggi yang memungkinkan
+
+        # 2. Cari Swing Low
+        for i in range(n):
             for ord_val in [3, 2, 1]:
                 left_start = max(0, i - ord_val)
                 right_end = min(n, i + ord_val + 1)
 
-                if lows[i] <= np.min(lows[left_start:right_end]):
-                    if (i > 0 and lows[i] < lows[i - 1]) or (
-                        i < n - 1 and lows[i] < lows[i + 1]
-                    ):
-                        is_low = True
-                        break
-            if is_low:
-                low_indices.append(i)
+                # Ambil window seadanya (fleksibel)
+                window_lows = lows[left_start:right_end]
 
-        return sorted(list(set(high_indices))), sorted(list(set(low_indices)))
+                # Jika harga saat ini adalah yang terendah di window
+                if lows[i] == np.min(window_lows):
+                    low_indices.append(i)
+                    break  # Sukses ketemu di order tertinggi yang memungkinkan
+
+        return list(set(high_indices)), list(set(low_indices))
 
     def fetch_and_prepare_data(self):
         stock = yf.Ticker(self.ticker)
-        # Memastikan mengambil data murni tanpa penyesuaian split/dividen yang bisa mengubah harga histori
+        # Menambahkan auto_adjust=False agar harga murni / unadjusted
         df = stock.history(
             period=self.period, interval="1d", auto_adjust=False
         ).reset_index()
@@ -136,7 +131,7 @@ class TradePlanner:
             atr_series.iloc[-1] if not pd.isna(atr_series.iloc[-1]) else 0.0
         )
 
-        # Deteksi Swing Fleksibel
+        # Perbaikan: Menggunakan pendeteksi bertingkat (order=3 -> 2 -> 1)
         high_idx, low_idx = self._find_flexible_swings(df)
 
         df["Swing_Type"] = ""
@@ -145,14 +140,13 @@ class TradePlanner:
 
         self.df = df
 
-        # Mengambil 15 Swing Low & High terbaru
         self.highs_15 = (
-            df[df["Swing_Type"].str.contains("Swing High")]
+            df[df["Swing_Type"] == "Swing High"]
             .sort_values(by="Date", ascending=False)
             .head(15)
         )
         self.lows_15 = (
-            df[df["Swing_Type"].str.contains("Swing Low")]
+            df[df["Swing_Type"] == "Swing Low"]
             .sort_values(by="Date", ascending=False)
             .head(15)
         )
@@ -204,11 +198,16 @@ class TradePlanner:
         return res_df
 
     def _calculate_strong_levels(self):
-        # 1. Resistance Calculation
+        """Perbaikan: Membandingkan Body secara fleksibel (maksimal 3 candle kiri
+
+        & 3 candle kanan).
+        """
         sorted_highs = self.highs_5.sort_values(by="Date", ascending=False)
         res_results = []
         for _, row in sorted_highs.iterrows():
             idx = row.name
+
+            # Rentang Fleksibel Maksimal 3 Kiri dan 3 Kanan
             start_idx = max(0, idx - 3)
             end_idx = min(len(self.df), idx + 4)
             body_tops = self.df.loc[start_idx : end_idx - 1, "Body_Top"].values
@@ -223,13 +222,14 @@ class TradePlanner:
             pd.DataFrame(res_results), "Body_Top", "High", prefix="Resistance"
         )
 
-        # 2. Support Calculation (Mengambil top 5 Swing Low paling krusial)
         recent_lows = self.lows_15.sort_values(
             by="Date", ascending=False
         ).head(5)
         sup_results = []
         for _, row in recent_lows.iterrows():
             idx = row.name
+
+            # Rentang Fleksibel Maksimal 3 Kiri dan 3 Kanan
             start_idx = max(0, idx - 3)
             end_idx = min(len(self.df), idx + 4)
             body_bottoms = self.df.loc[
@@ -440,6 +440,7 @@ class TradePlanner:
         p1_body_top = max(self.df.iloc[-1]["Open"], last_close)
         upper_shadow = p1_high - p1_body_top
 
+        # 1. RISK-TO-REWARD SCORE (MAX 35)
         if rr_ratio >= 3.0:
             score_rr = 35
         elif rr_ratio >= 2.0:
@@ -451,6 +452,7 @@ class TradePlanner:
         else:
             score_rr = 0
 
+        # 2. PRICE POSITION / ZONE SCORE (MAX 25)
         if buy_min <= last_close <= buy_max:
             score_zone = 25
             pos_status = "In Buy Zone"
@@ -467,6 +469,7 @@ class TradePlanner:
             score_zone = 0
             pos_status = "Running / Away"
 
+        # 3. CANDLESTICK SCORE (MAX 20)
         if candle_bias == "BULLISH":
             if any(
                 k in candle_type
@@ -480,6 +483,7 @@ class TradePlanner:
         else:
             score_candle = 0
 
+        # 4. SAFETY & WARNING PENALTIES (MAX 20)
         penalty = 0
         warnings = []
 

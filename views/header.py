@@ -151,15 +151,22 @@ def render_welcome():
     """Menampilkan tampilan Welcome Banner saat belum ada screener terpilih."""
     st.markdown(
         """
-        <div style="background-color: #242424; border: 1px solid #00F3FF; box-shadow: 0 0 20px rgba(0, 243, 255, 0.2); padding: 70px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
+        <div style="background-color: #242424; border: 1px solid #00F3FF; box-shadow: 0 0 20px rgba(0, 243, 255, 0.2); padding: 50px 20px; text-align: center; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">
             <h2 style="color: #00F3FF; font-size: 24px; margin-bottom: 8px; text-shadow: 0 0 10px #00F3FF; font-weight: 900; letter-spacing: 2px;">
                 WELCOME TO Z-QUANT TERMINAL
             </h2>
             <p style="color: #8A8B98; font-size: 13px; max-width: 580px; margin: 0 auto 16px auto; letter-spacing: 1px;">
                 Pilih strategi screening saham IHSG di menu <strong style="color:#00F3FF;">CHOOSE_SCREENER</strong> di pojok kanan atas untuk memulai analisis.
             </p>
-            <div style="display: inline-block; background: rgba(0, 243, 255, 0.05); border: 1px solid #00F3FF; color: #8A8B98; padding: 6px 16px; font-size: 11px;">
+            <div style="display: inline-block; background: rgba(0, 243, 255, 0.05); border: 1px solid #00F3FF; color: #8A8B98; padding: 6px 16px; font-size: 11px; margin-bottom: 24px;">
                 STATUS: <span style="color: #00F3FF; font-weight: bold; text-shadow: 0 0 5px #00F3FF;">[ONLINE]</span> | ENGINE: <span style="color: #00F3FF; font-weight: bold;">[QUANT]</span>
+            </div>
+
+            <!-- DISCLAIMER / CATATAN NOTE -->
+            <div style="border-top: 1px dashed rgba(0, 243, 255, 0.2); padding-top: 16px; max-width: 650px; margin: 0 auto;">
+                <p style="color: #6E7081; font-size: 11px; line-height: 1.5; margin: 0; text-align: center; letter-spacing: 0.5px;">
+                    <span style="color: #FF007F; font-weight: bold;">[DISCLAIMER]</span> Catatan: Semua data & trade plan di sini murni hasil analisa sistem/coding. Tidak ada jaminan 100% akurat. Pastikan selalu cek ulang chart dan terapkan money management. Do Your Own Research (DYOR) & Do With Your Own Risk (DWYOR)!
+                </p>
             </div>
         </div>
         """,

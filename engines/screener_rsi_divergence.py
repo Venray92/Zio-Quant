@@ -121,6 +121,57 @@ def extract_swings(series, left=2, right=2, swing_type='LOW'):
 
 
 # ----------------------------------------------------
+# 3b. HELPER VALIDASI GARIS T1-T2 & BLOK "KAWAH"
+# ----------------------------------------------------
+def is_price_line_broken(df, left_idx, right_idx, tol_pct=0.2):
+    """Tarik garis lurus dari Low T1 ke Low T2. Di antara keduanya
+    tidak boleh ada Low candle yang menembus ke bawah garis itu
+    (toleransi tol_pct persen). True = garis putus (pola dibuang)."""
+    gap = right_idx - left_idx
+    if gap <= 1:
+        return False
+    y1 = float(df['Low'].iloc[left_idx])
+    y2 = float(df['Low'].iloc[right_idx])
+    for k in range(left_idx + 1, right_idx):
+        line_val = y1 + (y2 - y1) * (k - left_idx) / gap
+        if float(df['Low'].iloc[k]) < line_val * (1 - tol_pct / 100):
+            return True
+    return False
+
+
+def is_rsi_line_broken(df, pos_left, pos_right, tol_points=1.0):
+    """Tarik garis lurus dari RSI di T1 ke RSI di T2 (titik RSI
+    terendah di sekitar swing). Di antara keduanya tidak boleh ada
+    RSI yang menembus ke bawah garis (toleransi tol_points poin).
+    True = garis putus (pola dibuang)."""
+    gap = pos_right - pos_left
+    if gap <= 1:
+        return False
+    r1 = float(df['RSI_10'].iloc[pos_left])
+    r2 = float(df['RSI_10'].iloc[pos_right])
+    for k in range(pos_left + 1, pos_right):
+        line_val = r1 + (r2 - r1) * (k - pos_left) / gap
+        if float(df['RSI_10'].iloc[k]) < line_val - tol_points:
+            return True
+    return False
+
+
+def has_crater_between(swing_df, left_idx, right_idx, right_val,
+                       max_diff_pct=3.0):
+    """Blok 'kawah': kalau di antara T1 dan T2 ada swing low lain
+    yang harganya dekat T2 (selisih <= max_diff_pct persen), berarti
+    T1 dilompati dan pasangan ini dibuang. True = ada kawah."""
+    if right_val <= 0:
+        return False
+    for _, s in swing_df.iterrows():
+        pos = int(s['Index_Pos'])
+        if left_idx < pos < right_idx:
+            diff_pct = abs(float(s['Nilai']) - right_val) / right_val * 100
+            if diff_pct <= max_diff_pct:
+                return True
+    return False
+
+# ----------------------------------------------------
 # 4. MAIN SCREENER WITH REVISED SCORING & LOGIC
 # ----------------------------------------------------
 def detect_rsi_patterns_and_score(ticker):
@@ -184,9 +235,19 @@ def detect_rsi_patterns_and_score(ticker):
         # ==========================================
         # A. BULLISH DIVERGENCE (SWING LOW)
         # ==========================================
+        def get_rsi_pos_swing_low(idx_pos, window=2):
+            # Posisi candle dgn RSI terendah di sekitar swing low
+            start = max(0, idx_pos - window)
+            end = min(len(df) - 1, idx_pos + window)
+            return start + int(
+                df['RSI_10'].iloc[start : end + 1].values.argmin()
+            )
+
         p_swings_low = extract_swings(
             df['Low'], left=2, right=2, swing_type='LOW'
         )
+
+        bullish_candidates = []
 
         if not p_swings_low.empty:
             p_swings_low = p_swings_low.sort_values(
@@ -198,8 +259,13 @@ def detect_rsi_patterns_and_score(ticker):
                     right_p = p_swings_low.iloc[i]
                     right_p_idx = int(right_p['Index_Pos'])
 
+                    # Umur T2 maksimal H+3
                     bars_from_latest = latest_idx - right_p_idx
                     if bars_from_latest > 3:
+                        continue
+
+                    # Keluar: close di bawah low T2 = divergence gagal
+                    if latest_close < right_p['Nilai']:
                         continue
 
                     for j in range(i + 1, len(p_swings_low)):
@@ -207,16 +273,31 @@ def detect_rsi_patterns_and_score(ticker):
                         left_p_idx = int(left_p['Index_Pos'])
                         bars_gap = right_p_idx - left_p_idx
 
-                        # Revisi Jarak Swing: 5 - 25 candle
+                        # Jarak Swing: 5 - 25 candle
                         if not (5 <= bars_gap <= 25):
                             continue
 
-                        # Strict Line: Tidak Boleh Putus
+                        # Lantai: Tidak Boleh Ada Low Lebih Rendah
                         between_df = df.iloc[left_p_idx : right_p_idx + 1]
                         min_boundary = (
                             min(left_p['Nilai'], right_p['Nilai']) * 0.998
                         )
                         if between_df['Low'].min() < min_boundary:
+                            continue
+
+                        # Garis miring harga T1 -> T2 tidak boleh putus
+                        if is_price_line_broken(
+                            df, left_p_idx, right_p_idx
+                        ):
+                            continue
+
+                        # Blok kawah (ada dasar lain dekat T2 di tengah)
+                        if has_crater_between(
+                            p_swings_low,
+                            left_p_idx,
+                            right_p_idx,
+                            right_p['Nilai'],
+                        ):
                             continue
 
                         val_rsi_right = get_rsi_at_swing(right_p_idx)
@@ -241,9 +322,17 @@ def detect_rsi_patterns_and_score(ticker):
                             pattern_type = 'Hidden Bullish Divergence'
 
                         if pattern_type:
+                            # Garis miring RSI T1 -> T2 tidak boleh putus
+                            if is_rsi_line_broken(
+                                df,
+                                get_rsi_pos_swing_low(left_p_idx),
+                                get_rsi_pos_swing_low(right_p_idx),
+                            ):
+                                continue
+
                             score = 0
 
-                            # Pengecekan Synchronized RSI GC & Volume di Rentang H+0 s.d. H+3
+                            # Pengecekan RSI GC & Volume di Rentang H+0 s.d. H+3
                             has_gc_with_vol = False
                             has_gc_without_vol = False
 
@@ -267,18 +356,19 @@ def detect_rsi_patterns_and_score(ticker):
                                     else:
                                         has_gc_without_vol = True
 
+                            # Wajib ada GC (status Potensial dihapus)
+                            if not (has_gc_with_vol or has_gc_without_vol):
+                                continue
+
+                            # SKOR (total 100)
+                            # 1) GC RSI (wajib, semua dapat): 30
+                            score += 30
+                            # 2) Volume hari GC di atas rata-rata: 15
                             if has_gc_with_vol:
-                                score += 50
-                            elif has_gc_without_vol:
-                                score += 40
+                                score += 15
 
-                            # Pengecekan Target RSI Titik 1 ke Titik 2
-                            if val_rsi_right >= val_rsi_left:
-                                score += 20
-
-                            # Pengecekan Base Konsolidasi
+                            # 3) Base konsolidasi di antara T1-T2: 20
                             has_base_t1_t2 = False
-                            has_base_after_t2 = False
 
                             if not df_bases.empty:
                                 for _, base in df_bases.iterrows():
@@ -291,16 +381,28 @@ def detect_rsi_patterns_and_score(ticker):
                                     ):
                                         has_base_t1_t2 = True
 
-                                    if b_start >= right_p['Tanggal']:
-                                        has_base_after_t2 = True
-
                             base_status_list = []
                             if has_base_t1_t2:
                                 score += 20
                                 base_status_list.append('Base T1-T2')
-                            if has_base_after_t2:
+
+                            # 4) Kesegaran umur T2: H+0/H+1=15, H+2=10, H+3=5
+                            if bars_from_latest <= 1:
+                                score += 15
+                            elif bars_from_latest == 2:
+                                score += 10
+                            else:
+                                score += 5
+
+                            # 5) Jarak close ke low T2: <=3%=20, <=5%=10
+                            dist_pct = (
+                                (latest_close - right_p['Nilai'])
+                                / right_p['Nilai']
+                            ) * 100
+                            if dist_pct <= 3:
                                 score += 20
-                                base_status_list.append('Base Post-T2')
+                            elif dist_pct <= 5:
+                                score += 10
 
                             base_desc = (
                                 ' & '.join(base_status_list)
@@ -313,7 +415,7 @@ def detect_rsi_patterns_and_score(ticker):
                                 else 'Potensial'
                             )
 
-                            return {
+                            bullish_candidates.append({
                                 'Ticker': ticker,
                                 'Saham': clean_symbol,
                                 'Pattern': f'{pattern_type} {status_str}',
@@ -332,7 +434,12 @@ def detect_rsi_patterns_and_score(ticker):
                                 ),
                                 'Harga Kanan': f"Rp {right_p['Nilai']:,.0f}",
                                 'RSI Kanan': round(val_rsi_right, 2),
-                            }
+                            })
+
+        # Ambil pasangan bullish dengan skor tertinggi
+        # (skor sama -> T2 paling baru, lalu T1 terdekat)
+        if bullish_candidates:
+            return max(bullish_candidates, key=lambda c: c['Score'])
 
         # ==========================================
         # B. BEARISH DIVERGENCE (SWING HIGH)

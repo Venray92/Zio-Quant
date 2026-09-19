@@ -27,7 +27,7 @@ def calculate_ema(series, period=10):
 
 
 # ----------------------------------------------------
-# 2. HELPER DETEKSI BASE KONSOLIDASI
+# 2. HELPER DETEKSI BASE KONSOLIDASI (REVISI MAX 5%)
 # ----------------------------------------------------
 def detect_bases(df, min_candles=5, max_width_pct=5.0, window_lookback=60):
     bases = []
@@ -69,7 +69,7 @@ def detect_bases(df, min_candles=5, max_width_pct=5.0, window_lookback=60):
 
 
 # ----------------------------------------------------
-# 3. HELPER SWING HIGH / LOW
+# 3. HELPER SWING HIGH / LOW (AKURAT & PRESISI)
 # ----------------------------------------------------
 def extract_swings(series, left=2, right=2, swing_type='LOW'):
     swings = []
@@ -121,7 +121,7 @@ def extract_swings(series, left=2, right=2, swing_type='LOW'):
 
 
 # ----------------------------------------------------
-# 4. MAIN SCREENER (STRICT & THRESHOLD FILTER)
+# 4. MAIN SCREENER WITH REVISED SCORING & LOGIC
 # ----------------------------------------------------
 def detect_rsi_patterns_and_score(ticker):
     try:
@@ -132,7 +132,7 @@ def detect_rsi_patterns_and_score(ticker):
             progress=False,
             auto_adjust=False,
         )
-        if df.empty or len(df) < 30:
+        if df.empty or len(df) < 50:  # Memutuhkan minimal 50 candle untuk EMA50
             return None
 
         if isinstance(df.columns, pd.MultiIndex):
@@ -149,21 +149,43 @@ def detect_rsi_patterns_and_score(ticker):
             else 0.0
         )
 
+        # Syarat 1: Price > 70
         if latest_close <= 70:
             return None
 
+        # Syarat 2: Filter Likuiditas (> 1 Miliar Rupiah)
         latest_volume = df['Volume'].iloc[-1]
         latest_value = latest_volume * latest_close
         if latest_value <= 1_000_000_000:
             return None
 
+        # Indicator Calculation
         df['RSI_10'] = calculate_rsi(df['Close'], period=10)
         df['RSI_EMA10'] = calculate_ema(df['RSI_10'], period=10)
         df['Vol_MA20'] = df['Volume'].rolling(window=20).mean()
-        df = df.dropna(subset=['RSI_10', 'RSI_EMA10', 'Vol_MA20'])
+
+        # Calculation EMA untuk Filter Hidden Bullish Trend
+        df['EMA_5'] = calculate_ema(df['Close'], period=5)
+        df['EMA_10'] = calculate_ema(df['Close'], period=10)
+        df['EMA_20'] = calculate_ema(df['Close'], period=20)
+        df['EMA_50'] = calculate_ema(df['Close'], period=50)
+
+        df = df.dropna(
+            subset=[
+                'RSI_10',
+                'RSI_EMA10',
+                'Vol_MA20',
+                'EMA_5',
+                'EMA_10',
+                'EMA_20',
+                'EMA_50',
+            ]
+        )
 
         latest_idx = len(df) - 1
         clean_symbol = ticker.replace('.JK', '')
+
+        # Base Konsolidasi (Max lebar 5%)
         df_bases = detect_bases(df, min_candles=5, max_width_pct=5.0)
 
         def get_rsi_at_swing(idx_pos, window=2):
@@ -175,10 +197,6 @@ def detect_rsi_patterns_and_score(ticker):
             start = max(0, idx_pos - window)
             end = min(len(df) - 1, idx_pos + window)
             return df['RSI_10'].iloc[start : end + 1].max()
-
-        # Parameter Ambang Batas Minimal
-        MIN_PRICE_DIFF_PCT = 3.0  # Min. Beda harga 3%
-        MIN_RSI_DIFF_PTS = 5.0  # Min. Beda RSI 5 poin
 
         # ==========================================
         # A. BULLISH DIVERGENCE (SWING LOW)
@@ -197,8 +215,13 @@ def detect_rsi_patterns_and_score(ticker):
                     right_p = p_swings_low.iloc[i]
                     right_p_idx = int(right_p['Index_Pos'])
 
+                    # REVISI: Titik 2 Wajib di H-1 (Posisinya 1 candle sebelum hari ini)
                     bars_from_latest = latest_idx - right_p_idx
-                    if bars_from_latest > 3:
+                    if bars_from_latest != 1:
+                        continue
+
+                    # REVISI KONFIRMASI H+1: Price Hari Ini (H0) harus > Price Kemarin (H-1)
+                    if latest_close <= right_p['Nilai']:
                         continue
 
                     for j in range(i + 1, len(p_swings_low)):
@@ -206,77 +229,58 @@ def detect_rsi_patterns_and_score(ticker):
                         left_p_idx = int(left_p['Index_Pos'])
                         bars_gap = right_p_idx - left_p_idx
 
-                        if not (5 <= bars_gap <= 25):
+                        # REVISI: Range Jarak Swing 5 - 20 candle
+                        if not (5 <= bars_gap <= 20):
+                            continue
+
+                        # Strict Line: Tidak Boleh Putus
+                        between_df = df.iloc[left_p_idx : right_p_idx + 1]
+                        min_boundary = (
+                            min(left_p['Nilai'], right_p['Nilai']) * 0.998
+                        )
+                        if between_df['Low'].min() < min_boundary:
                             continue
 
                         val_rsi_right = get_rsi_at_swing(right_p_idx)
                         val_rsi_left = get_rsi_at_swing(left_p_idx)
 
-                        price_low_t1 = left_p['Nilai']
-                        price_low_t2 = right_p['Nilai']
-
-                        # --- STRICT LINE CHECK (CANDLE LOW & RSI) ---
-                        trend_break = False
-                        for step in range(1, bars_gap):
-                            curr_idx = left_p_idx + step
-
-                            # Garis Linear Miring
-                            expected_price_low = (
-                                price_low_t1
-                                + ((price_low_t2 - price_low_t1) / bars_gap)
-                                * step
-                            )
-                            actual_price_low = df['Low'].iloc[curr_idx]
-
-                            expected_rsi = (
-                                val_rsi_left
-                                + ((val_rsi_right - val_rsi_left) / bars_gap)
-                                * step
-                            )
-                            actual_rsi = df['RSI_10'].iloc[curr_idx]
-
-                            # Zero Tolerance: Jika tembus garis miring, gugur!
-                            if (actual_price_low < expected_price_low) or (
-                                actual_rsi < expected_rsi
-                            ):
-                                trend_break = True
-                                break
-
-                        if trend_break:
-                            continue
-
-                        # Perhitungan Selisih Persentase & Poin RSI
-                        price_diff_pct = (
-                            abs(price_low_t2 - price_low_t1) / price_low_t1
-                        ) * 100
-                        rsi_diff_pts = abs(val_rsi_right - val_rsi_left)
-
-                        # Filter Minimal Selisih
-                        if (price_diff_pct < MIN_PRICE_DIFF_PCT) or (
-                            rsi_diff_pts < MIN_RSI_DIFF_PTS
-                        ):
-                            continue
-
                         pattern_type = None
 
-                        # Regular Bullish: Price Lower Low, RSI Higher Low
+                        # Regular Bullish: RSI 0 - 30
                         if (
-                            (price_low_t2 < price_low_t1)
+                            (right_p['Nilai'] < left_p['Nilai'])
                             and (val_rsi_right > val_rsi_left)
-                            and (0 <= val_rsi_right <= 35)
+                            and (0 <= val_rsi_right <= 30)
                         ):
                             pattern_type = 'Regular Bullish Divergence'
 
-                        # Hidden Bullish: Price Higher Low, RSI Lower Low
+                        # Hidden Bullish: RSI >50 - 75
                         elif (
-                            (price_low_t2 > price_low_t1)
+                            (right_p['Nilai'] >= left_p['Nilai'])
                             and (val_rsi_right < val_rsi_left)
-                            and (40 < val_rsi_right <= 75)
+                            and (50 < val_rsi_right <= 75)
                         ):
-                            pattern_type = 'Hidden Bullish Divergence'
+                            # REVISI: Syarat Tren EMA di Titik 2 (Price > EMA5 > EMA10 > EMA20 > EMA50)
+                            p_t2 = df['Close'].iloc[right_p_idx]
+                            e5_t2 = df['EMA_5'].iloc[right_p_idx]
+                            e10_t2 = df['EMA_10'].iloc[right_p_idx]
+                            e20_t2 = df['EMA_20'].iloc[right_p_idx]
+                            e50_t2 = df['EMA_50'].iloc[right_p_idx]
+
+                            is_ema_bullish_aligned = (
+                                (p_t2 > e5_t2)
+                                and (e5_t2 > e10_t2)
+                                and (e10_t2 > e20_t2)
+                                and (e20_t2 > e50_t2)
+                            )
+
+                            if is_ema_bullish_aligned:
+                                pattern_type = 'Hidden Bullish Divergence'
 
                         if pattern_type:
                             score = 0
+
+                            # Pengecekan Synchronized RSI GC & Volume di Rentang H+0 s.d. H+3
                             has_gc_with_vol = False
                             has_gc_without_vol = False
 
@@ -305,9 +309,11 @@ def detect_rsi_patterns_and_score(ticker):
                             elif has_gc_without_vol:
                                 score += 40
 
+                            # Pengecekan Target RSI Titik 1 ke Titik 2
                             if val_rsi_right >= val_rsi_left:
                                 score += 20
 
+                            # Pengecekan Base Konsolidasi
                             has_base_t1_t2 = False
                             has_base_after_t2 = False
 
@@ -382,8 +388,13 @@ def detect_rsi_patterns_and_score(ticker):
                     right_p = p_swings_high.iloc[i]
                     right_p_idx = int(right_p['Index_Pos'])
 
+                    # REVISI: Titik 2 Wajib di H-1
                     bars_from_latest = latest_idx - right_p_idx
-                    if bars_from_latest > 3:
+                    if bars_from_latest != 1:
+                        continue
+
+                    # REVISI KONFIRMASI H+1: Price Hari Ini (H0) harus < Price Kemarin (H-1)
+                    if latest_close >= right_p['Nilai']:
                         continue
 
                     for j in range(i + 1, len(p_swings_high)):
@@ -391,67 +402,33 @@ def detect_rsi_patterns_and_score(ticker):
                         left_p_idx = int(left_p['Index_Pos'])
                         bars_gap = right_p_idx - left_p_idx
 
-                        if not (5 <= bars_gap <= 25):
+                        # REVISI: Range Jarak Swing 5 - 20 candle
+                        if not (5 <= bars_gap <= 20):
+                            continue
+
+                        between_df = df.iloc[left_p_idx : right_p_idx + 1]
+                        max_boundary = (
+                            max(left_p['Nilai'], right_p['Nilai']) * 1.002
+                        )
+                        if between_df['High'].max() > max_boundary:
                             continue
 
                         val_rsi_right = get_rsi_at_swing_high(right_p_idx)
                         val_rsi_left = get_rsi_at_swing_high(left_p_idx)
 
-                        price_high_t1 = left_p['Nilai']
-                        price_high_t2 = right_p['Nilai']
-
-                        # --- STRICT LINE CHECK (CANDLE HIGH & RSI) ---
-                        trend_break = False
-                        for step in range(1, bars_gap):
-                            curr_idx = left_p_idx + step
-
-                            expected_price_high = (
-                                price_high_t1
-                                + ((price_high_t2 - price_high_t1) / bars_gap)
-                                * step
-                            )
-                            actual_price_high = df['High'].iloc[curr_idx]
-
-                            expected_rsi = (
-                                val_rsi_left
-                                + ((val_rsi_right - val_rsi_left) / bars_gap)
-                                * step
-                            )
-                            actual_rsi = df['RSI_10'].iloc[curr_idx]
-
-                            # Zero Tolerance
-                            if (actual_price_high > expected_price_high) or (
-                                actual_rsi > expected_rsi
-                            ):
-                                trend_break = True
-                                break
-
-                        if trend_break:
-                            continue
-
-                        price_diff_pct = (
-                            abs(price_high_t2 - price_high_t1) / price_high_t1
-                        ) * 100
-                        rsi_diff_pts = abs(val_rsi_right - val_rsi_left)
-
-                        if (price_diff_pct < MIN_PRICE_DIFF_PCT) or (
-                            rsi_diff_pts < MIN_RSI_DIFF_PTS
-                        ):
-                            continue
-
                         pattern_type = None
 
-                        # Regular Bearish: Price Higher High, RSI Lower High
+                        # Regular Bearish: RSI 70 - 100
                         if (
-                            (price_high_t2 > price_high_t1)
+                            (right_p['Nilai'] > left_p['Nilai'])
                             and (val_rsi_right < val_rsi_left)
                             and (60 <= val_rsi_right <= 100)
                         ):
                             pattern_type = 'Regular Bearish Divergence'
 
-                        # Hidden Bearish: Price Lower High, RSI Higher High
+                        # Hidden Bearish: RSI 30 - 50
                         elif (
-                            (price_high_t2 < price_high_t1)
+                            (right_p['Nilai'] <= left_p['Nilai'])
                             and (val_rsi_right > val_rsi_left)
                             and (30 <= val_rsi_right <= 60)
                         ):
@@ -459,6 +436,7 @@ def detect_rsi_patterns_and_score(ticker):
 
                         if pattern_type:
                             score = 0
+
                             has_dc_with_vol = False
                             has_dc_without_vol = False
 

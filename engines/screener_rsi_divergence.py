@@ -27,7 +27,7 @@ def calculate_ema(series, period=10):
 
 
 # ----------------------------------------------------
-# 2. HELPER DETEKSI BASE KONSOLIDASI (REVISI MAX 5%)
+# 2. HELPER DETEKSI BASE KONSOLIDASI
 # ----------------------------------------------------
 def detect_bases(df, min_candles=5, max_width_pct=5.0, window_lookback=60):
     bases = []
@@ -69,7 +69,7 @@ def detect_bases(df, min_candles=5, max_width_pct=5.0, window_lookback=60):
 
 
 # ----------------------------------------------------
-# 3. HELPER SWING HIGH / LOW (AKURAT & PRESISI)
+# 3. HELPER SWING HIGH / LOW
 # ----------------------------------------------------
 def extract_swings(series, left=2, right=2, swing_type='LOW'):
     swings = []
@@ -121,7 +121,7 @@ def extract_swings(series, left=2, right=2, swing_type='LOW'):
 
 
 # ----------------------------------------------------
-# 4. MAIN SCREENER WITH REVISED SCORING & LOGIC
+# 4. MAIN SCREENER (STRICT & THRESHOLD FILTER)
 # ----------------------------------------------------
 def detect_rsi_patterns_and_score(ticker):
     try:
@@ -149,17 +149,14 @@ def detect_rsi_patterns_and_score(ticker):
             else 0.0
         )
 
-        # Syarat 1: Price > 70
         if latest_close <= 70:
             return None
 
-        # Syarat 2: Filter Likuiditas (> 1 Miliar Rupiah)
         latest_volume = df['Volume'].iloc[-1]
         latest_value = latest_volume * latest_close
         if latest_value <= 1_000_000_000:
             return None
 
-        # Indicator Calculation
         df['RSI_10'] = calculate_rsi(df['Close'], period=10)
         df['RSI_EMA10'] = calculate_ema(df['RSI_10'], period=10)
         df['Vol_MA20'] = df['Volume'].rolling(window=20).mean()
@@ -167,8 +164,6 @@ def detect_rsi_patterns_and_score(ticker):
 
         latest_idx = len(df) - 1
         clean_symbol = ticker.replace('.JK', '')
-
-        # Base Konsolidasi (Max lebar 5%)
         df_bases = detect_bases(df, min_candles=5, max_width_pct=5.0)
 
         def get_rsi_at_swing(idx_pos, window=2):
@@ -180,6 +175,10 @@ def detect_rsi_patterns_and_score(ticker):
             start = max(0, idx_pos - window)
             end = min(len(df) - 1, idx_pos + window)
             return df['RSI_10'].iloc[start : end + 1].max()
+
+        # Parameter Ambang Batas Minimal
+        MIN_PRICE_DIFF_PCT = 3.0  # Min. Beda harga 3%
+        MIN_RSI_DIFF_PTS = 5.0  # Min. Beda RSI 5 poin
 
         # ==========================================
         # A. BULLISH DIVERGENCE (SWING LOW)
@@ -207,58 +206,77 @@ def detect_rsi_patterns_and_score(ticker):
                         left_p_idx = int(left_p['Index_Pos'])
                         bars_gap = right_p_idx - left_p_idx
 
-                        # Revisi Jarak Swing: 5 - 25 candle
                         if not (5 <= bars_gap <= 25):
                             continue
 
                         val_rsi_right = get_rsi_at_swing(right_p_idx)
                         val_rsi_left = get_rsi_at_swing(left_p_idx)
 
-                        # --- STRICT LINE CHECK (CANDLE LOW-TO-LOW & RSI) ---
                         price_low_t1 = left_p['Nilai']
                         price_low_t2 = right_p['Nilai']
-                        trend_break = False
 
+                        # --- STRICT LINE CHECK (CANDLE LOW & RSI) ---
+                        trend_break = False
                         for step in range(1, bars_gap):
                             curr_idx = left_p_idx + step
-                            
-                            # 1. Garis Miring Harga (Low to Low Wicks)
-                            expected_price_low = price_low_t1 + ((price_low_t2 - price_low_t1) / bars_gap) * step
+
+                            # Garis Linear Miring
+                            expected_price_low = (
+                                price_low_t1
+                                + ((price_low_t2 - price_low_t1) / bars_gap)
+                                * step
+                            )
                             actual_price_low = df['Low'].iloc[curr_idx]
-                            
-                            # 2. Garis Miring RSI
-                            expected_rsi = val_rsi_left + ((val_rsi_right - val_rsi_left) / bars_gap) * step
+
+                            expected_rsi = (
+                                val_rsi_left
+                                + ((val_rsi_right - val_rsi_left) / bars_gap)
+                                * step
+                            )
                             actual_rsi = df['RSI_10'].iloc[curr_idx]
 
-                            # Cek Penembusan (Toleransi 0.2% untuk Harga, 0.5 poin untuk RSI)
-                            if (actual_price_low < expected_price_low * 0.998) or (actual_rsi < expected_rsi - 0.5):
+                            # Zero Tolerance: Jika tembus garis miring, gugur!
+                            if (actual_price_low < expected_price_low) or (
+                                actual_rsi < expected_rsi
+                            ):
                                 trend_break = True
                                 break
 
                         if trend_break:
                             continue
 
+                        # Perhitungan Selisih Persentase & Poin RSI
+                        price_diff_pct = (
+                            abs(price_low_t2 - price_low_t1) / price_low_t1
+                        ) * 100
+                        rsi_diff_pts = abs(val_rsi_right - val_rsi_left)
+
+                        # Filter Minimal Selisih
+                        if (price_diff_pct < MIN_PRICE_DIFF_PCT) or (
+                            rsi_diff_pts < MIN_RSI_DIFF_PTS
+                        ):
+                            continue
+
                         pattern_type = None
 
-                        # Regular Bullish: RSI 0 - 30
+                        # Regular Bullish: Price Lower Low, RSI Higher Low
                         if (
-                            (right_p['Nilai'] < left_p['Nilai'])
+                            (price_low_t2 < price_low_t1)
                             and (val_rsi_right > val_rsi_left)
-                            and (0 <= val_rsi_right <= 30)
+                            and (0 <= val_rsi_right <= 35)
                         ):
                             pattern_type = 'Regular Bullish Divergence'
 
-                        # Hidden Bullish: RSI >50 - 75
+                        # Hidden Bullish: Price Higher Low, RSI Lower Low
                         elif (
-                            (right_p['Nilai'] >= left_p['Nilai'])
+                            (price_low_t2 > price_low_t1)
                             and (val_rsi_right < val_rsi_left)
-                            and (50 < val_rsi_right <= 75)
+                            and (40 < val_rsi_right <= 75)
                         ):
                             pattern_type = 'Hidden Bullish Divergence'
 
                         if pattern_type:
                             score = 0
-
                             has_gc_with_vol = False
                             has_gc_without_vol = False
 
@@ -379,43 +397,61 @@ def detect_rsi_patterns_and_score(ticker):
                         val_rsi_right = get_rsi_at_swing_high(right_p_idx)
                         val_rsi_left = get_rsi_at_swing_high(left_p_idx)
 
-                        # --- STRICT LINE CHECK (CANDLE HIGH-TO-HIGH & RSI) ---
                         price_high_t1 = left_p['Nilai']
                         price_high_t2 = right_p['Nilai']
-                        trend_break = False
 
+                        # --- STRICT LINE CHECK (CANDLE HIGH & RSI) ---
+                        trend_break = False
                         for step in range(1, bars_gap):
                             curr_idx = left_p_idx + step
-                            
-                            # 1. Garis Miring Harga (High to High Wicks)
-                            expected_price_high = price_high_t1 + ((price_high_t2 - price_high_t1) / bars_gap) * step
+
+                            expected_price_high = (
+                                price_high_t1
+                                + ((price_high_t2 - price_high_t1) / bars_gap)
+                                * step
+                            )
                             actual_price_high = df['High'].iloc[curr_idx]
-                            
-                            # 2. Garis Miring RSI
-                            expected_rsi = val_rsi_left + ((val_rsi_right - val_rsi_left) / bars_gap) * step
+
+                            expected_rsi = (
+                                val_rsi_left
+                                + ((val_rsi_right - val_rsi_left) / bars_gap)
+                                * step
+                            )
                             actual_rsi = df['RSI_10'].iloc[curr_idx]
 
-                            # Cek Penembusan (Toleransi 0.2% untuk Harga, 0.5 poin untuk RSI)
-                            if (actual_price_high > expected_price_high * 1.002) or (actual_rsi > expected_rsi + 0.5):
+                            # Zero Tolerance
+                            if (actual_price_high > expected_price_high) or (
+                                actual_rsi > expected_rsi
+                            ):
                                 trend_break = True
                                 break
 
                         if trend_break:
                             continue
 
+                        price_diff_pct = (
+                            abs(price_high_t2 - price_high_t1) / price_high_t1
+                        ) * 100
+                        rsi_diff_pts = abs(val_rsi_right - val_rsi_left)
+
+                        if (price_diff_pct < MIN_PRICE_DIFF_PCT) or (
+                            rsi_diff_pts < MIN_RSI_DIFF_PTS
+                        ):
+                            continue
+
                         pattern_type = None
 
-                        # Regular Bearish: RSI 60 - 100
+                        # Regular Bearish: Price Higher High, RSI Lower High
                         if (
-                            (right_p['Nilai'] > left_p['Nilai'])
+                            (price_high_t2 > price_high_t1)
                             and (val_rsi_right < val_rsi_left)
                             and (60 <= val_rsi_right <= 100)
                         ):
                             pattern_type = 'Regular Bearish Divergence'
 
-                        # Hidden Bearish: RSI 30 - 60
+                        # Hidden Bearish: Price Lower High, RSI Higher High
                         elif (
-                            (right_p['Nilai'] <= left_p['Nilai'])
+                            (price_high_t2 < price_high_t1)
                             and (val_rsi_right > val_rsi_left)
                             and (30 <= val_rsi_right <= 60)
                         ):
@@ -423,7 +459,6 @@ def detect_rsi_patterns_and_score(ticker):
 
                         if pattern_type:
                             score = 0
-
                             has_dc_with_vol = False
                             has_dc_without_vol = False
 

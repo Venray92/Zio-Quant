@@ -1,11 +1,75 @@
 import concurrent.futures
 import json
 import os
+from html import escape as html_escape
+
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
 from engines.trade_planner import TradePlanner
+
+# Kolom yang tampil di tabel batch (sama seperti sebelumnya, kolom baru dari engine
+# tetap tersedia untuk kartu tapi tidak menambah lebar tabel).
+TABLE_COLUMNS = [
+    "Symbol",
+    "Score",
+    "Grade",
+    "Strategy",
+    "Suggested Strategy",
+    "Last Price",
+    "Zone Position",
+    "Buy Range",
+    "Stop Loss (SL)",
+    "TP 1",
+    "TP 2",
+    "Potential Gain",
+    "Potential Gain TP2",
+    "SL Risk",
+    "Risk-Reward Ratio",
+    "RR_Val",
+    "Candlestick Pattern",
+    "Analysis & Risk Warning",
+]
+
+# Kolom baru dari engine. Cache lama (tanpa kolom ini) otomatis dibersihkan.
+NEW_REQUIRED_COLS = [
+    "Status Level",
+    "Warning Level",
+    "Candle Bias",
+    "Data As Of",
+    "Candle Final",
+    "Entry Basis",
+]
+
+# Warna teks warning mengikuti tingkat peringatan dari engine
+WARNING_COLORS = {"ok": "#34d399", "caution": "#fbbf24", "critical": "#ef4444"}
+
+STRATEGY_OPTIONS = ["ALL STRATEGIES", "Buy On Weakness (BOW)", "Breakout (BOB)"]
+GRADE_OPTIONS = ["ALL GRADES", "Strong / Good Setup Only", "Fair / Weak Setup Only"]
+ZONE_OPTIONS = [
+    "ALL POSITIONS",
+    "In Buy Zone",
+    "Near Zone (Approaching Entry)",
+]
+RR_OPTIONS = [
+    "ALL RATIOS",
+    "Min 1 : 1.5",
+    "Min 1 : 2.0 (Standard)",
+    "Min 1 : 3.0 (High Reward)",
+]
+CANDLE_OPTIONS = ["ALL CANDLES", "Bullish Signal Only", "Neutral Only"]
+
+PAGE_NOTE = (
+    "Trade Planner memetakan area beli, stop loss, dan target untuk saham yang sedang "
+    "dipantau. Ini alat bantu perencanaan, bukan rekomendasi beli atau jual. Level dihitung "
+    "dari swing high dan swing low terbaru dan bisa berubah saat candle baru terbentuk. "
+    "Cek chart, volume, dan berita, lalu sesuaikan ukuran posisi dengan risiko masing-masing."
+)
+PAGE_NOTE_SCORE = (
+    "Skor menilai kualitas rencana (risk-reward, posisi harga, tren, candle, volume), "
+    "bukan sinyal beli."
+)
 
 
 def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
@@ -30,6 +94,31 @@ def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
         return tickers
     except Exception:
         return []
+
+
+def _fmt_as_of(value, final=True):
+    """Teks 'Data per 18 Sep 2026' (+ penanda candle belum final)."""
+    try:
+        txt = pd.to_datetime(value).strftime("%d %b %Y")
+    except Exception:
+        return ""
+    return f"Data per {txt}" + ("" if final else " · candle belum final")
+
+
+def _js_template_escape(text):
+    """Aman dipakai di dalam template literal JavaScript (backtick)."""
+    return (
+        str(text)
+        .replace("\\", "\\\\")
+        .replace("`", "\\`")
+        .replace("${", "\\${")
+        .replace("</", "<\\/")
+    )
+
+
+def _cache_is_stale(df):
+    """Cache dari versi lama (tanpa kolom baru engine) perlu dibersihkan."""
+    return any(col not in df.columns for col in NEW_REQUIRED_COLS)
 
 
 def process_single_ticker(ticker_code: str):
@@ -60,15 +149,18 @@ def process_single_ticker(ticker_code: str):
             tp1 = float(p["TP 1"])
             tp2 = float(p["TP 2"])
 
-            risk = buy_min - stop_loss
-            reward_tp1 = tp1 - buy_min
-            rr_val = round(reward_tp1 / risk, 1) if risk > 0 else 0.0
+            # Semua angka (RR, gain, risk) memakai satu titik entry dari engine
+            entry_ref = p.get("Entry Basis")
+            if entry_ref is None or pd.isnull(entry_ref) or float(entry_ref) <= 0:
+                entry_ref = (p["Range Buy Min"] + p["Range Buy Max"]) / 2.0
+            entry_ref = float(entry_ref)
 
-            entry_mid = (p["Range Buy Min"] + p["Range Buy Max"]) / 2.0
-            pot_gain_tp1 = round(((tp1 - entry_mid) / entry_mid) * 100, 1) if entry_mid > 0 else 0
-            pot_gain_tp2 = round(((tp2 - entry_mid) / entry_mid) * 100, 1) if entry_mid > 0 else 0
+            rr_val = float(p["RR_Val"]) if pd.notnull(p["RR_Val"]) else 0.0
+
+            pot_gain_tp1 = round(((tp1 - entry_ref) / entry_ref) * 100, 1) if entry_ref > 0 else 0
+            pot_gain_tp2 = round(((tp2 - entry_ref) / entry_ref) * 100, 1) if entry_ref > 0 else 0
             
-            pot_risk = round(((entry_mid - stop_loss) / entry_mid) * 100, 1) if entry_mid > 0 else 0
+            pot_risk = round(((entry_ref - stop_loss) / entry_ref) * 100, 1) if entry_ref > 0 else 0
 
             processed_plans.append({
                 "Symbol": symbol.replace(".JK", ""),
@@ -82,13 +174,22 @@ def process_single_ticker(ticker_code: str):
                 "Stop Loss (SL)": int(stop_loss) if pd.notnull(stop_loss) else 0,
                 "TP 1": int(tp1) if pd.notnull(tp1) else 0,
                 "TP 2": int(tp2) if pd.notnull(tp2) else 0,
-                "Potential Gain": f"+{pot_gain_tp1}%",
-                "Potential Gain TP2": f"+{pot_gain_tp2}%",
-                "SL Risk": f"-{pot_risk}%",
-                "Risk-Reward Ratio": f"1 : {rr_val}",
+                "Potential Gain": f"{pot_gain_tp1:+.1f}%",
+                "Potential Gain TP2": f"{pot_gain_tp2:+.1f}%",
+                "SL Risk": f"-{abs(pot_risk)}%",
+                "Risk-Reward Ratio": f"1 : {rr_val}" if rr_val > 0 else "-",
                 "RR_Val": float(rr_val),
                 "Candlestick Pattern": str(p["Pola Candle"]),
                 "Analysis & Risk Warning": str(p["Warning"]),
+                # ---- kolom baru dari engine ----
+                "Status Level": str(p.get("Status Level", "")),
+                "Plan Status": str(p.get("Plan Status", "")),
+                "Warning Level": str(p.get("Warning Level", "caution")),
+                "Candle Bias": str(p.get("Candle Bias", "NEUTRAL")),
+                "Data As Of": str(p.get("Data As Of", "")),
+                "Candle Final": bool(p.get("Candle Final", True)),
+                "Entry Basis": entry_ref,
+                "Score Detail": str(p.get("Score Detail", "")),
             })
 
         return processed_plans
@@ -107,6 +208,7 @@ def run_batch_execution(ticker_list, cache_key):
     status_text = st.empty()
 
     all_results = []
+    failed_tickers = []
     completed = 0
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -118,6 +220,8 @@ def run_batch_execution(ticker_list, cache_key):
             res_list = future.result()
             if res_list:
                 all_results.extend(res_list)
+            else:
+                failed_tickers.append(future_to_ticker[future])
 
             completed += 1
             percent = completed / total_saham
@@ -128,10 +232,16 @@ def run_batch_execution(ticker_list, cache_key):
 
     progress_bar.empty()
     status_text.empty()
-    st.toast(
-        f"Analysis Complete: Analyzed {len(set(r['Symbol'] for r in all_results))} stocks!",
-        icon="✅",
-    )
+
+    toast_msg = f"Analysis Complete: Analyzed {len(set(r['Symbol'] for r in all_results))} stocks!"
+    if failed_tickers:
+        toast_msg += f" ({len(failed_tickers)} gagal / data tidak ada)"
+    st.toast(toast_msg, icon="✅")
+    st.session_state[f"{cache_key}_failed"] = sorted(failed_tickers)
+
+    if not all_results:
+        shown = ", ".join(sorted(failed_tickers)[:10])
+        st.warning(f"⚠️ Tidak ada data valid untuk ticker: {shown}")
 
     if all_results:
         df_res = pd.DataFrame(all_results)
@@ -325,6 +435,17 @@ def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False)
         warning_val = row.get("Analysis & Risk Warning", "-")
         strat_code_val = row.get("Strategy", "BOW")
 
+        # ---- info status dari engine (level, tanggal data, tingkat warning) ----
+        status_level_val = str(row.get("Status Level", "") or "")
+        as_of_text = _fmt_as_of(row.get("Data As Of", ""), bool(row.get("Candle Final", True)))
+        warning_color = WARNING_COLORS.get(str(row.get("Warning Level", "caution")), "#fbbf24")
+
+        copy_extra = ""
+        if status_level_val:
+            copy_extra += f"\nStatus Level: {status_level_val}"
+        if as_of_text:
+            copy_extra += f"\n{as_of_text}"
+
         copyable_text = f"""=== TRADE PLAN: {sym} ===
 Strategy: {strat_code_val}
 Grade: {grade_val}
@@ -335,7 +456,7 @@ Stop Loss: Rp {sl_val:,}
 Target 1 (TP1): Rp {tp1_val:,}
 Target 2 (TP2): Rp {tp2_val:,}
 Zone Position: {zone_pos_val}
-Risk-Reward: {rr_ratio_val}
+Risk-Reward: {rr_ratio_val}{copy_extra}
 ==============================="""
 
         unique_btn_id = f"copy_btn_tp_{sym}_{strat_code_val}"
@@ -346,7 +467,7 @@ Risk-Reward: {rr_ratio_val}
                 📋 Copy
             </button>
             <script>
-            const textToCopy_{unique_btn_id} = `{copyable_text}`;
+            const textToCopy_{unique_btn_id} = `{_js_template_escape(copyable_text)}`;
             const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
             btn_{unique_btn_id}.onclick = function() {{
                 navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
@@ -375,7 +496,13 @@ Risk-Reward: {rr_ratio_val}
                     st.rerun()
 
         strat_display_name = "Buy On Weakness" if strat_code_val == "BOW" else ("Buy On Breakout" if strat_code_val == "BOB" else strat_code_val)
-        is_suggestion = " (Suggestion)" if strat_code_val == row.get("Suggested Strategy") else ""
+        is_suggestion = " (Best Fit)" if strat_code_val == row.get("Suggested Strategy") else ""
+
+        as_of_html = (
+            f'<div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">{html_escape(as_of_text)}</div>'
+            if as_of_text
+            else ""
+        )
 
         st.markdown(
             f"""
@@ -386,20 +513,25 @@ Risk-Reward: {rr_ratio_val}
                     <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {grade_val}</span>
                     <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {score_val}/100</span>
                 </div>
-                <div style="color: #94a3b8; font-size: 0.9rem;">
+                <div style="color: #94a3b8; font-size: 0.9rem; text-align: right;">
                     Last Price: <strong style="color: #00F3FF; font-size: 1.1rem;">Rp {last_price_val:,}</strong>
+                    {as_of_html}
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+        buy_subtext = f"Status: {zone_pos_val}"
+        if status_level_val:
+            buy_subtext += f" · {html_escape(status_level_val)}"
+
         col1, col2 = st.columns(2)
         with col1:
             draw_card(
                 title="BUY RANGE / ENTRY ZONE",
                 value=str(buy_range_val),
-                subtext=f"Status: {zone_pos_val}",
+                subtext=buy_subtext,
                 badge_text=str(zone_pos_val),
                 variant="blue",
                 value_color="blue",
@@ -440,11 +572,11 @@ Risk-Reward: {rr_ratio_val}
                 </div>
                 <div>
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">CANDLESTICK PATTERN</span>
-                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{candle_val}</span>
+                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{html_escape(str(candle_val))}</span>
                 </div>
                 <div style="grid-column: span 2;">
                     <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">ANALYSIS & WARNING</span>
-                    <span style="font-size: 0.88rem; color: #ef4444; font-weight: 600;">{warning_val}</span>
+                    <span style="font-size: 0.88rem; color: {warning_color}; font-weight: 600;">{html_escape(str(warning_val))}</span>
                 </div>
             </div>
             """,
@@ -604,18 +736,23 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-# --- BANNER HEADER ---
+    # --- BANNER HEADER ---
     st.markdown(
         """
         <div class="header-banner">
             <div class="top-glowing-dot"></div>
             <h1>Stock Trade Planner</h1>
         </div>
-        
-        <div style="background-color: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 12px 16px; margin-top: 10px; margin-bottom: 16px;">
-            <p style="font-size: 12px; color: #8B949E; line-height: 1.5; margin: 0;">
-                <span style="color: #FFD700;">⭐</span> <strong style="color: #C9D1D9;">Trade Planner</strong> memetakan area beli, stop loss, dan target untuk saham yang sedang dipantau. Ini alat bantu perencanaan, bukan rekomendasi beli atau jual. Level dihitung dari swing high dan swing low terbaru dan bisa berubah saat candle baru terbentuk. Cek chart, volume, dan berita, lalu sesuaikan ukuran posisi dengan risiko masing-masing.
-            </p>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # --- CATATAN CARA PAKAI ---
+    st.markdown(
+        f"""
+        <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 10px 16px; margin-bottom: 18px; color: #94a3b8; font-size: 0.82rem; line-height: 1.55;">
+            ℹ️ <strong style="color: #cbd5e1;">Catatan:</strong> {html_escape(PAGE_NOTE)}
+            <div style="margin-top: 4px; color: #64748b;">{html_escape(PAGE_NOTE_SCORE)}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -633,6 +770,17 @@ def render_tab_trade_planner():
         st.session_state["f_rr"] = "ALL RATIOS"
     if "f_candle" not in st.session_state:
         st.session_state["f_candle"] = "ALL CANDLES"
+
+    # Pilihan filter lama (dari versi sebelumnya) yang sudah tidak ada -> kembali ke default
+    for _key, _opts in (
+        ("f_strategi", STRATEGY_OPTIONS),
+        ("f_grade", GRADE_OPTIONS),
+        ("f_zone", ZONE_OPTIONS),
+        ("f_rr", RR_OPTIONS),
+        ("f_candle", CANDLE_OPTIONS),
+    ):
+        if st.session_state.get(_key) not in _opts:
+            st.session_state[_key] = _opts[0]
 
     st.markdown(
         """
@@ -709,6 +857,10 @@ def render_tab_trade_planner():
 
         active_cache_key = "df_screener_single"
 
+        if active_cache_key in st.session_state and _cache_is_stale(st.session_state[active_cache_key]):
+            st.session_state.pop(active_cache_key, None)
+            st.info("Data lama dari versi sebelumnya dibersihkan. Silakan jalankan ulang analisis.")
+
         if active_cache_key in st.session_state:
             df_single_res = st.session_state[active_cache_key]
 
@@ -745,6 +897,10 @@ def render_tab_trade_planner():
 
         active_cache_key = "df_screener_batch"
 
+        if active_cache_key in st.session_state and _cache_is_stale(st.session_state[active_cache_key]):
+            st.session_state.pop(active_cache_key, None)
+            st.info("Data lama dari versi sebelumnya dibersihkan. Silakan jalankan ulang screener.")
+
         if active_cache_key in st.session_state:
             df_raw = st.session_state[active_cache_key]
 
@@ -754,27 +910,19 @@ def render_tab_trade_planner():
                 with r1c1:
                     f_strategi = st.selectbox(
                         "🎯 Strategy:",
-                        ["ALL STRATEGIES", "Buy On Weakness (BOW)", "Breakout (BOB)"],
+                        STRATEGY_OPTIONS,
                         key="f_strategi",
                     )
                 with r1c2:
                     f_grade = st.selectbox(
                         "🏆 Setup Grade:",
-                        [
-                            "ALL GRADES",
-                            "Grade A / A+ Only (High Quality)",
-                            "Grade B or Lower (Moderate/Risk)",
-                        ],
+                        GRADE_OPTIONS,
                         key="f_grade",
                     )
                 with r1c3:
                     f_zone = st.selectbox(
                         "📍 Price Zone:",
-                        [
-                            "ALL POSITIONS",
-                            "In Buy Zone (Ready to Execute)",
-                            "Near Zone (Approaching Entry)",
-                        ],
+                        ZONE_OPTIONS,
                         key="f_zone",
                     )
 
@@ -782,18 +930,13 @@ def render_tab_trade_planner():
                 with r2c1:
                     f_rr = st.selectbox(
                         "⚖️ Min Risk-Reward:",
-                        [
-                            "ALL RATIOS",
-                            "Min 1 : 1.5",
-                            "Min 1 : 2.0 (Standard)",
-                            "Min 1 : 3.0 (High Reward)",
-                        ],
+                        RR_OPTIONS,
                         key="f_rr",
                     )
                 with r2c2:
                     f_candle = st.selectbox(
                         "🕯️ Candlestick Pattern:",
-                        ["ALL CANDLES", "Bullish Signal Only", "Neutral / Doji Only"],
+                        CANDLE_OPTIONS,
                         key="f_candle",
                     )
                 with r2c3:
@@ -806,12 +949,13 @@ def render_tab_trade_planner():
             elif f_strategi == "Breakout (BOB)":
                 df = df[df["Strategy"] == "BOB"]
 
-            if f_grade == "Grade A / A+ Only (High Quality)":
-                df = df[df["Score"] >= 70]
-            elif f_grade == "Grade B or Lower (Moderate/Risk)":
-                df = df[df["Score"] < 70]
+            # Filter grade membaca teks Grade (Strong / Good / Fair / Weak), sama dengan yang tampil
+            if f_grade == "Strong / Good Setup Only":
+                df = df[df["Grade"].str.contains("Strong|Good", na=False)]
+            elif f_grade == "Fair / Weak Setup Only":
+                df = df[df["Grade"].str.contains("Fair|Weak", na=False)]
 
-            if f_zone == "In Buy Zone (Ready to Execute)":
+            if f_zone == "In Buy Zone":
                 df = df[df["Zone Position"] == "In Buy Zone"]
             elif f_zone == "Near Zone (Approaching Entry)":
                 df = df[df["Zone Position"] == "Near Zone"]
@@ -823,20 +967,11 @@ def render_tab_trade_planner():
             elif f_rr == "Min 1 : 3.0 (High Reward)":
                 df = df[df["RR_Val"] >= 3.0]
 
+            # Filter candle membaca label bias dari engine (bukan mencocokkan kata di nama pola)
             if f_candle == "Bullish Signal Only":
-                df = df[
-                    df["Candlestick Pattern"].str.contains(
-                        "Engulfing|Morning|Soldiers|Marubozu|Hammer|Dragonfly",
-                        case=False,
-                        na=False,
-                    )
-                ]
-            elif f_candle == "Neutral / Doji Only":
-                df = df[
-                    df["Candlestick Pattern"].str.contains(
-                        "Doji|Spinning|Standard", case=False, na=False
-                    )
-                ]
+                df = df[df["Candle Bias"] == "BULLISH"]
+            elif f_candle == "Neutral Only":
+                df = df[df["Candle Bias"] == "NEUTRAL"]
 
             df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
 
@@ -859,11 +994,12 @@ def render_tab_trade_planner():
 
             editor_key = f"batch_editor_v{st.session_state['batch_uncheck_trigger']}"
 
-            df_table = df.copy()
+            table_cols = [col for col in TABLE_COLUMNS if col in df.columns]
+            df_table = df[table_cols].copy()
             df_table.insert(0, "Select", False)
 
             edited_df = st.data_editor(
-                df_table[["Select"] + [col for col in df.columns if col != "Select"]],
+                df_table[["Select"] + table_cols],
                 column_config={
                     "Select": st.column_config.CheckboxColumn(
                         "Select",
@@ -877,7 +1013,7 @@ def render_tab_trade_planner():
                     "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
                     "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
                 },
-                disabled=[col for col in df.columns if col != "Select"],
+                disabled=table_cols,
                 use_container_width=True,
                 key=editor_key
             )
@@ -892,6 +1028,12 @@ def render_tab_trade_planner():
                 
                 plan_blocks = []
                 for _, r in df_to_preview.iterrows():
+                    extra = ""
+                    if str(r.get("Status Level", "") or ""):
+                        extra += f"\nStatus Level: {r.get('Status Level')}"
+                    as_of_r = _fmt_as_of(r.get("Data As Of", ""), bool(r.get("Candle Final", True)))
+                    if as_of_r:
+                        extra += f"\n{as_of_r}"
                     p_text = f"""=== TRADE PLAN: {r.get('Symbol', '')} ===
 Strategy: {r.get('Strategy', 'BOW')}
 Grade: {r.get('Grade', 'N/A')}
@@ -902,7 +1044,7 @@ Stop Loss: Rp {r.get('Stop Loss (SL)', 0):,}
 Target 1 (TP1): Rp {r.get('TP 1', 0):,}
 Target 2 (TP2): Rp {r.get('TP 2', 0):,}
 Zone Position: {r.get('Zone Position', '-')}
-Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}
+Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}{extra}
 ==============================="""
                     plan_blocks.append(p_text)
                 batch_copy_text = "\n\n".join(plan_blocks)
@@ -922,7 +1064,7 @@ Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}
                     📋 Copy Terpilih
                 </button>
                 <script>
-                const textToCopy_{unique_batch_btn_id} = `{batch_copy_text}`;
+                const textToCopy_{unique_batch_btn_id} = `{_js_template_escape(batch_copy_text)}`;
                 const btn_{unique_batch_btn_id} = document.getElementById("{unique_batch_btn_id}");
                 btn_{unique_batch_btn_id}.onclick = function() {{
                     if (!textToCopy_{unique_batch_btn_id}.trim()) {{

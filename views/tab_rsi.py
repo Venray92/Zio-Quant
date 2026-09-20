@@ -599,42 +599,39 @@ def render_tab_rsi():
                 )
         else:
             st.markdown(
-            """
-            <div class="empty-card" style="text-align: left; padding: 20px; background-color: #161B22; border-radius: 8px; border: 1px solid #30363D;">
-            <h3 style="color: #FFFFFF; font-size: 16px; margin-top: 0; margin-bottom: 12px;">
-                📌 Cara membaca hasil screener ini
-            </h3>
-            <p style="font-size: 13px; color: #C9D1D9; margin-bottom: 12px; line-height: 1.5;">
-                Screener menemukan divergence RSI yang sudah dikonfirmasi RSI GC/DC (maks. H+3 dari titik ke-2). 
-                <strong>Ini kandidat, bukan sinyal final.</strong> Sebelum masuk, cek di chart:
-            </p>
-            <ul style="font-size: 12px; color: #8B949E; margin-left: 0; padding-left: 20px; line-height: 1.6; margin-bottom: 16px;">
-                <li style="margin-bottom: 6px;">
-                    <strong style="color: #C9D1D9;">Garis divergence:</strong> Tarik garis titik 1 ke titik 2 di harga dan di RSI, pastikan polanya bersih dan tidak ada candle yang menembusnya.
-                </li>
-                <li style="margin-bottom: 6px;">
-                    <strong style="color: #C9D1D9;">Konfirmasi candle:</strong> Lebih kuat kalau harga close di atas high kemarin atau muncul candle pembalikan, bukan cuma RSI yang naik.
-                </li>
-                <li style="margin-bottom: 6px;">
-                    <strong style="color: #C9D1D9;">Volume:</strong> Lebih meyakinkan kalau volume naik saat harga memantul. Skor sudah menghitung volume, tapi tetap lihat sendiri di chart.
-                </li>
-                <li style="margin-bottom: 6px;">
-                    <strong style="color: #C9D1D9;">Tipe pola:</strong> Regular = potensi pembalikan arah (lebih berisiko kalau tren besar masih berlawanan). Hidden = lanjutan tren (lebih cocok kalau tren utama masih searah).
-                </li>
-                <li style="margin-bottom: 6px;">
-                    <strong style="color: #C9D1D9;">Support/resistance dan jarak harga:</strong> Cek ruang ke resistance terdekat. Makin jauh harga dari titik ke-2, makin kecil risk-reward-nya.
-                </li>
-                <li style="margin-bottom: 6px;">
-                    <strong style="color: #C9D1D9;">Bearish:</strong> Tanda momentum melemah (waspada), bukan otomatis sinyal jual atau short.
-                </li>
-            </ul>
-            <p style="font-size: 12px; color: #E3B341; margin-bottom: 0; font-weight: 500;">
-                ⚠️ Saham hilang dari daftar setelah H+3. Itu bukan sinyal jual.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-            """,
-            unsafe_allow_html=True,
-    )
+                """
+                <div class="empty-card" style="text-align: left; padding: 20px; background-color: #161B22; border-radius: 8px; border: 1px solid #30363D;">
+                    <h3 style="color: #FFFFFF; font-size: 16px; margin-top: 0; margin-bottom: 12px;">
+                        📌 Cara membaca hasil screener ini
+                    </h3>
+                    <p style="font-size: 13px; color: #C9D1D9; margin-bottom: 12px; line-height: 1.5;">
+                        Screener menemukan divergence RSI yang sudah dikonfirmasi RSI GC/DC (maks. H+3 dari titik ke-2). 
+                        <strong>Ini kandidat, bukan sinyal final.</strong> Sebelum masuk, cek di chart:
+                    </p>
+                    <ul style="font-size: 12px; color: #8B949E; margin-left: 0; padding-left: 20px; line-height: 1.6; margin-bottom: 16px;">
+                        <li style="margin-bottom: 6px;">
+                            <strong style="color: #C9D1D9;">Garis divergence:</strong> Tarik garis titik 1 ke titik 2 di harga dan di RSI, pastikan polanya bersih dan tidak ada candle yang menembusnya.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <strong style="color: #C9D1D9;">Konfirmasi candle:</strong> Lebih kuat kalau harga close di atas high kemarin atau muncul candle pembalikan, bukan cuma RSI yang naik.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <strong style="color: #C9D1D9;">Volume:</strong> Lebih meyakinkan kalau volume naik saat harga memantul. Skor sudah menghitung volume, tapi tetap lihat sendiri di chart.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <strong style="color: #C9D1D9;">Tipe pola:</strong> Regular = potensi pembalikan arah (lebih berisiko kalau tren besar masih berlawanan). Hidden = lanjutan tren (lebih cocok kalau tren utama masih searah).
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <strong style="color: #C9D1D9;">Support/resistance dan jarak harga:</strong> Cek ruang ke resistance terdekat. Makin jauh harga dari titik ke-2, makin kecil risk-reward-nya.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <strong style="color: #C9D1D9;">Bearish:</strong> Tanda momentum melemah (waspada), bukan otomatis sinyal jual atau short.
+                        </li>
+                    </ul>
+                    <p style="font-size: 12px; color: #E3B341; margin-bottom: 0; font-weight: 500;">
+                        ⚠️ Saham hilang dari daftar setelah H+3. Itu bukan sinyal jual.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )

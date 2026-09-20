@@ -1,0 +1,60 @@
+name: Update market data
+
+on:
+  schedule:
+    # 17:30 WIB dan percobaan ulang 20:00 WIB (jadwal GitHub memakai UTC), Senin-Jumat
+    - cron: "30 10 * * 1-5"
+    - cron: "0 13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Paksa unduh ulang walau data sudah terbaru"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-market-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pandas numpy yfinance
+
+      - name: Download market data
+        id: fetch
+        env:
+          FORCE_RUN: ${{ inputs.force }}
+        run: |
+          if [ "$FORCE_RUN" = "true" ]; then
+            python scripts/update_market_data.py --out out --force
+          else
+            python scripts/update_market_data.py --out out
+          fi
+
+      - name: Publish to data branch
+        if: steps.fetch.outputs.changed == 'true'
+        run: |
+          set -e
+          mkdir -p /tmp/publish
+          cp out/market_data.csv.gz out/market_data_meta.json /tmp/publish/
+          cd /tmp/publish
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "market data $(date -u +%F)"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push --force origin data

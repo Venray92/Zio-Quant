@@ -602,7 +602,7 @@ def render_tab_rsi():
                 """
                 <div class="empty-card" style="text-align: left; padding: 20px; background-color: #161B22; border-radius: 8px; border: 1px solid #30363D;">
                     <h3 style="color: #FFFFFF; font-size: 16px; margin-top: 0; margin-bottom: 12px;">
-                        📌 Cara membaca hasil screener ini
+                        ⭐ Cara membaca hasil screener ini
                     </h3>
                     <p style="font-size: 13px; color: #C9D1D9; margin-bottom: 12px; line-height: 1.5;">
                         Screener menemukan divergence RSI yang sudah dikonfirmasi RSI GC/DC (maks. H+3 dari titik ke-2). 

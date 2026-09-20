@@ -19,7 +19,7 @@ WIB = timezone(timedelta(hours=7))
 # ----------------------------------------------------------------------
 # Isi dengan "namaGitHub/zio-quant" (tanpa https://github.com/).
 # Boleh juga lewat environment variable MARKET_DATA_REPO.
-DATA_REPO = ""
+DATA_REPO = "Venray92/Zio-Quant"
 DATA_BRANCH = "data"
 DATA_FILE = "market_data.csv.gz"
 META_FILE = "market_data_meta.json"

@@ -546,11 +546,46 @@ def render_tab_stoch_psar():
         else:
             st.markdown(
                 """
-                <div class="empty-card">
-                    <div style="font-size: 32px; margin-bottom: 8px;">👈</div>
-                    <h3 style="color: #FFFFFF; font-size: 16px; margin-bottom: 4px;">Select a Stock from Left Panel</h3>
-                    <p style="font-size: 12px; color: #8B949E; max-width: 400px; margin: 0 auto;">
-                        Run the screening process, then click any stock card from the left panel to inspect full Trade Planner details.
+                <div class="empty-card" style="text-align: left; padding: 20px; background-color: #161B22; border-radius: 8px; border: 1px solid #30363D;">
+                    <h3 style="color: #FFFFFF; font-size: 16px; margin-top: 0; margin-bottom: 12px;">
+                        ⭐ Cara membaca hasil screener ini
+                    </h3>
+                    <p style="font-size: 13px; color: #C9D1D9; margin-bottom: 12px; line-height: 1.5;">
+                        Stochastic dan PSAR mengikuti pergerakan harga, jadi sinyalnya bisa terlambat atau palsu, terutama saat sideways. 
+                        <strong>Anggap hasilnya kandidat, lalu cek di chart:</strong>
+                    </p>
+                    <ul style="font-size: 12px; color: #8B949E; margin-left: 0; padding-left: 20px; line-height: 1.6; margin-bottom: 16px; list-style-type: none;">
+                        <li style="margin-bottom: 6px;">
+                            <span style="color: #FFD700; font-size: 10px; margin-right: 4px;">★</span>
+                            <strong style="color: #C9D1D9;">Tren:</strong> Lihat label di Detail Signal. "Pullback di Uptrend" umumnya lebih kuat daripada "Reversal di Downtrend" (yang berisiko menangkap pisau jatuh).
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <span style="color: #FFD700; font-size: 10px; margin-right: 4px;">★</span>
+                            <strong style="color: #C9D1D9;">Volume:</strong> Lebih baik kalau volume di hari cross di atas rata-rata (lihat "Vol x MA20").
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <span style="color: #FFD700; font-size: 10px; margin-right: 4px;">★</span>
+                            <strong style="color: #C9D1D9;">Kesegaran sinyal:</strong> H-0 paling segar. H-1 dan H-2 sudah lebih telat, cek apakah harga masih dekat area cross.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <span style="color: #FFD700; font-size: 10px; margin-right: 4px;">★</span>
+                            <strong style="color: #C9D1D9;">Jangan mengejar:</strong> Kalau harga sudah naik banyak dalam beberapa hari, risk-reward biasanya sudah jelek.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <span style="color: #FFD700; font-size: 10px; margin-right: 4px;">★</span>
+                            <strong style="color: #C9D1D9;">PSAR:</strong> Kalau ada catatan "PSAR diabaikan (ADX rendah)", artinya kondisi sideways dan sinyal PSAR kurang bisa dipercaya. Titik PSAR juga bisa dipakai sebagai acuan trailing stop.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <span style="color: #FFD700; font-size: 10px; margin-right: 4px;">★</span>
+                            <strong style="color: #C9D1D9;">Support/resistance:</strong> Cek resistance terdekat di chart sebelum masuk.
+                        </li>
+                        <li style="margin-bottom: 6px;">
+                            <span style="color: #FFD700; font-size: 10px; margin-right: 4px;">★</span>
+                            <strong style="color: #C9D1D9;">DC (bearish):</strong> Peringatan pelemahan, bukan otomatis sinyal jual atau short.
+                        </li>
+                    </ul>
+                    <p style="font-size: 12px; color: #E3B341; margin-bottom: 0; font-weight: 500;">
+                        💡 Jalankan scan setelah pasar tutup agar candle sudah final.
                     </p>
                 </div>
                 """,

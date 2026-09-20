@@ -1,1101 +1,909 @@
-import concurrent.futures
-import json
-import os
-from html import escape as html_escape
-
+import numpy as np
 import pandas as pd
-import streamlit as st
-import streamlit.components.v1 as components
+import yfinance as yf
+from datetime import datetime, timedelta, timezone
 
-from engines.trade_planner import TradePlanner
-
-# Kolom yang tampil di tabel batch (sama seperti sebelumnya, kolom baru dari engine
-# tetap tersedia untuk kartu tapi tidak menambah lebar tabel).
-TABLE_COLUMNS = [
-    "Symbol",
-    "Score",
-    "Grade",
-    "Strategy",
-    "Suggested Strategy",
-    "Last Price",
-    "Zone Position",
-    "Buy Range",
-    "Stop Loss (SL)",
-    "TP 1",
-    "TP 2",
-    "Potential Gain",
-    "Potential Gain TP2",
-    "SL Risk",
-    "Risk-Reward Ratio",
-    "RR_Val",
-    "Candlestick Pattern",
-    "Analysis & Risk Warning",
-]
-
-# Kolom baru dari engine. Cache lama (tanpa kolom ini) otomatis dibersihkan.
-NEW_REQUIRED_COLS = [
-    "Status Level",
-    "Warning Level",
-    "Candle Bias",
-    "Data As Of",
-    "Candle Final",
-    "Entry Basis",
-]
-
-# Warna teks warning mengikuti tingkat peringatan dari engine
-WARNING_COLORS = {"ok": "#34d399", "caution": "#fbbf24", "critical": "#ef4444"}
-
-STRATEGY_OPTIONS = ["ALL STRATEGIES", "Buy On Weakness (BOW)", "Breakout (BOB)"]
-GRADE_OPTIONS = ["ALL GRADES", "Strong / Good Setup Only", "Fair / Weak Setup Only"]
-ZONE_OPTIONS = [
-    "ALL POSITIONS",
-    "In Buy Zone",
-    "Near Zone (Approaching Entry)",
-]
-RR_OPTIONS = [
-    "ALL RATIOS",
-    "Min 1 : 1.5",
-    "Min 1 : 2.0 (Standard)",
-    "Min 1 : 3.0 (High Reward)",
-]
-CANDLE_OPTIONS = ["ALL CANDLES", "Bullish Signal Only", "Neutral Only"]
-
-PAGE_NOTE = (
-    "Trade Planner memetakan area beli, stop loss, dan target untuk saham yang sedang "
-    "dipantau. Ini alat bantu perencanaan, bukan rekomendasi beli atau jual. Level dihitung "
-    "dari swing high dan swing low terbaru dan bisa berubah saat candle baru terbentuk. "
-    "Cek chart, volume, dan berita, lalu sesuaikan ukuran posisi dengan risiko masing-masing."
-)
-PAGE_NOTE_SCORE = (
-    "Skor menilai kualitas rencana (risk-reward, posisi harga, tren, candle, volume), "
-    "bukan sinyal beli."
-)
+# Swing: butuh 3 candle di kiri dan 2 candle di kanan agar berstatus "Confirmed".
+# Swing yang masih kurang candle di kanannya tetap dibaca sebagai "Developing".
+SWING_LEFT = 3
+SWING_RIGHT = 2
 
 
-def load_daftar_saham(filename=os.path.join("data", "daftar_saham.txt")):
-    """Reads ticker list from file inside data folder or fallback to root."""
-    target_path = filename
-    
-    if not os.path.exists(target_path):
-        alt_path = os.path.basename(filename)
-        if os.path.exists(alt_path):
-            target_path = alt_path
+class TradePlanner:
+
+    def __init__(self, ticker="INCO.JK", period="6mo"):
+        self.ticker = ticker.upper()
+        self.period = period
+        self.df = None
+        self.atr_14 = 0.0
+        self.ma20 = None
+        self.ma50 = None
+        self.vol_ratio = 0.0
+        self.last_candle_date = None
+        self.candle_final = True
+        self.highs_15 = pd.DataFrame()
+        self.lows_15 = pd.DataFrame()
+        self.highs_5 = pd.DataFrame()
+        self.strong_support = pd.DataFrame()
+        self.strong_resistance = pd.DataFrame()
+
+    # ------------------------------------------------------------------
+    # FRAKSI HARGA IDX
+    # ------------------------------------------------------------------
+    @staticmethod
+    def get_tick_size(price: float) -> int:
+        p = float(price)
+        if p < 200:
+            return 1
+        elif p < 500:
+            return 2
+        elif p < 2000:
+            return 5
+        elif p < 5000:
+            return 10
         else:
-            return []
+            return 25
 
-    try:
-        with open(target_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        tickers = [
-            line.strip().upper()
-            for line in lines
-            if line.strip() and not line.startswith("#")
+    @classmethod
+    def add_ticks(cls, price: float, n_ticks: int) -> float:
+        p = float(price)
+        if p > 0:
+            p = cls.round_to_nearest_tick(p)
+        for _ in range(n_ticks):
+            p += cls.get_tick_size(p)
+        return round(p, 2)
+
+    @classmethod
+    def sub_ticks(cls, price: float, n_ticks: int) -> float:
+        p = float(price)
+        for _ in range(n_ticks):
+            # pakai fraksi band tepat di bawah harga (mis. 500 -> 498, bukan 495)
+            tick = cls.get_tick_size(p - 1e-6)
+            p -= tick
+            if p < 1:
+                p = 1.0
+                break
+        return round(p, 2)
+
+    @classmethod
+    def round_to_nearest_tick(cls, price: float) -> float:
+        price = float(price)
+        if price <= 0:
+            return 0.0
+        tick = cls.get_tick_size(price)
+        return round(round(price / tick) * tick, 2)
+
+    @classmethod
+    def floor_to_tick(cls, price: float) -> float:
+        price = float(price)
+        if price <= 0:
+            return 0.0
+        tick = cls.get_tick_size(price)
+        return round(float(np.floor(price / tick + 1e-9)) * tick, 2)
+
+    # ------------------------------------------------------------------
+    # DATA & SWING
+    # ------------------------------------------------------------------
+    def fetch_and_prepare_data(self):
+        stock = yf.Ticker(self.ticker)
+        # auto_adjust=False: harga sama dengan chart asli (bukan harga yang disesuaikan)
+        df = stock.history(
+            period=self.period, interval="1d", auto_adjust=False
+        ).reset_index()
+
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [col[0] for col in df.columns]
+
+        if df.empty or len(df) < 20:
+            raise ValueError(
+                f"Data tidak mencukupi untuk ticker '{self.ticker}'."
+            )
+
+        if "Date" in df.columns:
+            df["Date"] = pd.to_datetime(df["Date"]).dt.tz_localize(None)
+
+        df = df.dropna(subset=["Open", "High", "Low", "Close"]).reset_index(drop=True)
+        if len(df) < 20:
+            raise ValueError(
+                f"Data tidak mencukupi untuk ticker '{self.ticker}'."
+            )
+        df["Volume"] = df["Volume"].fillna(0)
+
+        df["Body_Top"] = df[["Open", "Close"]].max(axis=1)
+        df["Body_Bottom"] = df[["Open", "Close"]].min(axis=1)
+
+        df["Prev_Close"] = df["Close"].shift(1)
+        df["TR"] = np.maximum(
+            df["High"] - df["Low"],
+            np.maximum(
+                abs(df["High"] - df["Prev_Close"]),
+                abs(df["Low"] - df["Prev_Close"]),
+            ),
+        )
+        atr_series = df["TR"].rolling(window=14).mean()
+        self.atr_14 = float(
+            atr_series.iloc[-1] if not pd.isna(atr_series.iloc[-1]) else 0.0
+        )
+
+        # Tren (MA20 / MA50) dan volume relatif (dibanding 20 hari sebelumnya)
+        ma20 = df["Close"].rolling(20).mean().iloc[-1]
+        ma50 = df["Close"].rolling(50).mean().iloc[-1]
+        self.ma20 = float(ma20) if pd.notna(ma20) else None
+        self.ma50 = float(ma50) if pd.notna(ma50) else None
+
+        vol_ma = df["Volume"].rolling(20).mean().shift(1).iloc[-1]
+        last_vol = float(df["Volume"].iloc[-1])
+        self.vol_ratio = float(last_vol / vol_ma) if pd.notna(vol_ma) and vol_ma > 0 else 0.0
+
+        # Tanggal data dan status candle terakhir (final / belum)
+        self.last_candle_date = pd.Timestamp(df["Date"].iloc[-1])
+        wib = timezone(timedelta(hours=7))
+        now = datetime.now(wib)
+        self.candle_final = not (
+            self.last_candle_date.date() == now.date()
+            and (now.hour, now.minute) < (16, 15)
+        )
+
+        self.df = df
+        self._detect_swings()
+        self._calculate_strong_levels()
+
+    def _detect_swings(self):
+        df = self.df
+        n = len(df)
+        highs = df["High"].values
+        lows = df["Low"].values
+        sh = [""] * n
+        sl = [""] * n
+
+        # Confirmed: 3 candle di kiri, 2 candle di kanan
+        for i in range(SWING_LEFT, n - SWING_RIGHT):
+            if (
+                highs[i] >= highs[i - SWING_LEFT:i].max()
+                and highs[i] > highs[i + 1:i + 1 + SWING_RIGHT].max()
+            ):
+                sh[i] = "Confirmed"
+            if (
+                lows[i] <= lows[i - SWING_LEFT:i].min()
+                and lows[i] < lows[i + 1:i + 1 + SWING_RIGHT].min()
+            ):
+                sl[i] = "Confirmed"
+
+        # Developing: swing terbaru yang belum punya cukup candle di kanan
+        for i in range(max(SWING_LEFT, n - SWING_RIGHT), n):
+            right_h = highs[i + 1:]
+            right_l = lows[i + 1:]
+            if highs[i] >= highs[i - SWING_LEFT:i].max() and (
+                len(right_h) == 0 or highs[i] > right_h.max()
+            ):
+                sh[i] = "Developing"
+            if lows[i] <= lows[i - SWING_LEFT:i].min() and (
+                len(right_l) == 0 or lows[i] < right_l.min()
+            ):
+                sl[i] = "Developing"
+
+        df["SH_Status"] = sh
+        df["SL_Status"] = sl
+        df["Swing_Type"] = ""
+        df.loc[df["SH_Status"] != "", "Swing_Type"] = "Swing High"
+        df.loc[df["SL_Status"] != "", "Swing_Type"] = "Swing Low"
+        df["Swing_Status"] = np.where(
+            df["Swing_Type"] == "Swing Low",
+            df["SL_Status"],
+            np.where(df["Swing_Type"] == "Swing High", df["SH_Status"], ""),
+        )
+
+        highs_df = df[df["SH_Status"] != ""].copy()
+        highs_df["Swing_Status"] = highs_df["SH_Status"]
+        lows_df = df[df["SL_Status"] != ""].copy()
+        lows_df["Swing_Status"] = lows_df["SL_Status"]
+
+        self.highs_15 = highs_df.sort_values(by="Date", ascending=False).head(15)
+        self.lows_15 = lows_df.sort_values(by="Date", ascending=False).head(15)
+        self.highs_5 = self.highs_15.head(5)
+
+    @staticmethod
+    def _filter_overlapping_levels(
+        df_levels, col1, col2, prefix="Resistance", max_levels=3
+    ):
+        if df_levels.empty:
+            return pd.DataFrame()
+
+        if "Date" in df_levels.columns:
+            df_levels = df_levels.sort_values(by="Date", ascending=False)
+
+        accepted_rows, accepted_ranges = [], []
+        for _, row in df_levels.iterrows():
+            r_min = min(row[col1], row[col2])
+            r_max = max(row[col1], row[col2])
+            overlap = False
+            for a_min, a_max in accepted_ranges:
+                if max(r_min, a_min) <= min(r_max, a_max):
+                    overlap = True
+                    break
+            if not overlap:
+                accepted_rows.append(row.to_dict())
+                accepted_ranges.append((r_min, r_max))
+
+        res_df = pd.DataFrame(accepted_rows)
+        if not res_df.empty:
+            res_df = res_df.head(max_levels).reset_index(drop=True)
+            res_df["Rank"] = [
+                f"1st {prefix} (Terdekat)" if i == 0 else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
+                for i in range(len(res_df))
+            ]
+        return res_df
+
+    @staticmethod
+    def _rank_by_proximity(levels, prefix, last_close):
+        """Urutkan level dari yang paling dekat harga sekarang (bukan yang paling baru)."""
+        if levels is None or levels.empty:
+            return pd.DataFrame()
+        lv = levels.copy()
+        if prefix == "Resistance":
+            ahead = lv[lv["High"] >= last_close].sort_values(by="Body_Top", ascending=True)
+            behind = lv[lv["High"] < last_close].sort_values(by="High", ascending=False)
+            ordered = pd.concat([ahead, behind])
+        else:
+            below = lv[lv["Low"] <= last_close].sort_values(by="Body_Bottom", ascending=False)
+            above = lv[lv["Low"] > last_close].sort_values(by="Low", ascending=True)
+            ordered = pd.concat([below, above])
+        ordered = ordered.head(3).reset_index(drop=True)
+        ordered["Rank"] = [
+            f"1st {prefix} (Terdekat)" if i == 0 else (f"2nd {prefix}" if i == 1 else f"3rd {prefix} (Terjauh)")
+            for i in range(len(ordered))
         ]
-        return tickers
-    except Exception:
-        return []
+        return ordered
 
+    def _calculate_strong_levels(self):
+        last_close = float(self.df.iloc[-1]["Close"])
 
-def _fmt_as_of(value, final=True):
-    """Teks 'Data per 18 Sep 2026' (+ penanda candle belum final)."""
-    try:
-        txt = pd.to_datetime(value).strftime("%d %b %Y")
-    except Exception:
-        return ""
-    return f"Data per {txt}" + ("" if final else " · candle belum final")
+        res_results = []
+        for _, row in self.highs_15.sort_values(by="Date", ascending=False).head(8).iterrows():
+            idx = row.name
+            body_tops = [row["Body_Top"]]
+            if idx > 0 and (idx - 1) in self.df.index:
+                body_tops.append(self.df.loc[idx - 1, "Body_Top"])
+            if (idx + 1) in self.df.index:
+                body_tops.append(self.df.loc[idx + 1, "Body_Top"])
 
-
-def _js_template_escape(text):
-    """Aman dipakai di dalam template literal JavaScript (backtick)."""
-    return (
-        str(text)
-        .replace("\\", "\\\\")
-        .replace("`", "\\`")
-        .replace("${", "\\${")
-        .replace("</", "<\\/")
-    )
-
-
-def _cache_is_stale(df):
-    """Cache dari versi lama (tanpa kolom baru engine) perlu dibersihkan."""
-    return any(col not in df.columns for col in NEW_REQUIRED_COLS)
-
-
-def process_single_ticker(ticker_code: str):
-    """Single ticker execution processor: mengembalikan seluruh DataFrame plan (BOW & BOB) beserta rekomendasi direction."""
-    symbol = ticker_code.strip().upper()
-    if not symbol.endswith(".JK"):
-        symbol += ".JK"
-
-    try:
-        planner = TradePlanner(symbol, period="6mo")
-        planner.fetch_and_prepare_data()
-
-        df_dir = planner.get_direction()
-        df_plan = planner.generate_trade_plan()
-
-        if df_dir is None or df_plan is None or df_dir.empty or df_plan.empty:
-            return None
-
-        curr_close = int(df_dir.iloc[0]["Last Close Market"])
-        suggested_dir = df_dir.iloc[0]["Direction"] # 'BOW' atau 'BOB'
-
-        processed_plans = []
-        for idx, p in df_plan.iterrows():
-            plan_type = str(p["Type"])
-            
-            buy_min = float(p["Range Buy Min"])
-            stop_loss = float(p["Stop Loss"])
-            tp1 = float(p["TP 1"])
-            tp2 = float(p["TP 2"])
-
-            # Semua angka (RR, gain, risk) memakai satu titik entry dari engine
-            entry_ref = p.get("Entry Basis")
-            if entry_ref is None or pd.isnull(entry_ref) or float(entry_ref) <= 0:
-                entry_ref = (p["Range Buy Min"] + p["Range Buy Max"]) / 2.0
-            entry_ref = float(entry_ref)
-
-            rr_val = float(p["RR_Val"]) if pd.notnull(p["RR_Val"]) else 0.0
-
-            pot_gain_tp1 = round(((tp1 - entry_ref) / entry_ref) * 100, 1) if entry_ref > 0 else 0
-            pot_gain_tp2 = round(((tp2 - entry_ref) / entry_ref) * 100, 1) if entry_ref > 0 else 0
-            
-            pot_risk = round(((entry_ref - stop_loss) / entry_ref) * 100, 1) if entry_ref > 0 else 0
-
-            processed_plans.append({
-                "Symbol": symbol.replace(".JK", ""),
-                "Score": int(p["Score"]) if pd.notnull(p["Score"]) else 0,
-                "Grade": str(p["Grade"]),
-                "Strategy": plan_type,
-                "Suggested Strategy": suggested_dir,
-                "Last Price": curr_close,
-                "Zone Position": str(p["Posisi Harga"]),
-                "Buy Range": str(p["Area Buy"]),
-                "Stop Loss (SL)": int(stop_loss) if pd.notnull(stop_loss) else 0,
-                "TP 1": int(tp1) if pd.notnull(tp1) else 0,
-                "TP 2": int(tp2) if pd.notnull(tp2) else 0,
-                "Potential Gain": f"{pot_gain_tp1:+.1f}%",
-                "Potential Gain TP2": f"{pot_gain_tp2:+.1f}%",
-                "SL Risk": f"-{abs(pot_risk)}%",
-                "Risk-Reward Ratio": f"1 : {rr_val}" if rr_val > 0 else "-",
-                "RR_Val": float(rr_val),
-                "Candlestick Pattern": str(p["Pola Candle"]),
-                "Analysis & Risk Warning": str(p["Warning"]),
-                # ---- kolom baru dari engine ----
-                "Status Level": str(p.get("Status Level", "")),
-                "Plan Status": str(p.get("Plan Status", "")),
-                "Warning Level": str(p.get("Warning Level", "caution")),
-                "Candle Bias": str(p.get("Candle Bias", "NEUTRAL")),
-                "Data As Of": str(p.get("Data As Of", "")),
-                "Candle Final": bool(p.get("Candle Final", True)),
-                "Entry Basis": entry_ref,
-                "Score Detail": str(p.get("Score Detail", "")),
+            res_results.append({
+                "Date": row["Date"].strftime("%Y-%m-%d"),
+                "Body_Top": round(max(body_tops), 2),
+                "High": round(row["High"], 2),
+                "Status": row["Swing_Status"],
             })
 
-        return processed_plans
-    except Exception:
-        return None
-
-
-def run_batch_execution(ticker_list, cache_key):
-    """Multi-threaded execution runner with safe main-thread UI updates."""
-    total_saham = len(ticker_list)
-    if total_saham == 0:
-        st.warning("⚠️ Ticker list is empty!")
-        return
-
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-
-    all_results = []
-    failed_tickers = []
-    completed = 0
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_ticker = {
-            executor.submit(process_single_ticker, t): t for t in ticker_list
-        }
-
-        for future in concurrent.futures.as_completed(future_to_ticker):
-            res_list = future.result()
-            if res_list:
-                all_results.extend(res_list)
-            else:
-                failed_tickers.append(future_to_ticker[future])
-
-            completed += 1
-            percent = completed / total_saham
-            progress_bar.progress(percent)
-            status_text.markdown(
-                f"⏳ **Analyzing stocks:** `{completed}/{total_saham}` processed ({int(percent * 100)}%)"
-            )
-
-    progress_bar.empty()
-    status_text.empty()
-
-    toast_msg = f"Analysis Complete: Analyzed {len(set(r['Symbol'] for r in all_results))} stocks!"
-    if failed_tickers:
-        toast_msg += f" ({len(failed_tickers)} gagal / data tidak ada)"
-    st.toast(toast_msg, icon="✅")
-    st.session_state[f"{cache_key}_failed"] = sorted(failed_tickers)
-
-    if not all_results:
-        shown = ", ".join(sorted(failed_tickers)[:10])
-        st.warning(f"⚠️ Tidak ada data valid untuk ticker: {shown}")
-
-    if all_results:
-        df_res = pd.DataFrame(all_results)
-        st.session_state[cache_key] = df_res
-
-
-def reset_filters():
-    """Callback function to reset filter choices to defaults."""
-    st.session_state["f_strategi"] = "ALL STRATEGIES"
-    st.session_state["f_grade"] = "ALL GRADES"
-    st.session_state["f_zone"] = "ALL POSITIONS"
-    st.session_state["f_rr"] = "ALL RATIOS"
-    st.session_state["f_candle"] = "ALL CANDLES"
-
-
-def clear_cache(cache_key):
-    """Clear specific cache mode."""
-    st.session_state.pop(cache_key, None)
-    st.toast("Data Cache Cleared", icon="🧹")
-
-
-def add_tickers_to_watchlist(symbols_list):
-    storage_file = "watchlist_storage.json"
-    try:
-        watchlist_data = []
-        if os.path.exists(storage_file):
-            try:
-                with open(storage_file, "r", encoding="utf-8") as f:
-                    watchlist_data = json.load(f)
-            except Exception:
-                watchlist_data = []
-        
-        existing_tickers = set()
-        for item in watchlist_data:
-            if isinstance(item, str):
-                existing_tickers.add(item.upper())
-            elif isinstance(item, dict):
-                t = item.get("Ticker", "")
-                if t:
-                    existing_tickers.add(t.upper())
-        
-        added_count = 0
-        active_screener_name = st.session_state.get("active_screener_name", "Trade Planner Screener")
-
-        for sym in symbols_list:
-            clean_sym = sym.strip().upper()
-            formatted = clean_sym if clean_sym.endswith(".JK") else f"{clean_sym}.JK"
-            
-            if formatted not in existing_tickers and clean_sym not in existing_tickers:
-                new_item = {
-                    "Ticker": formatted,
-                    "Notes": active_screener_name,
-                    "Target Price": 0
-                }
-                watchlist_data.append(new_item)
-                
-                if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
-                    st.session_state["watchlist"].append(new_item)
-                if "watchlist_data" in st.session_state and isinstance(st.session_state["watchlist_data"], list):
-                    st.session_state["watchlist_data"].append(new_item)
-
-                existing_tickers.add(formatted)
-                existing_tickers.add(clean_sym)
-                added_count += 1
-        
-        if added_count > 0:
-            with open(storage_file, "w", encoding="utf-8") as f:
-                json.dump(watchlist_data, f, indent=4)
-            st.toast(f"Berhasil menambahkan {added_count} saham ke Watchlist!", icon="⭐")
-        else:
-            st.toast("Saham terpilih sudah ada di dalam Watchlist.", icon="ℹ️")
-            
-    except Exception as e:
-        st.error(f"Gagal menyimpan ke watchlist: {e}")
-
-
-def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="blue"):
-    """Reusable Dashboard Card Component."""
-    badge_html = (
-        f'<span class="card-badge badge-{variant}">{badge_text}</span>'
-        if badge_text
-        else ""
-    )
-
-    card_html = f"""
-    <div class="card card-{variant}">
-        <div class="card-header">
-            <span class="card-title title-{variant}">{title}</span>
-            {badge_html}
-        </div>
-        <div class="card-value val-{value_color}">{value}</div>
-        <p class="card-subtext">{subtext}</p>
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
-
-
-def render_trade_plan_cards(df_data, is_title_needed=True, is_single_mode=False):
-    """Renders Trade Plan Cards for given stocks Dataframe dengan pilihan dropdown strategi rapi di kiri."""
-    if is_title_needed:
-        st.markdown(
-            f"""
-            <h3 class="glow-title">
-                <span class="cyan-dot"></span>Trade Plans 
-                <span style='font-size:0.9rem; color:#94a3b8;'>({len(df_data['Symbol'].unique())} items)</span>
-            </h3>
-            """,
-            unsafe_allow_html=True,
+        res_df = self._filter_overlapping_levels(
+            pd.DataFrame(res_results), "Body_Top", "High",
+            prefix="Resistance", max_levels=8,
         )
+        self.strong_resistance = self._rank_by_proximity(res_df, "Resistance", last_close)
 
-    symbols = df_data["Symbol"].unique()
+        sup_results = []
+        for _, row in self.lows_15.sort_values(by="Date", ascending=False).head(8).iterrows():
+            idx = row.name
+            body_bottoms = [row["Body_Bottom"]]
+            if idx > 0 and (idx - 1) in self.df.index:
+                body_bottoms.append(self.df.loc[idx - 1, "Body_Bottom"])
+            if (idx + 1) in self.df.index:
+                body_bottoms.append(self.df.loc[idx + 1, "Body_Bottom"])
 
-    for sym in symbols:
-        df_sym = df_data[df_data["Symbol"] == sym]
-        
-        strategies = df_sym["Strategy"].tolist() if "Strategy" in df_sym.columns else ["BOW"]
-        suggested_strat = df_sym["Suggested Strategy"].iloc[0] if "Suggested Strategy" in df_sym.columns else strategies[0]
-        
-        selected_strat = suggested_strat
-        if len(strategies) > 1:
-            st.write("")
-            
-            label_map = {
-                "BOW": "Buy On Weakness",
-                "BOB": "Buy On Breakout"
+            sup_results.append({
+                "Date": row["Date"].strftime("%Y-%m-%d"),
+                "Low": round(row["Low"], 2),
+                "Body_Bottom": round(min(body_bottoms), 2),
+                "Status": row["Swing_Status"],
+            })
+
+        sup_df = self._filter_overlapping_levels(
+            pd.DataFrame(sup_results), "Body_Bottom", "Low",
+            prefix="Support", max_levels=8,
+        )
+        self.strong_support = self._rank_by_proximity(sup_df, "Support", last_close)
+
+    # ------------------------------------------------------------------
+    # ARAH (BOB / BOW)
+    # ------------------------------------------------------------------
+    def get_direction(self):
+        if self.highs_15.empty or self.lows_15.empty:
+            return pd.DataFrame()
+
+        hi = self.highs_15.sort_values(by="Date", ascending=False)
+        lo = self.lows_15.sort_values(by="Date", ascending=False)
+        latest_high_val = float(hi.iloc[0]["High"])
+        latest_low_val = float(lo.iloc[0]["Low"])
+        last_market_close = float(self.df.iloc[-1]["Close"])
+        midpoint_50 = (latest_high_val + latest_low_val) / 2.0
+        rng = latest_high_val - latest_low_val
+        pos_pct = ((last_market_close - latest_low_val) / rng * 100.0) if rng > 0 else 50.0
+
+        conf_hi = hi[hi["Swing_Status"] == "Confirmed"]
+        conf_lo = lo[lo["Swing_Status"] == "Confirmed"]
+        conf_high_val = float(conf_hi.iloc[0]["High"]) if not conf_hi.empty else latest_high_val
+        conf_low_val = float(conf_lo.iloc[0]["Low"]) if not conf_lo.empty else latest_low_val
+
+        if rng < 2.0 * self.atr_14:
+            structure = "Range sempit (kurang dari 2x ATR), level 50% kurang bermakna"
+        elif last_market_close > conf_high_val:
+            structure = "Breakout: harga di atas swing high terakhir"
+        elif last_market_close < conf_low_val:
+            structure = "Struktur turun: harga di bawah swing low terakhir"
+        elif 40.0 <= pos_pct <= 60.0:
+            structure = "Zona netral (40-60% dari range)"
+        elif pos_pct > 60.0:
+            structure = "Harga di paruh atas range"
+        else:
+            structure = "Harga di paruh bawah range"
+
+        return pd.DataFrame([{
+            "Swing High Terupdate": self.round_to_nearest_tick(latest_high_val),
+            "Swing Low Terupdate": self.round_to_nearest_tick(latest_low_val),
+            "Level 50%": self.round_to_nearest_tick(midpoint_50),
+            "Last Close Market": self.round_to_nearest_tick(last_market_close),
+            "Direction": "BOB" if last_market_close >= midpoint_50 else "BOW",
+            "Posisi Range (%)": round(pos_pct, 1),
+            "Status Struktur": structure,
+            "Swing High Status": str(hi.iloc[0]["Swing_Status"]),
+            "Swing Low Status": str(lo.iloc[0]["Swing_Status"]),
+        }])
+
+    # ------------------------------------------------------------------
+    # CANDLE
+    # ------------------------------------------------------------------
+    def classify_candle(self):
+        if len(self.df) < 20 or self.atr_14 <= 0:
+            return "Standard (tanpa pola)", "NEUTRAL"
+
+        ma20 = self.df["Close"].rolling(20).mean().iloc[-1]
+        last_close = self.df.iloc[-1]["Close"]
+        is_downtrend = last_close < ma20
+        is_uptrend = last_close >= ma20
+
+        def get_props(row):
+            high, low, open_p, close = row["High"], row["Low"], row["Open"], row["Close"]
+            body_top, body_bottom = max(open_p, close), min(open_p, close)
+            body_size = body_top - body_bottom
+            total_range = max(high - low, 0.0001)
+            return {
+                "high": high,
+                "low": low,
+                "open": open_p,
+                "close": close,
+                "body_top": body_top,
+                "body_bottom": body_bottom,
+                "body_size": body_size,
+                "total_range": total_range,
+                "upper_shadow": high - body_top,
+                "lower_shadow": body_bottom - low,
+                "is_green": close > open_p,
+                "is_red": close < open_p,
+                "is_doji": body_size <= (total_range * 0.1),
             }
-            reverse_map = {v: k for k, v in label_map.items()}
-            
-            display_options = [label_map.get(s, s) for s in strategies]
-            default_display = label_map.get(suggested_strat, display_options[0])
-            default_idx = display_options.index(default_display) if default_display in display_options else 0
-            
-            if is_single_mode:
-                col_drop, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
-            else:
-                col_drop, col_space, col_c, col_w = st.columns([1.5, 1.4, 1.0, 1.0], vertical_alignment="bottom")
 
-            with col_drop:
-                st.markdown(
-                    """
-                    <div style="font-weight: 700; color: #00F3FF; font-size: 0.85rem; margin-bottom: 2px;">
-                        Pilih Strategi:
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                chosen_display = st.selectbox(
-                    "Strategy",
-                    options=display_options,
-                    index=default_idx,
-                    key=f"strat_select_{sym}",
-                    label_visibility="collapsed"
-                )
-            selected_strat = reverse_map.get(chosen_display, chosen_display)
+        p3 = get_props(self.df.iloc[-3])
+        p2 = get_props(self.df.iloc[-2])
+        p1 = get_props(self.df.iloc[-1])
 
-            row = df_sym[df_sym["Strategy"] == selected_strat].iloc[0] if not df_sym[df_sym["Strategy"] == selected_strat].empty else df_sym.iloc[0]
-        else:
-            row = df_sym.iloc[0]
-            if is_single_mode:
-                col_drop_dummy, col_space, col_c, col_w, col_cl = st.columns([1.5, 1.2, 0.8, 0.8, 0.8], vertical_alignment="bottom")
-            else:
-                col_drop_dummy, col_space, col_c, col_w = st.columns([1.5, 1.4, 1.0, 1.0], vertical_alignment="bottom")
+        is_large_body = p1["body_size"] >= (1.0 * self.atr_14)
+        is_small_body = p1["body_size"] < (0.4 * self.atr_14)
 
-            with col_drop_dummy:
-                label_map = {"BOW": "Buy On Weakness", "BOB": "Buy On Breakout"}
-                strat_code = str(row.get("Strategy", "BOW"))
-                st.markdown(
-                    f"""
-                    <div style="font-weight: 700; color: #00F3FF; font-size: 0.85rem; margin-bottom: 2px;">
-                        Pilih Strategi:
-                    </div>
-                    <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 10px; color: #cbd5e1; font-size: 0.9rem;">
-                        {label_map.get(strat_code, strat_code)}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        if p3["is_green"] and p2["is_green"] and p1["is_green"] and (p1["close"] > p2["close"] > p3["close"]) and is_large_body:
+            return "Three White Soldiers, tekanan beli berlanjut", "BULLISH"
+        if p3["is_red"] and (p3["body_size"] >= 0.8 * self.atr_14) and (p2["body_size"] < 0.4 * self.atr_14) and p1["is_green"] and (p1["close"] >= (p3["open"] + p3["close"]) / 2) and is_downtrend:
+            return "Morning Star, potensi pembalikan naik", "BULLISH"
+        if p3["is_green"] and (p3["body_size"] >= 0.8 * self.atr_14) and (p2["body_size"] < 0.4 * self.atr_14) and p1["is_red"] and (p1["close"] <= (p3["open"] + p3["close"]) / 2) and is_uptrend:
+            return "Evening Star, potensi pembalikan turun", "BEARISH"
 
-        p_gain_tp2 = row.get("Potential Gain TP2", "+0%")
-        sl_risk_val = row.get("SL Risk", "-0%")
-        tp1_val = row.get("TP 1", 0)
-        tp2_val = row.get("TP 2", 0)
-        sl_val = row.get("Stop Loss (SL)", 0)
-        score_val = row.get("Score", 0)
-        grade_val = row.get("Grade", "N/A")
-        last_price_val = row.get("Last Price", 0)
-        buy_range_val = row.get("Buy Range", "-")
-        zone_pos_val = row.get("Zone Position", "-")
-        rr_ratio_val = row.get("Risk-Reward Ratio", "1 : 0")
-        candle_val = row.get("Candlestick Pattern", "-")
-        warning_val = row.get("Analysis & Risk Warning", "-")
-        strat_code_val = row.get("Strategy", "BOW")
+        if p1["is_green"] and p2["is_red"] and (p1["body_top"] >= p2["body_top"]) and (p1["body_bottom"] <= p2["body_bottom"]) and is_large_body:
+            return (
+                "Bullish Engulfing, potensi pembalikan naik" if is_downtrend
+                else "Bullish Engulfing, tekanan beli kuat"
+            ), "BULLISH"
+        if p1["is_red"] and p2["is_green"] and (p1["body_bottom"] <= p2["body_bottom"]) and (p1["body_top"] >= p2["body_top"]) and is_large_body:
+            return "Bearish Engulfing, tekanan jual kuat", "BEARISH"
 
-        # ---- info status dari engine (level, tanggal data, tingkat warning) ----
-        status_level_val = str(row.get("Status Level", "") or "")
-        as_of_text = _fmt_as_of(row.get("Data As Of", ""), bool(row.get("Candle Final", True)))
-        warning_color = WARNING_COLORS.get(str(row.get("Warning Level", "caution")), "#fbbf24")
+        if p1["is_doji"]:
+            if (p1["lower_shadow"] >= 2.5 * p1["body_size"]) and (p1["upper_shadow"] <= 0.5 * p1["body_size"]):
+                return "Dragonfly Doji, potensi rebound", "BULLISH"
+            elif (p1["upper_shadow"] >= 2.5 * p1["body_size"]) and (p1["lower_shadow"] <= 0.5 * p1["body_size"]):
+                return "Gravestone Doji, waspada pelemahan", "BEARISH"
+            return "Doji, pasar ragu-ragu", "NEUTRAL"
 
-        copy_extra = ""
-        if status_level_val:
-            copy_extra += f"\nStatus Level: {status_level_val}"
-        if as_of_text:
-            copy_extra += f"\n{as_of_text}"
+        is_marubozu_body = p1["body_size"] >= (1.1 * self.atr_14)
+        has_minimal_shadows = (p1["upper_shadow"] <= 0.1 * p1["total_range"]) and (p1["lower_shadow"] <= 0.1 * p1["total_range"])
 
-        copyable_text = f"""=== TRADE PLAN: {sym} ===
-Strategy: {strat_code_val}
-Grade: {grade_val}
-Score: {score_val}/100
-Last Price: Rp {last_price_val:,}
-Buy Range: {buy_range_val}
-Stop Loss: Rp {sl_val:,}
-Target 1 (TP1): Rp {tp1_val:,}
-Target 2 (TP2): Rp {tp2_val:,}
-Zone Position: {zone_pos_val}
-Risk-Reward: {rr_ratio_val}{copy_extra}
-==============================="""
+        if is_marubozu_body and has_minimal_shadows:
+            if p1["is_green"]:
+                return "Bullish Marubozu, tekanan beli kuat", "BULLISH"
+            return "Bearish Marubozu, tekanan jual kuat", "BEARISH"
 
-        unique_btn_id = f"copy_btn_tp_{sym}_{strat_code_val}"
+        is_hammer_shape = (p1["lower_shadow"] >= 2.0 * p1["body_size"]) and (p1["upper_shadow"] <= 0.3 * p1["body_size"])
+        is_shooting_shape = (p1["upper_shadow"] >= 2.0 * p1["body_size"]) and (p1["lower_shadow"] <= 0.3 * p1["body_size"])
 
-        with col_c:
-            copy_html = f"""
-            <button id="{unique_btn_id}" style="width: 100%; background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 7px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
-                📋 Copy
-            </button>
-            <script>
-            const textToCopy_{unique_btn_id} = `{_js_template_escape(copyable_text)}`;
-            const btn_{unique_btn_id} = document.getElementById("{unique_btn_id}");
-            btn_{unique_btn_id}.onclick = function() {{
-                navigator.clipboard.writeText(textToCopy_{unique_btn_id}).then(function() {{
-                    btn_{unique_btn_id}.innerText = "✅ Copied";
-                    btn_{unique_btn_id}.style.background = "#00FF66";
-                    setTimeout(function() {{
-                        btn_{unique_btn_id}.innerText = "📋 Copy";
-                        btn_{unique_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
-                    }}, 2000);
-                }}).catch(function(err) {{
-                    console.error('Gagal menyalin text: ', err);
-                }});
-            }};
-            </script>
-            """
-            components.html(copy_html, height=36)
+        if is_hammer_shape:
+            if is_downtrend:
+                return "Hammer, potensi rebound", "BULLISH"
+            return "Hanging Man, waspada pelemahan", "BEARISH"
 
-        with col_w:
-            if st.button("⭐ Watchlist", key=f"btn_wl_{sym}_{strat_code_val}", use_container_width=True):
-                add_tickers_to_watchlist([sym])
+        if is_shooting_shape:
+            if is_uptrend:
+                return "Shooting Star, potensi pelemahan", "BEARISH"
+            return "Inverted Hammer, belum ada konfirmasi", "NEUTRAL"
 
-        if is_single_mode:
-            with col_cl:
-                if st.button("🗑️ Clear", key=f"btn_clr_{sym}", use_container_width=True):
-                    st.session_state.pop("df_screener_single", None)
-                    st.rerun()
+        color_str = "Hijau" if p1["is_green"] else "Merah"
+        if is_small_body:
+            return "Spinning Top, pasar ragu-ragu", "NEUTRAL"
 
-        strat_display_name = "Buy On Weakness" if strat_code_val == "BOW" else ("Buy On Breakout" if strat_code_val == "BOB" else strat_code_val)
-        is_suggestion = " (Best Fit)" if strat_code_val == row.get("Suggested Strategy") else ""
+        # Candle biasa tanpa pola dianggap netral (bukan bullish/bearish)
+        return f"Standard {color_str} (tanpa pola)", "NEUTRAL"
 
-        as_of_html = (
-            f'<div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">{html_escape(as_of_text)}</div>'
-            if as_of_text
-            else ""
-        )
+    # ------------------------------------------------------------------
+    # PENILAIAN PLAN (skor, grade, warning)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _grade_label(total_score):
+        if total_score >= 85:
+            return "🟢 Strong Setup"
+        elif total_score >= 70:
+            return "🟢 Good Setup"
+        elif total_score >= 50:
+            return "🟡 Fair Setup"
+        return "🔴 Weak Setup"
 
-        st.markdown(
-            f"""
-            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 20px; margin-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <span style="font-size: 1.4rem; font-weight: 800; color: #00F3FF;">{sym}</span>
-                    <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {strat_display_name}{is_suggestion}</span>
-                    <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {grade_val}</span>
-                    <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {score_val}/100</span>
-                </div>
-                <div style="color: #94a3b8; font-size: 0.9rem; text-align: right;">
-                    Last Price: <strong style="color: #00F3FF; font-size: 1.1rem;">Rp {last_price_val:,}</strong>
-                    {as_of_html}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    @staticmethod
+    def _entry_price(plan_type, last_close, buy_min, buy_max):
+        """Harga entry yang realistis untuk menghitung risk-reward."""
+        if plan_type == "BOW":
+            return min(max(last_close, buy_min), buy_max)
+        return max(last_close, buy_min)  # BOB: buy stop di buy_min, atau harga sekarang
 
-        buy_subtext = f"Status: {zone_pos_val}"
-        if status_level_val:
-            buy_subtext += f" · {html_escape(status_level_val)}"
+    @staticmethod
+    def _position_status(plan_type, last_close, buy_min, buy_max):
+        if buy_min <= last_close <= buy_max:
+            return "In Buy Zone"
+        if plan_type == "BOW":
+            if last_close > buy_max:
+                dist = (last_close - buy_max) / buy_max * 100 if buy_max > 0 else 0
+                return "Near Zone" if dist <= 2.0 else "Running / Away"
+            return "Below Buy Zone"
+        # BOB: harga di bawah zona = menunggu breakout, di atas zona = sudah lewat
+        if last_close < buy_min:
+            dist = (buy_min - last_close) / buy_min * 100 if buy_min > 0 else 0
+            return "Near Zone" if dist <= 2.0 else "Below Buy Zone"
+        return "Running / Away"
 
-        col1, col2 = st.columns(2)
-        with col1:
-            draw_card(
-                title="BUY RANGE / ENTRY ZONE",
-                value=str(buy_range_val),
-                subtext=buy_subtext,
-                badge_text=str(zone_pos_val),
-                variant="blue",
-                value_color="blue",
-            )
-            draw_card(
-                title="TARGET 1 (TP 1)",
-                value=f"Rp {tp1_val:,}",
-                subtext="Initial profit target / partial exit.",
-                badge_text=str(row.get("Potential Gain", "+0%")),
-                variant="green",
-                value_color="green",
-            )
+    def _trend_state(self):
+        close = float(self.df.iloc[-1]["Close"])
+        if self.ma20 is None:
+            return "UNKNOWN"
+        if self.ma50 is None:
+            return "UP" if close > self.ma20 else "DOWN"
+        if close > self.ma50 and self.ma20 > self.ma50:
+            return "UP"
+        if close > self.ma50:
+            return "ABOVE50"
+        if close < self.ma50 and self.ma20 < self.ma50:
+            return "DOWN"
+        return "BELOW50"
 
-        with col2:
-            draw_card(
-                title="STOP LOSS (SL)",
-                value=f"Rp {sl_val:,}",
-                subtext="Risk management limit.",
-                badge_text=str(sl_risk_val),
-                variant="red",
-                value_color="red",
-            )
-            draw_card(
-                title="TARGET 2 (TP 2)",
-                value=f"Rp {tp2_val:,}",
-                subtext="Main swing target zone.",
-                badge_text=str(p_gain_tp2),
-                variant="blue",
-                value_color="blue",
-            )
-
-        st.markdown(
-            f"""
-            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-                <div>
-                    <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">RISK : REWARD</span>
-                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{rr_ratio_val}</span>
-                </div>
-                <div>
-                    <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">CANDLESTICK PATTERN</span>
-                    <span style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{html_escape(str(candle_val))}</span>
-                </div>
-                <div style="grid-column: span 2;">
-                    <span style="font-size: 0.75rem; color: #64748b; display: block; font-weight: 600;">ANALYSIS & WARNING</span>
-                    <span style="font-size: 0.88rem; color: {warning_color}; font-weight: 600;">{html_escape(str(warning_val))}</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-
-def render_tab_trade_planner():
-    # 🎨 CUSTOM CSS STYLING
-    st.markdown(
-        """
-        <style>
-        @keyframes pulseGlow {
-            0% { opacity: 0.3; box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF; transform: scale(0.9); }
-            50% { opacity: 1; box-shadow: 0 0 12px #00F3FF, 0 0 22px #00F3FF, 0 0 32px #10b981; transform: scale(1.15); }
-            100% { opacity: 0.3; box-shadow: 0 0 4px #00F3FF, 0 0 8px #00F3FF; transform: scale(0.9); }
-        }
-
-        .header-banner {
-            border: 1px solid #00F3FF;
-            box-shadow: 0 0 14px rgba(0, 243, 255, 0.4), inset 0 0 14px rgba(0, 243, 255, 0.15);
-            border-radius: 8px;
-            padding: 12px 24px;
-            margin-bottom: 24px;
-            background: #0d1117;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            text-align: center;
-            width: 100%;
-        }
-
-        .top-glowing-dot {
-            width: 10px;
-            height: 10px;
-            background-color: #00F3FF;
-            border-radius: 50%;
-            animation: pulseGlow 2.5s infinite ease-in-out;
-        }
-
-        .header-banner h1 {
-            margin: 0;
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #00F3FF 0%, #10b981 50%, #ec4899 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.5));
-            line-height: 1.2;
-        }
-
-        .glow-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 800;
-            font-size: 1.3rem;
-            background: linear-gradient(90deg, #00F3FF 0%, #10b981 60%, #ec4899 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.4));
-            margin-top: 10px;
-            margin-bottom: 10px;
-        }
-
-        .cyan-dot {
-            width: 10px;
-            height: 10px;
-            background-color: #00F3FF;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 8px #00F3FF, 0 0 12px #00F3FF;
-            flex-shrink: 0;
-        }
-
-        div.stButton > button {
-            border: 1px solid #00F3FF !important;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3) !important;
-            border-radius: 6px !important;
-            transition: all 0.25s ease-in-out !important;
-        }
-
-        div.stButton > button[data-testid="stBaseButton-primary"] {
-            background: linear-gradient(135deg, #00b4d8 0%, #00f3ff 100%) !important;
-            color: #020617 !important;
-            font-weight: 700 !important;
-            border: 1px solid #00F3FF !important;
-            box-shadow: 0 0 12px rgba(0, 243, 255, 0.6) !important;
-        }
-
-        div.stButton > button[data-testid="stBaseButton-primary"]:hover {
-            background: linear-gradient(135deg, #00f3ff 0%, #10b981 100%) !important;
-            color: #000000 !important;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.9), 0 0 10px rgba(16, 185, 129, 0.8) !important;
-        }
-
-        div.stButton > button:hover {
-            border-color: #00F3FF !important;
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.8) !important;
-        }
-
-        .card {
-            background-color: #0f172a;
-            border-radius: 6px;
-            padding: 16px 18px;
-            margin-bottom: 14px;
-        }
-        .card-blue { border: 1px solid #0284c7; }
-        .card-red { border: 1px solid #dc2626; }
-        .card-green { border: 1px solid #059669; }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .card-title {
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-        .title-blue { color: #38bdf8; }
-        .title-red { color: #f87171; }
-        .title-green { color: #34d399; }
-
-        .card-badge {
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-        .badge-blue { background: #0c4a6e; color: #7dd3fc; }
-        .badge-red { background: #450a0a; color: #fca5a5; }
-        .badge-green { background: #064e3b; color: #6ee7b7; }
-
-        .card-value {
-            font-size: 1.4rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-            line-height: 1.2;
-        }
-        .val-blue { color: #38bdf8; }
-        .val-red { color: #f87171; }
-        .val-green { color: #34d399; }
-
-        .card-subtext {
-            font-size: 0.78rem;
-            color: #94a3b8;
-            margin: 0;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # --- BANNER HEADER ---
-    st.markdown(
-        """
-        <div class="header-banner">
-            <div class="top-glowing-dot"></div>
-            <h1>Stock Trade Planner</h1>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # --- CATATAN CARA PAKAI ---
-    st.markdown(
-        f"""
-        <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 10px 16px; margin-bottom: 18px; color: #94a3b8; font-size: 0.82rem; line-height: 1.55;">
-            ℹ️ <strong style="color: #cbd5e1;">Catatan:</strong> {html_escape(PAGE_NOTE)}
-            <div style="margin-top: 4px; color: #64748b;">{html_escape(PAGE_NOTE_SCORE)}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if "screener_mode" not in st.session_state:
-        st.session_state["screener_mode"] = "single"
-    if "f_strategi" not in st.session_state:
-        st.session_state["f_strategi"] = "ALL STRATEGIES"
-    if "f_grade" not in st.session_state:
-        st.session_state["f_grade"] = "ALL GRADES"
-    if "f_zone" not in st.session_state:
-        st.session_state["f_zone"] = "ALL POSITIONS"
-    if "f_rr" not in st.session_state:
-        st.session_state["f_rr"] = "ALL RATIOS"
-    if "f_candle" not in st.session_state:
-        st.session_state["f_candle"] = "ALL CANDLES"
-
-    # Pilihan filter lama (dari versi sebelumnya) yang sudah tidak ada -> kembali ke default
-    for _key, _opts in (
-        ("f_strategi", STRATEGY_OPTIONS),
-        ("f_grade", GRADE_OPTIONS),
-        ("f_zone", ZONE_OPTIONS),
-        ("f_rr", RR_OPTIONS),
-        ("f_candle", CANDLE_OPTIONS),
+    def _evaluate_plan(
+        self, plan_type, buy_min, buy_max, stop_loss, target_1, target_2,
+        level_confirmed, candle_type, candle_bias, structure_note=None,
     ):
-        if st.session_state.get(_key) not in _opts:
-            st.session_state[_key] = _opts[0]
+        last = self.df.iloc[-1]
+        c = float(last["Close"])
+        o = float(last["Open"])
+        h = float(last["High"])
+        lo = float(last["Low"])
+        upper_shadow = h - max(o, c)
 
-    st.markdown(
-        """
-        <div class="glow-title">
-            <span class="cyan-dot"></span>Select Execution Mode
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        warnings = []  # (level, teks)
+        penalty = 0
 
-    mode_col1, mode_col2 = st.columns(2)
-    current_mode = st.session_state["screener_mode"]
+        # --- risk-reward dari entry realistis ---
+        entry = self._entry_price(plan_type, c, buy_min, buy_max)
+        risk = entry - stop_loss
+        reward_1 = (target_1 - entry) if target_1 else 0.0
+        rr1 = round(reward_1 / risk, 1) if (risk > 0 and reward_1 > 0) else 0.0
+        reward_2 = (target_2 - entry) if target_2 else 0.0
+        rr2 = round(reward_2 / risk, 1) if (risk > 0 and reward_2 > 0) else 0.0
+        risk_pct = (risk / entry * 100.0) if entry > 0 else 0.0
 
-    with mode_col1:
-        is_single = current_mode == "single"
-        btn_type_single = "primary" if is_single else "secondary"
-        if st.button(
-            "Single Ticker Analysis",
-            use_container_width=True,
-            type=btn_type_single,
-            key="btn_card_single",
-        ):
-            if st.session_state["screener_mode"] != "single":
-                st.session_state["screener_mode"] = "single"
-            st.rerun()
+        pos_status = self._position_status(plan_type, c, buy_min, buy_max)
 
-    with mode_col2:
-        is_batch = current_mode == "batch"
-        btn_type_batch = "primary" if is_batch else "secondary"
-        if st.button(
-            "Batch Screener Analysis",
-            use_container_width=True,
-            type=btn_type_batch,
-            key="btn_card_batch",
-        ):
-            if st.session_state["screener_mode"] != "batch":
-                st.session_state["screener_mode"] = "batch"
-            st.rerun()
+        # 1) RR (25)
+        if rr1 >= 3.0:
+            score_rr = 25
+        elif rr1 >= 2.0:
+            score_rr = 20
+        elif rr1 >= 1.5:
+            score_rr = 14
+        elif rr1 >= 1.0:
+            score_rr = 7
+        else:
+            score_rr = 0
 
-    st.write("")
+        target_passed = bool(target_1) and entry >= target_1
+        if target_passed:
+            warnings.append(("critical", "🚫 Harga entry sudah melewati Target 1, ruang naik ke target sudah habis"))
+            penalty += 6
+        elif rr1 <= 0:
+            warnings.append(("critical", "🚫 Risk-reward tidak bisa dihitung, target tidak berada di atas entry"))
+            penalty += 6
+        elif rr1 < 1.0:
+            warnings.append(("critical", "🚫 Risk-reward di bawah 1:1, potensi rugi lebih besar dari potensi untung"))
+            penalty += 6
+        elif rr1 < 1.5:
+            warnings.append(("caution", "⚠️ Risk-reward rendah (di bawah 1:1,5)"))
+            penalty += 3
+        elif rr1 > 6.0:
+            warnings.append(("caution", f"⚠️ Stop loss sangat dekat ({risk_pct:.1f}% dari entry), rawan kena volatilitas biasa"))
+            penalty += 2
 
-    if st.session_state["screener_mode"] == "single":
-        col_input, col_btn = st.columns([3.5, 1], vertical_alignment="bottom")
-        with col_input:
-            st.markdown(
-                """
-                <div class="glow-title" style="font-size: 1rem;">
-                    <span class="cyan-dot"></span>Enter Tickers
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            input_ticker = st.text_input(
-                "Stock Tickers",
-                value="",
-                placeholder="BBCA, BMRI, TLKM, INCO...",
-                label_visibility="collapsed",
-            )
-        with col_btn:
-            btn_single = st.button(
-                "Run Analyze", type="primary", use_container_width=True
-            )
+        # 2) Posisi harga terhadap zona (20). Level yang belum terkonfirmasi tidak diberi poin zona.
+        if not level_confirmed:
+            score_zone = 0
+        elif pos_status == "In Buy Zone":
+            score_zone = 20
+        elif pos_status == "Near Zone":
+            score_zone = 14
+        elif pos_status == "Below Buy Zone":
+            score_zone = 5
+        else:
+            score_zone = 0
 
-        if btn_single:
-            if not input_ticker.strip():
-                st.warning("⚠️ Input ticker list is empty.")
+        if plan_type == "BOW" and buy_max > 0 and c > buy_max:
+            dist_above = (c - buy_max) / buy_max * 100.0
+            if dist_above > 4.0:
+                warnings.append(("caution", f"⚠️ Harga sudah {dist_above:.1f}% di atas area beli, pertimbangkan menunggu pullback"))
+                penalty += 4
+        if plan_type == "BOB" and pos_status == "Running / Away" and buy_max > 0:
+            dist_above = (c - buy_max) / buy_max * 100.0
+            warnings.append(("caution", f"⚠️ Harga sudah {dist_above:.1f}% di atas titik breakout, area beli sudah terlewat"))
+            penalty += 4
+
+        # 3) Tren MA20/MA50 (20)
+        trend = self._trend_state()
+        score_trend = {"UP": 20, "ABOVE50": 12, "BELOW50": 5, "DOWN": 0, "UNKNOWN": 8}[trend]
+        if trend == "DOWN":
+            if plan_type == "BOW":
+                warnings.append(("caution", "⚠️ Tren turun (harga di bawah MA20 dan MA50), risiko menangkap pisau jatuh"))
             else:
-                list_to_scan = [
-                    t.strip().upper()
-                    for t in input_ticker.split(",")
-                    if t.strip()
-                ]
-                run_batch_execution(list_to_scan, cache_key="df_screener_single")
+                warnings.append(("caution", "⚠️ Breakout di tengah tren turun (di bawah MA20 dan MA50), rawan gagal"))
 
-        active_cache_key = "df_screener_single"
+        # 4) Candle di area zona (15)
+        at_zone = (lo <= buy_max * 1.01) and (h >= buy_min * 0.99)
+        if candle_bias == "BULLISH":
+            score_candle = 15 if at_zone else 6
+        elif candle_bias == "NEUTRAL":
+            score_candle = 6
+        else:
+            score_candle = 0
+            warnings.append(("caution", "⚠️ Candle terakhir bearish, belum ada konfirmasi pantulan"))
+            penalty += 3
 
-        if active_cache_key in st.session_state and _cache_is_stale(st.session_state[active_cache_key]):
-            st.session_state.pop(active_cache_key, None)
-            st.info("Data lama dari versi sebelumnya dibersihkan. Silakan jalankan ulang analisis.")
+        if upper_shadow >= (0.4 * (h - lo)) and upper_shadow > 0:
+            warnings.append(("caution", "⚠️ Ekor atas panjang, ada tekanan jual di akhir sesi"))
+            penalty += 2
 
-        if active_cache_key in st.session_state:
-            df_single_res = st.session_state[active_cache_key]
-
-            st.write("")
-            h_left, _ = st.columns([3, 1], vertical_alignment="center")
-            with h_left:
-                st.markdown(
-                    f"""
-                    <h3 class="glow-title" style="margin-bottom: 0px;">
-                        <span class="cyan-dot"></span>Analysis Results 
-                        <span style='font-size:0.9rem; color:#94a3b8;'>({len(df_single_res['Symbol'].unique())} items)</span>
-                    </h3>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-            if df_single_res.empty:
-                st.warning("⚠️ No valid data returned for the selected tickers.")
+        # 5) Volume (10)
+        vr = self.vol_ratio
+        is_green = c > o
+        is_red = c < o
+        if plan_type == "BOW":
+            if is_red and vr >= 1.5:
+                score_vol = 0
+                warnings.append(("caution", f"⚠️ Volume jual besar di candle terakhir ({vr:.1f}x rata-rata 20 hari)"))
+                penalty += 2
+            elif is_green and vr >= 1.2:
+                score_vol = 10
+            elif 0 < vr <= 0.7:
+                score_vol = 7
             else:
-                render_trade_plan_cards(df_single_res, is_title_needed=False, is_single_mode=True)
+                score_vol = 4
+        else:
+            if vr >= 1.5:
+                score_vol = 10
+            elif vr >= 1.0:
+                score_vol = 6
+            else:
+                score_vol = 2
+            if 0 < vr < 1.0 and pos_status in ("In Buy Zone", "Near Zone", "Running / Away"):
+                warnings.append(("caution", f"⚠️ Volume breakout belum kuat ({vr:.1f}x rata-rata 20 hari)"))
+                penalty += 2
 
-    else:
-        all_tickers = load_daftar_saham()
-        if not all_tickers:
-            st.error("❌ File `daftar_saham.txt` tidak ditemukan di folder `data/` maupun di direktori utama!")
-            return
+        # Jarak target 1
+        if target_1 and entry > 0 and not target_passed:
+            dist_to_target = (target_1 - entry) / entry * 100.0
+            if 0 < dist_to_target <= 1.5:
+                warnings.append(("caution", f"⚠️ Target 1 hanya {dist_to_target:.1f}% dari harga entry, ruang naik terbatas"))
+                penalty += 2
 
-        col_info, col_batch_btn = st.columns([3, 1], vertical_alignment="center")
-        with col_info:
-            st.info("💡 **Click Run To Screen All Ticker**")
-        with col_batch_btn:
-            if st.button("Run Screener", type="primary", use_container_width=True):
-                run_batch_execution(all_tickers, cache_key="df_screener_batch")
+        # Struktur dan status level (info)
+        if structure_note:
+            warnings.append(("caution", structure_note))
+        if not level_confirmed:
+            if plan_type == "BOW":
+                warnings.append(("info", "ℹ️ Support belum terkonfirmasi (masih berkembang), level bisa bergeser bila ada low baru"))
+            else:
+                warnings.append(("info", "ℹ️ Resistance belum terkonfirmasi (masih berkembang), level bisa bergeser bila ada high baru"))
+            penalty += 2
+        if not self.candle_final:
+            warnings.append(("info", "ℹ️ Candle hari ini belum final, level dan status bisa berubah setelah pasar tutup"))
 
-        active_cache_key = "df_screener_batch"
+        score_clean = max(0, 10 - penalty)
+        total_score = int(score_rr + score_zone + score_trend + score_candle + score_vol + score_clean)
+        total_score = max(0, min(100, total_score))
 
-        if active_cache_key in st.session_state and _cache_is_stale(st.session_state[active_cache_key]):
-            st.session_state.pop(active_cache_key, None)
-            st.info("Data lama dari versi sebelumnya dibersihkan. Silakan jalankan ulang screener.")
+        levels = [w[0] for w in warnings]
+        if "critical" in levels:
+            warning_level = "critical"
+        elif "caution" in levels:
+            warning_level = "caution"
+        else:
+            warning_level = "ok"
 
-        if active_cache_key in st.session_state:
-            df_raw = st.session_state[active_cache_key]
+        order = {"critical": 0, "caution": 1, "info": 2}
+        texts = [t for _, t in sorted(warnings, key=lambda x: order[x[0]])]
+        if warning_level == "ok":
+            texts = ["✅ Tidak ada peringatan dari aturan screener. Tetap cek chart dan volume."] + texts
+        warning_str = " | ".join(texts)
 
-            st.write("")
-            with st.expander("🛠️ **Filters & Criteria**", expanded=True):
-                r1c1, r1c2, r1c3 = st.columns(3)
-                with r1c1:
-                    f_strategi = st.selectbox(
-                        "🎯 Strategy:",
-                        STRATEGY_OPTIONS,
-                        key="f_strategi",
-                    )
-                with r1c2:
-                    f_grade = st.selectbox(
-                        "🏆 Setup Grade:",
-                        GRADE_OPTIONS,
-                        key="f_grade",
-                    )
-                with r1c3:
-                    f_zone = st.selectbox(
-                        "📍 Price Zone:",
-                        ZONE_OPTIONS,
-                        key="f_zone",
-                    )
+        return {
+            "score": total_score,
+            "grade": self._grade_label(total_score),
+            "pos_status": pos_status,
+            "warning": warning_str,
+            "warning_level": warning_level,
+            "rr1": rr1,
+            "rr2": rr2,
+            "entry": entry,
+            "score_detail": (
+                f"RR {score_rr}/25 | Posisi {score_zone}/20 | Tren {score_trend}/20 | "
+                f"Candle {score_candle}/15 | Volume {score_vol}/10 | Kebersihan {score_clean}/10"
+            ),
+        }
 
-                r2c1, r2c2, r2c3 = st.columns([1.5, 1.5, 1], vertical_alignment="bottom")
-                with r2c1:
-                    f_rr = st.selectbox(
-                        "⚖️ Min Risk-Reward:",
-                        RR_OPTIONS,
-                        key="f_rr",
-                    )
-                with r2c2:
-                    f_candle = st.selectbox(
-                        "🕯️ Candlestick Pattern:",
-                        CANDLE_OPTIONS,
-                        key="f_candle",
-                    )
-                with r2c3:
-                    st.button("🔄 Reset Filters", on_click=reset_filters, use_container_width=True)
+    def calculate_score_and_warnings(self, plan_type, buy_min, buy_max, target_1, stop_loss, rr_ratio, candle_type, candle_bias):
+        """Kompatibel dengan versi lama (return 4 nilai). rr_ratio dihitung ulang
+        dari entry realistis, jadi parameter ini diabaikan."""
+        ev = self._evaluate_plan(
+            plan_type, buy_min, buy_max, stop_loss, target_1, None, True,
+            candle_type, candle_bias,
+        )
+        return ev["score"], ev["grade"], ev["pos_status"], ev["warning"]
 
-            df = df_raw.copy()
+    # ------------------------------------------------------------------
+    # PEMILIHAN LEVEL (yang paling dekat harga, termasuk swing yang masih berkembang)
+    # ------------------------------------------------------------------
+    def _neighbor_extreme(self, idx, col, use_min):
+        vals = [self.df.loc[idx, col]]
+        if idx > 0:
+            vals.append(self.df.loc[idx - 1, col])
+        if (idx + 1) in self.df.index:
+            vals.append(self.df.loc[idx + 1, col])
+        return min(vals) if use_min else max(vals)
 
-            if f_strategi == "Buy On Weakness (BOW)":
-                df = df[df["Strategy"] == "BOW"]
-            elif f_strategi == "Breakout (BOB)":
-                df = df[df["Strategy"] == "BOB"]
+    def _pick_support(self, last_close):
+        if not self.strong_support.empty:
+            row = self.strong_support.iloc[0]
+            if float(row["Low"]) <= last_close:
+                return {
+                    "low": float(row["Low"]),
+                    "body": float(row["Body_Bottom"]),
+                    "confirmed": str(row["Status"]) == "Confirmed",
+                    "date": str(row["Date"]),
+                }
+        # tidak ada support di bawah harga: pakai low terendah 5 candle terakhir
+        seg = self.df.iloc[max(0, len(self.df) - 5):]
+        idx = seg["Low"].idxmin()
+        return {
+            "low": float(self.df.loc[idx, "Low"]),
+            "body": float(self._neighbor_extreme(idx, "Body_Bottom", True)),
+            "confirmed": False,
+            "date": pd.Timestamp(self.df.loc[idx, "Date"]).strftime("%Y-%m-%d"),
+        }
 
-            # Filter grade membaca teks Grade (Strong / Good / Fair / Weak), sama dengan yang tampil
-            if f_grade == "Strong / Good Setup Only":
-                df = df[df["Grade"].str.contains("Strong|Good", na=False)]
-            elif f_grade == "Fair / Weak Setup Only":
-                df = df[df["Grade"].str.contains("Fair|Weak", na=False)]
+    def _pick_resistance(self, last_close):
+        if not self.strong_resistance.empty:
+            row = self.strong_resistance.iloc[0]
+            if float(row["High"]) >= last_close:
+                return {
+                    "high": float(row["High"]),
+                    "confirmed": str(row["Status"]) == "Confirmed",
+                    "date": str(row["Date"]),
+                }
+        # harga sudah di atas semua swing high: pakai high tertinggi 5 candle terakhir
+        seg = self.df.iloc[max(0, len(self.df) - 5):]
+        idx = seg["High"].idxmax()
+        return {
+            "high": float(self.df.loc[idx, "High"]),
+            "confirmed": False,
+            "date": pd.Timestamp(self.df.loc[idx, "Date"]).strftime("%Y-%m-%d"),
+        }
 
-            if f_zone == "In Buy Zone":
-                df = df[df["Zone Position"] == "In Buy Zone"]
-            elif f_zone == "Near Zone (Approaching Entry)":
-                df = df[df["Zone Position"] == "Near Zone"]
+    def _broken_support_note(self, last_close):
+        """Cari swing low terkonfirmasi yang sudah ditembus ke bawah (support lama jebol)."""
+        conf = self.lows_15[self.lows_15["Swing_Status"] == "Confirmed"].head(8)
+        above = conf[conf["Low"] > last_close]
+        if above.empty:
+            return None
+        lvl = self.round_to_nearest_tick(float(above["Low"].min()))
+        return (
+            f"⚠️ Harga sudah di bawah support sebelumnya ({int(lvl):,}), "
+            f"area beli mengikuti low terbaru"
+        )
 
-            if f_rr == "Min 1 : 1.5":
-                df = df[df["RR_Val"] >= 1.5]
-            elif f_rr == "Min 1 : 2.0 (Standard)":
-                df = df[df["RR_Val"] >= 2.0]
-            elif f_rr == "Min 1 : 3.0 (High Reward)":
-                df = df[df["RR_Val"] >= 3.0]
+    @staticmethod
+    def _fmt_date(date_str):
+        try:
+            return pd.to_datetime(date_str).strftime("%d %b")
+        except Exception:
+            return str(date_str)
 
-            # Filter candle membaca label bias dari engine (bukan mencocokkan kata di nama pola)
-            if f_candle == "Bullish Signal Only":
-                df = df[df["Candle Bias"] == "BULLISH"]
-            elif f_candle == "Neutral Only":
-                df = df[df["Candle Bias"] == "NEUTRAL"]
+    # ------------------------------------------------------------------
+    # TRADE PLAN
+    # ------------------------------------------------------------------
+    def generate_trade_plan(self):
+        last_close = float(self.df.iloc[-1]["Close"])
+        min_point_gap = max(self.get_tick_size(last_close) * 2, 5)
 
-            df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
+        def resistance_targets():
+            """TP di tepi bawah zona resistance (Body_Top) dikurangi 1 tick."""
+            out = []
+            if not self.strong_resistance.empty:
+                for bt in self.strong_resistance["Body_Top"].values:
+                    out.append(self.sub_ticks(self.round_to_nearest_tick(bt), 1))
+            return sorted(out)
 
-            st.write("")
+        def swing_high_targets():
+            out = []
+            if not self.highs_15.empty:
+                for bt in self.highs_15["Body_Top"].values:
+                    out.append(self.sub_ticks(self.round_to_nearest_tick(bt), 1))
+            return sorted(out)
 
-            h_left, _ = st.columns([3, 1], vertical_alignment="center")
-            with h_left:
-                st.markdown(
-                    f"""
-                    <h3 class="glow-title" style="margin-bottom: 0px;">
-                        <span class="cyan-dot"></span>Screener Results 
-                        <span style='font-size:0.9rem; color:#94a3b8;'>({len(df)} items)</span>
-                    </h3>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        def find_target_1(min_val):
+            valid = [p for p in resistance_targets() if (p - min_val) >= min_point_gap]
+            if valid:
+                return float(valid[0])
+            valid = [p for p in swing_high_targets() if (p - min_val) >= min_point_gap]
+            if valid:
+                return float(valid[0])
+            return self.round_to_nearest_tick(min_val + max(1.5 * self.atr_14, min_point_gap + 2))
 
-            if "batch_uncheck_trigger" not in st.session_state:
-                st.session_state["batch_uncheck_trigger"] = 0
-
-            editor_key = f"batch_editor_v{st.session_state['batch_uncheck_trigger']}"
-
-            table_cols = [col for col in TABLE_COLUMNS if col in df.columns]
-            df_table = df[table_cols].copy()
-            df_table.insert(0, "Select", False)
-
-            edited_df = st.data_editor(
-                df_table[["Select"] + table_cols],
-                column_config={
-                    "Select": st.column_config.CheckboxColumn(
-                        "Select",
-                        help="Check to view detailed Trade Plan cards",
-                        default=False,
-                    ),
-                    "Symbol": st.column_config.TextColumn("Symbol"),
-                    "Score": st.column_config.NumberColumn("Score", format="%d"),
-                    "Last Price": st.column_config.NumberColumn("Last Price", format="Rp %d"),
-                    "Stop Loss (SL)": st.column_config.NumberColumn("Stop Loss", format="Rp %d"),
-                    "TP 1": st.column_config.NumberColumn("TP 1", format="Rp %d"),
-                    "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
-                },
-                disabled=table_cols,
-                use_container_width=True,
-                key=editor_key
+        def find_target_2(target_1):
+            if not target_1 or pd.isna(target_1):
+                return None
+            min_tp2 = max(
+                self.add_ticks(target_1, 10),
+                self.round_to_nearest_tick(target_1 + 0.75 * self.atr_14),
             )
+            valid = [p for p in resistance_targets() if p >= min_tp2]
+            if valid:
+                return float(valid[0])
+            valid = [p for p in swing_high_targets() if p >= min_tp2]
+            if valid:
+                return float(valid[0])
+            return float(max(min_tp2, self.round_to_nearest_tick(target_1 + 1.5 * self.atr_14)))
 
-            selected_rows = edited_df[edited_df["Select"] == True]
+        candle_name, candle_bias = self.classify_candle()
 
-            # Siapkan teks gabungan untuk semua saham yang dicentang (untuk Copy Terpilih)
-            batch_copy_text = ""
-            if not selected_rows.empty:
-                checked_symbols_preview = selected_rows["Symbol"].unique().tolist()
-                df_to_preview = df_raw[df_raw["Symbol"].isin(checked_symbols_preview)]
-                
-                plan_blocks = []
-                for _, r in df_to_preview.iterrows():
-                    extra = ""
-                    if str(r.get("Status Level", "") or ""):
-                        extra += f"\nStatus Level: {r.get('Status Level')}"
-                    as_of_r = _fmt_as_of(r.get("Data As Of", ""), bool(r.get("Candle Final", True)))
-                    if as_of_r:
-                        extra += f"\n{as_of_r}"
-                    p_text = f"""=== TRADE PLAN: {r.get('Symbol', '')} ===
-Strategy: {r.get('Strategy', 'BOW')}
-Grade: {r.get('Grade', 'N/A')}
-Score: {r.get('Score', 0)}/100
-Last Price: Rp {r.get('Last Price', 0):,}
-Buy Range: {r.get('Buy Range', '-')}
-Stop Loss: Rp {r.get('Stop Loss (SL)', 0):,}
-Target 1 (TP1): Rp {r.get('TP 1', 0):,}
-Target 2 (TP2): Rp {r.get('TP 2', 0):,}
-Zone Position: {r.get('Zone Position', '-')}
-Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}{extra}
-==============================="""
-                    plan_blocks.append(p_text)
-                batch_copy_text = "\n\n".join(plan_blocks)
+        # 1. BOW PLAN (zona dari support terdekat di bawah harga, termasuk low yang masih berkembang)
+        sup = self._pick_support(last_close)
+        rb_bow_min = self.round_to_nearest_tick(min(sup["low"], sup["body"]))
+        rb_bow_max = self.round_to_nearest_tick(max(sup["low"], sup["body"]))
+        stop_loss_bow = self._sl_below(rb_bow_min)
+        target_1_bow = find_target_1(rb_bow_max)
+        target_2_bow = find_target_2(target_1_bow)
+        ev_bow = self._evaluate_plan(
+            "BOW", rb_bow_min, rb_bow_max, stop_loss_bow, target_1_bow, target_2_bow,
+            sup["confirmed"], candle_name, candle_bias,
+            structure_note=self._broken_support_note(last_close),
+        )
 
-            # Tombol aksi Batch: Clear Centang di kiri, Copy Terpilih di tengah, Watchlist Terpilih di kanan
-            c_act_clear, c_act_copy, c_act_wl = st.columns([1, 1, 1], vertical_alignment="bottom")
-            
-            with c_act_clear:
-                if st.button("🗑️ Clear Centang", use_container_width=True, key="btn_clear_checks"):
-                    st.session_state["batch_uncheck_trigger"] += 1
-                    st.rerun()
+        # 2. BOB PLAN (zona di atas resistance terdekat yang belum ditembus)
+        res = self._pick_resistance(last_close)
+        base_bob_high = self.round_to_nearest_tick(res["high"])
+        upper_bob_high = self.add_ticks(base_bob_high, 3)
+        stop_loss_bob = self._sl_below(base_bob_high)
+        target_1_bob = find_target_1(upper_bob_high)
+        target_2_bob = find_target_2(target_1_bob)
+        ev_bob = self._evaluate_plan(
+            "BOB", base_bob_high, upper_bob_high, stop_loss_bob, target_1_bob, target_2_bob,
+            res["confirmed"], candle_name, candle_bias,
+        )
 
-            with c_act_copy:
-                unique_batch_btn_id = "copy_btn_batch_all"
-                batch_copy_html = f"""
-                <button id="{unique_batch_btn_id}" style="width: 100%; background: linear-gradient(135deg, #A855F7 0%, #00F0FF 100%); color: #050811; border: none; padding: 9px 10px; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); transition: all 0.2s;">
-                    📋 Copy Terpilih
-                </button>
-                <script>
-                const textToCopy_{unique_batch_btn_id} = `{_js_template_escape(batch_copy_text)}`;
-                const btn_{unique_batch_btn_id} = document.getElementById("{unique_batch_btn_id}");
-                btn_{unique_batch_btn_id}.onclick = function() {{
-                    if (!textToCopy_{unique_batch_btn_id}.trim()) {{
-                        alert("Pilih minimal satu saham dicentang pada tabel di atas.");
-                        return;
-                    }}
-                    navigator.clipboard.writeText(textToCopy_{unique_batch_btn_id}).then(function() {{
-                        btn_{unique_batch_btn_id}.innerText = "✅ Copied!";
-                        btn_{unique_batch_btn_id}.style.background = "#00FF66";
-                        setTimeout(function() {{
-                            btn_{unique_batch_btn_id}.innerText = "📋 Copy Terpilih";
-                            btn_{unique_batch_btn_id}.style.background = "linear-gradient(135deg, #A855F7 0%, #00F0FF 100%)";
-                        }}, 2000);
-                    }}).catch(function(err) {{
-                        console.error('Gagal menyalin text: ', err);
-                    }});
-                }};
-                </script>
-                """
-                components.html(batch_copy_html, height=45)
+        def fmt_range(p_min, p_max):
+            def f(x):
+                x = float(x)
+                return f"{int(x):,}" if x.is_integer() else f"{x:,}"
+            if float(p_min) == float(p_max):
+                return f(p_min)
+            return f"{f(p_min)} - {f(p_max)}"
 
-            with c_act_wl:
-                if st.button("⭐ Watchlist Terpilih", use_container_width=True, key="btn_wl_batch_selected"):
-                    if not selected_rows.empty:
-                        symbols_to_add = selected_rows["Symbol"].unique().tolist()
-                        add_tickers_to_watchlist(symbols_to_add)
-                    else:
-                        st.toast("Pilih minimal satu saham dicentang pada tabel di atas.", icon="⚠️")
+        as_of = self.last_candle_date.strftime("%Y-%m-%d")
 
-            if not selected_rows.empty:
-                st.markdown("<br>", unsafe_allow_html=True)
-                checked_symbols = selected_rows["Symbol"].unique().tolist()
-                df_to_render = df_raw[df_raw["Symbol"].isin(checked_symbols)]
-                render_trade_plan_cards(df_to_render, is_title_needed=True, is_single_mode=False)
+        bow_status = (
+            f"Confirmed swing low · {self._fmt_date(sup['date'])}" if sup["confirmed"]
+            else f"Developing low (unconfirmed) · {self._fmt_date(sup['date'])}"
+        )
+        bob_status = (
+            f"Confirmed swing high · {self._fmt_date(res['date'])}" if res["confirmed"]
+            else f"Developing high (unconfirmed) · {self._fmt_date(res['date'])}"
+        )
+
+        def plan_status(plan_type, ev, has_broken):
+            if plan_type == "BOW":
+                return "Support sebelumnya jebol, mengikuti low terbaru" if has_broken else "Normal"
+            return "Sudah breakout" if ev["pos_status"] == "Running / Away" else "Normal"
+
+        plan_data = [
+            {
+                "No": 1,
+                "Type": "BOW",
+                "Score": ev_bow["score"],
+                "Grade": ev_bow["grade"],
+                "Posisi Harga": ev_bow["pos_status"],
+                "Range Buy Min": float(rb_bow_min),
+                "Range Buy Max": float(rb_bow_max),
+                "Area Buy": fmt_range(rb_bow_min, rb_bow_max),
+                "Stop Loss": float(stop_loss_bow),
+                "TP 1": float(target_1_bow),
+                "TP 2": float(target_2_bow) if target_2_bow is not None else None,
+                "Rasio (R:R)": f"1 : {ev_bow['rr1']}" if ev_bow["rr1"] > 0 else "-",
+                "RR_Val": ev_bow["rr1"],
+                "Pola Candle": candle_name,
+                "Warning": ev_bow["warning"],
+                # kolom tambahan
+                "Status Level": bow_status,
+                "Level Confirmed": bool(sup["confirmed"]),
+                "Plan Status": plan_status("BOW", ev_bow, self._broken_support_note(last_close) is not None),
+                "Warning Level": ev_bow["warning_level"],
+                "Candle Bias": candle_bias,
+                "Entry Basis": float(ev_bow["entry"]),
+                "RR TP2": ev_bow["rr2"],
+                "Score Detail": ev_bow["score_detail"],
+                "Data As Of": as_of,
+                "Candle Final": bool(self.candle_final),
+            },
+            {
+                "No": 2,
+                "Type": "BOB",
+                "Score": ev_bob["score"],
+                "Grade": ev_bob["grade"],
+                "Posisi Harga": ev_bob["pos_status"],
+                "Range Buy Min": float(base_bob_high),
+                "Range Buy Max": float(upper_bob_high),
+                "Area Buy": fmt_range(base_bob_high, upper_bob_high),
+                "Stop Loss": float(stop_loss_bob),
+                "TP 1": float(target_1_bob),
+                "TP 2": float(target_2_bob) if target_2_bob is not None else None,
+                "Rasio (R:R)": f"1 : {ev_bob['rr1']}" if ev_bob["rr1"] > 0 else "-",
+                "RR_Val": ev_bob["rr1"],
+                "Pola Candle": candle_name,
+                "Warning": ev_bob["warning"],
+                "Status Level": bob_status,
+                "Level Confirmed": bool(res["confirmed"]),
+                "Plan Status": plan_status("BOB", ev_bob, False),
+                "Warning Level": ev_bob["warning_level"],
+                "Candle Bias": candle_bias,
+                "Entry Basis": float(ev_bob["entry"]),
+                "RR TP2": ev_bob["rr2"],
+                "Score Detail": ev_bob["score_detail"],
+                "Data As Of": as_of,
+                "Candle Final": bool(self.candle_final),
+            },
+        ]
+        return pd.DataFrame(plan_data)
+
+    def _sl_below(self, level):
+        """Stop loss di bawah level dengan buffer = max(3 tick, 0.5 x ATR), sesuai fraksi harga."""
+        level = float(level)
+        tick = self.get_tick_size(level)
+        buffer = max(3 * tick, 0.5 * self.atr_14)
+        sl = self.floor_to_tick(level - buffer)
+        if sl >= level:
+            sl = self.sub_ticks(level, 3)
+        return max(sl, 1.0)

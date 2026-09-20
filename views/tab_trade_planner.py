@@ -604,12 +604,18 @@ def render_tab_trade_planner():
         unsafe_allow_html=True,
     )
 
-    # --- BANNER HEADER ---
+# --- BANNER HEADER ---
     st.markdown(
         """
         <div class="header-banner">
             <div class="top-glowing-dot"></div>
             <h1>Stock Trade Planner</h1>
+        </div>
+        
+        <div style="background-color: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 12px 16px; margin-top: 10px; margin-bottom: 16px;">
+            <p style="font-size: 12px; color: #8B949E; line-height: 1.5; margin: 0;">
+                <span style="color: #FFD700;">⭐</span> <strong style="color: #C9D1D9;">Trade Planner</strong> memetakan area beli, stop loss, dan target untuk saham yang sedang dipantau. Ini alat bantu perencanaan, bukan rekomendasi beli atau jual. Level dihitung dari swing high dan swing low terbaru dan bisa berubah saat candle baru terbentuk. Cek chart, volume, dan berita, lalu sesuaikan ukuran posisi dengan risiko masing-masing.
+            </p>
         </div>
         """,
         unsafe_allow_html=True,

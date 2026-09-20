@@ -257,6 +257,12 @@ def reset_filters():
     st.session_state["f_candle"] = "ALL CANDLES"
 
 
+def on_single_ticker_enter():
+    """Dipanggil saat kotak ticker (Single Ticker) di-commit dengan Enter.
+    Hanya menyalakan penanda; analisis dijalankan di render_tab_trade_planner."""
+    st.session_state["single_enter_trigger"] = True
+
+
 def clear_cache(cache_key):
     """Clear specific cache mode."""
     st.session_state.pop(cache_key, None)
@@ -838,13 +844,16 @@ def render_tab_trade_planner():
                 value="",
                 placeholder="BBCA, BMRI, TLKM, INCO...",
                 label_visibility="collapsed",
+                key="single_ticker_input",
+                on_change=on_single_ticker_enter,
             )
         with col_btn:
             btn_single = st.button(
                 "Run Analyze", type="primary", use_container_width=True
             )
 
-        if btn_single:
+        enter_pressed = st.session_state.pop("single_enter_trigger", False)
+        if btn_single or enter_pressed:
             if not input_ticker.strip():
                 st.warning("⚠️ Input ticker list is empty.")
             else:

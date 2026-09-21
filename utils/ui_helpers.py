@@ -9,6 +9,7 @@ from engines.trade_planner import TradePlanner
 from utils.card_html import compact_html, emoji_to_icons, strip_emoji
 from utils.icons import expander_kwargs, icon_kwargs, svg_icon
 from utils.market_source import get_shared_history
+from utils import watchlist_store
 
 
 def inject_custom_css():
@@ -103,11 +104,8 @@ def _as_of_text(value, final=True):
 _WARN_COLORS = {"ok": "#34d399", "caution": "#fbbf24", "critical": "#ef4444"}
 
 
-def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_name="Screener"):
+def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_name="Screener", show_watchlist_button=True):
     st.markdown("---")
-
-    if "watchlist" not in st.session_state:
-        st.session_state["watchlist"] = []
 
     st.markdown(
         f"""
@@ -135,13 +133,11 @@ def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_na
 
     with col_btn:
         clean_ticker_code = ticker_symbol.upper().strip()
-        existing_list = [
-            x.get("Ticker", x) if isinstance(x, dict) else str(x)
-            for x in st.session_state["watchlist"]
-        ]
-        is_in_watchlist = clean_ticker_code in existing_list
+        is_in_watchlist = watchlist_store.is_in_watchlist(clean_ticker_code)
 
-        if is_in_watchlist:
+        if not show_watchlist_button:
+            pass
+        elif is_in_watchlist:
             st.button(
                 "In Watchlist",
                 key=f"btn_add_wl_{key_suffix}",
@@ -160,10 +156,13 @@ def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_na
                 if active_source == "Screener" and "active_screener_name" in st.session_state:
                     active_source = st.session_state.get("active_screener_name", "Screener")
 
-                st.session_state["watchlist"].append(
-                    {"Ticker": clean_ticker_code, "Notes": active_source}
-                )
-                st.toast(f"{clean_ticker_code} ({active_source}) berhasil ditambahkan ke Watchlist!")
+                res = watchlist_store.add_tickers([clean_ticker_code], active_source)
+                if res["added"]:
+                    st.toast(f"{clean_ticker_code} ({active_source}) berhasil ditambahkan ke Watchlist!")
+                elif res["limit"]:
+                    st.toast(f"Watchlist penuh (maks {watchlist_store.MAX_ITEMS} saham). Hapus satu dulu.")
+                else:
+                    st.toast("Saham sudah ada di Watchlist.")
                 st.rerun()
 
     clean_ticker = ticker_symbol.replace(".JK", "").replace("IDX:", "").strip().upper()
@@ -401,5 +400,9 @@ def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_na
             else:
                 st.info(f"Tidak ada Trade Plan yang tersedia untuk **{ticker_symbol}** pada periode ini.")
 
+        except ValueError as e:
+            st.warning(f"Trade Plan belum bisa dibuat untuk {ticker_symbol}: {e}")
         except Exception as e:
-            st.exception(e)
+            st.error(f"Gagal memuat Trade Plan untuk {ticker_symbol}. Coba lagi beberapa saat lagi.")
+            with st.expander("Detail teknis", expanded=False):
+                st.code(str(e))

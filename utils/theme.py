@@ -168,6 +168,29 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
 .zq-doc p, .zq-doc li { color: #C0C5D0; font-size: 14px; line-height: 1.6; }
 .zq-doc code { color: #00F3FF; background: rgba(0, 243, 255, 0.08); }
 
+/* ---------- 5b. Layar HP: menu 3 per baris, Run/Stop tetap bersebelahan ---------- */
+@media (max-width: 640px) {
+    div[data-testid="stHorizontalBlock"]:has([class*="st-key-znav_"]) {
+        flex-wrap: wrap !important; gap: 6px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has([class*="st-key-znav_"]) > div {
+        flex: 1 1 calc(33.333% - 6px) !important; min-width: calc(33.333% - 6px) !important; width: auto !important;
+    }
+    [class*="st-key-znav_"] [data-testid="stPageLink"] a,
+    [class*="st-key-znav_"] [data-testid="stPopover"] button { height: 38px; padding: 0 6px !important; }
+    [class*="st-key-znav_"] [data-testid="stPageLink"] a p,
+    [class*="st-key-znav_"] [data-testid="stPopover"] button p { font-size: 12px !important; }
+    div[data-testid="stHorizontalBlock"]:has([class*="st-key-btn_run_"]) { flex-wrap: nowrap !important; gap: 8px !important; }
+    div[data-testid="stHorizontalBlock"]:has([class*="st-key-btn_run_"]) > div { min-width: 0 !important; flex: 1 1 0 !important; }
+    /* Watchlist: filter/sort, Refresh/Manage/CSV, dan Select/Remove tetap satu baris */
+    [class*="st-key-wlrow_"] div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 6px !important; }
+    [class*="st-key-wlrow_"] div[data-testid="stHorizontalBlock"] > div { min-width: 0 !important; flex: 1 1 0 !important; }
+    [class*="st-key-wlrow_"] button { padding-left: 4px !important; padding-right: 4px !important; }
+    [class*="st-key-wlrow_"] button p {
+        font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+}
+
 /* ---------- 6. Footer IHSG + jam ---------- */
 .block-container { padding-bottom: 4.5rem !important; }
 .zq-footer {

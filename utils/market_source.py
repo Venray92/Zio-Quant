@@ -55,6 +55,34 @@ def prepare_batch_source(now=None):
     return None, f"Sumber data: live (Yahoo) · diambil {now.strftime('%H:%M')} WIB · {reason}{note}"
 
 
+def get_histories(tickers, now=None):
+    """Data harian banyak saham: file bersama di luar jam bursa, sisanya diunduh per grup 50.
+    Return ({ticker.JK: DataFrame berkolom Date + OHLCV}, teks sumber)."""
+    import pandas as pd
+
+    from engines.market_data import download_daily_batch
+
+    now = now or now_wib()
+    data_map, text = prepare_batch_source(now)
+    frames, need = {}, []
+    for t in tickers:
+        n = normalize_ticker(t)
+        d = (data_map or {}).get(n)
+        if d is not None and len(d):
+            frames[n] = d
+        else:
+            need.append(n)
+    for i in range(0, len(need), 50):
+        for k, v in download_daily_batch(need[i:i + 50]).items():
+            d = v.copy()
+            d.index = pd.to_datetime(d.index).tz_localize(None) if getattr(d.index, "tz", None) is not None else pd.to_datetime(d.index)
+            d.index.name = "Date"
+            frames[k] = d.reset_index()
+    if data_map and need:
+        text += f" · {len(need)} saham tidak ada di file, diambil langsung"
+    return frames, text
+
+
 def get_shared_history(symbol, now=None):
     """DataFrame harian satu saham dari file bersama, atau None kalau harus ambil langsung."""
     now = now or now_wib()

@@ -54,6 +54,8 @@ def direction_badge(text, kind="red"):
 
 
 def change_html(pct):
+    if pct is None:
+        return ""
     up = pct >= 0
     color = GREEN if up else PINK
     icon = svg_icon("trending-up" if up else "trending-down", 13, color, 2)
@@ -80,7 +82,7 @@ def build_card(is_selected, symbol, badges_html, price, change_pct, rows_html=""
         '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0;">'
         f'<span style="font-size:15px; font-weight:800; color:#FFFFFF;">{escape(str(symbol))}</span>{badges_html}</div>'
         '<div style="text-align:right; flex-shrink:0;">'
-        f'<div style="font-size:15px; font-weight:800; color:#FFFFFF; white-space:nowrap;">Rp {fmt_id(price)}</div>'
+        f'<div style="font-size:15px; font-weight:800; color:#FFFFFF; white-space:nowrap;">{"Rp " + fmt_id(price) if price else "-"}</div>'
         f'{change_html(change_pct)}</div></div>'
         f'{rows_html}<div>{pills_html}</div></div>'
     )

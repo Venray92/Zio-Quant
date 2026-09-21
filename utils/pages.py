@@ -36,9 +36,14 @@ def _watchlist():
 
 
 def _money_management():
+    from utils import watchlist_store
     from views.money_management import render_page_money_management
 
     _mark("money_management")
+    try:
+        watchlist_store.load_watchlist()  # mengisi daftar watchlist yang dipakai halaman ini
+    except Exception:
+        pass
     render_page_money_management()
 
 
@@ -108,14 +113,21 @@ def keyed_container(key):
 
 
 def link_width_kwargs():
+    """Argumen bersama untuk st.page_link: lebar penuh + profil (?u=) ikut terbawa antar halaman."""
     import inspect
+
+    from utils.profile import nav_query_params
 
     try:
         params = inspect.signature(st.page_link).parameters
     except Exception:
         return {}
+    kw = {}
     if "width" in params:
-        return {"width": "stretch"}
-    if "use_container_width" in params:
-        return {"use_container_width": True}
-    return {}
+        kw["width"] = "stretch"
+    elif "use_container_width" in params:
+        kw["use_container_width"] = True
+    qp = nav_query_params()
+    if qp and "query_params" in params:
+        kw["query_params"] = qp
+    return kw

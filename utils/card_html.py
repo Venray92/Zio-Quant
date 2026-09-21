@@ -15,6 +15,12 @@ _PILL_STYLES = {
 }
 
 
+def compact_html(html):
+    """Buang indentasi dan baris kosong. Di Markdown, baris kosong mengakhiri blok HTML dan
+    baris berikutnya yang menjorok 4 spasi berubah jadi blok kode (HTML tampil mentah)."""
+    return "\n".join(line.strip() for line in str(html).splitlines() if line.strip())
+
+
 def fmt_id(n):
     """Angka ribuan gaya Indonesia: 9450 -> 9.450"""
     try:

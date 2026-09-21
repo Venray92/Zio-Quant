@@ -6,7 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from engines.trade_planner import TradePlanner
-from utils.card_html import emoji_to_icons, strip_emoji
+from utils.card_html import compact_html, emoji_to_icons, strip_emoji
 from utils.icons import expander_kwargs, icon_kwargs, svg_icon
 from utils.market_source import get_shared_history
 
@@ -379,7 +379,7 @@ def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_na
                             <div style="font-size: 11px; color: {as_of_color}; margin-top: 8px;">{escape(as_of)}</div>
                         </div>
                         """
-                        st.markdown(card_html, unsafe_allow_html=True)
+                        st.markdown(compact_html(card_html), unsafe_allow_html=True)
 
                         with st.expander(
                             f"Score Details & Parameters #{plan_no} ({plan_type})",

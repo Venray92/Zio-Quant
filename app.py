@@ -1,6 +1,7 @@
 import streamlit as st
 
 from utils.pages import get_pages, page_key
+from utils.profile import adopt_query_profile
 from utils.theme import hide_sidebar_nav, inject_theme
 from utils.ui_helpers import inject_custom_css
 from views.footer import render_footer
@@ -19,7 +20,8 @@ st.set_page_config(
 inject_custom_css()
 inject_theme()
 
-# 3. Inisialisasi Session State
+# 3. Inisialisasi Session State (profil dipulihkan dari ?u= di URL kalau ada)
+adopt_query_profile()
 if "selected_page" not in st.session_state:
     st.session_state["selected_page"] = "home"
 

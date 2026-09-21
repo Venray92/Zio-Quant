@@ -65,10 +65,15 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     transition: all 0.3s ease !important;
     text-decoration: none !important;
 }
+/* warna untuk teks + ikon; font HANYA untuk teks (ikon Material butuh font ikonnya sendiri) */
 [class*="st-key-znav_"] [data-testid="stPageLink"] a *,
 [class*="st-key-zcta_"] [data-testid="stPageLink"] a *,
 [class*="st-key-zopen_"] [data-testid="stPageLink"] a * {
     color: #00F3FF !important;
+}
+[class*="st-key-znav_"] [data-testid="stPageLink"] a p,
+[class*="st-key-zcta_"] [data-testid="stPageLink"] a p,
+[class*="st-key-zopen_"] [data-testid="stPageLink"] a p {
     font-family: 'Share Tech Mono', monospace !important;
     font-weight: 700 !important;
 }
@@ -109,13 +114,16 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.08) 100%);
 }
 [class*="st-key-zscr_"] [data-testid="stPageLink"] a { padding-left: 0 !important; }
-[class*="st-key-zscr_"] [data-testid="stPageLink"] a * {
-    color: #FFFFFF !important;
+[class*="st-key-zscr_"] [data-testid="stPageLink"] a * { color: #FFFFFF !important; }
+[class*="st-key-zscr_"] [data-testid="stPageLink"] a [data-testid="stIconMaterial"] { color: #00F3FF !important; }
+[class*="st-key-zscr_"] [data-testid="stPageLink"] a p {
     font-weight: 700 !important;
     font-family: 'Share Tech Mono', monospace !important;
 }
 [class*="st-key-zscr_"] [data-testid="stPageLink"] a:hover * { color: #00F3FF !important; }
 [class*="st-key-zscr_"] [data-testid="stCaptionContainer"] { margin-top: -10px; }
+[class*="st-key-zscr_"] [data-testid="stCaptionContainer"],
+[class*="st-key-zscr_"] [data-testid="stCaptionContainer"] * { color: #8B949E !important; opacity: 1 !important; }
 
 /* ---------- 5. Komponen Home / How To ---------- */
 .zq-label {
@@ -168,7 +176,9 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     background: rgba(13, 27, 42, 0.96); border: 1px solid #00F3FF; border-radius: 8px;
     padding: 6px 12px; box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
     font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #C0C5D0;
+    white-space: nowrap;
 }
+.zq-footer #zq-f-data { display: inline-flex; align-items: center; gap: 8px; }
 .zq-footer .zq-f-idx { color: #FFFFFF; font-weight: 800; }
 .zq-footer .zq-f-sep { width: 1px; height: 14px; background: #30363D; }
 .zq-footer .zq-f-note { color: #8B949E; font-size: 11px; }

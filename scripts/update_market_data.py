@@ -27,8 +27,8 @@ from engines.market_data import (  # noqa: E402
     data_url,
     expected_last_candle_date,
     http_get,
-    normalize_ticker,
     now_wib,
+    read_ticker_file,
 )
 
 BATCH_SIZE = 50
@@ -47,16 +47,9 @@ def set_output(key, value):
 
 
 def read_tickers(path):
-    tickers, seen = [], set()
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            t = line.strip().upper()
-            if not t or t.startswith("#"):
-                continue
-            t = normalize_ticker(t)
-            if t not in seen:
-                seen.add(t)
-                tickers.append(t)
+    tickers, ignored = read_ticker_file(path, return_ignored=True)
+    if ignored:
+        print(f"{len(ignored)} baris daftar saham diabaikan (bukan kode saham): {ignored[:5]}")
     return tickers
 
 

@@ -56,12 +56,11 @@ def _footer_html():
     else:
         idx = '<span class="zq-muted">tidak tersedia</span>'
         note = ""
+    # Sumber data (tersembunyi). Script jam menyalin isinya ke bar footer yang ditempel
+    # langsung di <body>, supaya posisinya tidak terpengaruh kontainer Streamlit.
     return (
-        '<div class="zq-footer">'
+        f'<div id="zq-footer-src" data-trading="{1 if trading else 0}" style="display:none;">'
         f'<span class="zq-muted">IHSG</span> {idx} {note}'
-        '<span class="zq-f-sep"></span>'
-        f'<span id="zq-mkt" class="zq-mkt" data-trading="{1 if trading else 0}">{"Closed" if not trading else "&nbsp;"}</span>'
-        '<span id="zq-clock">--:--:-- WIB</span>'
         "</div>"
     )
 
@@ -83,17 +82,38 @@ _CLOCK_JS = """
   W.__zqStatus = status;
   if (W.__zqClock) return;
   W.__zqClock = true;
+  function bar() {
+    var b = D.getElementById("zq-footer-live");
+    if (!b) {
+      b = D.createElement("div");
+      b.id = "zq-footer-live";
+      b.className = "zq-footer";
+      [["zq-f-data", ""], ["", "zq-f-sep"], ["zq-mkt", "zq-mkt"], ["zq-clock", ""]].forEach(function (a) {
+        var sp = D.createElement("span");
+        if (a[0]) sp.id = a[0];
+        if (a[1]) sp.className = a[1];
+        b.appendChild(sp);
+      });
+      D.body.appendChild(b);
+    }
+    return b;
+  }
   var fmt = new Intl.DateTimeFormat("en-GB", {timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, weekday: "short"});
   var DOW = {Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6};
   function tick() {
     var parts = {};
     fmt.formatToParts(new Date()).forEach(function (p) { parts[p.type] = p.value; });
     var hh = parts.hour === "24" ? "00" : parts.hour;
+    var src = D.getElementById("zq-footer-src");
+    if (!src) return;
+    bar();
+    var data = D.getElementById("zq-f-data");
+    if (data && data.innerHTML !== src.innerHTML) data.innerHTML = src.innerHTML;
     var el = D.getElementById("zq-clock");
     if (el) el.textContent = hh + ":" + parts.minute + ":" + parts.second + " WIB";
     var mk = D.getElementById("zq-mkt");
     if (mk) {
-      var st = status(parseInt(hh, 10) * 60 + parseInt(parts.minute, 10), DOW[parts.weekday], mk.getAttribute("data-trading") === "1");
+      var st = status(parseInt(hh, 10) * 60 + parseInt(parts.minute, 10), DOW[parts.weekday], src.getAttribute("data-trading") === "1");
       mk.textContent = st[0];
       mk.className = "zq-mkt" + (st[1] ? " zq-mkt-" + st[1] : "");
     }
@@ -110,7 +130,12 @@ def _inject_clock():
     except Exception:
         supports_js = False
     if supports_js:
-        st.html("<script>" + _CLOCK_JS % {"win": "window", "doc": "document"} + "</script>", unsafe_allow_javascript=True)
+        st.html(
+            '<span id="zq-clock-js" style="display:none"></span><script>'
+            + _CLOCK_JS % {"win": "window", "doc": "document"}
+            + "</script>",
+            unsafe_allow_javascript=True,
+        )
     else:  # Streamlit lama: jalankan dari iframe kecil, akses halaman induk
         components.html(
             "<script>" + _CLOCK_JS % {"win": "window.parent", "doc": "window.parent.document"} + "</script>",

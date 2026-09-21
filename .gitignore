@@ -7,3 +7,4 @@ env/
 
 # Streamlit
 .streamlit/secrets.toml
+user_data/

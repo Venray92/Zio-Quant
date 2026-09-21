@@ -1,7 +1,7 @@
-streamlit
-pandas
-numpy
-yfinance
-plotly
-scipy
-ta
+streamlit==1.64.0
+pandas==3.0.2
+numpy==2.4.4
+yfinance==1.7.0
+plotly==7.1.0
+scipy==1.17.1
+ta==0.11.0

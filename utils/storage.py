@@ -144,19 +144,129 @@ class SupabaseBackend:
         self._check(resp)
 
 
-def _config():
-    url = key = None
+_URL_NAMES = ("url", "SUPABASE_URL", "supabase_url", "project_url")
+_KEY_NAMES = (
+    "key",
+    "secret_key",
+    "service_role_key",
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_KEY",
+    "supabase_key",
+    "service_key",
+)
+
+
+def _lookup(src, names):
+    for n in names:
+        try:
+            v = src.get(n)
+        except Exception:
+            v = None
+        if isinstance(v, str) and v.strip():
+            return v
+    return None
+
+
+def _raw_config():
+    """Cari url dan key di Streamlit secrets ([supabase] atau langsung di atas) lalu environment."""
+    sources = []
     try:
         sec = st.secrets.get("supabase")
-        if sec:
-            url, key = sec.get("url"), sec.get("key")
+        if sec is not None and not isinstance(sec, str) and hasattr(sec, "get"):
+            sources.append(sec)
+        sources.append(st.secrets)
     except Exception:
         pass
-    url = url or os.environ.get("SUPABASE_URL")
-    key = key or os.environ.get("SUPABASE_SECRET_KEY")
-    if url and key and str(url).strip().startswith("http"):
-        return str(url).strip(), str(key).strip()
-    return None
+    sources.append(os.environ)
+    url = key = None
+    for src in sources:
+        url = url or _lookup(src, _URL_NAMES)
+        key = key or _lookup(src, _KEY_NAMES)
+    return url, key
+
+
+def _clean_url(u):
+    u = str(u).strip().strip("\"'").strip()
+    if not u:
+        return None
+    if not re.match(r"^https?://", u, re.I):
+        u = "https://" + u
+    u = u.rstrip("/")
+    return re.sub(r"/rest(/v1)?$", "", u, flags=re.I)
+
+
+def _valid_url(u):
+    return bool(u) and re.match(r"^https?://[A-Za-z0-9.-]+(:\d+)?$", u) is not None
+
+
+def _clean_key(k):
+    return str(k).strip().strip("\"'").strip()
+
+
+def _config():
+    url, key = _raw_config()
+    if not url or not key:
+        return None
+    url, key = _clean_url(url), _clean_key(key)
+    if not _valid_url(url) or not key or key.startswith("sb_publishable_"):
+        return None
+    return url, key
+
+
+def config_diagnosis():
+    """(status, pesan) tentang konfigurasi Supabase, tanpa membuka isi kunci.
+    status: 'ok' | 'missing' | 'problem'"""
+    url, key = _raw_config()
+    if not url and not key:
+        return "missing", "Secrets Supabase belum terbaca. Pastikan ada bagian [supabase] berisi url dan key, lalu Reboot app."
+    if not url:
+        return "problem", "key terbaca, tapi url belum ada (Project URL, mis. https://xxxx.supabase.co)."
+    if not key:
+        return "problem", "url terbaca, tapi key belum ada (secret key berawalan sb_secret_)."
+    if not _valid_url(_clean_url(url)):
+        return "problem", "url tidak valid. Pakai Project URL saja, mis. https://xxxx.supabase.co (bukan alamat dashboard)."
+    k = _clean_key(key)
+    if k.startswith("sb_publishable_"):
+        return "problem", "Itu kunci publishable. Pakai secret key (sb_secret_...) dari Settings > API Keys."
+    if not (k.startswith("sb_secret_") or k.startswith("eyJ")):
+        return "problem", "key tidak dikenali (seharusnya berawalan sb_secret_)."
+    return "ok", "Konfigurasi terbaca."
+
+
+def _explain_status(code):
+    if code in (200, 206):
+        return None
+    if code in (401, 403):
+        return f"Ditolak (kode {code}): key salah atau sudah dihapus. Pakai secret key dari Settings > API Keys."
+    if code == 404:
+        return "Tabel user_data tidak ditemukan (kode 404). Jalankan supabase_setup.sql di SQL Editor, atau cek Project URL."
+    return f"Supabase menjawab kode {code}."
+
+
+def test_connection():
+    """Uji baca dan tulis ke Supabase. Return (berhasil, pesan)."""
+    cfg = _config()
+    if not cfg:
+        return False, config_diagnosis()[1]
+    be = SupabaseBackend(*cfg)
+    try:
+        resp = _http().get(
+            f"{be.url}/rest/v1/{TABLE}",
+            params={"select": "user_id", "limit": "1"},
+            headers=be._headers(),
+            timeout=TIMEOUT,
+        )
+    except requests.RequestException:
+        return False, "Tidak bisa menghubungi Supabase. Cek Project URL dan koneksi."
+    msg = _explain_status(resp.status_code)
+    if msg:
+        return False, msg
+    try:
+        be.save("system:healthcheck", "ping", {"at": datetime.now(timezone.utc).isoformat()})
+        be.load("system:healthcheck", "ping")
+    except StorageError as e:
+        return False, f"Membaca berhasil, tapi menulis gagal ({e}). Pastikan memakai secret key, bukan publishable."
+    return True, "Terhubung: baca dan tulis berhasil."
 
 
 _OVERRIDE = None  # (primary, fallback) untuk tes

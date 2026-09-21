@@ -9,7 +9,7 @@ import streamlit as st
 
 from utils import storage
 from utils.card_html import escape
-from utils.icons import icon_kwargs, svg_icon
+from utils.icons import expander_kwargs, icon_kwargs, svg_icon
 
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{2,31}$")
 _RESERVED = {"guest", "admin", "root", "null", "none", "undefined"}
@@ -131,4 +131,13 @@ def render_profile_card():
         if st.button("Retry cloud", key="btn_retry_cloud", **icon_kwargs("refresh")):
             storage.reset_cache()
             st.rerun()
+    if info["mode"] != "cloud" or info["error"]:
+        with st.expander("Storage status", expanded=False, **expander_kwargs("cloud_off")):
+            st.markdown(f"- {storage.config_diagnosis()[1]}")
+            if info["error"]:
+                st.markdown(f"- Kesalahan terakhir: {info['error']}")
+            st.caption("Selama cloud belum aktif, data disimpan sementara di server dan bisa hilang saat app restart.")
+            if st.button("Test connection", key="btn_test_cloud", **icon_kwargs("network_check")):
+                ok, msg = storage.test_connection()
+                (st.success if ok else st.error)(msg)
     return True

@@ -1,16 +1,19 @@
-"""Halaman Home: hero, Market Pulse (dari file harian), kartu screener, quick start."""
+"""Halaman Home: hero, ringkasan pribadi, arah pasar (IHSG), Market Pulse, rekap screener harian dan mingguan."""
 from html import escape
 
 import pandas as pd
 import streamlit as st
 
-from utils.card_html import compact_html, fmt_id
+from engines import market_view as MVW
+from engines import recap as RC
+from utils.card_html import GREEN, PINK, compact_html, fmt_id
 from utils.icons import svg_icon
 from utils import market_source, watchlist_store
 from utils.profile import current_profile
 from utils.pages import get_pages, keyed_container, link_width_kwargs
-from utils.screeners import SCREENERS
+from utils.screeners import get_screener
 from views.footer import fetch_ihsg, fmt_id_num
+from views.home_today import MODE_COLOR, render_today_block
 
 MIN_VALUE_RP = 1_000_000_000  # likuiditas minimal untuk daftar gainer/loser (rata-rata 20 hari)
 MIN_PRICE = 50
@@ -189,6 +192,173 @@ def render_market_pulse():
         _html(_list_card("Top value", "chart-bar", pulse["value"], "value"))
     st.caption("Gainer/loser hanya saham dengan rata-rata transaksi 20 hari minimal Rp 1 M dan harga minimal Rp 50.")
 
+AMBER = "#E3B341"
+
+
+# ---------------------------------------------------------------- arah pasar (IHSG)
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_market_view(stamp):
+    ihsg = market_source.load_ihsg()
+    if ihsg is None:
+        return None
+    data_map, meta = market_source.load_shared_file()
+    breadth = MVW.compute_breadth(data_map, meta.get("last_candle_date", "")) if data_map and meta else None
+    return MVW.build_market_view(ihsg, breadth)
+
+
+def _factor_rows(view):
+    rows = ""
+    for f in view["mode"]["factors"]:
+        col = "#00FF66" if f["points"] > 0 else ("#FF007F" if f["points"] < 0 else "#8B949E")
+        rows += (
+            f'<div class="zq-row"><span>{escape(f["label"])}</span><span class="zq-muted">{escape(str(f["value"]))}</span>'
+            f'<span style="color:{col};">{escape(f["note"])}</span></div>'
+        )
+    return rows
+
+
+def _levels_html(view):
+    lv = view["levels"]
+
+    def row(tag, x, color):
+        return (
+            f'<div class="zq-row"><span style="color:{color}; font-weight:700;">{tag}</span>'
+            f'<span>{MVW.id_num(x["price"])}</span><span class="zq-muted">{MVW.id_pct(x["pct"], 1, True)} · kekuatan {x["strength"]}</span></div>'
+        )
+
+    body = ""
+    for i, x in reversed(list(enumerate(lv["resistances"], 1))):
+        body += row(f"R{i}", x, "#FF007F")
+    if not lv["resistances"]:
+        body += '<div class="zq-row"><span style="color:#FF007F; font-weight:700;">R</span><span class="zq-muted">tidak ada resisten historis terdekat</span></div>'
+    body += (
+        f'<div class="zq-row" style="border-top:1px solid #30363D; border-bottom:1px solid #30363D;"><span style="color:#FFFFFF; font-weight:800;">IHSG</span>'
+        f'<span style="color:#FFFFFF; font-weight:800;">{MVW.id_num(view["close"])}</span><span class="zq-muted">{MVW.id_pct(view["chg"], 2, True)} · per {escape(pd.to_datetime(view["asof"]).strftime("%d %b %Y"))}</span></div>'
+    )
+    for i, x in enumerate(lv["supports"], 1):
+        body += row(f"S{i}", x, "#00FF66")
+    if not lv["supports"]:
+        body += '<div class="zq-row"><span style="color:#00FF66; font-weight:700;">S</span><span class="zq-muted">tidak ada support terdekat</span></div>'
+    return body
+
+
+def render_market_view(view):
+    _html(_label("compass", "Arah Pasar (IHSG)"))
+    if not view:
+        st.info("Analisis arah pasar tampil setelah data harian versi terbaru berjalan (butuh riwayat IHSG dan histori saham 12 bulan).")
+        return
+    m = view["mode"]
+    col = MODE_COLOR[m["mode"]]
+    c1, c2 = st.columns([3, 2])
+    with c1:
+        _html(
+            f'<div class="zq-card" style="height:100%;"><div class="zq-stat-label">Mode pasar</div>'
+            f'<div style="font-size:26px; font-weight:800; color:{col};">{escape(m["label"])} '
+            f'<span class="zq-muted" style="font-size:13px; font-weight:600;">skor {m["score"]:+d}</span></div>'
+            f'<div class="zq-muted" style="font-size:12px; margin-bottom:8px;">{escape(m["desc"])}</div>{_factor_rows(view)}'
+            f'<div class="zq-muted" style="font-size:11px; margin-top:6px;">Skor dari {m["n_factors"]} faktor di atas. Agresif jika skor +3 atau lebih, Defensif jika -3 atau kurang, selain itu Netral.</div></div>'
+        )
+    with c2:
+        _html(f'<div class="zq-card" style="height:100%;"><div class="zq-stat-label">Level penting</div>{_levels_html(view)}</div>')
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+    lines = "".join(f'<div style="margin:3px 0; font-size:13px; color:#C9D1D9;">{escape(x)}</div>' for x in view["outlook"])
+    _html(
+        f'<div class="zq-card"><div style="color:#00F3FF; font-weight:800; margin-bottom:6px;">{svg_icon("bulb", 15, "#00F3FF", 2, margin_right=6)}Pandangan otomatis</div>{lines}'
+        '<div class="zq-muted" style="font-size:11px; margin-top:6px;">Pandangan teknikal yang dihitung otomatis dari data harga IHSG dan sebaran saham. Bukan prediksi dan bukan rekomendasi.</div></div>'
+    )
+
+
+# ---------------------------------------------------------------- rekap screener
+def _names(rows, n=3):
+    return ", ".join(f"{escape(r['t'].replace('.JK', ''))} ({r['s']:g})" for r in rows[:n]) or "-"
+
+
+def _daily_card(key, name, history):
+    cat = get_screener(key)["category"]
+    dr = RC.daily_recap(history, key)
+    days = (history or {}).get("days") or {}
+    last = days[sorted(days)[-1]] if days else {}
+    head = (
+        f'<span class="zq-chip">{escape(cat)}</span>'
+        f'<div style="color:#FFFFFF; font-size:16px; font-weight:800;">{escape(name)}</div>'
+    )
+    if dr is None:
+        msg = "Screener ini gagal dijalankan pada update terakhir." if "error" in last.get(key, {}) else "Belum ada hasil harian."
+        return f'<div class="zq-card">{head}<div class="zq-muted" style="font-size:12px; margin-top:6px;">{msg}</div></div>'
+    new_b = f" ({dr['n_new_bull']} baru)" if dr["n_new_bull"] is not None else ""
+    new_r = f" ({dr['n_new_bear']} baru)" if dr["n_new_bear"] is not None else ""
+    return (
+        f'<div class="zq-card">{head}<div class="zq-muted" style="font-size:11px; margin-bottom:6px;">Data per {escape(pd.to_datetime(dr["date"]).strftime("%d %b %Y"))}</div>'
+        f'<div class="zq-row"><span style="color:{GREEN}; font-weight:700;">Bullish</span><span>{dr["n_bull"]}{new_b}</span></div>'
+        f'<div class="zq-muted" style="font-size:12px; margin-bottom:4px;">Teratas: {_names(dr["top_bull"])}</div>'
+        f'<div class="zq-row"><span style="color:{PINK}; font-weight:700;">Bearish</span><span>{dr["n_bear"]}{new_r}</span></div>'
+        f'<div class="zq-muted" style="font-size:12px;">Teratas: {_names(dr["top_bear"])}</div></div>'
+    )
+
+
+def _weekly_card(key, name, history, last_close):
+    cat = get_screener(key)["category"]
+    w = RC.weekly_recap(history, key, last_close)
+    head = f'<span class="zq-chip">{escape(cat)}</span><div style="color:#FFFFFF; font-size:16px; font-weight:800;">{escape(name)}</div>'
+    if w is None:
+        return f'<div class="zq-card">{head}<div class="zq-muted" style="font-size:12px; margin-top:6px;">Belum ada riwayat mingguan.</div></div>'
+    body = f'<div class="zq-muted" style="font-size:11px; margin-bottom:6px;">{len(w["dates"])} hari bursa terakhir · {w["n_unique"]} saham unik</div>'
+    for d, tag, col in (("bull", "Bullish", GREEN), ("bear", "Bearish", PINK)):
+        x = w[d]
+        if x["n_measured"]:
+            eg = MVW.id_pct(x["avg_edge"], 1, True)
+            res = f'{x["n_right"]} dari {x["n_measured"]} searah sinyal · rata-rata {eg}'
+        else:
+            res = "belum ada yang bisa diukur"
+        body += f'<div class="zq-row"><span style="color:{col}; font-weight:700;">{tag}</span><span>{x["n"]} saham</span></div><div class="zq-muted" style="font-size:12px; margin-bottom:4px;">{res}</div>'
+    rep = sorted(w["bull"]["repeat"] + w["bear"]["repeat"], key=lambda r: (-r["days"], r["t"]))[:3]
+    if rep:
+        body += '<div class="zq-muted" style="font-size:12px;">Muncul berulang: ' + ", ".join(f'{escape(r["t"].replace(".JK", ""))} ({r["days"]} hari)' for r in rep) + "</div>"
+    return f'<div class="zq-card">{head}{body}</div>'
+
+
+def render_recaps():
+    history = market_source.load_recap()
+    days = (history or {}).get("days") or {}
+    _html(_label("calendar-event", "Rekap Screener Harian"))
+    if not days:
+        st.info("Rekap tampil setelah data harian versi terbaru berjalan. Hasilnya memakai pengaturan bawaan tiap screener.")
+        return
+    pages, width = get_pages(), link_width_kwargs()
+    cols = st.columns(len(RC.SCREENERS))
+    for col, (key, name) in zip(cols, RC.SCREENERS):
+        with col:
+            _html(_daily_card(key, name, history))
+            with keyed_container(f"zopen_{key}"):
+                st.page_link(pages[key], label=f"Open {name}", icon=":material/arrow_forward:", **width)
+    st.caption("Rekap memakai pengaturan bawaan tiap screener, jadi bisa berbeda dari hasil di halaman screener kalau kamu mengubah pilihan di sana.")
+
+    data_map, _ = market_source.load_shared_file()
+    want = {h["t"] for d in sorted(days)[-5:] for e in days[d].values() if isinstance(e, dict) for h in e.get("hits", [])}
+    last_close = {}
+    for t in want:
+        df = (data_map or {}).get(t)
+        try:
+            if df is not None and len(df):
+                last_close[t] = float(df["Close"].iloc[-1])
+        except Exception:
+            pass
+    _html(_label("calendar-week", "Rekap Mingguan"))
+    cols = st.columns(len(RC.SCREENERS))
+    for col, (key, name) in zip(cols, RC.SCREENERS):
+        with col:
+            _html(_weekly_card(key, name, history, last_close))
+    st.caption("Hasil = perubahan harga dari harga sinyal sampai penutupan terakhir, searah sinyal (bearish: turun dihitung sesuai), belum termasuk biaya. Sampel kecil dan hasil masa lalu bukan jaminan.")
+
+
+def _safe(fn, *args):
+    """Satu bagian Home yang error tidak boleh membuat seluruh Home kosong."""
+    try:
+        return fn(*args)
+    except Exception:
+        st.caption("Bagian ini belum bisa ditampilkan. Coba muat ulang halaman.")
+        return None
+
 
 def render_page_home():
     pages = get_pages()
@@ -206,39 +376,16 @@ def render_page_home():
             st.page_link(pages["trade_plan"], label="Start screening", icon=":material/play_arrow:", **width)
     with b2:
         with keyed_container("zcta_secondary"):
-            st.page_link(pages["how_to"], label="How to use", icon=":material/menu_book:", **width)
+            st.page_link(pages["how_to"], label="Learn", icon=":material/menu_book:", **width)
 
+    _, meta = market_source.load_shared_file()
+    stamp = f"{(meta or {}).get('last_candle_date', '')}|{(meta or {}).get('updated_at_wib', '')}"
+    view = _safe(_cached_market_view, stamp) if meta else None
+
+    render_today_block(view)
+    _safe(render_market_view, view)
     render_market_pulse()
-
-    _html(_label("radar-2", "Screeners"))
-    cols = st.columns(len(SCREENERS))
-    for col, s in zip(cols, SCREENERS):
-        with col:
-            _html(
-                f"""<div class="zq-card">
-<span class="zq-chip">{escape(s["category"])}</span>
-<div style="display:flex; align-items:center; gap:8px; color:#FFFFFF; font-size:16px; font-weight:800;">{svg_icon(s["icon"], 18, "#00F3FF", 2)}{escape(s["name"])}</div>
-<div class="zq-muted" style="font-size:12px; margin-top:4px;">{escape(s["desc"])}</div>
-</div>"""
-            )
-            with keyed_container(f"zopen_{s['key']}"):
-                st.page_link(pages[s["key"]], label=f"Open {s['name']}", icon=":material/arrow_forward:", **width)
-
-    _html(_label("list-numbers", "Quick Start"))
-    q1, q2, q3, q4 = st.columns(4)
-    steps = [
-        ("Pilih screener", "Buka menu Screeners, lalu klik Run Screening."),
-        ("Cek trade plan", "Klik saham untuk melihat area buy, SL, TP, dan grade."),
-        ("Simpan ke watchlist", "Pantau saham pilihan di halaman Watchlist."),
-        ("Atur risiko", "Hitung jumlah lot di Money Management sebelum entry."),
-    ]
-    for col, (i, (title, desc)) in zip((q1, q2, q3, q4), enumerate(steps, 1)):
-        with col:
-            _html(
-                f'<div class="zq-card"><div style="color:#FFFFFF; font-weight:800; font-size:14px;">'
-                f'<span class="zq-step-no">{i}</span>{escape(title)}</div>'
-                f'<div class="zq-muted" style="font-size:12px; margin-top:6px;">{escape(desc)}</div></div>'
-            )
+    _safe(render_recaps)
 
     n_wl = _watchlist_count()
     _html(_label("bookmarks", "Watchlist"))

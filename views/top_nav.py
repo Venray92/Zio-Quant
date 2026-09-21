@@ -10,7 +10,7 @@ def _active(flag):
 
 
 def render_top_nav(current=None):
-    """Menu atas: Home, Screeners (dropdown), Watchlist, Money, How To. Halaman aktif menyala."""
+    """Menu atas: Home, Screeners (dropdown), Watchlist, Money, Learn. Halaman aktif menyala."""
     current = current or st.session_state.get("current_page", "home")
     pages = get_pages()
     width = link_width_kwargs()

@@ -24,6 +24,8 @@ DATA_REPO = ""
 DATA_BRANCH = "data"
 DATA_FILE = "market_data.csv.gz"
 META_FILE = "market_data_meta.json"
+IHSG_FILE = "ihsg_history.csv"
+RECAP_FILE = "screener_history.json"
 
 # Hari bursa buka (Senin-Jumat, bukan libur): jam ini data diambil langsung dari web.
 LIVE_START = time(9, 0)
@@ -59,10 +61,32 @@ IDX_HOLIDAYS = frozenset(
         "2026-12-24",  # Cuti bersama Natal
         "2026-12-25",  # Natal
         "2026-12-31",  # Libur bursa akhir tahun
+        # 2027: pengumuman BEI 16 Sep 2026 No. Peng-00169/BEI.POP/09-2026 (diperbarui Peng-00171/BEI.POP/09-2026
+        # tanggal 17 Sep 2026, hanya perubahan keterangan 6 Mei). 20 hari libur, 241 hari bursa.
+        "2027-01-01",  # Tahun Baru
+        "2027-01-05",  # Isra Mikraj
+        "2027-02-05",  # Cuti bersama Imlek
+        "2027-03-08",  # Nyepi
+        "2027-03-09",  # Cuti bersama Idulfitri
+        "2027-03-10",  # Idulfitri
+        "2027-03-11",  # Idulfitri
+        "2027-03-12",  # Cuti bersama Idulfitri
+        "2027-03-15",  # Cuti bersama Idulfitri
+        "2027-03-25",  # Cuti bersama Wafat Yesus Kristus
+        "2027-03-26",  # Wafat Yesus Kristus
+        "2027-05-06",  # Kenaikan Yesus Kristus
+        "2027-05-17",  # Iduladha
+        "2027-05-18",  # Cuti bersama Iduladha
+        "2027-05-19",  # Cuti bersama Waisak
+        "2027-05-20",  # Waisak
+        "2027-06-01",  # Hari Lahir Pancasila
+        "2027-08-17",  # Proklamasi Kemerdekaan
+        "2027-12-24",  # Cuti bersama Natal
+        "2027-12-31",  # Libur bursa akhir tahun
     )
 )
 # Tahun yang kalendernya sudah diisi (untuk peringatan kalau lupa update).
-IDX_HOLIDAY_YEARS = frozenset({2026})
+IDX_HOLIDAY_YEARS = frozenset({2026, 2027})
 
 
 # ----------------------------------------------------------------------
@@ -83,6 +107,22 @@ def _as_date(d):
 def calendar_is_covered(d):
     """False jika daftar libur untuk tahun itu belum diisi."""
     return _as_date(d).year in IDX_HOLIDAY_YEARS
+
+
+def calendar_alert(now=None):
+    """Pengingat mengisi kalender libur. None kalau aman.
+    {"year", "level"}: 'warn' mulai 1 Oktober untuk tahun depan; 'urgent' kalau tahun ini sendiri belum diisi
+    atau tahun depan belum diisi pada Desember."""
+    now = now or now_wib()
+    y = now.year
+    if y not in IDX_HOLIDAY_YEARS:
+        return {"year": y, "level": "urgent"}
+    if y + 1 not in IDX_HOLIDAY_YEARS:
+        if now.month == 12:
+            return {"year": y + 1, "level": "urgent"}
+        if now.month >= 10:
+            return {"year": y + 1, "level": "warn"}
+    return None
 
 
 def is_trading_day(d):
@@ -208,6 +248,20 @@ def load_market_file(repo, timeout=25):
     # tanggal candle terakhir diambil dari isi data itu sendiri (bukan hanya dari meta)
     meta["last_candle_date"] = pd.Timestamp(df["Date"].max()).date().isoformat()
     return df, meta
+
+
+def load_ihsg_history(repo, timeout=25):
+    """Riwayat harian IHSG (Date, Open, High, Low, Close, Volume). Melempar error jika gagal."""
+    raw = http_get(data_url(repo, IHSG_FILE), timeout)
+    df = pd.read_csv(io.BytesIO(raw), parse_dates=["Date"])
+    if not {"Date", "Open", "High", "Low", "Close"}.issubset(df.columns) or df.empty:
+        raise ValueError("Format riwayat IHSG tidak sesuai")
+    return df
+
+
+def load_recap_history(repo, timeout=25):
+    """Riwayat hasil screener harian (JSON). Melempar error jika gagal."""
+    return json.loads(http_get(data_url(repo, RECAP_FILE), timeout).decode("utf-8"))
 
 
 def build_ticker_map(df):

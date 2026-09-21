@@ -70,11 +70,11 @@ def info_row(html, icon=None, color=GRAY):
     return f'<div style="font-size:11px; color:{color}; margin-top:2px;">{ic}{html}</div>'
 
 
-def build_card(is_selected, symbol, badges_html, price, change_pct, rows_html="", pills_html=""):
+def build_card(is_selected, symbol, badges_html, price, change_pct, rows_html="", pills_html="", accent=None):
     border_style = (
         "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
         if is_selected
-        else "border: 1px solid #30363D; background-color: #161B22;"
+        else (f"border: 1.5px solid {accent}; background-color: #161B22;" if accent else "border: 1px solid #30363D; background-color: #161B22;")
     )
     return (
         f'<div style="{border_style} border-radius:8px; padding:10px 12px; margin-bottom:4px;">'

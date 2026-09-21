@@ -33,6 +33,28 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     transform: translateY(-1px) !important;
 }
 
+/* ---------- 1b. Tombol form dan unduh (hanya halaman Money Management + popover) ---------- */
+[class*="st-key-mmpage_"] [data-testid="stFormSubmitButton"] button,
+[class*="st-key-mmpage_"] [data-testid="stDownloadButton"] button,
+[data-testid="stPopoverBody"] [data-testid="stFormSubmitButton"] button {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
+    border: 1.5px solid #00F3FF !important;
+    color: #00F3FF !important;
+    border-radius: 8px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.25) !important;
+    transition: all 0.3s ease !important;
+}
+[class*="st-key-mmpage_"] [data-testid="stFormSubmitButton"] button:hover,
+[class*="st-key-mmpage_"] [data-testid="stDownloadButton"] button:hover,
+[data-testid="stPopoverBody"] [data-testid="stFormSubmitButton"] button:hover {
+    background: rgba(0, 243, 255, 0.2) !important;
+    color: #ffffff !important;
+    border-color: #FF007F !important;
+    box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
+}
+
 /* ---------- 2. Popover ---------- */
 [data-testid="stPopoverBody"] {
     background-color: #0d1b2a !important;
@@ -157,6 +179,13 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
 .zq-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed #21262D; }
 .zq-row:last-child { border-bottom: none; }
 .zq-muted { color: #8B949E; }
+.zq-grid { display: grid; gap: 8px; }
+.zq-grid6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.zq-grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.zq-grid .zq-stat-value { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1000px) { .zq-grid6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .zq-grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .zq-grid6 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .zq-up { color: #00FF66; }
 .zq-down { color: #FF007F; }
 .zq-step-no {
@@ -183,10 +212,12 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     div[data-testid="stHorizontalBlock"]:has([class*="st-key-btn_run_"]) { flex-wrap: nowrap !important; gap: 8px !important; }
     div[data-testid="stHorizontalBlock"]:has([class*="st-key-btn_run_"]) > div { min-width: 0 !important; flex: 1 1 0 !important; }
     /* Watchlist: filter/sort, Refresh/Manage/CSV, dan Select/Remove tetap satu baris */
-    [class*="st-key-wlrow_"] div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 6px !important; }
-    [class*="st-key-wlrow_"] div[data-testid="stHorizontalBlock"] > div { min-width: 0 !important; flex: 1 1 0 !important; }
-    [class*="st-key-wlrow_"] button { padding-left: 4px !important; padding-right: 4px !important; }
-    [class*="st-key-wlrow_"] button p {
+    [class*="st-key-wlrow_"] div[data-testid="stHorizontalBlock"],
+    [class*="st-key-mmrow_"] div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 6px !important; }
+    [class*="st-key-wlrow_"] div[data-testid="stHorizontalBlock"] > div,
+    [class*="st-key-mmrow_"] div[data-testid="stHorizontalBlock"] > div { min-width: 0 !important; flex: 1 1 0 !important; }
+    [class*="st-key-wlrow_"] button, [class*="st-key-mmrow_"] button { padding-left: 4px !important; padding-right: 4px !important; }
+    [class*="st-key-wlrow_"] button p, [class*="st-key-mmrow_"] button p {
         font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 }

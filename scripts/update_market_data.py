@@ -4,6 +4,11 @@
 Dijalankan otomatis oleh GitHub Actions (Senin-Jumat sore). Hasilnya dibaca
 oleh semua screener di web. Jika data kurang lengkap, file lama TIDAK ditimpa.
 
+File yang dihasilkan (semua masuk ke branch `data`):
+  market_data.csv.gz + market_data_meta.json : histori harian semua saham (12 bulan)
+  ihsg_history.csv                           : histori harian IHSG (12 bulan)
+  screener_history.json                      : hasil harian tiap screener (pengaturan bawaan), 40 hari terakhir
+
 Contoh manual:
     python scripts/update_market_data.py --tickers data/daftar_saham.txt --out out
 """
@@ -20,9 +25,14 @@ sys.path.insert(0, str(ROOT))
 import pandas as pd  # noqa: E402
 import yfinance as yf  # noqa: E402
 
+from engines import recap  # noqa: E402
 from engines.market_data import (  # noqa: E402
     DATA_FILE,
+    IHSG_FILE,
     META_FILE,
+    RECAP_FILE,
+    build_ticker_map,
+    calendar_alert,
     candle_is_final,
     data_url,
     expected_last_candle_date,
@@ -32,6 +42,9 @@ from engines.market_data import (  # noqa: E402
 )
 
 BATCH_SIZE = 50
+HISTORY_PERIOD = "1y"        # ~245 sesi: cukup untuk EMA200 dan analisis IHSG
+IHSG_SYMBOL = "^JKSE"
+MIN_IHSG_ROWS = 100
 MIN_ROWS = 20              # minimal candle per saham
 MIN_SUCCESS_RATIO = 0.80   # minimal saham berhasil dari daftar
 MIN_FRESH_RATIO = 0.50     # minimal saham yang candle terakhirnya sudah terbaru
@@ -58,7 +71,7 @@ def download_batch(tickers):
     for attempt in range(RETRIES + 1):
         try:
             raw = yf.download(
-                tickers, period="6mo", interval="1d", auto_adjust=False,
+                tickers, period=HISTORY_PERIOD, interval="1d", auto_adjust=False,
                 group_by="ticker", progress=False, threads=True,
             )
             if raw is not None and not raw.empty:
@@ -125,6 +138,82 @@ def existing_last_date():
         return None
 
 
+def carry_forward(out, names):
+    """Bawa file lama dari branch data kalau file baru belum dibuat, supaya tidak hilang saat branch ditulis ulang."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if not repo:
+        return
+    for name in names:
+        target = out / name
+        if target.exists():
+            continue
+        try:
+            target.write_bytes(http_get(data_url(repo, name), 30))
+            print(f"File lama {name} dibawa ke hasil baru.")
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def fetch_ihsg(now):
+    """Riwayat IHSG 12 bulan. Return DataFrame (Date + OHLCV) atau None kalau gagal (bukan kegagalan job)."""
+    try:
+        raw = yf.download(IHSG_SYMBOL, period=HISTORY_PERIOD, interval="1d", auto_adjust=False, progress=False)
+        if raw is None or raw.empty:
+            return None
+        if isinstance(raw.columns, pd.MultiIndex):
+            raw.columns = raw.columns.get_level_values(0)
+        d = raw[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Open", "High", "Low", "Close"]).copy()
+        idx = pd.to_datetime(d.index)
+        if getattr(idx, "tz", None) is not None:
+            idx = idx.tz_localize(None)
+        d.insert(0, "Date", idx.normalize())
+        d = d.reset_index(drop=True)
+        if not candle_is_final(now.date(), now):
+            d = d[d["Date"].dt.date != now.date()]
+        d["Volume"] = d["Volume"].fillna(0).astype("int64")
+        d = d.sort_values("Date").drop_duplicates("Date", keep="last").reset_index(drop=True)
+        return d if len(d) >= MIN_IHSG_ROWS else None
+    except Exception as e:  # noqa: BLE001
+        print(f"IHSG gagal diunduh: {e}")
+        return None
+
+
+def run_screeners(df):
+    """Jalankan tiap screener dengan pengaturan bawaan pada data yang baru. Kegagalan satu screener tidak menghentikan job."""
+    last = pd.Timestamp(df["Date"].max())
+    fresh = df[df.groupby("Ticker")["Date"].transform("max") == last]   # saham tanpa candle terbaru tidak ikut (basi/suspensi)
+    data_map = build_ticker_map(fresh)
+    tickers = list(data_map)
+    entries = {}
+    try:
+        from engines.screener_rsi_divergence import run_rsi_screener
+
+        res, _ = run_rsi_screener(tickers, data=data_map)
+        entries["rsi"] = {"hits": recap.hits_from_rsi(res)}
+    except Exception as e:  # noqa: BLE001
+        entries["rsi"] = {"error": f"{type(e).__name__}: {e}"[:120]}
+    try:
+        from engines.screener_stoch_psar import run_stoch_psar_screener
+
+        gc, dc = run_stoch_psar_screener(tickers, data=data_map)
+        entries["stoch_psar"] = {"hits": recap.hits_from_stoch(gc, dc)}
+    except Exception as e:  # noqa: BLE001
+        entries["stoch_psar"] = {"error": f"{type(e).__name__}: {e}"[:120]}
+    for k, v in entries.items():
+        print(f"Screener {k}: " + (f"{len(v['hits'])} sinyal" if "hits" in v else f"GAGAL ({v['error']})"))
+    return last.date().isoformat(), entries
+
+
+def previous_recap():
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if not repo:
+        return {}
+    try:
+        return recap.clean_history(json.loads(http_get(data_url(repo, RECAP_FILE), 30).decode("utf-8")))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--tickers", default=str(ROOT / "data" / "daftar_saham.txt"))
@@ -135,6 +224,11 @@ def main(argv=None):
     now = now_wib()
     expected = expected_last_candle_date(now)
     print(f"Sekarang {now:%Y-%m-%d %H:%M} WIB, candle final terbaru yang diharapkan: {expected}")
+
+    alert = calendar_alert(now)
+    set_output("calendar_alert", f"{alert['year']}|{alert['level']}" if alert else "")
+    if alert:
+        print(f"PERINGATAN: kalender libur bursa {alert['year']} belum diisi ({alert['level']}).")
 
     if not args.force:
         last = existing_last_date()
@@ -178,12 +272,34 @@ def main(argv=None):
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+
+    # IHSG dan hasil screener harian: kegagalan di sini TIDAK menggagalkan data utama
+    ihsg = fetch_ihsg(now)
+    if ihsg is not None:
+        ihsg_out = ihsg.copy()
+        ihsg_out["Date"] = ihsg_out["Date"].dt.strftime("%Y-%m-%d")
+        ihsg_out.to_csv(out / IHSG_FILE, index=False, float_format="%.4f")
+        print(f"IHSG: {len(ihsg)} candle, terakhir {ihsg_out['Date'].iloc[-1]}")
+    else:
+        print("IHSG tidak diperbarui (file lama dipertahankan kalau ada).")
+    recap_days = 0
+    try:
+        recap_date, entries = run_screeners(df)
+        history = recap.add_day(previous_recap(), recap_date, entries, f"{now:%Y-%m-%d %H:%M}")
+        (out / RECAP_FILE).write_text(json.dumps(history, separators=(",", ":")), encoding="utf-8")
+        recap_days = len(history["days"])
+    except Exception as e:  # noqa: BLE001
+        print(f"Rekap screener gagal, riwayat lama dipertahankan: {type(e).__name__}: {e}")
+    carry_forward(out, [IHSG_FILE, RECAP_FILE])
+
     df_out = df.copy()
     df_out["Date"] = df_out["Date"].dt.strftime("%Y-%m-%d")
     df_out.to_csv(out / DATA_FILE, index=False, compression="gzip", float_format="%.4f")
     got = set(df["Ticker"])
     meta = {
-        "version": 1,
+        "version": 2,
+        "history_period": HISTORY_PERIOD,
+        "recap_days": recap_days,
         "updated_at_wib": f"{now:%Y-%m-%d %H:%M}",
         "last_candle_date": pd.Timestamp(df["Date"].max()).date().isoformat(),
         "n_tickers": len(got),

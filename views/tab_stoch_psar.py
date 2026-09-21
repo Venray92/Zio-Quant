@@ -351,10 +351,16 @@ def render_tab_stoch_psar():
                 pbar_stoch.progress(pct)
                 pstatus_stoch.text(f"Scanning Stoch & PSAR: {current}/{total} tickers...")
 
+            def update_stoch_phase(phase, batch_no, n_batches, first, last, total):
+                pstatus_stoch.text(
+                    f"Downloading batch {batch_no}/{n_batches} (tickers {first}-{last} of {total})..."
+                )
+
             try:
                 df_gc, df_dc = run_stoch_psar_screener(
                     tickers=all_stoch_tickers,
                     progress_callback=update_stoch_progress,
+                    phase_callback=update_stoch_phase,
                     data=data_map,
                 )
                 pbar_stoch.empty()

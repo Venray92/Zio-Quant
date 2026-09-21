@@ -371,9 +371,15 @@ def render_tab_rsi():
                     pbar_rsi.progress(min(1.0, done / total) if total else 0)
                     pstatus_rsi.text(f"Scanning RSI: {done}/{total} tickers...")
 
+                def _phase(phase, batch_no, n_batches, first, last, total):
+                    pstatus_rsi.text(
+                        f"Downloading batch {batch_no}/{n_batches} (tickers {first}-{last} of {total})..."
+                    )
+
                 df_rsi_all, info = run_rsi_screener(
                     all_tickers,
                     progress_callback=_progress,
+                    phase_callback=_phase,
                     data=data_map,
                     should_stop=lambda: st.session_state.get("stop_rsi_scan", False),
                 )

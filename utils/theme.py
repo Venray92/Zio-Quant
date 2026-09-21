@@ -1,0 +1,196 @@
+"""Tema global Z-QUANT: satu tempat untuk gaya tombol, menu, popover, Home, dan footer.
+
+Warna mengikuti tab screener (RSI/Stoch/Trade Planner) supaya semua halaman seragam.
+"""
+import streamlit as st
+
+CYAN, PINK, GREEN, AMBER, GRAY = "#00F3FF", "#FF007F", "#00FF66", "#E3B341", "#8B949E"
+
+_CSS = """
+<style>
+/* ---------- 1. Tombol (semua halaman) ---------- */
+.stButton button,
+div[data-testid="stHorizontalBlock"] .stButton button,
+[data-testid="stPopover"] > button,
+[data-testid="stPopover"] button {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
+    border: 1.5px solid #00F3FF !important;
+    color: #00F3FF !important;
+    border-radius: 8px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.25) !important;
+    transition: all 0.3s ease !important;
+}
+.stButton button:hover,
+div[data-testid="stHorizontalBlock"] .stButton button:hover,
+[data-testid="stPopover"] > button:hover,
+[data-testid="stPopover"] button:hover {
+    background: rgba(0, 243, 255, 0.2) !important;
+    color: #ffffff !important;
+    border-color: #FF007F !important;
+    box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ---------- 2. Popover ---------- */
+[data-testid="stPopoverBody"] {
+    background-color: #0d1b2a !important;
+    border: 1px solid #00F3FF !important;
+    border-radius: 8px !important;
+}
+[data-testid="stPopoverBody"] .stButton button {
+    background: #161B22 !important;
+    border: 1px solid #00F3FF !important;
+    color: #00F3FF !important;
+}
+[data-testid="stPopoverBody"] .stButton button:hover {
+    border-color: #FF007F !important;
+    color: #FFFFFF !important;
+    background: rgba(0, 243, 255, 0.15) !important;
+}
+
+/* ---------- 3. Menu atas (link halaman) ---------- */
+[class*="st-key-znav_"] [data-testid="stPageLink"] a,
+[class*="st-key-zcta_"] [data-testid="stPageLink"] a,
+[class*="st-key-zopen_"] [data-testid="stPageLink"] a {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: 42px;
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%) !important;
+    border: 1.5px solid #00F3FF !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.25) !important;
+    transition: all 0.3s ease !important;
+    text-decoration: none !important;
+}
+[class*="st-key-znav_"] [data-testid="stPageLink"] a *,
+[class*="st-key-zcta_"] [data-testid="stPageLink"] a *,
+[class*="st-key-zopen_"] [data-testid="stPageLink"] a * {
+    color: #00F3FF !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-weight: 700 !important;
+}
+[class*="st-key-znav_"] [data-testid="stPageLink"] a:hover,
+[class*="st-key-zcta_"] [data-testid="stPageLink"] a:hover,
+[class*="st-key-zopen_"] [data-testid="stPageLink"] a:hover {
+    background: rgba(0, 243, 255, 0.2) !important;
+    border-color: #FF007F !important;
+    box-shadow: 0 0 18px rgba(255, 0, 127, 0.6) !important;
+    transform: translateY(-1px);
+}
+[class*="st-key-znav_"] [data-testid="stPageLink"] a:hover * { color: #FFFFFF !important; }
+/* halaman aktif */
+[class*="st-key-znav_"][class*="__active"] [data-testid="stPageLink"] a,
+[class*="st-key-znav_"][class*="__active"] [data-testid="stPopover"] button {
+    background: linear-gradient(135deg, rgba(0, 243, 255, 0.22) 0%, rgba(255, 0, 127, 0.14) 100%) !important;
+    box-shadow: 0 0 16px rgba(0, 243, 255, 0.55) !important;
+}
+[class*="st-key-znav_"][class*="__active"] [data-testid="stPageLink"] a *,
+[class*="st-key-znav_"][class*="__active"] [data-testid="stPopover"] button * { color: #FFFFFF !important; }
+/* tombol ajakan sekunder (Home) */
+[class*="st-key-zcta_secondary"] [data-testid="stPageLink"] a {
+    border-color: #30363D !important;
+    box-shadow: none !important;
+}
+[class*="st-key-zcta_secondary"] [data-testid="stPageLink"] a * { color: #C9D1D9 !important; }
+
+/* ---------- 4. Kartu screener di dropdown ---------- */
+[class*="st-key-zscr_"] {
+    background: #161B22;
+    border: 1px solid #30363D;
+    border-radius: 8px;
+    padding: 6px 10px 2px 10px;
+    margin-bottom: 4px;
+}
+[class*="st-key-zscr_"][class*="__active"] {
+    border-color: #00F3FF;
+    background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.08) 100%);
+}
+[class*="st-key-zscr_"] [data-testid="stPageLink"] a { padding-left: 0 !important; }
+[class*="st-key-zscr_"] [data-testid="stPageLink"] a * {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    font-family: 'Share Tech Mono', monospace !important;
+}
+[class*="st-key-zscr_"] [data-testid="stPageLink"] a:hover * { color: #00F3FF !important; }
+[class*="st-key-zscr_"] [data-testid="stCaptionContainer"] { margin-top: -10px; }
+
+/* ---------- 5. Komponen Home / How To ---------- */
+.zq-label {
+    display: flex; align-items: center; gap: 6px;
+    color: #FF007F; font-size: 11px; font-weight: 800; letter-spacing: 2px;
+    text-transform: uppercase; margin: 18px 0 8px 0; font-family: 'Share Tech Mono', monospace;
+}
+.zq-hero {
+    background: linear-gradient(135deg, rgba(0, 243, 255, 0.10) 0%, rgba(255, 0, 127, 0.08) 100%);
+    border: 1.5px solid #00F3FF; border-radius: 10px; padding: 22px 24px 18px 24px;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.15); margin-bottom: 10px;
+}
+.zq-hero h1 {
+    color: #00F3FF !important; font-size: 26px !important; font-weight: 900 !important;
+    letter-spacing: 2px; margin: 0 0 6px 0 !important; padding: 0 !important;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5); font-family: 'Share Tech Mono', monospace !important;
+}
+.zq-hero p { color: #C0C5D0; font-size: 14px; margin: 0; }
+.zq-card {
+    background: #161B22; border: 1px solid #30363D; border-radius: 8px;
+    padding: 12px 14px; height: 100%;
+}
+.zq-card-accent { border-color: #00F3FF; }
+.zq-stat-label { color: #8B949E; font-size: 11px; letter-spacing: 0.5px; }
+.zq-stat-value { color: #FFFFFF; font-size: 20px; font-weight: 800; margin-top: 2px; white-space: nowrap; }
+.zq-stat-sub { font-size: 12px; margin-top: 2px; }
+.zq-chip {
+    display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 4px;
+    border: 1px solid #00F3FF; color: #00F3FF; margin-bottom: 6px;
+}
+.zq-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed #21262D; }
+.zq-row:last-child { border-bottom: none; }
+.zq-muted { color: #8B949E; }
+.zq-up { color: #00FF66; }
+.zq-down { color: #FF007F; }
+.zq-step-no {
+    display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+    border-radius: 50%; border: 1px solid #00F3FF; color: #00F3FF; font-size: 12px; font-weight: 800; margin-right: 6px;
+}
+.zq-disclaimer { color: #6C7A9C; font-size: 11px; line-height: 1.5; margin-top: 18px; }
+.zq-doc h4 { color: #00F3FF !important; font-size: 15px !important; margin: 14px 0 6px 0 !important; }
+.zq-doc p, .zq-doc li { color: #C0C5D0; font-size: 14px; line-height: 1.6; }
+.zq-doc code { color: #00F3FF; background: rgba(0, 243, 255, 0.08); }
+
+/* ---------- 6. Footer IHSG + jam ---------- */
+.block-container { padding-bottom: 4.5rem !important; }
+.zq-footer {
+    position: fixed; left: 14px; bottom: 12px; z-index: 999990;
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(13, 27, 42, 0.96); border: 1px solid #00F3FF; border-radius: 8px;
+    padding: 6px 12px; box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
+    font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #C0C5D0;
+}
+.zq-footer .zq-f-idx { color: #FFFFFF; font-weight: 800; }
+.zq-footer .zq-f-sep { width: 1px; height: 14px; background: #30363D; }
+.zq-footer .zq-f-note { color: #8B949E; font-size: 11px; }
+.zq-footer #zq-clock { color: #00F3FF; font-weight: 800; min-width: 92px; }
+.zq-mkt { font-size: 10px; padding: 1px 6px; border-radius: 4px; border: 1px solid #8B949E; color: #8B949E; }
+.zq-mkt-open { border-color: #00FF66; color: #00FF66; }
+.zq-mkt-break { border-color: #E3B341; color: #E3B341; }
+@media (max-width: 640px) {
+    .zq-footer { left: 6px; right: 6px; bottom: 6px; justify-content: space-between; gap: 8px; font-size: 11px; }
+    .zq-footer .zq-f-note { display: none; }
+}
+</style>
+"""
+
+
+def inject_theme():
+    st.markdown(_CSS, unsafe_allow_html=True)
+
+
+def hide_sidebar_nav():
+    """Dipakai kalau versi Streamlit belum mendukung st.navigation(position="hidden")."""
+    st.markdown(
+        "<style>[data-testid='stSidebarNav'], [data-testid='stSidebar'] {display: none !important;}</style>",
+        unsafe_allow_html=True,
+    )

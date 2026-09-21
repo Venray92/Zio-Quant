@@ -3,7 +3,9 @@ import os
 
 import streamlit as st
 
+from utils.card_html import escape
 from utils.icons import svg_icon
+from utils.profile import current_profile
 
 
 def get_logo_base64(file_path="logo.jpg"):
@@ -39,6 +41,12 @@ def render_header(current=None):
             f'{svg_icon("bolt", 28, "#00F3FF", 2)}</span>'
         )
 
+    profile = current_profile()
+    chip = (
+        f'<span style="display:inline-flex; align-items:center; gap:6px; border:1px solid {"#00F3FF" if profile else "#30363D"}; border-radius:16px; '
+        f'padding:3px 12px; font-size:12px; color:{"#FFFFFF" if profile else "#8B949E"}; font-family:\'Share Tech Mono\', monospace;">'
+        f'{svg_icon("user", 14, "#00F3FF" if profile else "#8B949E", 2)}{escape(profile) if profile else "Guest"}</span>'
+    )
     st.markdown(
         f"""<div class="brand-container" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
 <div style="display:inline-flex; align-items:center; gap:12px;">
@@ -48,6 +56,7 @@ def render_header(current=None):
 <div style="color:#8B949E; font-size:11px; letter-spacing:1px; font-family:'Share Tech Mono', monospace;">IDX SCREENER TERMINAL</div>
 </div>
 </div>
+{chip}
 </div>""",
         unsafe_allow_html=True,
     )

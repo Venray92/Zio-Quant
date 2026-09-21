@@ -1,5 +1,4 @@
 import concurrent.futures
-import json
 import os
 from html import escape as html_escape
 
@@ -11,6 +10,7 @@ from engines.market_data import find_ticker_file, normalize_ticker, read_ticker_
 from engines.trade_planner import TradePlanner
 from utils.card_html import emoji_to_icons, strip_emoji
 from utils.icons import expander_kwargs, icon_kwargs, svg_icon
+from utils import watchlist_store
 from utils.market_source import prepare_batch_source
 
 # Kolom yang tampil di tabel batch (sama seperti sebelumnya, kolom baru dari engine
@@ -278,58 +278,14 @@ def clear_cache(cache_key):
 
 
 def add_tickers_to_watchlist(symbols_list):
-    storage_file = "watchlist_storage.json"
-    try:
-        watchlist_data = []
-        if os.path.exists(storage_file):
-            try:
-                with open(storage_file, "r", encoding="utf-8") as f:
-                    watchlist_data = json.load(f)
-            except Exception:
-                watchlist_data = []
-        
-        existing_tickers = set()
-        for item in watchlist_data:
-            if isinstance(item, str):
-                existing_tickers.add(item.upper())
-            elif isinstance(item, dict):
-                t = item.get("Ticker", "")
-                if t:
-                    existing_tickers.add(t.upper())
-        
-        added_count = 0
-        active_screener_name = st.session_state.get("active_screener_name", "Trade Planner Screener")
-
-        for sym in symbols_list:
-            clean_sym = sym.strip().upper()
-            formatted = clean_sym if clean_sym.endswith(".JK") else f"{clean_sym}.JK"
-            
-            if formatted not in existing_tickers and clean_sym not in existing_tickers:
-                new_item = {
-                    "Ticker": formatted,
-                    "Notes": active_screener_name,
-                    "Target Price": 0
-                }
-                watchlist_data.append(new_item)
-                
-                if "watchlist" in st.session_state and isinstance(st.session_state["watchlist"], list):
-                    st.session_state["watchlist"].append(new_item)
-                if "watchlist_data" in st.session_state and isinstance(st.session_state["watchlist_data"], list):
-                    st.session_state["watchlist_data"].append(new_item)
-
-                existing_tickers.add(formatted)
-                existing_tickers.add(clean_sym)
-                added_count += 1
-        
-        if added_count > 0:
-            with open(storage_file, "w", encoding="utf-8") as f:
-                json.dump(watchlist_data, f, indent=4)
-            st.toast(f"Berhasil menambahkan {added_count} saham ke Watchlist!")
-        else:
-            st.toast("Saham terpilih sudah ada di dalam Watchlist.", icon="ℹ️")
-            
-    except Exception as e:
-        st.error(f"Gagal menyimpan ke watchlist: {e}")
+    source = st.session_state.get("active_screener_name", "Trade Planner")
+    res = watchlist_store.add_tickers(symbols_list, source)
+    if res["added"]:
+        st.toast(f"Berhasil menambahkan {res['added']} saham ke Watchlist!")
+    elif res["limit"]:
+        st.toast(f"Watchlist penuh (maks {watchlist_store.MAX_ITEMS} saham). Hapus satu dulu.")
+    else:
+        st.toast("Saham terpilih sudah ada di dalam Watchlist.")
 
 
 def draw_card(title, value, subtext, badge_text="", variant="blue", value_color="blue"):

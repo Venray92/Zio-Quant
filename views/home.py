@@ -6,7 +6,8 @@ import streamlit as st
 
 from utils.card_html import compact_html, fmt_id
 from utils.icons import svg_icon
-from utils import market_source
+from utils import market_source, watchlist_store
+from utils.profile import current_profile
 from utils.pages import get_pages, keyed_container, link_width_kwargs
 from utils.screeners import SCREENERS
 from views.footer import fetch_ihsg, fmt_id_num
@@ -109,15 +110,10 @@ def _stat(label, value_html, sub_html=""):
 
 
 def _watchlist_count():
-    items = st.session_state.get("watchlist_data")
-    if items is None:
-        try:
-            from views.watchlist import load_watchlist_from_file
-
-            items = load_watchlist_from_file()
-        except Exception:
-            items = []
-    return len(items or [])
+    try:
+        return len(watchlist_store.load_watchlist())
+    except Exception:
+        return 0
 
 
 def render_market_pulse():
@@ -250,7 +246,13 @@ def render_page_home():
     with w1:
         _html(
             f'<div class="zq-card"><span style="color:#FFFFFF; font-size:18px; font-weight:800;">{n_wl}</span> '
-            f'<span class="zq-muted">saham di watchlist kamu</span></div>'
+            f'<span class="zq-muted">saham di watchlist kamu</span>'
+            + (
+                ""
+                if current_profile()
+                else '<div class="zq-muted" style="font-size:11px; margin-top:4px;">Guest mode: buat profil di halaman Watchlist supaya tersimpan.</div>'
+            )
+            + "</div>"
         )
     with w2:
         with keyed_container("zopen_watchlist"):

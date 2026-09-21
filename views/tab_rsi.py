@@ -326,7 +326,7 @@ def render_tab_rsi():
                 </div>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
                     {svg_icon("bolt", 18, "#00F3FF", 2)}
-                    <span class="cyber-header-title">RSI MATRIX</span>
+                    <span class="cyber-header-title">RSI REVERSAL</span>
                 </div>
             </div>
             """,

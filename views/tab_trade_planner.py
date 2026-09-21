@@ -763,7 +763,7 @@ def render_tab_trade_planner():
         """
         <div class="header-banner">
             <div class="top-glowing-dot"></div>
-            <h1>Stock Trade Planner</h1>
+            <h1>Trade Planner</h1>
         </div>
         """,
         unsafe_allow_html=True,

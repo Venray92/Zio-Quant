@@ -305,7 +305,7 @@ def render_tab_stoch_psar():
                 </div>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
                     {svg_icon("bolt", 18, "#00F3FF", 2)}
-                    <span class="cyber-header-title">STOCH-TREND RADAR</span>
+                    <span class="cyber-header-title">STOCH MOMENTUM</span>
                 </div>
             </div>
             """,

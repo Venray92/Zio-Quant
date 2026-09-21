@@ -8,9 +8,11 @@ BASE_PAGES = [
     ("home", "Home", "Home", "home"),
     ("watchlist", "Watchlist", "Watchlist", "bookmarks"),
     ("money_management", "Money Management", "Money", "account_balance_wallet"),
-    ("how_to", "How To", "How To", "menu_book"),
+    ("how_to", "Learn", "Learn", "menu_book"),
 ]
 SCREENER_KEYS = [s["key"] for s in SCREENERS]
+# Alamat halaman yang tidak mengikuti nama key (key "how_to" tetap dipakai internal, alamatnya jadi /learn).
+URL_PATHS = {"how_to": "learn"}
 
 _PAGES = None
 
@@ -54,6 +56,11 @@ def _how_to():
     render_page_how_to()
 
 
+def _how_to_old_url():
+    """Alamat lama /how-to diarahkan ke halaman Learn supaya bookmark lama tidak mati."""
+    st.switch_page(get_pages()["how_to"])
+
+
 _BASE_FUNCS = {
     "home": _home,
     "watchlist": _watchlist,
@@ -82,9 +89,10 @@ def get_pages():
                 _BASE_FUNCS[key],
                 title=title,
                 icon=f":material/{icon}:",
-                url_path=key.replace("_", "-"),
+                url_path=URL_PATHS.get(key, key.replace("_", "-")),
                 default=(key == "home"),
             )
+        pages["how_to_old_url"] = st.Page(_how_to_old_url, title="How To (alamat lama)", url_path="how-to")
         for s in SCREENERS:
             pages[s["key"]] = st.Page(
                 _screener_page(s),

@@ -11,7 +11,9 @@ from engines.market_data import (
     choose_source,
     fmt_date_id,
     is_live_window,
+    load_ihsg_history,
     load_market_file,
+    load_recap_history,
     normalize_ticker,
     now_wib,
     resolve_repo,
@@ -33,6 +35,40 @@ def load_shared_file():
         return _load_shared_file(repo)
     except Exception:
         return None, None
+
+
+@st.cache_resource(ttl=300, show_spinner=False)
+def _load_ihsg(repo):
+    return load_ihsg_history(repo)
+
+
+def load_ihsg():
+    """Riwayat IHSG dari file harian, atau None kalau belum tersedia."""
+    repo = resolve_repo()
+    if not repo:
+        return None
+    try:
+        return _load_ihsg(repo)
+    except Exception:
+        return None
+
+
+@st.cache_resource(ttl=300, show_spinner=False)
+def _load_recap(repo):
+    from engines.recap import clean_history
+
+    return clean_history(load_recap_history(repo))
+
+
+def load_recap():
+    """Riwayat hasil screener harian (sudah dibersihkan), atau None kalau belum tersedia."""
+    repo = resolve_repo()
+    if not repo:
+        return None
+    try:
+        return _load_recap(repo)
+    except Exception:
+        return None
 
 
 def prepare_batch_source(now=None):

@@ -513,6 +513,7 @@ def run_stoch_psar_screener(
     data=None,
     include_early=False,
     log_path=None,
+    phase_callback=None,
 ):
     """
     tickers        : list ticker (None = seluruh IHSG)
@@ -522,6 +523,8 @@ def run_stoch_psar_screener(
                      ada di sini tetap di-download otomatis.
     include_early  : (opsional) True = ikutkan Early Signal (watchlist)
     log_path       : (opsional) path CSV untuk mencatat sinyal harian
+    phase_callback : (opsional) fungsi(fase, grup_ke, jumlah_grup, awal, akhir, total),
+                     dipanggil sebelum tiap grup diunduh (fase "download")
     Return: (df_gc, df_dc) -> format sama seperti sebelumnya.
     Info run (gagal download, dll) ada di df.attrs["run_info"] atau
     get_last_run_info().
@@ -573,6 +576,15 @@ def run_stoch_psar_screener(
             else:
                 need.append(t)
         if need:
+            if phase_callback:
+                phase_callback(
+                    "download",
+                    start // BATCH_SIZE + 1,
+                    -(-total_tickers // BATCH_SIZE),
+                    start + 1,
+                    min(start + BATCH_SIZE, total_tickers),
+                    total_tickers,
+                )
             frames.update(_download_batch(need))
 
         for t in chunk:

@@ -756,6 +756,7 @@ def run_rsi_screener(
     data=None,
     should_stop=None,
     batch_size=50,
+    phase_callback=None,
 ):
     """
     tickers            : list ticker
@@ -763,6 +764,8 @@ def run_rsi_screener(
     data               : (opsional) {ticker: DataFrame} dari file harian bersama.
                          Ticker yang tidak ada di sini diunduh per grup (maks batch_size).
     should_stop        : (opsional) fungsi tanpa argumen, True = hentikan scan
+    phase_callback     : (opsional) fungsi(fase, grup_ke, jumlah_grup, awal, akhir, total),
+                         dipanggil sebelum tiap grup diunduh (fase "download")
     Return: (DataFrame hasil, info). Kolom hasil sama seperti detect_rsi_patterns_and_score.
     """
     ordered = list(dict.fromkeys(normalize_ticker(t) for t in tickers))
@@ -786,6 +789,15 @@ def run_rsi_screener(
             else:
                 need.append(t)
         if need:
+            if phase_callback:
+                phase_callback(
+                    "download",
+                    start // batch_size + 1,
+                    -(-total // batch_size),
+                    start + 1,
+                    min(start + batch_size, total),
+                    total,
+                )
             got = download_daily_batch(need)
             frames.update(got)
             live += len(got)

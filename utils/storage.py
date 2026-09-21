@@ -185,18 +185,55 @@ def _raw_config():
     return url, key
 
 
+_REF = r"[a-z0-9]{15,30}"  # project ref Supabase (biasanya 20 huruf/angka)
+_HOST = r"(?:localhost|\d{1,3}(?:\.\d{1,3}){3}|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})"
+
+
 def _clean_url(u):
+    """Ubah apa pun yang mengandung alamat project menjadi https://host (tanpa path/query/teks lain)."""
     u = str(u).strip().strip("\"'").strip()
     if not u:
         return None
-    if not re.match(r"^https?://", u, re.I):
-        u = "https://" + u
-    u = u.rstrip("/")
-    return re.sub(r"/rest(/v1)?$", "", u, flags=re.I)
+    # alamat dashboard: supabase.com/dashboard/project/<ref>
+    m = re.search(rf"supabase\.com/(?:dashboard/)?project/({_REF})", u, re.I)
+    if m:
+        return f"https://{m.group(1).lower()}.supabase.co"
+    # connection string database: db.<ref>.supabase.co atau postgres.<ref>@...pooler
+    m = re.search(rf"\bdb\.({_REF})\.supabase\.co", u, re.I) or re.search(rf"postgres\.({_REF})\b", u, re.I)
+    if m:
+        return f"https://{m.group(1).lower()}.supabase.co"
+    # connection string database lain (postgresql://...) bukan alamat API
+    sch = re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", u)
+    if sch and not re.match(r"^https?://", u, re.I):
+        return None
+    # ambil bagian https://host dari teks mana pun (buang path, query, dan kata di sekitarnya)
+    m = re.search(rf"(https?://)?({_HOST})(:\d+)?(?![A-Za-z0-9-])", u, re.I)
+    if m and m.group(2).lower() in ("supabase.com", "www.supabase.com", "app.supabase.com"):
+        return None  # situs/dashboard Supabase, bukan alamat project
+    if m and (m.group(1) or "." in m.group(2) or m.group(2).lower() == "localhost"):
+        return f"{(m.group(1) or 'https://').lower()}{m.group(2).lower()}{m.group(3) or ''}"
+    # hanya Project ID
+    if re.fullmatch(_REF, u, re.I):
+        return f"https://{u.lower()}.supabase.co"
+    return None
 
 
 def _valid_url(u):
     return bool(u) and re.match(r"^https?://[A-Za-z0-9.-]+(:\d+)?$", u) is not None
+
+
+def _url_hints(raw):
+    """Petunjuk bentuk url yang salah, TANPA menampilkan isinya (bisa berisi password)."""
+    raw = str(raw).strip()
+    hints = []
+    m = re.match(r"^[\"']?([A-Za-z][A-Za-z0-9+.-]*)://", raw)
+    if m and m.group(1).lower() not in ("http", "https"):
+        hints.append(f"diawali '{m.group(1)}://', itu bukan Project URL")
+    if re.search(r"\s", raw):
+        hints.append("mengandung spasi")
+    if "." not in raw:
+        hints.append("tidak ada titik (mungkin bukan alamat)")
+    return hints
 
 
 def _clean_key(k):
@@ -224,7 +261,9 @@ def config_diagnosis():
     if not key:
         return "problem", "url terbaca, tapi key belum ada (secret key berawalan sb_secret_)."
     if not _valid_url(_clean_url(url)):
-        return "problem", "url tidak valid. Pakai Project URL saja, mis. https://xxxx.supabase.co (bukan alamat dashboard)."
+        hints = _url_hints(url)
+        extra = f" ({'; '.join(hints)})" if hints else ""
+        return "problem", f"url tidak valid{extra}. Pakai Project URL saja, mis. https://xxxx.supabase.co (buka Connect di dashboard Supabase, lalu copy Project URL)."
     k = _clean_key(key)
     if k.startswith("sb_publishable_"):
         return "problem", "Itu kunci publishable. Pakai secret key (sb_secret_...) dari Settings > API Keys."

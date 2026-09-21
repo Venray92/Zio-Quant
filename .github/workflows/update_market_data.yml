@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: update-market-data
@@ -22,7 +23,9 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -31,7 +34,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install pandas numpy yfinance
+        # streamlit ikut dipasang karena modul screener mengimpornya (tidak dipakai untuk menjalankan web di sini)
+        run: pip install pandas numpy yfinance ta streamlit
 
       - name: Download market data
         id: fetch
@@ -50,6 +54,9 @@ jobs:
           set -e
           mkdir -p /tmp/publish
           cp out/market_data.csv.gz out/market_data_meta.json /tmp/publish/
+          for f in ihsg_history.csv screener_history.json; do
+            if [ -f "out/$f" ]; then cp "out/$f" /tmp/publish/; fi
+          done
           cd /tmp/publish
           git init -q -b data
           git config user.name "github-actions[bot]"
@@ -58,3 +65,57 @@ jobs:
           git commit -q -m "market data $(date -u +%F)"
           git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           git push --force origin data
+
+      # Menjaga project Supabase gratis tidak tertidur (dijeda setelah ~7 hari tanpa aktivitas).
+      # Butuh secret SUPABASE_URL dan SUPABASE_KEY (publishable key). Kalau belum diisi, langkah ini dilewati.
+      - name: Keepalive Supabase
+        if: always()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "Secret Supabase belum diisi, keepalive dilewati."
+            exit 0
+          fi
+          code=$(curl -s -o /dev/null -m 20 -w "%{http_code}" -H "apikey: $SUPABASE_KEY" "${SUPABASE_URL%/}/rest/v1/user_data?select=user_id&limit=1" || true)
+          echo "Supabase membalas HTTP ${code}"
+          case "$code" in 2*) ;; *) echo "::warning::Supabase tidak membalas normal (HTTP ${code}). Cek apakah project dijeda atau key salah." ;; esac
+
+      # Pengingat mengisi kalender libur bursa tahun depan (issue dibuat sekali, komentar tiap tanggal 1).
+      - name: Calendar reminder
+        if: always() && steps.fetch.outputs.calendar_alert != ''
+        env:
+          ALERT: ${{ steps.fetch.outputs.calendar_alert }}
+        run: |
+          year="${ALERT%%|*}"; level="${ALERT##*|}"
+          title="Kalender libur IDX ${year} belum diisi"
+          body="Kalender libur bursa ${year} belum diisi di engines/market_data.py (level: ${level}).
+
+          1. Cari pengumuman \"Kalender Libur Bursa Tahun ${year}\" di idx.co.id (biasanya terbit September-Oktober).
+          2. Tambahkan tanggalnya ke IDX_HOLIDAYS dan tahunnya ke IDX_HOLIDAY_YEARS.
+
+          Tanpa ini hari libur dianggap hari bursa biasa: job harian bisa gagal dan penanda candle final jadi salah. Issue ini tertutup otomatis setelah kalender diisi."
+          num=$(gh issue list --repo "${{ github.repository }}" --state open --search "\"${title}\" in:title" --json number --jq '.[0].number')
+          if [ -z "$num" ]; then
+            gh issue create --repo "${{ github.repository }}" --title "$title" --body "$body"
+          elif [ "$(date -u +%d)" = "01" ]; then
+            gh issue comment "$num" --repo "${{ github.repository }}" --body "Pengingat bulanan: kalender ${year} masih belum diisi (level: ${level})."
+          fi
+
+      - name: Close calendar reminder
+        if: steps.fetch.outcome == 'success' && steps.fetch.outputs.calendar_alert == ''
+        run: |
+          for num in $(gh issue list --repo "${{ github.repository }}" --state open --search "Kalender libur IDX belum diisi in:title" --json number,title --jq '.[] | select(.title | test("^Kalender libur IDX [0-9]+ belum diisi$")) | .number'); do
+            gh issue close "$num" --repo "${{ github.repository }}" --comment "Kalender sudah terisi. Ditutup otomatis."
+          done
+
+      # Percobaan kedua (20:00 WIB) atau jalan manual gagal = data hari itu belum terbit. Buka issue supaya kamu tahu.
+      - name: Open issue on failure
+        if: failure() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 13 * * 1-5')
+        run: |
+          title="Update data harian gagal ($(date -u +%F))"
+          num=$(gh issue list --repo "${{ github.repository }}" --state open --search "\"${title}\" in:title" --json number --jq '.[0].number')
+          if [ -z "$num" ]; then
+            gh issue create --repo "${{ github.repository }}" --title "$title" --body "Job update data harian gagal pada percobaan terakhir. Data di web bisa basi sampai job berikutnya berhasil. Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi

@@ -52,6 +52,7 @@ def render_page_how_to():
 <li><b>RSI Reversal</b>: mencari divergence antara harga dan RSI (T1 ke T2). Label <code>T2 belum terkonfirmasi</code> artinya titik T2 baru terbentuk dan masih bisa berubah.</li>
 <li><b>Stoch Momentum</b>: Golden Cross (bullish) dan Dead Cross (bearish) Stochastic, dibantu PSAR dan tren. Angka bintang = kekuatan sinyal.</li>
 <li><b>Trade Planner</b>: membuat rencana BOW (Buy on Weakness) dan BOB (Buy on Breakout) untuk satu atau banyak saham sekaligus.</li>
+<li><b>Trend Scanner</b>: 3 mode berbasis struktur harga & volume (bukan RSI/Stochastic). <b>Breakout Surge</b> mencari saham yang baru tembus level tertinggi beberapa minggu disertai lonjakan volume. <b>Trend Reset</b> mencari saham tren naik yang sedang koreksi sehat ke area support, siap lanjut naik lagi. <b>Quiet Accumulation</b> mencari saham yang harganya menyempit (squeeze) sambil volume naik -- istilah tradernya "akumulasi diam-diam" atau "tanam bibit", tanda ada yang mengumpulkan posisi sebelum harga biasanya bergerak. Mode ini tidak berskor dan tidak menunjukkan arah beli/jual, murni daftar pantau.</li>
 </ul>
 <h4>Sinyal bukan perintah</h4>
 <p>Screener hanya menyaring saham yang memenuhi kriteria teknikal pada candle terakhir. Tetap cek chart, berita, dan risiko sebelum bertindak.</p>"""

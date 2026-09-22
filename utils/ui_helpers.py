@@ -5,7 +5,9 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
+from engines.sector_map import get_company_name
 from engines.trade_planner import TradePlanner
+from utils.compat import STRETCH
 from utils.card_html import compact_html, emoji_to_icons, strip_emoji
 from utils.icons import expander_kwargs, icon_kwargs, svg_icon
 from utils.market_source import get_shared_history
@@ -104,20 +106,26 @@ def _as_of_text(value, final=True):
 _WARN_COLORS = {"ok": "#34d399", "caution": "#fbbf24", "critical": "#ef4444"}
 
 
+def _plan_name_html(ticker_symbol):
+    name = get_company_name(str(ticker_symbol))
+    return f'<div style="font-size:13px; color:#8B949E; font-weight:500; margin-top:2px;">{escape(name)}</div>' if name else ""
+
+
 def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_name="Screener", show_watchlist_button=True):
     st.markdown("---")
 
     st.markdown(
-        f"""
-        <div class="live-plan-header">
-            <div class="live-plan-title">
-                {svg_icon("chart-bar", 22, "currentColor", 2, margin_right=8)}LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
-            </div>
-            <div style="font-size: 12px; color: #8B949E; font-weight: 600;">
-                SYSTEM STATUS: <span style="color: #00F3FF; text-shadow: 0 0 5px #00F3FF;">ONLINE</span>
-            </div>
-        </div>
-        """,
+        compact_html(
+            f"""<div class="live-plan-header">
+<div class="live-plan-title">
+{svg_icon("chart-bar", 22, "currentColor", 2, margin_right=8)}LIVE TRADE PLAN: <span class="live-plan-ticker">{ticker_symbol}</span>
+{_plan_name_html(ticker_symbol)}
+</div>
+<div style="font-size: 12px; color: #8B949E; font-weight: 600;">
+SYSTEM STATUS: <span style="color: #00F3FF; text-shadow: 0 0 5px #00F3FF;">ONLINE</span>
+</div>
+</div>"""
+        ),
         unsafe_allow_html=True,
     )
 
@@ -142,14 +150,14 @@ def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_na
                 "In Watchlist",
                 key=f"btn_add_wl_{key_suffix}",
                 disabled=True,
-                use_container_width=True,
+                **STRETCH,
                 **icon_kwargs("check_circle"),
             )
         else:
             if st.button(
                 "Add to Watchlist",
                 key=f"btn_add_wl_{key_suffix}",
-                use_container_width=True,
+                **STRETCH,
                 **icon_kwargs("bookmark_add"),
             ):
                 active_source = screener_name

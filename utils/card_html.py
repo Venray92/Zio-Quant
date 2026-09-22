@@ -70,6 +70,19 @@ def info_row(html, icon=None, color=GRAY):
     return f'<div style="font-size:11px; color:{color}; margin-top:2px;">{ic}{html}</div>'
 
 
+def company_name_html(symbol):
+    """Baris kecil nama perusahaan di bawah kode saham (kosong kalau kode tidak ada di peta sektor)."""
+    from engines.sector_map import get_company_name
+
+    name = get_company_name(str(symbol)) if symbol else None
+    if not name:
+        return ""
+    return (
+        f'<div title="{escape(name)}" style="font-size:11px; color:{GRAY}; margin-top:1px; white-space:nowrap; '
+        f'overflow:hidden; text-overflow:ellipsis; max-width:100%;">{escape(name)}</div>'
+    )
+
+
 def build_card(is_selected, symbol, badges_html, price, change_pct, rows_html="", pills_html="", accent=None):
     border_style = (
         "border: 1.5px solid #00F3FF; background: linear-gradient(135deg, rgba(0, 243, 255, 0.12) 0%, rgba(255, 0, 127, 0.1) 100%); box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);"
@@ -79,8 +92,10 @@ def build_card(is_selected, symbol, badges_html, price, change_pct, rows_html=""
     return (
         f'<div style="{border_style} border-radius:8px; padding:10px 12px; margin-bottom:4px;">'
         '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">'
+        '<div style="min-width:0;">'
         '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0;">'
         f'<span style="font-size:15px; font-weight:800; color:#FFFFFF;">{escape(str(symbol))}</span>{badges_html}</div>'
+        f'{company_name_html(symbol)}</div>'
         '<div style="text-align:right; flex-shrink:0;">'
         f'<div style="font-size:15px; font-weight:800; color:#FFFFFF; white-space:nowrap;">{"Rp " + fmt_id(price) if price else "-"}</div>'
         f'{change_html(change_pct)}</div></div>'

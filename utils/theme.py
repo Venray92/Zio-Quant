@@ -222,6 +222,66 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     }
 }
 
+/* ---------- 5c. Kotak input (semua halaman): border dibuat kontras ----------
+   Bawaan Streamlit: border kotak input berwarna SAMA dengan latarnya, jadi kotak tidak terlihat. */
+[data-testid="stSelectbox"] > div > div,
+[data-testid="stMultiSelect"] > div > div,
+[data-testid="stNumberInputContainer"],
+[data-testid="stTextInputRootElement"],
+[data-testid="stDateInputField"],
+[data-testid="stTimeInputField"],
+[data-testid="stTextAreaRootElement"] {
+    border: 1px solid #3D4B5E !important;
+    border-radius: 6px !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+[data-testid="stSelectbox"] > div > div:hover,
+[data-testid="stMultiSelect"] > div > div:hover,
+[data-testid="stNumberInputContainer"]:hover,
+[data-testid="stTextInputRootElement"]:hover,
+[data-testid="stDateInputField"]:hover,
+[data-testid="stTimeInputField"]:hover,
+[data-testid="stTextAreaRootElement"]:hover {
+    border-color: #5A6B80 !important;
+}
+[data-testid="stSelectbox"] > div > div:focus-within,
+[data-testid="stMultiSelect"] > div > div:focus-within,
+[data-testid="stNumberInputContainer"]:focus-within,
+[data-testid="stTextInputRootElement"]:focus-within,
+[data-testid="stDateInputField"]:focus-within,
+[data-testid="stTimeInputField"]:focus-within,
+[data-testid="stTextAreaRootElement"]:focus-within {
+    border-color: #00F3FF !important;
+    box-shadow: 0 0 8px rgba(0, 243, 255, 0.25) !important;
+}
+/* Form & expander: garis tepi sedikit lebih terang supaya bloknya terbaca */
+[data-testid="stForm"] { border-color: #30363D !important; }
+[data-testid="stExpander"] details { border-color: #30363D !important; }
+
+/* Pilihan mode Trend Scanner: gaya sama dengan pilihan mode RSI/Stoch (cyan) */
+[class*="st-key-ztrend_mode"] [data-testid="stSelectbox"] > div > div {
+    background-color: #0D1117 !important;
+    border: 1.5px solid #00F3FF !important;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2) !important;
+}
+[class*="st-key-ztrend_mode"] [data-testid="stSelectbox"] > div > div:hover {
+    border-color: #FF007F !important;
+    box-shadow: 0 0 15px rgba(255, 0, 127, 0.4) !important;
+}
+[class*="st-key-ztrend_mode"] [data-testid="stSelectbox"] * { color: #00F3FF !important; font-weight: 700 !important; }
+
+/* ---------- 5d. Workspace 2 kolom (RSI/Stoch/Trend/Sector Radar): susun ke bawah di layar sempit.
+   Streamlit TIDAK menyusun kolom otomatis di layar sempit (cuma soal lebar kontainer, bukan viewport),
+   jadi tanpa ini kolom kiri-kanan tetap sebaris dan jadi sempit banget di HP. */
+@media (max-width: 900px) {
+    [class*="st-key-zworkspace_"] div[data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+    }
+    [class*="st-key-zworkspace_"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        width: 100% !important; flex: 1 1 100% !important; min-width: 100% !important;
+    }
+}
+
 /* ---------- 6. Footer IHSG + jam ---------- */
 .block-container { padding-bottom: 4.5rem !important; }
 .zq-footer {

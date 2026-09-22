@@ -7,6 +7,7 @@ import re
 
 import streamlit as st
 
+from utils.compat import STRETCH
 from utils import storage
 from utils.card_html import escape
 from utils.icons import expander_kwargs, icon_kwargs, svg_icon
@@ -100,7 +101,7 @@ def render_profile_card():
             with c1:
                 raw = st.text_input("Profile name", placeholder="mis. stev-idx", max_chars=32, key="profile_name_input")
             with c2:
-                submitted = st.form_submit_button("Save profile", use_container_width=True, **icon_kwargs("person_add"))
+                submitted = st.form_submit_button("Save profile", **STRETCH, **icon_kwargs("person_add"))
         if submitted:
             ok, msg = set_profile(raw)
             if ok:
@@ -124,7 +125,7 @@ def render_profile_card():
             unsafe_allow_html=True,
         )
     with c2:
-        if st.button("Switch", key="btn_switch_profile", use_container_width=True, **icon_kwargs("logout")):
+        if st.button("Switch", key="btn_switch_profile", **STRETCH, **icon_kwargs("logout")):
             clear_profile()
             st.rerun()
     if info["error"]:

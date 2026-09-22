@@ -6,6 +6,7 @@ import streamlit as st
 from data.ihsg_tickers import get_all_ihsg_tickers
 from engines.market_data import candle_is_final, now_wib
 from engines.trade_planner import TradePlanner
+from utils.compat import STRETCH
 from utils import market_source, watchlist_store
 from utils.card_html import (
     GREEN,
@@ -222,7 +223,7 @@ def _render_add_form(items):
             else:
                 raw = st.text_input("Tickers (pisahkan dengan koma)", placeholder="BBCA, BBRI", key="wl_add_text")
                 picks = [p for p in raw.replace(";", ",").split(",") if p.strip()]
-            go = st.form_submit_button("Add to watchlist", use_container_width=True, **icon_kwargs("bookmark_add"))
+            go = st.form_submit_button("Add to watchlist", **STRETCH, **icon_kwargs("bookmark_add"))
         if go:
             _toast_add(watchlist_store.add_tickers(picks, "Manual"))
             st.rerun()
@@ -284,14 +285,14 @@ def render_page_watchlist():
             with keyed_container("wlrow_tools"):
                 b1, b2, b3 = st.columns(3)
             with b1:
-                if st.button("Refresh", key="wl_refresh", use_container_width=True, **icon_kwargs("refresh")):
+                if st.button("Refresh", key="wl_refresh", **STRETCH, **icon_kwargs("refresh")):
                     _snapshots.clear()
                     st.rerun()
             with b2:
-                with st.popover("Manage", use_container_width=True, **icon_kwargs("tune", "popover")):
+                with st.popover("Manage", **STRETCH, **icon_kwargs("tune", "popover")):
                     st.caption("Remove every stock from this watchlist.")
                     sure = st.checkbox("Yes, remove all", key="wl_confirm_clear")
-                    if st.button("Clear watchlist", key="wl_clear_all", disabled=not sure, use_container_width=True):
+                    if st.button("Clear watchlist", key="wl_clear_all", disabled=not sure, **STRETCH):
                         watchlist_store.clear_all()
                         st.session_state["selected_watchlist_ticker"] = None
                         st.toast("Watchlist dikosongkan.")
@@ -315,7 +316,7 @@ def render_page_watchlist():
                     data=df.to_csv(index=False).encode("utf-8"),
                     file_name="watchlist.csv",
                     mime="text/csv",
-                    use_container_width=True,
+                    **STRETCH,
                     help="Export watchlist to CSV",
                     **icon_kwargs("download", "download_button"),
                 )
@@ -341,14 +342,14 @@ def render_page_watchlist():
                         if st.button(
                             f"SELECTED ({code})" if is_sel else f"SELECT {code}",
                             key=f"wl_sel_{code}",
-                            use_container_width=True,
+                            **STRETCH,
                             type="primary" if is_sel else "secondary",
                             **(icon_kwargs("check") if is_sel else {}),
                         ):
                             st.session_state["selected_watchlist_ticker"] = t
                             st.rerun()
                     with c_del:
-                        if st.button("Remove", key=f"wl_del_{code}", use_container_width=True, **icon_kwargs("delete")):
+                        if st.button("Remove", key=f"wl_del_{code}", **STRETCH, **icon_kwargs("delete")):
                             watchlist_store.remove_tickers([t])
                             if st.session_state.get("selected_watchlist_ticker") == t:
                                 st.session_state["selected_watchlist_ticker"] = None
@@ -380,7 +381,7 @@ def render_page_watchlist():
                 target = st.number_input(
                     "Target price (Rp)", min_value=0.0, value=float(item["Target Price"]), step=1.0, format="%.0f"
                 )
-                saved = st.form_submit_button("Save", use_container_width=True, **icon_kwargs("save"))
+                saved = st.form_submit_button("Save", **STRETCH, **icon_kwargs("save"))
             if saved:
                 watchlist_store.update_item(sel, notes=notes, target=float(target))
                 st.toast(f"Catatan {code} disimpan.")

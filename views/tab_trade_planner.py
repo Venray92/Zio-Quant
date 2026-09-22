@@ -7,11 +7,19 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from engines.market_data import find_ticker_file, normalize_ticker, read_ticker_file
+from engines.sector_map import get_company_name
 from engines.trade_planner import TradePlanner
+from utils.compat import STRETCH
 from utils.card_html import emoji_to_icons, strip_emoji
 from utils.icons import expander_kwargs, icon_kwargs, svg_icon
 from utils import watchlist_store
 from utils.market_source import prepare_batch_source
+
+
+def _name_span(sym):
+    """Nama perusahaan kecil di samping kode saham (kosong kalau tidak dikenal)."""
+    name = get_company_name(str(sym))
+    return f'<span style="color:#8B949E; font-size:0.85rem; font-weight:500;">{html_escape(name)}</span>' if name else ""
 
 # Kolom yang tampil di tabel batch (sama seperti sebelumnya, kolom baru dari engine
 # tetap tersedia untuk kartu tapi tidak menambah lebar tabel).
@@ -464,12 +472,12 @@ Risk-Reward: {rr_ratio_val}{copy_extra}
             components.html(copy_html, height=36)
 
         with col_w:
-            if st.button("Watchlist", key=f"btn_wl_{sym}_{strat_code_val}", use_container_width=True, **icon_kwargs("bookmark_add")):
+            if st.button("Watchlist", key=f"btn_wl_{sym}_{strat_code_val}", **STRETCH, **icon_kwargs("bookmark_add")):
                 add_tickers_to_watchlist([sym])
 
         if is_single_mode:
             with col_cl:
-                if st.button("Clear", key=f"btn_clr_{sym}", use_container_width=True, **icon_kwargs("delete")):
+                if st.button("Clear", key=f"btn_clr_{sym}", **STRETCH, **icon_kwargs("delete")):
                     st.session_state.pop("df_screener_single", None)
                     st.rerun()
 
@@ -486,7 +494,7 @@ Risk-Reward: {rr_ratio_val}{copy_extra}
             f"""
             <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 20px; margin-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <span style="font-size: 1.4rem; font-weight: 800; color: #00F3FF;">{sym}</span>
+                    <span style="font-size: 1.4rem; font-weight: 800; color: #00F3FF;">{sym}</span>{_name_span(sym)}
                     <span style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Strategy: {strat_display_name}{is_suggestion}</span>
                     <span style="background: #451a03; color: #fcd34d; border: 1px solid #78350f; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Grade: {emoji_to_icons(grade_val)}</span>
                     <span style="background: #0c4a6e; color: #38bdf8; border: 1px solid #0284c7; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px;">Score: {score_val}/100</span>
@@ -777,7 +785,7 @@ def render_tab_trade_planner():
         btn_type_single = "primary" if is_single else "secondary"
         if st.button(
             "Single Ticker Analysis",
-            use_container_width=True,
+            **STRETCH,
             type=btn_type_single,
             key="btn_card_single",
         ):
@@ -790,7 +798,7 @@ def render_tab_trade_planner():
         btn_type_batch = "primary" if is_batch else "secondary"
         if st.button(
             "Batch Screener Analysis",
-            use_container_width=True,
+            **STRETCH,
             type=btn_type_batch,
             key="btn_card_batch",
         ):
@@ -821,7 +829,7 @@ def render_tab_trade_planner():
             )
         with col_btn:
             btn_single = st.button(
-                "Run Analyze", type="primary", use_container_width=True
+                "Run Analyze", type="primary", **STRETCH
             )
 
         enter_pressed = st.session_state.pop("single_enter_trigger", False)
@@ -873,7 +881,7 @@ def render_tab_trade_planner():
         with col_info:
             st.info("Click **Run Screener** to scan all tickers.")
         with col_batch_btn:
-            if st.button("Run Screener", type="primary", use_container_width=True):
+            if st.button("Run Screener", type="primary", **STRETCH):
                 batch_map, batch_source_text = prepare_batch_source()
                 run_batch_execution(
                     all_tickers,
@@ -927,7 +935,7 @@ def render_tab_trade_planner():
                         key="f_candle",
                     )
                 with r2c3:
-                    st.button("Reset Filters", on_click=reset_filters, use_container_width=True, **icon_kwargs("restart_alt"))
+                    st.button("Reset Filters", on_click=reset_filters, **STRETCH, **icon_kwargs("restart_alt"))
 
             df = df_raw.copy()
 
@@ -1008,7 +1016,7 @@ def render_tab_trade_planner():
                     "TP 2": st.column_config.NumberColumn("TP 2", format="Rp %d"),
                 },
                 disabled=table_cols,
-                use_container_width=True,
+                **STRETCH,
                 key=editor_key
             )
 
@@ -1049,7 +1057,7 @@ Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}{extra}
             c_act_clear, c_act_copy, c_act_wl = st.columns([1, 1, 1], vertical_alignment="bottom")
             
             with c_act_clear:
-                if st.button("Clear Selection", use_container_width=True, key="btn_clear_checks", **icon_kwargs("deselect")):
+                if st.button("Clear Selection", **STRETCH, key="btn_clear_checks", **icon_kwargs("deselect")):
                     st.session_state["batch_uncheck_trigger"] += 1
                     st.rerun()
 
@@ -1084,7 +1092,7 @@ Risk-Reward: {r.get('Risk-Reward Ratio', '1 : 0')}{extra}
                 components.html(batch_copy_html, height=45)
 
             with c_act_wl:
-                if st.button("Watchlist Selected", use_container_width=True, key="btn_wl_batch_selected", **icon_kwargs("bookmark_add")):
+                if st.button("Watchlist Selected", **STRETCH, key="btn_wl_batch_selected", **icon_kwargs("bookmark_add")):
                     if not selected_rows.empty:
                         symbols_to_add = selected_rows["Symbol"].unique().tolist()
                         add_tickers_to_watchlist(symbols_to_add)

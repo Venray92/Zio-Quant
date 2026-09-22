@@ -12,7 +12,9 @@ from engines.sector_map import get_company_name, load_sector_map
 from engines.sector_radar import compute_sector_radar, sector_detail
 from utils.card_html import compact_html, fmt_id
 from utils.icons import svg_icon
+from utils.compat import STRETCH
 from utils.market_source import load_shared_file
+from utils.pages import keyed_container
 
 GREEN, PINK, CYAN, AMBER = "#00FF66", "#FF007F", "#00F3FF", "#E3B341"
 
@@ -33,29 +35,73 @@ def _cached_radar(stamp):
     return compute_sector_radar(data_map, load_sector_map()), meta
 
 
+def _status_html(row):
+    hot, streak = bool(row["Is Hot"]), int(row["Streak Days"])
+    if hot:
+        return f'<span style="color:{GREEN}; font-weight:800; font-size:12px;">MENYALA{f" · {streak} hari" if streak > 1 else ""}</span>'
+    return '<span class="zq-muted" style="font-size:12px;">Netral</span>'
+
+
+def _concentrated(row):
+    return float(row["Concentration (%)"]) > 70
+
+
+def _warn_html(row):
+    if not _concentrated(row):
+        return ""
+    top = escape(str(row["Top Ticker"] or "").replace(".JK", ""))
+    return (
+        f'<div style="margin-top:4px; font-size:11px; color:{AMBER};">{svg_icon("alert-triangle", 12, AMBER, 2, margin_right=4)}'
+        f'Digerakkan 1 saham dominan ({top}, {row["Concentration (%)"]:.0f}% dari nilai transaksi)</div>'
+    )
+
+
 def _sector_card(row, is_selected):
+    """Kartu ringkas untuk daftar kiri: nama, status, dan satu baris angka utama."""
     hot = bool(row["Is Hot"])
-    streak = int(row["Streak Days"])
-    accent = GREEN if hot else None
     border = (
         f'border: 1.5px solid {CYAN}; background: linear-gradient(135deg, rgba(0,243,255,0.12) 0%, rgba(255,0,127,0.1) 100%); box-shadow: 0 0 12px rgba(0,243,255,0.3);'
         if is_selected
-        else (f'border: 1.5px solid {accent}; background-color:#161B22;' if accent else 'border: 1px solid #30363D; background-color:#161B22;')
+        else (f'border: 1.5px solid {GREEN}; background-color:#161B22;' if hot else 'border: 1px solid #30363D; background-color:#161B22;')
     )
-    status = f'<span style="color:{GREEN}; font-weight:800;">MENYALA{f" · {streak} hari" if streak > 1 else ""}</span>' if hot else '<span class="zq-muted">Netral</span>'
-    up_col = GREEN if row["Pct Up"] >= 55 else (PINK if row["Pct Up"] <= 40 else "#C9D1D9")
-    warn = f'<div style="margin-top:4px; font-size:11px; color:{AMBER};">{svg_icon("alert-triangle", 12, AMBER, 2, margin_right=4)}Digerakkan 1 saham dominan ({escape(str(row["Top Ticker"] or "").replace(".JK", ""))}, {row["Concentration (%)"]:.0f}% dari nilai transaksi)</div>' if row["Concentration (%)"] > 70 else ""
+    med = float(row["Median Return (%)"])
     return (
-        f'<div class="zq-card" style="{border} margin-bottom:8px;">'
+        f'<div class="zq-card" style="{border} padding:10px 12px;">'
         f'<div style="display:flex; justify-content:space-between; align-items:center;">'
-        f'<span style="font-weight:800; color:#FFFFFF; font-size:15px;">{escape(row["Sector"])}</span>{status}</div>'
-        f'<div class="zq-row"><span>Saham naik</span><span style="color:{up_col}; font-weight:700;">{row["Pct Up"]:.0f}%</span></div>'
-        f'<div class="zq-row"><span>Volume relatif tinggi</span><span>{row["Pct High Vol"]:.0f}% saham</span></div>'
-        f'<div class="zq-row"><span>Median return hari ini</span><span class="{"zq-up" if row["Median Return (%)"] >= 0 else "zq-down"}">{row["Median Return (%)"]:+.1f}%</span></div>'
-        f'<div class="zq-row"><span>Nilai transaksi vs kebiasaan 60 hari</span><span>Persentil {row["Value Percentile"]:.0f}</span></div>'
-        f'<div class="zq-row"><span>Jumlah saham likuid dianalisis</span><span>{int(row["N Members"])}</span></div>'
-        f'{warn}</div>'
+        f'<span style="font-weight:800; color:#FFFFFF; font-size:14px;">{escape(row["Sector"])}</span>{_status_html(row)}</div>'
+        f'<div class="zq-muted" style="font-size:11px; margin-top:3px;">Naik {row["Pct Up"]:.0f}% · Vol tinggi {row["Pct High Vol"]:.0f}% · '
+        f'Median <span class="{"zq-up" if med >= 0 else "zq-down"}">{med:+.1f}%</span> · Persentil {row["Value Percentile"]:.0f}</div>'
+        f'{_warn_html(row)}</div>'
     )
+
+
+def _detail_header(row):
+    """Panel kanan: angka lengkap sektor terpilih."""
+    up_col = GREEN if row["Pct Up"] >= 55 else (PINK if row["Pct Up"] <= 40 else "#C9D1D9")
+    med = float(row["Median Return (%)"])
+    return (
+        f'<div class="zq-card zq-card-accent">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+        f'<span style="font-weight:800; color:#FFFFFF; font-size:18px;">{escape(row["Sector"])}</span>{_status_html(row)}</div>'
+        f'<div class="zq-row"><span>Saham naik hari ini</span><span style="color:{up_col}; font-weight:700;">{row["Pct Up"]:.0f}%</span></div>'
+        f'<div class="zq-row"><span>Saham dengan volume di atas 1,5x biasanya</span><span>{row["Pct High Vol"]:.0f}%</span></div>'
+        f'<div class="zq-row"><span>Median return hari ini</span><span class="{"zq-up" if med >= 0 else "zq-down"}">{med:+.2f}%</span></div>'
+        f'<div class="zq-row"><span>Nilai transaksi vs 60 hari terakhir sektor ini</span><span>Persentil {row["Value Percentile"]:.0f}</span></div>'
+        f'<div class="zq-row"><span>Saham likuid yang dianalisis</span><span>{int(row["N Members"])}</span></div>'
+        f'{_warn_html(row)}</div>'
+    )
+
+
+_HOW_TO_READ = """
+- **Saham naik**: persen saham likuid di sektor itu yang harganya naik hari ini.
+- **Volume tinggi**: persen saham yang volumenya di atas 1,5x rata-rata 20 harinya sendiri.
+- **Median return**: kenaikan/penurunan "tengah" sektor hari ini. Dipakai median supaya satu saham ekstrem tidak menipu.
+- **Persentil nilai transaksi**: dibanding 60 hari terakhir sektor itu sendiri. 100 = hari ini paling ramai dalam 60 hari, 50 = biasa saja.
+- **MENYALA**: nilai transaksi masuk 20% teratas kebiasaan sektor itu **dan** mayoritas saham naik **dan** tidak didominasi 1 saham. Angka hari = berapa hari berturut-turut kondisi ini terjadi.
+- **Peringatan kuning**: sektor terlihat ramai tapi sebenarnya digerakkan 1 saham. Jangan dianggap sektor kompak.
+
+Hanya saham dengan rata-rata transaksi 20 hari minimal Rp 1 M yang dihitung. Ini gambaran hari ini, bukan prediksi.
+"""
 
 
 def _detail_table(sector, data_map):
@@ -69,9 +115,19 @@ def _detail_table(sector, data_map):
     view["Change (%)"] = view["Change (%)"].apply(lambda v: f"{v:+.1f}%")
     view["RVOL"] = view["RVOL"].apply(lambda v: f"{v:.1f}x" if pd.notna(v) else "-")
     view["Volatilitas"] = det.apply(lambda r: f"Tinggi (ATR {r['ATR % Now']:.0f}%)" if r.get("Volatile Tinggi") else "-", axis=1)
-    st.dataframe(view[["Saham", "Nama", "Close", "Change (%)", "RVOL", "Volatilitas"]], hide_index=True, use_container_width=True)
+    st.dataframe(view[["Saham", "Nama", "Close", "Change (%)", "RVOL", "Volatilitas"]], hide_index=True, **STRETCH, height=min(38 + 35 * len(view), 560))
+    st.caption("RVOL = volume hari ini dibanding rata-rata 20 hari saham itu sendiri. Diurutkan dari RVOL tertinggi.")
     if det["Volatile Tinggi"].any():
         st.caption("Volatilitas tinggi = saham ini bergerak sangat liar (ATR > 8% dari harga). Angka RVOL/Change tetap dihitung sama, ini cuma catatan kehati-hatian.")
+
+
+def load_radar():
+    """(DataFrame radar, meta) dari file harian, di-cache per versi file. (None, None) kalau file belum ada."""
+    _, meta = load_shared_file()
+    if not meta:
+        return None, None
+    stamp = f"{meta.get('last_candle_date', '')}|{meta.get('updated_at_wib', '')}"
+    return _cached_radar(stamp)
 
 
 def render_page_sector_radar():
@@ -82,10 +138,7 @@ def render_page_sector_radar():
 </div>"""
     )
 
-    _, meta = load_shared_file()
-    stamp = f"{(meta or {}).get('last_candle_date', '')}|{(meta or {}).get('updated_at_wib', '')}"
-    df, meta2 = _cached_radar(stamp) if meta else (None, None)
-
+    df, meta = load_radar()
     if df is None:
         st.info("Sector Radar butuh file data harian. Coba muat ulang setelah data harian versi terbaru berjalan.")
         return
@@ -93,24 +146,61 @@ def render_page_sector_radar():
         st.info("Belum ada sektor dengan saham likuid yang cukup untuk dianalisis pada data saat ini.")
         return
 
-    dates = [meta2.get("last_candle_date", "")] if meta2 else []
-    if dates and dates[0]:
-        st.caption(f"Data per {pd.to_datetime(dates[0]).strftime('%d %b %Y')}. Deskriptif, bukan prediksi dan bukan rekomendasi.")
+    as_of = (meta or {}).get("last_candle_date", "")
+    if as_of:
+        st.caption(f"Data penutupan {pd.to_datetime(as_of).strftime('%d %b %Y')} (file harian, diperbarui otomatis setelah bursa tutup). Deskriptif, bukan prediksi dan bukan rekomendasi.")
 
-    n_hot = int(df["Is Hot"].sum())
-    _html(_label("bolt", f"{n_hot} sektor lagi menyala" if n_hot else "Belum ada sektor yang menyala hari ini"))
-
-    st.session_state.setdefault("sector_radar_selected", df.iloc[0]["Sector"])
-    for _, row in df.iterrows():
-        is_sel = st.session_state["sector_radar_selected"] == row["Sector"]
-        _html(_sector_card(row, is_sel))
-        if st.button(f"Lihat saham {row['Sector']}", key=f"sr_pick_{row['Sector']}", use_container_width=True):
-            st.session_state["sector_radar_selected"] = row["Sector"]
-            st.rerun()
-        st.markdown("<div style='margin-bottom:6px;'></div>", unsafe_allow_html=True)
-
+    sectors = list(df["Sector"])
+    if st.session_state.get("sector_radar_selected") not in sectors:
+        st.session_state["sector_radar_selected"] = sectors[0]
     sel = st.session_state["sector_radar_selected"]
-    _html(_label("list-numbers", f"Saham di sektor {sel}"))
-    data_map, _ = load_shared_file()
-    if data_map:
-        _detail_table(sel, data_map)
+
+    with keyed_container("zworkspace_sector"):
+        col_left, col_right = st.columns([1.3, 2.7], gap="medium")
+    with col_left:
+        n_hot = int(df["Is Hot"].sum())
+        _html(_label("bolt", f"{n_hot} sektor lagi menyala" if n_hot else "Belum ada sektor yang menyala"))
+        with st.container(height=820, border=False):
+            for _, row in df.iterrows():
+                is_sel = row["Sector"] == sel
+                _html(_sector_card(row, is_sel))
+                if st.button(
+                    f"SELECTED ({row['Sector']})" if is_sel else f"Lihat {row['Sector']}",
+                    key=f"sr_pick_{row['Sector']}", **STRETCH,
+                    type="primary" if is_sel else "secondary",
+                ):
+                    st.session_state["sector_radar_selected"] = row["Sector"]
+                    st.rerun()
+                st.markdown("<div style='margin-bottom:6px;'></div>", unsafe_allow_html=True)
+
+    with col_right:
+        row = df[df["Sector"] == sel].iloc[0]
+        _html(_detail_header(row))
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+        _html(_label("list-numbers", f"Saham di sektor {sel}"))
+        data_map, _ = load_shared_file()
+        if data_map:
+            _detail_table(sel, data_map)
+        with st.expander("Cara membaca Sector Radar", expanded=False):
+            st.markdown(_HOW_TO_READ)
+
+
+def render_sector_summary(pages, width):
+    """Kartu ringkas untuk Home: sektor paling ramai hari ini + tautan ke halaman Sector Radar."""
+    df, meta = load_radar()
+    _html(_label("radar-2", "Sector Radar"))
+    if df is None or df.empty:
+        st.info("Ringkasan sektor tampil setelah data harian tersedia.")
+        return
+    top = df.head(3)
+    cols = st.columns(len(top))
+    for col, (_, row) in zip(cols, top.iterrows()):
+        with col:
+            _html(_sector_card(row, False))
+    n_hot = int(df["Is Hot"].sum())
+    st.caption(
+        (f"{n_hot} sektor menyala hari ini. " if n_hot else "Belum ada sektor yang menyala hari ini. ")
+        + "Diurutkan dari sektor paling ramai dibanding kebiasaannya sendiri."
+    )
+    with keyed_container("zopen_sector_radar"):
+        st.page_link(pages["sector_radar"], label="Open Sector Radar", icon=":material/radar:", **width)

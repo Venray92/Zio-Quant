@@ -4,6 +4,8 @@ import streamlit as st
 from data.ihsg_tickers import get_all_ihsg_tickers
 from engines.market_data import normalize_ticker
 from engines.screener_stoch_psar import run_stoch_psar_screener
+from utils.compat import STRETCH
+from utils.pages import keyed_container
 from utils.card_html import (
     build_card,
     direction_badge,
@@ -63,6 +65,10 @@ def _stoch_card_html(row, is_selected, is_gc):
     pills = "".join(pill(t, _tag_kind(t)) for t in tags)
     if "Candle Final" in row.index and not bool(row.get("Candle Final", True)):
         pills += pill("Candle belum final", "amber")
+    if bool(row.get("Volatile Tinggi", False)):
+        atr = row.get("ATR % Now")
+        label = f"Volatilitas tinggi (ATR {_num(atr):.0f}%)" if atr is not None and pd.notna(atr) else "Volatilitas tinggi"
+        pills += pill(label, "amber")
 
     return build_card(
         is_selected,
@@ -291,7 +297,8 @@ def render_tab_stoch_psar():
     if "selected_stoch_ticker" not in st.session_state:
         st.session_state["selected_stoch_ticker"] = None
 
-    col_left, col_right = st.columns([1.3, 2.7], gap="medium")
+    with keyed_container("zworkspace_stoch"):
+        col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
     # =========================================================
     # LEFT PANEL: SCREENER CONTROL & STOCK LIST
@@ -318,7 +325,7 @@ def render_tab_stoch_psar():
             run_clicked = st.button(
                 "Run Screening",
                 key="btn_run_stoch_screener",
-                use_container_width=True,
+                **STRETCH,
                 **icon_kwargs("play_arrow"),
             )
 
@@ -326,7 +333,7 @@ def render_tab_stoch_psar():
             stop_clicked = st.button(
                 "Stop",
                 key="btn_stop_stoch_screener",
-                use_container_width=True,
+                **STRETCH,
                 **icon_kwargs("stop_circle"),
             )
 
@@ -441,7 +448,7 @@ def render_tab_stoch_psar():
                         data=csv_data,
                         file_name=f"stoch_screening_{'buy' if is_gc_tab_export else 'sell'}.csv",
                         mime="text/csv",
-                        use_container_width=True,
+                        **STRETCH,
                         help=f"Export {_MODE_LABELS.get(screener_mode, screener_mode)} to CSV",
                         **icon_kwargs("download", "download_button"),
                     )
@@ -449,7 +456,7 @@ def render_tab_stoch_psar():
                     st.button(
                         "CSV",
                         disabled=True,
-                        use_container_width=True,
+                        **STRETCH,
                         help="Data kosong",
                         **icon_kwargs("download"),
                     )
@@ -484,7 +491,7 @@ def render_tab_stoch_psar():
                         if st.button(
                             btn_label,
                             key=f"select_stoch_btn_{ticker}_{idx}",
-                            use_container_width=True,
+                            **STRETCH,
                             type=btn_type,
                             **(icon_kwargs("check") if is_selected else {}),
                         ):
@@ -610,6 +617,11 @@ def render_tab_stoch_psar():
                     </ul>
                     <p style="font-size: 12px; color: #E3B341; margin-bottom: 0; font-weight: 500;">
                         __I_BULB__ Jalankan scan setelah pasar tutup agar candle sudah final.
+                    </p>
+                    <p style="font-size: 12px; color: #E3B341; margin-top: 8px; margin-bottom: 0; font-weight: 500;">
+                        __I_ALERT__ Pill <b>Volatilitas tinggi</b>: saham ini bergerak sangat liar. Angka Stochastic bisa
+                        beda cukup jauh dari platform lain karena selisih kecil data harga ikut membesar. Bukan berarti
+                        hasilnya salah, cuma kurang bisa diandalkan persis sama.
                     </p>
                 </div>
                 """

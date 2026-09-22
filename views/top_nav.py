@@ -5,6 +5,10 @@ from utils.pages import BASE_PAGES, SCREENER_KEYS, get_pages, keyed_container, l
 from utils.screeners import SCREENERS, get_screener
 
 
+_POP_KEY = "znav_screeners_pop"
+_LAST_PAGE_KEY = "_znav_last_page"
+
+
 def _active(flag):
     return "__active" if flag else ""
 
@@ -33,8 +37,16 @@ def render_top_nav(current=None):
     try:
         import inspect
 
-        if "width" in inspect.signature(st.popover).parameters:
+        params = inspect.signature(st.popover).parameters
+        if "width" in params:
             pop_kwargs = {"width": "stretch"}
+        if "key" in params and "on_change" in params:
+            # Popover yang menyimpan status buka/tutup: setiap kali halaman berganti, dropdown ditutup
+            # (bawaan Streamlit: setelah klik salah satu screener, dropdown tetap terbuka di halaman baru).
+            if st.session_state.get(_LAST_PAGE_KEY) != current:
+                st.session_state[_POP_KEY] = False
+            st.session_state[_LAST_PAGE_KEY] = current
+            pop_kwargs.update(key=_POP_KEY, on_change="rerun")
     except Exception:
         pass
     with cols[1]:

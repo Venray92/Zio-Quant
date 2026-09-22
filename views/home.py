@@ -14,6 +14,7 @@ from utils.pages import get_pages, keyed_container, link_width_kwargs
 from utils.screeners import get_screener
 from views.footer import fetch_ihsg, fmt_id_num
 from views.home_today import MODE_COLOR, render_today_block
+from views.tab_sector_radar import render_sector_summary
 
 MIN_VALUE_RP = 1_000_000_000  # likuiditas minimal untuk daftar gainer/loser (rata-rata 20 hari)
 MIN_PRICE = 50
@@ -379,12 +380,16 @@ def render_page_home():
             st.page_link(pages["how_to"], label="Learn", icon=":material/menu_book:", **width)
 
     _, meta = market_source.load_shared_file()
-    stamp = f"{(meta or {}).get('last_candle_date', '')}|{(meta or {}).get('updated_at_wib', '')}"
+    ihsg = market_source.load_ihsg()
+    ihsg_last = str(pd.to_datetime(ihsg["Date"]).max().date()) if ihsg is not None and len(ihsg) else ""
+    # Kunci cache ikut tanggal terakhir IHSG, supaya Arah Pasar langsung ikut berubah saat file IHSG baru terbit
+    stamp = f"{(meta or {}).get('last_candle_date', '')}|{(meta or {}).get('updated_at_wib', '')}|{ihsg_last}"
     view = _safe(_cached_market_view, stamp) if meta else None
 
     render_today_block(view)
     _safe(render_market_view, view)
     render_market_pulse()
+    _safe(render_sector_summary, pages, width)
     _safe(render_recaps)
 
     n_wl = _watchlist_count()

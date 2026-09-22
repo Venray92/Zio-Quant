@@ -12,6 +12,7 @@ import streamlit as st
 
 from data.ihsg_tickers import get_all_ihsg_tickers
 from engines import money as M
+from engines.sector_map import display_name, get_company_name
 from engines.market_data import now_wib
 from engines.trade_planner import TradePlanner
 from utils import market_source, money_store as ms, watchlist_store
@@ -406,7 +407,8 @@ def _render_add_position(doc):
     with st.expander("Add position", expanded=not doc["positions"], **expander_kwargs("add")):
         with st.form("mm_add_form", clear_on_submit=False, border=False):
             if options:
-                ticker = st.selectbox("Ticker", options, index=None, placeholder="Type a ticker, e.g. BBCA")
+                ticker = st.selectbox("Ticker", options, index=None, placeholder="Type a ticker or company name, e.g. BBCA",
+                                      format_func=lambda c: display_name(c))
             else:
                 ticker = st.text_input("Ticker", placeholder="BBCA")
             c1, c2 = st.columns(2)
@@ -578,8 +580,12 @@ def _render_sizer(doc, settings, summary):
 
     with col_in:
         _html(_label("calculator", "New trade"))
-        st.selectbox("Load from", ["Manual"] + wl, key="mm_src", on_change=_on_source)
+        st.selectbox("Load from", ["Manual"] + wl, key="mm_src", on_change=_on_source,
+                     format_func=lambda c: c if c == "Manual" else display_name(c))
         st.text_input("Ticker", key="mm_ticker", placeholder="BBCA", max_chars=8)
+        _nm = get_company_name(st.session_state.get("mm_ticker") or "")
+        if _nm:
+            st.caption(_nm)
         st.radio("Plan", ["Best Fit", "BOW", "BOB"], key="mm_strategy", horizontal=True)
         st.button("Sync Trade Plan", key="mm_sync", on_click=_sync_plan, **_W["button"], **icon_kwargs("sync"))
         flash = st.session_state.pop("mm_msg", None)

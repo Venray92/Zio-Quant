@@ -5,6 +5,8 @@ import streamlit as st
 
 from data.ihsg_tickers import get_all_ihsg_tickers
 from engines.screener_rsi_divergence import run_rsi_screener
+from utils.compat import STRETCH
+from utils.pages import keyed_container
 from utils.card_html import (
     build_card,
     fmt_id,
@@ -316,7 +318,8 @@ def render_tab_rsi():
     # ---------------------------------------------------------
     # LAYOUT UTAMA: SPLIT SCREEN (KIRI 38% : KANAN 62%)
     # ---------------------------------------------------------
-    col_left, col_right = st.columns([1.3, 2.7], gap="medium")
+    with keyed_container("zworkspace_rsi"):
+        col_left, col_right = st.columns([1.3, 2.7], gap="medium")
 
     # =========================================================
     # PANEL KIRI: SCREENER CONTROL & DAFTAR SAHAM
@@ -343,7 +346,7 @@ def render_tab_rsi():
             run_clicked = st.button(
                 "Run Screening",
                 key="btn_run_rsi_screener",
-                use_container_width=True,
+                **STRETCH,
                 **icon_kwargs("play_arrow"),
             )
 
@@ -351,7 +354,7 @@ def render_tab_rsi():
             stop_clicked = st.button(
                 "Stop",
                 key="btn_stop_rsi_screener",
-                use_container_width=True,
+                **STRETCH,
                 **icon_kwargs("stop_circle"),
             )
 
@@ -467,7 +470,7 @@ def render_tab_rsi():
                         data=csv_data,
                         file_name=f"screening_{screener_mode.lower()}.csv",
                         mime="text/csv",
-                        use_container_width=True,
+                        **STRETCH,
                         key=f"download_{screener_mode.lower()}",
                         help=f"Export {screener_mode} to CSV",
                         **icon_kwargs("download", "download_button"),
@@ -476,7 +479,7 @@ def render_tab_rsi():
                     st.button(
                         "CSV",
                         disabled=True,
-                        use_container_width=True,
+                        **STRETCH,
                         key=f"download_empty_{screener_mode.lower()}",
                         help="Data kosong",
                         **icon_kwargs("download"),
@@ -513,7 +516,7 @@ def render_tab_rsi():
                             if st.button(
                                 btn_label,
                                 key=f"select_rsi_btn_{ticker}_{idx}",
-                                use_container_width=True,
+                                **STRETCH,
                                 type=btn_type,
                                 **(icon_kwargs("check") if is_selected else {}),
                             ):

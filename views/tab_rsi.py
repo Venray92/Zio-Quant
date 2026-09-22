@@ -94,6 +94,10 @@ def _rsi_card_html(row, is_selected):
         pills += pill("T2 belum terkonfirmasi", "amber")
     if "Candle Final" in row.index and not bool(row.get("Candle Final", True)):
         pills += pill("Candle belum final", "amber")
+    if bool(row.get("Volatile Tinggi", False)):
+        atr = row.get("ATR % Now")
+        label = f"Volatilitas tinggi (ATR {_num(atr):.0f}%)" if atr is not None and pd.notna(atr) else "Volatilitas tinggi"
+        pills += pill(label, "amber")
 
     return build_card(
         is_selected,
@@ -625,6 +629,12 @@ def render_tab_rsi():
                     </ul>
                     <p style="font-size: 12px; color: #E3B341; margin-bottom: 0; font-weight: 500;">
                         __I_ALERT__ Saham hilang dari daftar setelah H+3. Itu bukan sinyal jual.
+                    </p>
+                    <p style="font-size: 12px; color: #E3B341; margin-top: 8px; margin-bottom: 0; font-weight: 500;">
+                        __I_ALERT__ Pill <b>Volatilitas tinggi</b>: saham ini bergerak sangat liar. Selisih 1-2 poin RSI
+                        dibanding platform lain itu wajar (beda waktu ambil data server vs market), tapi di saham
+                        sevolatile ini selisihnya bisa jauh lebih besar. Itu bukan berarti hasilnya salah, cuma
+                        kurang bisa diandalkan persis sama platform lain.
                     </p>
                 </div>
                 """

@@ -105,7 +105,9 @@ def render_page_how_to():
 <h4>Candle belum final</h4>
 <p>Sebelum 16:15 WIB, candle hari ini masih bergerak. Volume hari itu belum dihitung dan kartu diberi label <code>Candle belum final</code>. Sinyal bisa berubah sampai pasar tutup.</p>
 <h4>IHSG di footer</h4>
-<p>Angka IHSG di pojok kiri bawah berasal dari Yahoo dan delayed (bukan tick real-time). Jam di sebelahnya real-time WIB.</p>"""
+<p>Angka IHSG di pojok kiri bawah berasal dari Yahoo dan delayed (bukan tick real-time). Jam di sebelahnya real-time WIB.</p>
+<h4>Kenapa angka RSI bisa beda sedikit dari platform lain?</h4>
+<p>Selisih 1-2 poin dibanding chart lain (TradingView, dsb.) itu wajar, karena beda waktu pengambilan data antara server kami dan pasar. Selisih yang jauh lebih besar biasanya bukan salah hitung, tapi tanda sahamnya bergerak sangat liar (naik/turun tajam dalam sehari) — untuk saham begini, sedikit saja beda harga antar sumber data bisa membuat RSI ikut bergeser jauh. Kartu screener RSI Reversal memberi label <code>Volatilitas tinggi</code> untuk saham semacam ini.</p>"""
         )
 
     with tabs[5]:

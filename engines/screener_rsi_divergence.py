@@ -7,6 +7,8 @@ from engines.market_data import (
     normalize_ticker,
     now_wib,
 )
+from engines.market_view import atr_pct
+from engines.trade_planner import HIGH_VOL_ATR_PCT
 
 
 # ----------------------------------------------------
@@ -283,6 +285,13 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
         latest_idx = len(df) - 1
         clean_symbol = ticker.replace('.JK', '')
 
+        # Saham bergerak liar (ATR harian > HIGH_VOL_ATR_PCT dari harga, sama seperti Trade Planner):
+        # RSI-nya jadi sensitif terhadap selisih kecil data antar sumber (server vs market),
+        # jadi T1/T2 yang ditampilkan bisa beda cukup jauh dari platform lain. Catatan saja,
+        # TIDAK memotong skor (skor tetap soal kualitas struktur pola).
+        latest_atr_pct = float(atr_pct(df).iloc[-1])
+        is_volatile = latest_atr_pct > HIGH_VOL_ATR_PCT
+
         # Candle terakhir sudah final? (kalender & jam bursa IDX). Volume candle
         # yang belum final belum lengkap, jadi tidak dihitung sebagai "di atas rata-rata".
         last_candle_ts = pd.Timestamp(df.index[-1])
@@ -504,6 +513,8 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
                                 'Candle Final': bool(candle_final),
                                 'Data As Of': as_of,
                                 'Avg Value 20D (Rp)': f'Rp {avg_value_20:,.0f}',
+                                'ATR % Now': round(latest_atr_pct, 1),
+                                'Volatile Tinggi': bool(is_volatile),
                             })
 
         # Ambil pasangan bullish dengan skor tertinggi
@@ -714,6 +725,8 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
                                 'Candle Final': bool(candle_final),
                                 'Data As Of': as_of,
                                 'Avg Value 20D (Rp)': f'Rp {avg_value_20:,.0f}',
+                                'ATR % Now': round(latest_atr_pct, 1),
+                                'Volatile Tinggi': bool(is_volatile),
                             })
 
         # Ambil pasangan bearish dengan skor tertinggi

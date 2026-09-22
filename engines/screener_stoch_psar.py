@@ -9,6 +9,8 @@ import yfinance as yf
 
 from data.ihsg_tickers import get_all_ihsg_tickers
 from engines.market_data import candle_is_final, now_wib
+from engines.market_view import atr_pct
+from engines.trade_planner import HIGH_VOL_ATR_PCT
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
@@ -446,6 +448,22 @@ def _process_core(ticker, df, include_early=False, now=None):
             "Data As Of": tgl,
             "Avg Value 20D (M)": round(avg_val20 / 1_000_000_000, 2),
         }
+
+    # Saham bergerak liar (ATR harian > HIGH_VOL_ATR_PCT, sama dgn Trade Planner/RSI/Trend Scanner):
+    # angka indikator bisa beda jauh dari platform lain. Catatan saja, TIDAK memotong skor.
+    if res_gc is not None or res_dc is not None:
+        try:
+            atr_now = float(atr_pct(df).iloc[-1])
+        except Exception:
+            atr_now = float("nan")
+        vol_flag = {
+            "ATR % Now": round(atr_now, 1) if atr_now == atr_now else None,
+            "Volatile Tinggi": bool(atr_now == atr_now and atr_now > HIGH_VOL_ATR_PCT),
+        }
+        if res_gc is not None:
+            res_gc.update(vol_flag)
+        if res_dc is not None:
+            res_dc.update(vol_flag)
 
     return res_gc, res_dc
 

@@ -2,9 +2,18 @@ name: Update market data
 
 on:
   schedule:
-    # 17:30 WIB dan percobaan ulang 20:00 WIB (jadwal GitHub memakai UTC), Senin-Jumat
-    - cron: "30 10 * * 1-5"
-    - cron: "0 13 * * 1-5"
+    # Tiap 30 menit 17:05-20:35 WIB (jadwal GitHub memakai UTC), Senin-Jumat.
+    # Jadwal GitHub sering molor lama, jadi dibuat banyak titik. Begitu satu run sukses,
+    # run sesudahnya otomatis "data sudah terbaru, lewati" (~30 detik), jadi aman & gratis.
+    # Menit :05/:35 sengaja dihindarkan dari jam bulat yang antriannya paling padat.
+    - cron: "5 10 * * 1-5"
+    - cron: "35 10 * * 1-5"
+    - cron: "5 11 * * 1-5"
+    - cron: "35 11 * * 1-5"
+    - cron: "5 12 * * 1-5"
+    - cron: "35 12 * * 1-5"
+    - cron: "5 13 * * 1-5"
+    - cron: "35 13 * * 1-5"
   workflow_dispatch:
     inputs:
       force:
@@ -110,9 +119,9 @@ jobs:
             gh issue close "$num" --repo "${{ github.repository }}" --comment "Kalender sudah terisi. Ditutup otomatis."
           done
 
-      # Percobaan kedua (20:00 WIB) atau jalan manual gagal = data hari itu belum terbit. Buka issue supaya kamu tahu.
+      # Jadwal terakhir (20:35 WIB) atau jalan manual gagal = data hari itu belum terbit. Buka issue supaya kamu tahu.
       - name: Open issue on failure
-        if: failure() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 13 * * 1-5')
+        if: failure() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '35 13 * * 1-5')
         run: |
           title="Update data harian gagal ($(date -u +%F))"
           num=$(gh issue list --repo "${{ github.repository }}" --state open --search "\"${title}\" in:title" --json number --jq '.[0].number')

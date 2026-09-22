@@ -170,10 +170,11 @@ def is_price_line_broken_high(df, left_idx, right_idx, tol_pct=0.2):
 
 
 def is_rsi_line_broken(df, pos_left, pos_right, tol_points=1.0):
-    """BULLISH: garis lurus dari RSI di T1 ke RSI di T2 (titik RSI
-    terendah di sekitar swing). Di antara keduanya tidak boleh ada
-    RSI yang menembus ke bawah garis (toleransi tol_points poin).
-    True = garis putus (dibuang)."""
+    """BULLISH: garis lurus dari RSI di T1 ke RSI di T2 (candle persis di
+    swing low, bukan dicari-cari di sekitarnya). Di antara keduanya tidak
+    boleh ada RSI yang menembus ke bawah garis (toleransi tol_points poin)
+    -- kalau RSI sempat anjlok lebih dalam, berarti titik terendahnya bukan
+    T1/T2 yang dipakai. True = garis putus (dibuang)."""
     gap = pos_right - pos_left
     if gap <= 1:
         return False
@@ -187,9 +188,12 @@ def is_rsi_line_broken(df, pos_left, pos_right, tol_points=1.0):
 
 
 def is_rsi_line_broken_high(df, pos_left, pos_right, tol_points=1.0):
-    """BEARISH: garis lurus dari RSI di T1 ke RSI di T2 (titik RSI
-    tertinggi di sekitar swing). Di antara keduanya tidak boleh ada
-    RSI yang menembus ke atas garis (toleransi tol_points poin).
+    """BEARISH: garis lurus dari RSI di T1 ke RSI di T2 (candle persis di
+    swing high, bukan dicari-cari di sekitarnya). Di antara keduanya tidak
+    boleh ada RSI yang menembus ke atas garis (toleransi tol_points poin)
+    -- kalau RSI sempat melonjak lebih tinggi, berarti titik tertingginya
+    bukan T1/T2 yang dipakai. Pullback/dip di tengah itu wajar (dua swing
+    high pasti ada lembah di antaranya) jadi TIDAK dicek ke bawah.
     True = garis putus (dibuang)."""
     gap = pos_right - pos_left
     if gap <= 1:
@@ -288,27 +292,18 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
         # Base Konsolidasi (Max lebar 5%)
         df_bases = detect_bases(df, min_candles=5, max_width_pct=5.0)
 
-        def get_rsi_at_swing(idx_pos, window=2):
-            start = max(0, idx_pos - window)
-            end = min(len(df) - 1, idx_pos + window)
-            return df['RSI_10'].iloc[start : end + 1].min()
+        def get_rsi_at_swing(idx_pos):
+            # RSI persis di candle T1/T2 (dulu: max/min dalam window +-2 candle,
+            # jadi bisa "nyolong" RSI dari tanggal lain -- selisih T1-T2 yang
+            # ditampilkan jadi tidak sesuai dengan yang terlihat di chart pada
+            # tanggal itu sendiri).
+            return float(df['RSI_10'].iloc[idx_pos])
 
-        def get_rsi_at_swing_high(idx_pos, window=2):
-            start = max(0, idx_pos - window)
-            end = min(len(df) - 1, idx_pos + window)
-            return df['RSI_10'].iloc[start : end + 1].max()
+        get_rsi_at_swing_high = get_rsi_at_swing
 
         # ==========================================
         # A. BULLISH DIVERGENCE (SWING LOW)
         # ==========================================
-        def get_rsi_pos_swing_low(idx_pos, window=2):
-            # Posisi candle dgn RSI terendah di sekitar swing low
-            start = max(0, idx_pos - window)
-            end = min(len(df) - 1, idx_pos + window)
-            return start + int(
-                df['RSI_10'].iloc[start : end + 1].values.argmin()
-            )
-
         p_swings_low = extract_swings(
             df['Low'], left=2, right=2, swing_type='LOW'
         )
@@ -396,11 +391,7 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
 
                         if pattern_type:
                             # Garis miring RSI T1 -> T2 tidak boleh putus
-                            if is_rsi_line_broken(
-                                df,
-                                get_rsi_pos_swing_low(left_p_idx),
-                                get_rsi_pos_swing_low(right_p_idx),
-                            ):
+                            if is_rsi_line_broken(df, left_p_idx, right_p_idx):
                                 continue
 
                             score = 0
@@ -523,14 +514,6 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
         # ==========================================
         # B. BEARISH DIVERGENCE (SWING HIGH)
         # ==========================================
-        def get_rsi_pos_swing_high(idx_pos, window=2):
-            # Posisi candle dgn RSI tertinggi di sekitar swing high
-            start = max(0, idx_pos - window)
-            end = min(len(df) - 1, idx_pos + window)
-            return start + int(
-                df['RSI_10'].iloc[start : end + 1].values.argmax()
-            )
-
         p_swings_high = extract_swings(
             df['High'], left=2, right=2, swing_type='HIGH'
         )
@@ -618,11 +601,7 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
 
                         if pattern_type:
                             # Garis miring RSI T1 -> T2 tidak boleh putus
-                            if is_rsi_line_broken_high(
-                                df,
-                                get_rsi_pos_swing_high(left_p_idx),
-                                get_rsi_pos_swing_high(right_p_idx),
-                            ):
+                            if is_rsi_line_broken_high(df, left_p_idx, right_p_idx):
                                 continue
 
                             score = 0

@@ -282,6 +282,22 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     }
 }
 
+/* ---------- 5e. Rekap screener di Home (4 kartu): 2 per baris di tablet, 1 per baris di HP.
+   Beda dari zworkspace_ (yang selalu full stack) krn ini kartu SEJAJAR yang wajar dibaca 2x2. */
+@media (max-width: 1100px) {
+    [class*="st-key-zrecap_"] div[data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+    }
+    [class*="st-key-zrecap_"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        flex: 1 1 46% !important; min-width: 220px !important;
+    }
+}
+@media (max-width: 640px) {
+    [class*="st-key-zrecap_"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        flex: 1 1 100% !important; min-width: 100% !important;
+    }
+}
+
 /* ---------- 6. Footer IHSG + jam ---------- */
 .block-container { padding-bottom: 4.5rem !important; }
 .zq-footer {

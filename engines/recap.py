@@ -132,6 +132,33 @@ def daily_recap(history, key, date=None):
     return out
 
 
+# ---------------------------------------------------------------- leaderboard akurasi screener
+def leaderboard(history, last_close, window=20):
+    """Ranking screener dari yang paling akurat: win rate (persen sinyal yang gerak searah prediksi)
+    lalu rata-rata edge sebagai tiebreak. Gabungan Bullish+Bearish utk screener 2 arah (RSI, Stoch),
+    cuma Bullish utk yang searah (Breakout Surge, Trend Reset). window = berapa hari bursa terakhir
+    dari riwayat yang dipakai (bukan lama pengukuran -- itu otomatis dari selisih tanggal ke hari ini).
+    """
+    rows = []
+    for key, name in SCREENERS:
+        w = weekly_recap(history, key, last_close, window=window)
+        if w is None:
+            continue
+        sides = ("bull",) if key in SINGLE_DIRECTION else ("bull", "bear")
+        n_measured = sum(w[s]["n_measured"] for s in sides)
+        n_right = sum(w[s]["n_right"] for s in sides)
+        edges = [w[s]["avg_edge"] for s in sides for _ in range(w[s]["n_measured"]) if w[s]["avg_edge"] is not None]
+        rows.append({
+            "key": key, "name": name, "single_direction": key in SINGLE_DIRECTION,
+            "n_days": len(w["dates"]), "n_unique": w["n_unique"],
+            "n_measured": n_measured, "n_right": n_right,
+            "win_rate": (n_right / n_measured * 100) if n_measured else None,
+            "avg_edge": (sum(edges) / len(edges)) if edges else None,
+        })
+    rows.sort(key=lambda r: (r["win_rate"] is None, -(r["win_rate"] or 0), -(r["avg_edge"] if r["avg_edge"] is not None else -999)))
+    return rows
+
+
 # ---------------------------------------------------------------- rekap mingguan
 def weekly_recap(history, key, last_close, window=5):
     """Sinyal `window` hari bursa terakhir yang ada di riwayat + hasilnya sampai harga terakhir.

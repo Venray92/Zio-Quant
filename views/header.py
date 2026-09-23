@@ -6,6 +6,7 @@ import streamlit as st
 from utils.card_html import escape
 from utils.icons import svg_icon
 from utils.profile import current_profile
+from utils.pages import keyed_container
 
 
 def get_logo_base64(file_path="logo.jpg"):
@@ -47,8 +48,10 @@ def render_header(current=None):
         f'padding:3px 12px; font-size:12px; color:{"#FFFFFF" if profile else "#8B949E"}; font-family:\'Share Tech Mono\', monospace;">'
         f'{svg_icon("user", 14, "#00F3FF" if profile else "#8B949E", 2)}{escape(profile) if profile else "Guest"}</span>'
     )
-    st.markdown(
-        f"""<div class="brand-container" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+    col_logo, col_bell, col_chip = st.columns([5, 1, 1.6], vertical_alignment="center")
+    with col_logo:
+        st.markdown(
+            f"""<div class="brand-container" style="display:flex; align-items:center;">
 <div style="display:inline-flex; align-items:center; gap:12px;">
 {logo_html}
 <div>
@@ -56,10 +59,16 @@ def render_header(current=None):
 <div style="color:#8B949E; font-size:11px; letter-spacing:1px; font-family:'Share Tech Mono', monospace;">IDX SCREENER TERMINAL</div>
 </div>
 </div>
-{chip}
 </div>""",
-        unsafe_allow_html=True,
-    )
+            unsafe_allow_html=True,
+        )
+    with col_bell:
+        with keyed_container("zheader_bell"):
+            from views.top_nav import render_bell
+
+            render_bell()
+    with col_chip:
+        st.markdown(f'<div style="text-align:right; padding-top:6px;">{chip}</div>', unsafe_allow_html=True)
 
 
 def render_header_divider():

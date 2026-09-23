@@ -8,6 +8,7 @@ File yang dihasilkan (semua masuk ke branch `data`):
   market_data.csv.gz + market_data_meta.json : histori harian semua saham (12 bulan)
   ihsg_history.csv                           : histori harian IHSG (12 bulan)
   screener_history.json                      : hasil harian tiap screener (pengaturan bawaan), 40 hari terakhir
+  sector_history.json                        : sektor mana yang "menyala" tiap hari (heatmap Sector Radar), 90 hari terakhir
 
 Contoh manual:
     python scripts/update_market_data.py --tickers data/daftar_saham.txt --out out
@@ -26,11 +27,14 @@ import pandas as pd  # noqa: E402
 import yfinance as yf  # noqa: E402
 
 from engines import recap  # noqa: E402
+from engines import sector_radar  # noqa: E402
+from engines.sector_map import load_sector_map  # noqa: E402
 from engines.market_data import (  # noqa: E402
     DATA_FILE,
     IHSG_FILE,
     META_FILE,
     RECAP_FILE,
+    SECTOR_HISTORY_FILE,
     build_ticker_map,
     calendar_alert,
     candle_is_final,
@@ -214,6 +218,27 @@ def run_screeners(df):
     return last.date().isoformat(), entries
 
 
+def run_sector_radar(df):
+    """Hitung sektor mana yang 'menyala' hari ini, utk histori heatmap. Kegagalan tidak menghentikan job."""
+    last = pd.Timestamp(df["Date"].max())
+    fresh = df[df.groupby("Ticker")["Date"].transform("max") == last]
+    data_map = build_ticker_map(fresh)
+    df_radar = sector_radar.compute_sector_radar(data_map, load_sector_map())
+    summary = sector_radar.hot_summary(df_radar)
+    print(f"Sector Radar: {sum(summary.values())}/{len(summary)} sektor menyala")
+    return last.date().isoformat(), summary
+
+
+def previous_sector_history():
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if not repo:
+        return {}
+    try:
+        return sector_radar.clean_history(json.loads(http_get(data_url(repo, SECTOR_HISTORY_FILE), 30).decode("utf-8")))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def previous_recap():
     repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     if not repo:
@@ -300,7 +325,13 @@ def main(argv=None):
         recap_days = len(history["days"])
     except Exception as e:  # noqa: BLE001
         print(f"Rekap screener gagal, riwayat lama dipertahankan: {type(e).__name__}: {e}")
-    carry_forward(out, [IHSG_FILE, RECAP_FILE])
+    try:
+        sector_date, sector_summary = run_sector_radar(df)
+        sector_hist = sector_radar.add_day(previous_sector_history(), sector_date, sector_summary, f"{now:%Y-%m-%d %H:%M}")
+        (out / SECTOR_HISTORY_FILE).write_text(json.dumps(sector_hist, separators=(",", ":")), encoding="utf-8")
+    except Exception as e:  # noqa: BLE001
+        print(f"Sector Radar histori gagal, riwayat lama dipertahankan: {type(e).__name__}: {e}")
+    carry_forward(out, [IHSG_FILE, RECAP_FILE, SECTOR_HISTORY_FILE])
 
     df_out = df.copy()
     df_out["Date"] = df_out["Date"].dt.strftime("%Y-%m-%d")

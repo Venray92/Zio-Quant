@@ -135,6 +135,47 @@ def _stock_volatility(data_map, ticker):
     return round(v, 1), bool(v > HIGH_VOL_ATR_PCT)
 
 
+# ---------------------------------------------------------------- histori harian (heatmap kalender)
+SECTOR_KEEP_DAYS = 90  # heatmap butuh histori lebih panjang dari rekap sinyal (recap.py pakai 40)
+
+
+def hot_summary(df):
+    """Ringkas hasil compute_sector_radar jadi {sektor: True/False}, siap disimpan harian."""
+    if df is None or df.empty:
+        return {}
+    return {str(row["Sector"]): bool(row["Is Hot"]) for _, row in df.iterrows()}
+
+
+def add_day(history, date, summary, updated_at_wib="", keep_days=SECTOR_KEEP_DAYS):
+    """Tambah/timpa satu hari, buang yang lebih lama dari keep_days. Pola sama seperti engines.recap.add_day."""
+    days = dict((history or {}).get("days") or {})
+    days[str(date)[:10]] = {str(k): bool(v) for k, v in (summary or {}).items()}
+    kept = dict(sorted(days.items())[-keep_days:])
+    return {"version": 1, "updated_at_wib": str(updated_at_wib), "days": kept}
+
+
+def clean_history(raw):
+    """Bersihkan riwayat dari sumber luar (file JSON) sebelum dipakai -- jangan percaya isinya mentah-mentah."""
+    raw = raw if isinstance(raw, dict) else {}
+    days = raw.get("days")
+    out = {}
+    if isinstance(days, dict):
+        for d, entries in days.items():
+            if not isinstance(entries, dict) or pd.isna(pd.to_datetime(str(d), errors="coerce")):
+                continue
+            out[str(d)[:10]] = {str(k): bool(v) for k, v in entries.items() if isinstance(k, str)}
+    return {"version": 1, "updated_at_wib": str(raw.get("updated_at_wib", "")), "days": dict(sorted(out.items()))}
+
+
+def heatmap_data(history, days=SECTOR_KEEP_DAYS):
+    """(dates, sectors, matrix) siap dipakai UI. matrix[sector][date] -> True/False/None (None = tidak ada data)."""
+    all_days = (history or {}).get("days") or {}
+    dates = sorted(all_days)[-days:]
+    sectors = sorted({s for d in dates for s in all_days[d]})
+    matrix = {s: {d: all_days[d].get(s) for d in dates} for s in sectors}
+    return dates, sectors, matrix
+
+
 def sector_detail(sector, data_map, sector_map=None, lookback=LOOKBACK):
     """Baris per-saham utk drill-down satu sektor, diurutkan volume relatif tertinggi dulu."""
     sm = sector_map if sector_map is not None else load_sector_map()

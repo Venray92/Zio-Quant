@@ -26,6 +26,7 @@ DATA_FILE = "market_data.csv.gz"
 META_FILE = "market_data_meta.json"
 IHSG_FILE = "ihsg_history.csv"
 RECAP_FILE = "screener_history.json"
+SECTOR_HISTORY_FILE = "sector_history.json"
 
 # Hari bursa buka (Senin-Jumat, bukan libur): jam ini data diambil langsung dari web.
 LIVE_START = time(9, 0)
@@ -262,6 +263,11 @@ def load_ihsg_history(repo, timeout=25):
 def load_recap_history(repo, timeout=25):
     """Riwayat hasil screener harian (JSON). Melempar error jika gagal."""
     return json.loads(http_get(data_url(repo, RECAP_FILE), timeout).decode("utf-8"))
+
+
+def load_sector_history(repo, timeout=25):
+    """Riwayat harian sektor 'menyala' (JSON), utk heatmap Sector Radar. Melempar error jika gagal."""
+    return json.loads(http_get(data_url(repo, SECTOR_HISTORY_FILE), timeout).decode("utf-8"))
 
 
 def build_ticker_map(df):

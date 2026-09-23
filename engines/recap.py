@@ -7,7 +7,12 @@ import math
 
 import pandas as pd
 
-SCREENERS = (("rsi", "RSI Reversal"), ("stoch_psar", "Stoch Momentum"))
+# Trend Scanner: Breakout Surge & Trend Reset ikut direkap (satu arah, selalu "Bullish" -- keduanya
+# memang cuma punya versi bullish, tidak ada versi bearish di engine). Quiet Accumulation SENGAJA tidak
+# direkap di sini: dia watchlist tanpa skor & tanpa arah beli/jual, jadi "hasilnya" tidak bisa diukur
+# dengan cara yang sama (rekap butuh harga sinyal + arah utk menghitung searah/tidaknya pergerakan).
+SCREENERS = (("rsi", "RSI Reversal"), ("stoch_psar", "Stoch Momentum"), ("breakout_surge", "Breakout Surge"), ("trend_reset", "Trend Reset"))
+SINGLE_DIRECTION = {"breakout_surge", "trend_reset"}  # tidak ada versi Bearish, sembunyikan baris itu di UI
 KEEP_DAYS = 40
 
 
@@ -44,6 +49,32 @@ def hits_from_stoch(df_gc, df_dc):
             continue
         for _, r in df.iterrows():
             out.append({"t": _t(r["Ticker"]), "d": d, "s": _f(r.get("Score")), "p": _f(r.get("Harga")), "c": _f(r.get("Change (%)")), "n": str(r.get("Signal", ""))[:60]})
+    return out
+
+
+def hits_from_breakout(df):
+    """Trend Scanner - Breakout Surge. Selalu 'Bullish' (tidak ada versi bearish)."""
+    out = []
+    if df is None or len(df) == 0:
+        return out
+    for _, r in df.iterrows():
+        out.append({
+            "t": _t(r["Ticker"]), "d": "Bullish", "s": _f(r.get("Score")), "p": _f(r.get("Close_Price")), "c": _f(r.get("Change_Pct")),
+            "n": f"Tembus {_f(r.get('Breakout Level')):,.0f}".replace(",", "."),
+        })
+    return out
+
+
+def hits_from_trend_reset(df):
+    """Trend Scanner - Trend Reset. Selalu 'Bullish' (tidak ada versi bearish)."""
+    out = []
+    if df is None or len(df) == 0:
+        return out
+    for _, r in df.iterrows():
+        out.append({
+            "t": _t(r["Ticker"]), "d": "Bullish", "s": _f(r.get("Score")), "p": _f(r.get("Close_Price")), "c": _f(r.get("Change_Pct")),
+            "n": f"Koreksi {_f(r.get('Depth From High (%)')):.1f}% dari puncak",
+        })
     return out
 
 

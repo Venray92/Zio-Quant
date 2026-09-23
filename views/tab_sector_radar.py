@@ -9,11 +9,11 @@ import pandas as pd
 import streamlit as st
 
 from engines.sector_map import get_company_name, load_sector_map
-from engines.sector_radar import compute_sector_radar, sector_detail
+from engines.sector_radar import compute_sector_radar, heatmap_data, sector_detail
 from utils.card_html import compact_html, fmt_id
 from utils.icons import svg_icon
 from utils.compat import STRETCH
-from utils.market_source import load_shared_file
+from utils.market_source import load_sector_hist, load_shared_file
 from utils.pages import keyed_container
 
 GREEN, PINK, CYAN, AMBER = "#00FF66", "#FF007F", "#00F3FF", "#E3B341"
@@ -130,6 +130,29 @@ def load_radar():
     return _cached_radar(stamp)
 
 
+
+def _heatmap_html(dates, sectors, matrix):
+    if not dates or not sectors:
+        return '<div class="zq-muted" style="font-size:12px;">Heatmap tampil setelah histori beberapa hari terkumpul.</div>'
+    header = "<div></div>" + "".join(f'<div style="writing-mode:vertical-rl; text-orientation:mixed; font-size:9px; color:#8B949E; text-align:right; padding-bottom:2px;">{escape(pd.to_datetime(d).strftime("%d/%m"))}</div>' for d in dates)
+    rows = header
+    for sec in sectors:
+        cells = ""
+        for d in dates:
+            v = matrix[sec][d]
+            color = "#00FF66" if v is True else ("#21262D" if v is False else "transparent")
+            title = f"{escape(sec)} · {pd.to_datetime(d).strftime('%d %b')} · {'Menyala' if v is True else ('Netral' if v is False else 'Tidak ada data')}"
+            cells += f'<div title="{title}" style="width:10px; height:10px; border-radius:2px; background:{color}; margin:1px auto;"></div>'
+        rows += f'<div style="font-size:10px; color:#C9D1D9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:6px;">{escape(sec)}</div>{cells}'
+    cols = f'auto repeat({len(dates)}, 12px)'
+    return (
+        f'<div style="display:grid; grid-template-columns:{cols}; align-items:center; gap:1px; overflow-x:auto; padding-bottom:4px;">{rows}</div>'
+        f'<div style="display:flex; gap:12px; margin-top:6px; font-size:11px; color:#8B949E;">'
+        f'<span><span style="display:inline-block; width:9px; height:9px; background:#00FF66; border-radius:2px; margin-right:4px;"></span>Menyala</span>'
+        f'<span><span style="display:inline-block; width:9px; height:9px; background:#21262D; border-radius:2px; margin-right:4px;"></span>Netral</span></div>'
+    )
+
+
 def render_page_sector_radar():
     _html(
         f"""<div class="zq-hero">
@@ -183,6 +206,15 @@ def render_page_sector_radar():
             _detail_table(sel, data_map)
         with st.expander("Cara membaca Sector Radar", expanded=False):
             st.markdown(_HOW_TO_READ)
+
+    _html(_label("calendar", "Heatmap 90 Hari Terakhir"))
+    hist = load_sector_hist()
+    if hist is None:
+        st.info("Heatmap butuh riwayat harian. Tampil setelah data harian berjalan beberapa hari.")
+    else:
+        dates, sectors, matrix = heatmap_data(hist)
+        _html(f'<div class="zq-card">{_heatmap_html(dates, sectors, matrix)}</div>')
+        st.caption("Tiap kotak = satu hari bursa. Hijau = sektor itu 'menyala' hari itu. Diperbarui otomatis tiap hari lewat data harian.")
 
 
 def render_sector_summary(pages, width):

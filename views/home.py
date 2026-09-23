@@ -13,6 +13,8 @@ from utils.profile import current_profile
 from utils.pages import get_pages, keyed_container, link_width_kwargs
 from utils.screeners import get_screener
 from views.footer import fetch_ihsg, fmt_id_num
+from engines.market_data import now_wib
+from engines.tips import tip_of_day
 from views.home_today import MODE_COLOR, render_today_block
 from views.tab_sector_radar import render_sector_summary
 
@@ -403,6 +405,12 @@ def render_page_home():
     with b2:
         with keyed_container("zcta_secondary"):
             st.page_link(pages["how_to"], label="Learn", icon=":material/menu_book:", **width)
+
+    _html(
+        f'<div class="zq-card" style="border-color:#30363D; padding:10px 14px;">'
+        f'<span style="color:#00F3FF; font-weight:700; font-size:12px;">{svg_icon("bulb", 14, "#00F3FF", 2, margin_right=6)}TIP HARI INI</span>'
+        f'<div class="zq-muted" style="font-size:13px; margin-top:4px;">{escape(tip_of_day(now_wib().strftime("%Y-%m-%d")))}</div></div>'
+    )
 
     _, meta = market_source.load_shared_file()
     ihsg = market_source.load_ihsg()

@@ -9,7 +9,8 @@ import streamlit as st
 
 from engines import money as M
 from engines import recap as RC
-from utils import market_source, money_store, watchlist_store
+from engines.market_data import now_wib
+from utils import activity_store, market_source, money_store, watchlist_store
 from utils.card_html import GREEN, PINK, compact_html, fmt_id
 from utils.icons import svg_icon
 from utils.pages import get_pages, keyed_container, link_width_kwargs
@@ -127,7 +128,12 @@ def render_today_block(view=None):
     if view:
         m = view["mode"]
         mode = f' <span style="font-size:11px; padding:1px 8px; border:1px solid {MODE_COLOR[m["mode"]]}; color:{MODE_COLOR[m["mode"]]}; border-radius:4px; margin-left:6px;">Pasar: {escape(m["label"])}</span>'
-    _html(f'<div class="zq-label">{svg_icon("sun", 13, "#FF007F", 2)}Untuk kamu hari ini{mode}</div>')
+    try:
+        streak, _ = activity_store.record_visit(now_wib().strftime("%Y-%m-%d"))
+    except Exception:
+        streak = 0
+    streak_html = f' <span style="font-size:11px; color:#8B949E;">&bull; {streak} hari beruntun kamu buka app</span>' if streak > 1 else ""
+    _html(f'<div class="zq-label">{svg_icon("sun", 13, "#FF007F", 2)}Untuk kamu hari ini{mode}{streak_html}</div>')
     if not t["n_watch"] and not t["n_pos"]:
         _html(
             '<div class="zq-card"><div class="zq-muted" style="font-size:13px;">Ringkasan ini terisi setelah kamu menambah saham ke Watchlist '

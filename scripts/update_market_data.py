@@ -199,6 +199,16 @@ def run_screeners(df):
         entries["stoch_psar"] = {"hits": recap.hits_from_stoch(gc, dc)}
     except Exception as e:  # noqa: BLE001
         entries["stoch_psar"] = {"error": f"{type(e).__name__}: {e}"[:120]}
+    try:
+        from engines.screener_trend import run_trend_screener
+
+        df_breakout, df_reset, _df_squeeze, _ = run_trend_screener(tickers, data=data_map)
+        entries["breakout_surge"] = {"hits": recap.hits_from_breakout(df_breakout)}
+        entries["trend_reset"] = {"hits": recap.hits_from_trend_reset(df_reset)}
+    except Exception as e:  # noqa: BLE001
+        msg = f"{type(e).__name__}: {e}"[:120]
+        entries["breakout_surge"] = {"error": msg}
+        entries["trend_reset"] = {"error": msg}
     for k, v in entries.items():
         print(f"Screener {k}: " + (f"{len(v['hits'])} sinyal" if "hits" in v else f"GAGAL ({v['error']})"))
     return last.date().isoformat(), entries

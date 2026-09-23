@@ -8,6 +8,7 @@ BASE_PAGES = [
     ("home", "Home", "Home", "home"),
     ("watchlist", "Watchlist", "Watchlist", "bookmarks"),
     ("money_management", "Money Management", "Money", "account_balance_wallet"),
+    ("leaderboard", "Leaderboard Screener", "Leaderboard", "trophy"),
     ("how_to", "Learn", "Learn", "menu_book"),
 ]
 SCREENER_KEYS = [s["key"] for s in SCREENERS]
@@ -56,6 +57,13 @@ def _how_to():
     render_page_how_to()
 
 
+def _leaderboard():
+    from views.tab_leaderboard import render_page_leaderboard
+
+    _mark("leaderboard")
+    render_page_leaderboard()
+
+
 def _how_to_old_url():
     """Alamat lama /how-to diarahkan ke halaman Learn supaya bookmark lama tidak mati."""
     st.switch_page(get_pages()["how_to"])
@@ -65,6 +73,7 @@ _BASE_FUNCS = {
     "home": _home,
     "watchlist": _watchlist,
     "money_management": _money_management,
+    "leaderboard": _leaderboard,
     "how_to": _how_to,
 }
 

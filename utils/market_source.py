@@ -14,6 +14,7 @@ from engines.market_data import (
     load_ihsg_history,
     load_market_file,
     load_recap_history,
+    load_sector_history,
     normalize_ticker,
     now_wib,
     resolve_repo,
@@ -67,6 +68,24 @@ def load_recap():
         return None
     try:
         return _load_recap(repo)
+    except Exception:
+        return None
+
+
+@st.cache_resource(ttl=300, show_spinner=False)
+def _load_sector_history(repo):
+    from engines.sector_radar import clean_history
+
+    return clean_history(load_sector_history(repo))
+
+
+def load_sector_hist():
+    """Riwayat harian sektor 'menyala' (sudah dibersihkan), atau None kalau belum tersedia."""
+    repo = resolve_repo()
+    if not repo:
+        return None
+    try:
+        return _load_sector_history(repo)
     except Exception:
         return None
 

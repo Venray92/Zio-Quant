@@ -11,7 +11,8 @@ from utils.compat import STRETCH
 from utils.card_html import compact_html, emoji_to_icons, strip_emoji
 from utils.icons import expander_kwargs, icon_kwargs, svg_icon
 from utils.market_source import get_shared_history
-from utils import watchlist_store
+from utils import alert_store, watchlist_store
+from engines.market_data import now_wib
 
 
 def inject_custom_css():
@@ -111,6 +112,36 @@ def _plan_name_html(ticker_symbol):
     return f'<div style="font-size:13px; color:#8B949E; font-weight:500; margin-top:2px;">{escape(name)}</div>' if name else ""
 
 
+def _render_alert_popover(clean_ticker_code, key_suffix):
+    """'Kasih tau kalau <ticker> tembus <harga>' -- dicek tiap kali Home/lonceng dibuka, BUKAN
+    notifikasi push (app ini tidak punya jalur push)."""
+    active = alert_store.alerts_for(clean_ticker_code)
+    label = f"Alert ({len(active)})" if active else "Set Alert"
+    with st.popover(label, **STRETCH, icon=":material/notifications:"):
+        if active:
+            st.caption("Alert aktif untuk saham ini:")
+            for a in active:
+                c1, c2 = st.columns([4, 1])
+                arrow = "≥" if a["Direction"] == "above" else "≤"
+                c1.markdown(f"{arrow} Rp {a['Price']:,.0f}".replace(",", "."))
+                if c2.button("×", key=f"rm_alert_{key_suffix}_{a['Id']}", help="Hapus alert ini"):
+                    alert_store.remove_alert(a["Id"])
+                    st.rerun()
+            st.divider()
+        st.caption("Tambah alert baru:")
+        price = st.number_input("Harga target (Rp)", min_value=0.0, step=1.0, format="%.0f", key=f"alert_price_{key_suffix}")
+        direction = st.radio("Arah", ["Naik ke / lewat", "Turun ke / lewat"], key=f"alert_dir_{key_suffix}", horizontal=True, label_visibility="collapsed")
+        if st.button("Simpan alert", key=f"alert_save_{key_suffix}", **STRETCH):
+            if price and price > 0:
+                d = "above" if direction == "Naik ke / lewat" else "below"
+                alert_store.add_alert(clean_ticker_code, price, d, now_wib().strftime("%Y-%m-%d"))
+                st.toast(f"Alert {clean_ticker_code} tersimpan.")
+                st.rerun()
+            else:
+                st.warning("Isi harga target dulu.")
+        st.caption("Alert ini dicek tiap kali kamu buka Home atau lonceng notifikasi -- bukan pesan yang dikirim ke HP.")
+
+
 def render_inline_trade_planner(ticker_symbol, key_suffix="default", screener_name="Screener", show_watchlist_button=True):
     st.markdown("---")
 
@@ -129,7 +160,7 @@ SYSTEM STATUS: <span style="color: #00F3FF; text-shadow: 0 0 5px #00F3FF;">ONLIN
         unsafe_allow_html=True,
     )
 
-    col_select, _, col_btn = st.columns([1, 2, 1], vertical_alignment="bottom")
+    col_select, col_alert, col_btn = st.columns([1, 1, 1], vertical_alignment="bottom")
 
     with col_select:
         period_selected = st.selectbox(
@@ -138,6 +169,9 @@ SYSTEM STATUS: <span style="color: #00F3FF; text-shadow: 0 0 5px #00F3FF;">ONLIN
             index=1,
             key=f"period_{key_suffix}",
         )
+
+    with col_alert:
+        _render_alert_popover(ticker_symbol.upper().strip(), key_suffix)
 
     with col_btn:
         clean_ticker_code = ticker_symbol.upper().strip()

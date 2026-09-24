@@ -2,10 +2,26 @@
 
 Tambah screener baru = tambah satu entri di SCREENERS. Menu dropdown, kartu di Home,
 dan halaman URL-nya ikut otomatis. 'key' dipakai di session_state, jangan diganti.
+
+Urutan (dropdown Screeners ikut urutan ini): Trend Scanner (struktur harga/volume) dulu, lalu
+4 oscillator berselang-seling gaya (RSI+Stoch dulu yang sudah lama ada, MACD+MFI nyusul -- divergence
+dan crossover diselang-seling biar yang mirip gaya nggak nyampur), Sector Radar (level market),
+Trade Planner paling akhir (dia "alat", bukan pencari sinyal).
 """
 import importlib
 
 SCREENERS = [
+    {
+        "key": "trend_scanner",
+        "name": "Trend Scanner",
+        "category": "Struktur",
+        "desc": "Breakout Surge, Trend Reset & Quiet Accumulation",
+        "icon": "bolt",
+        "material": "bolt",
+        "url": "trend-scanner",
+        "module": "views.tab_trend",
+        "func": "render_tab_trend",
+    },
     {
         "key": "rsi",
         "name": "RSI Reversal",
@@ -29,15 +45,26 @@ SCREENERS = [
         "func": "render_tab_stoch_psar",
     },
     {
-        "key": "trend_scanner",
-        "name": "Trend Scanner",
-        "category": "Struktur",
-        "desc": "Breakout Surge, Trend Reset & Quiet Accumulation",
-        "icon": "bolt",
-        "material": "bolt",
-        "url": "trend-scanner",
-        "module": "views.tab_trend",
-        "func": "render_tab_trend",
+        "key": "macd",
+        "name": "MACD Momentum",
+        "category": "Momentum",
+        "desc": "Golden/Dead Cross MACD + ADX",
+        "icon": "chart-candle",
+        "material": "insights",
+        "url": "macd-momentum",
+        "module": "views.tab_macd",
+        "func": "render_tab_macd",
+    },
+    {
+        "key": "mfi",
+        "name": "MFI Reversal",
+        "category": "Reversal",
+        "desc": "Divergence Money Flow Index + volume",
+        "icon": "wallet",
+        "material": "waterfall_chart",
+        "url": "mfi-reversal",
+        "module": "views.tab_mfi",
+        "func": "render_tab_mfi",
     },
     {
         "key": "sector_radar",

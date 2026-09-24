@@ -17,9 +17,13 @@ MIN_VALUE_RP = 1_000_000_000      # likuiditas per saham: rata-rata nilai transa
 MIN_MEMBERS = 3                   # sektor dgn saham likuid < ini tidak dianalisis (terlalu sedikit sampel)
 LOOKBACK = 60                     # jendela "kebiasaan sektor sendiri"
 RVOL_HIGH = 1.5                   # volume relatif dianggap tinggi
-HOT_VALUE_PERCENTILE = 80         # nilai transaksi hari itu masuk 20% teratas kebiasaan 60 hari sendiri
-HOT_PCT_UP = 55.0                 # mayoritas saham naik
-MAX_CONCENTRATION_PCT = 70.0      # kalau 1 saham dominasi > ini, sektor dianggap tidak "kompak"
+HOT_VALUE_PERCENTILE = 70         # nilai transaksi hari itu masuk 30% teratas kebiasaan 60 hari sendiri
+                                    # (dulu 80/20% teratas -- 2 hari jalan nyaris tidak pernah ada yang
+                                    # menyala sekaligus, terlalu ketat; diturunkan ke batas yang lebih wajar)
+HOT_PCT_UP = 50.0                  # mayoritas saham naik (dulu 55.0)
+MAX_CONCENTRATION_PCT = 75.0       # kalau 1 saham dominasi > ini, sektor dianggap tidak "kompak" (dulu 70.0
+                                    # -- sengaja TIDAK dilonggarkan banyak, syarat ini yang justru bekerja
+                                    # benar menangkap kasus 1 saham RVOL ekstrem mendominasi sektor)
 
 
 def _prep(df):

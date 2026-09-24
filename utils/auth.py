@@ -11,7 +11,7 @@ import json
 
 import requests
 
-from utils.storage import _raw_config, _http, TIMEOUT
+from utils.storage import _config as _storage_config, _http, TIMEOUT
 
 
 class AuthError(Exception):
@@ -19,10 +19,19 @@ class AuthError(Exception):
 
 
 def _config():
-    url, key = _raw_config()
-    if not url or not key:
-        raise AuthError("Supabase belum diatur (cek Secrets di Streamlit Cloud).")
-    return url.rstrip("/"), key.strip()
+    """Pakai konfigurasi Supabase yang SAMA & SUDAH DIBERSIHKAN dengan utils.storage (bukan baca
+    mentah lewat _raw_config()) -- BUG lama: kalau url di Secrets ternyata link dashboard/ada
+    spasi/tanda kutip dll, utils.storage otomatis membenarkannya (lihat _clean_url), tapi Login dulu
+    tidak ikut kebenerin sehingga gagal connect padahal Watchlist/Money Management (yang lewat
+    utils.storage) tetap normal -- gejalanya persis "Tidak bisa menghubungi server"."""
+    cfg = _storage_config()
+    if not cfg:
+        raise AuthError(
+            "Supabase belum diatur atau formatnya salah (cek Secrets di Streamlit Cloud -- "
+            "pastikan url = Project URL polos spt https://xxxx.supabase.co, key = secret key sb_secret_...)."
+        )
+    url, key = cfg
+    return url.rstrip("/"), key
 
 
 def _headers(key, token=None):

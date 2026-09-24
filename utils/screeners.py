@@ -67,6 +67,17 @@ SCREENERS = [
         "func": "render_tab_mfi",
     },
     {
+        "key": "overnight",
+        "name": "BSJP / BPJS",
+        "category": "Overnight",
+        "desc": "Beli Sore Jual Pagi & Beli Pagi Jual Sore",
+        "icon": "bolt",
+        "material": "bedtime",
+        "url": "bsjp-bpjs",
+        "module": "views.tab_overnight",
+        "func": "render_tab_overnight",
+    },
+    {
         "key": "sector_radar",
         "name": "Sector Radar",
         "category": "Radar",

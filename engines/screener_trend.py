@@ -22,9 +22,9 @@ MIN_BARS_TREND = 210              # Breakout Surge & Trend Reset butuh EMA200
 MIN_BARS_SQUEEZE = 60             # Quiet Accumulation cukup EMA20 + ATR14
 
 # Breakout Surge
-BRK_BASE_LOOKBACK = 15            # jendela cek "lagi ngumpul" sebelum tembus
-BRK_BASE_MAX_WIDTH_PCT = 12.0
 BRK_HIGH_LOOKBACK = 20            # tembus level tertinggi N candle (tidak termasuk hari ini)
+BRK_BASE_LOOKBACK = BRK_HIGH_LOOKBACK  # jendela cek "lagi ngumpul" -- SAMA dgn jendela level tembus (dulu 15 vs 20, tidak sinkron)
+BRK_BASE_MAX_WIDTH_PCT = 12.0
 BRK_VOL_MULT = 2.0
 BRK_MAX_AGE = 2                   # tembus maksimal H+2
 BRK_BONUS_VOL_MULT = 3.0
@@ -42,6 +42,10 @@ SQZ_BB_STD = 2.0
 SQZ_KC_PERIOD = 20
 SQZ_KC_ATR_MULT = 1.5
 SQZ_WIDTH_LOOKBACK = 60           # "tersempit dalam N hari", dibatasi maks segini
+SQZ_MAX_DECLINE_PCT = 15.0        # kalau turun lebih dari ini dlm SQZ_DECLINE_LOOKBACK hari terakhir,
+                                   # dianggap baru saja jebol support, bukan squeeze asli
+SQZ_DECLINE_LOOKBACK = 40         # sengaja LEBIH PANJANG dari SQZ_BB_PERIOD (20): begitu Bollinger Band
+                                   # "lupa" sama hari jebolnya (~20-30 hari), pengecekan ini masih inget
 
 
 # ---------------------------------------------------------------- indikator tambahan (Bollinger & Keltner)
@@ -118,6 +122,16 @@ def _volatility_flags(d):
     return round(v, 1), bool(v > HIGH_VOL_ATR_PCT)
 
 
+def _recent_swings(d, lookback=120, left=3, right=3):
+    """(swing high PALING BARU, swing low PALING BARU) dalam `lookback` candle terakhir, atau
+    (None, None) kalau tidak ada yg terkonfirmasi. Dulu beberapa tempat salah pakai max(harga)
+    (swing TERTINGGI sepanjang histori), bukan yang PALING BARU -- diperbaiki di sini, satu tempat,
+    dipakai ulang di detect_trend_reset & detect_quiet_accumulation."""
+    window = d.tail(lookback).reset_index(drop=True)
+    highs, lows = swing_points(window, left=left, right=right)
+    return (highs[-1][1] if highs else None), (lows[-1][1] if lows else None)
+
+
 # ---------------------------------------------------------------- Breakout Surge
 def detect_breakout_surge(ticker, df, now=None):
     d = _prepare(df)
@@ -126,7 +140,9 @@ def detect_breakout_surge(ticker, df, now=None):
 
     close, vol = d["Close"], d["Volume"]
     e50, e200 = ema(close, 50), ema(close, 200)
-    vol_ma20 = vol.rolling(20).mean()
+    # Rata-rata volume 20 hari SEBELUM hari yg dicek (shift(1) -- exclude hari itu sendiri dari
+    # baseline-nya sendiri, konsisten dgn prior_high20 yg juga exclude hari ini).
+    vol_ma20 = vol.rolling(20).mean().shift(1)
     prior_high20 = close.rolling(BRK_HIGH_LOOKBACK).max().shift(1)
     sqz = squeeze_series(d)
     n = len(d)
@@ -153,6 +169,10 @@ def detect_breakout_surge(ticker, df, now=None):
         breakout_idx = idx
         break
     if breakout_idx is None:
+        return None
+    # Breakout harus MASIH VALID sekarang -- kalau harga sudah balik ke bawah level tembusnya
+    # (breakout gagal/palsu), jangan tetap dianggap sinyal, walau masih dalam umur H+0..H+2.
+    if close.iloc[latest_idx] < float(prior_high20.iloc[breakout_idx]):
         return None
 
     age = latest_idx - breakout_idx
@@ -213,8 +233,11 @@ def detect_trend_reset(ticker, df, now=None):
 
     close = d["Close"]
     e20, e50, e200 = ema(close, 20), ema(close, 50), ema(close, 200)
-    vol_ma20 = d["Volume"].rolling(20).mean()
-    vol_ma5 = d["Volume"].rolling(5).mean()
+    # Rata-rata volume SEBELUM hari ini (shift(1)) -- dulu ikut menghitung volume hari ini sendiri,
+    # jadi kontradiksi sama bonus "volume balik naik" (lonjakan hari ini malah bikin syarat wajib
+    # "volume mengering" lebih susah lolos, padahal itu justru skenario paling ideal).
+    vol_ma20 = d["Volume"].rolling(20).mean().shift(1)
+    vol_ma5 = d["Volume"].rolling(5).mean().shift(1)
     n = len(d)
     latest_idx = n - 1
 
@@ -224,18 +247,18 @@ def detect_trend_reset(ticker, df, now=None):
 
     last_close = float(close.iloc[latest_idx])
     e20_now, e50_now = float(e20.iloc[latest_idx]), float(e50.iloc[latest_idx])
-    if not (e50_now <= last_close <= e20_now * 1.001 and last_close >= e50_now):
-        # harga di antara EMA20 dan EMA50 (koreksi wajar, belum tembus jauh di bawah EMA50)
-        if not (e50_now <= last_close <= max(e20_now, e50_now)):
-            return None
+    # Harga di antara EMA50 dan EMA20 (toleransi 0,1% di atas EMA20) -- koreksi wajar, belum tembus
+    # jauh di bawah EMA50. Kalau EMA20 sempat turun di bawah EMA50 (koreksi tajam & lama), batas
+    # atasnya otomatis jadi EMA50 sendiri (area yang masuk akal makin sempit).
+    if not (e50_now <= last_close <= max(e20_now, e50_now) * 1.001):
+        return None
 
-    highs, _ = swing_points(d.tail(120).reset_index(drop=True), left=3, right=3)
-    recent_high = max((p for _, p in highs), default=float(d["Close"].tail(60).max()))
+    recent_high, swing_low = _recent_swings(d)
+    if recent_high is None:
+        recent_high = float(d["Close"].tail(60).max())
     depth_pct = (recent_high - last_close) / recent_high * 100 if recent_high > 0 else 0.0
 
-    _, lows = swing_points(d, left=3, right=3)
-    swing_low = max((p for i, p in lows if i < latest_idx), default=0.0)
-    if swing_low > 0 and last_close < swing_low:
+    if swing_low is not None and last_close < swing_low:
         return None  # struktur sudah rusak
 
     if not (float(vol_ma5.iloc[latest_idx]) < float(vol_ma20.iloc[latest_idx])):
@@ -246,7 +269,7 @@ def detect_trend_reset(ticker, df, now=None):
     score = 0
     if 0 <= depth_pct <= RST_SHALLOW_PCT:
         score += 25
-    vol_today, vol_prev5 = float(d["Volume"].iloc[latest_idx]), float(vol_ma5.iloc[latest_idx - 1]) if latest_idx > 0 else 0.0
+    vol_today, vol_prev5 = float(d["Volume"].iloc[latest_idx]), float(vol_ma5.iloc[latest_idx])
     vol_bounce = vol_prev5 > 0 and vol_today >= RST_VOL_BOUNCE_MULT * vol_prev5
     if vol_bounce:
         score += 20
@@ -283,8 +306,22 @@ def detect_quiet_accumulation(ticker, df, now=None):
     if not bool(sqz.iloc[-1]):
         return None
 
-    vol_ma5 = d["Volume"].rolling(5).mean()
-    vol_ma20 = d["Volume"].rolling(20).mean()
+    # Harga TIDAK BOLEH baru saja jebol/crash dalam SQZ_DECLINE_LOOKBACK hari terakhir (LEBIH PANJANG
+    # dari jendela Bollinger, sengaja -- begitu Bollinger "lupa" sama hari jebolnya, cek ini masih inget).
+    # Tanpa ini, saham yang baru jebol support -- volatilitasnya melebar pas jebol, lalu "diam" lagi di
+    # level baru yang lebih rendah begitu hari jebolnya keluar dari jendela BB/Keltner -- bisa ke-deteksi
+    # squeeze juga, padahal itu sisa reruntuhan, bukan "lagi ngumpul sehat".
+    # (Sempat dicoba pakai swing low terakhir, tapi ternyata swing ikut "pindah" ke level baru begitu
+    # saham cukup lama ngumpul di sana -- jadi dipakai perubahan harga langsung, lebih tegas.)
+    if len(d) > SQZ_DECLINE_LOOKBACK:
+        price_then = float(d["Close"].iloc[-1 - SQZ_DECLINE_LOOKBACK])
+        price_now = float(d["Close"].iloc[-1])
+        if price_then > 0 and (price_now / price_then - 1) * 100 < -SQZ_MAX_DECLINE_PCT:
+            return None
+
+    # Rata-rata volume SEBELUM hari ini (shift(1)) -- konsisten sama fix di Breakout Surge/Trend Reset.
+    vol_ma5 = d["Volume"].rolling(5).mean().shift(1)
+    vol_ma20 = d["Volume"].rolling(20).mean().shift(1)
     if not (float(vol_ma5.iloc[-1]) > float(vol_ma20.iloc[-1])):
         return None
 

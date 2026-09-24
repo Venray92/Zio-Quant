@@ -45,6 +45,23 @@ def calculate_ema(series, period=10):
 # ----------------------------------------------------
 # 2. HELPER DETEKSI BASE KONSOLIDASI (REVISI MAX 5%)
 # ----------------------------------------------------
+def calculate_mfi(df, period=14):
+    """Money Flow Index -- 'RSI yang ikut menghitung volume'. Formula standar:
+    Typical Price -> Raw Money Flow -> pisah Positive/Negative Money Flow N hari -> Money Flow
+    Ratio -> MFI = 100 - 100/(1+MFR). Skalanya 0-100 sama seperti RSI, jadi mesin divergence yang
+    sama bisa dipakai apa adanya."""
+    tp = (df['High'] + df['Low'] + df['Close']) / 3
+    raw_mf = tp * df['Volume']
+    tp_diff = tp.diff()
+    pos_mf = raw_mf.where(tp_diff > 0, 0.0)
+    neg_mf = raw_mf.where(tp_diff < 0, 0.0)
+    pos_sum = pos_mf.rolling(period).sum()
+    neg_sum = neg_mf.rolling(period).sum()
+    mfr = pos_sum / neg_sum.replace(0, pd.NA)
+    mfi = 100 - 100 / (1 + mfr)
+    return mfi.where(neg_sum > 0, 100.0)
+
+
 def detect_bases(df, min_candles=5, max_width_pct=5.0, window_lookback=60):
     bases = []
     sub_df = df.tail(window_lookback)
@@ -228,9 +245,14 @@ def has_crater_between(swing_df, left_idx, right_idx, right_val,
 # ----------------------------------------------------
 # 4. MAIN SCREENER WITH REVISED SCORING & LOGIC
 # ----------------------------------------------------
-def detect_rsi_patterns_and_score(ticker, df=None, now=None):
+def detect_rsi_patterns_and_score(ticker, df=None, now=None, oscillator='rsi'):
     """df: (opsional) DataFrame harian siap pakai (mis. dari file harian bersama).
-    Kalau None, data diunduh sendiri seperti sebelumnya."""
+    Kalau None, data diunduh sendiri seperti sebelumnya.
+    oscillator: 'rsi' (bawaan, RSI Reversal) atau 'mfi' (MFI Reversal -- mesin SAMA PERSIS, cuma
+    angka oscillator-nya diganti MFI, yang ikut menghitung volume selain harga). Kolom internal
+    df['RSI_10'] TETAP dipakai apa adanya utk dua-duanya (nama generik internal, tidak pernah
+    keluar ke pengguna) supaya seluruh logic divergence di bawah ini tidak perlu disentuh."""
+    osc_label = 'MFI' if oscillator == 'mfi' else 'RSI'
     try:
         if df is None:
             df = yf.download(
@@ -275,8 +297,12 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
         if not (avg_value_20 > 1_000_000_000):
             return None
 
-        # Indicator Calculation
-        df['RSI_10'] = calculate_rsi(df['Close'], period=10)
+        # Indicator Calculation -- kolom internal tetap 'RSI_10'/'RSI_EMA10' apa adanya utk dua-duanya
+        # (lihat catatan oscillator di docstring atas), isinya MFI kalau oscillator='mfi'.
+        if oscillator == 'mfi':
+            df['RSI_10'] = calculate_mfi(df, period=14)
+        else:
+            df['RSI_10'] = calculate_rsi(df['Close'], period=10)
         df['RSI_EMA10'] = calculate_ema(df['RSI_10'], period=10)
         # Rata-rata volume 20 hari SEBELUM candle yang dievaluasi (sama dengan screener Stoch)
         df['Vol_MA20'] = df['Volume'].rolling(window=20).mean().shift(1)
@@ -498,12 +524,12 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
                                     '%Y-%m-%d'
                                 ),
                                 'Harga Kiri': f"Rp {left_p['Nilai']:,.0f}",
-                                'RSI Kiri': round(val_rsi_left, 2),
+                                f'{osc_label} Kiri': round(val_rsi_left, 2),
                                 'Tgl Kanan': right_p['Tanggal'].strftime(
                                     '%Y-%m-%d'
                                 ),
                                 'Harga Kanan': f"Rp {right_p['Nilai']:,.0f}",
-                                'RSI Kanan': round(val_rsi_right, 2),
+                                f'{osc_label} Kanan': round(val_rsi_right, 2),
                                 'Direction': 'Bullish',
                                 'T2 Age': int(bars_from_latest),
                                 'Dist to T2 (%)': round(dist_pct, 1),
@@ -710,12 +736,12 @@ def detect_rsi_patterns_and_score(ticker, df=None, now=None):
                                     '%Y-%m-%d'
                                 ),
                                 'Harga Kiri': f"Rp {left_p['Nilai']:,.0f}",
-                                'RSI Kiri': round(val_rsi_left, 2),
+                                f'{osc_label} Kiri': round(val_rsi_left, 2),
                                 'Tgl Kanan': right_p['Tanggal'].strftime(
                                     '%Y-%m-%d'
                                 ),
                                 'Harga Kanan': f"Rp {right_p['Nilai']:,.0f}",
-                                'RSI Kanan': round(val_rsi_right, 2),
+                                f'{osc_label} Kanan': round(val_rsi_right, 2),
                                 'Direction': 'Bearish',
                                 'T2 Age': int(bars_from_latest),
                                 'Dist to T2 (%)': round(dist_pct, 1),
@@ -749,6 +775,7 @@ def run_rsi_screener(
     should_stop=None,
     batch_size=50,
     phase_callback=None,
+    oscillator='rsi',
 ):
     """
     tickers            : list ticker
@@ -799,7 +826,7 @@ def run_rsi_screener(
             if d is None:
                 failed.append(t)
             else:
-                res = detect_rsi_patterns_and_score(t, d)
+                res = detect_rsi_patterns_and_score(t, d, oscillator=oscillator)
                 if isinstance(res, dict):
                     results.append(res)
             completed += 1

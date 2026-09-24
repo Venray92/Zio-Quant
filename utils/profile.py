@@ -1,7 +1,14 @@
-"""Profil pengguna (sementara, sebelum ada login): nama profil -> user_id 'profile:<nama>'.
+"""Profil pengguna: dua jalur identitas.
 
-Bukan password: siapa pun yang tahu nama profil bisa membuka datanya. Saat login dibuat,
-user_id cukup diganti (mis. 'auth:<uuid>') dan semua halaman otomatis ikut.
+1. LOGIN (baru): email+password lewat Supabase Auth (lihat utils.auth/session/account), sesi lewat
+   token di URL (?s=<token>, lihat utils.session). Ini yang dipakai kalau sudah ada.
+2. Profil tamu (lama, sebelum ada login): nama profil -> user_id 'profile:<nama>', TANPA password --
+   siapa pun yang tahu nama profil bisa membuka datanya. Dipakai sebagai CADANGAN kalau belum/tidak
+   login (mis. Supabase Auth belum diatur), supaya app tetap bisa dipakai.
+
+current_profile()/user_id() otomatis pilih LOGIN dulu kalau ada sesi valid, baru profil tamu -- semua
+halaman yang sudah pakai dua fungsi ini (Watchlist, Money Management, dst) TIDAK PERLU diubah sama
+sekali, ikut otomatis begitu user login.
 """
 import re
 
@@ -14,6 +21,71 @@ from utils.icons import expander_kwargs, icon_kwargs, svg_icon
 
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{2,31}$")
 _RESERVED = {"guest", "admin", "root", "null", "none", "undefined"}
+
+
+def current_auth_uid():
+    """uid Supabase Auth mentah (tanpa prefiks 'auth:') kalau ada sesi login valid, else None. Dicek
+    sekali per rerun lalu di-cache di session_state (resolve_session bisa 1x panggilan storage)."""
+    if "auth_uid" in st.session_state:
+        return st.session_state["auth_uid"]
+    uid, token = None, None
+    try:
+        from utils.session import resolve_session
+
+        token = st.query_params.get("s")
+        if token:
+            uid = resolve_session(token)
+    except Exception:
+        uid = None
+    st.session_state["auth_uid"] = uid
+    st.session_state["auth_token"] = token if uid else None  # token cuma disimpan kalau memang valid
+    return uid
+
+
+def current_session_token():
+    current_auth_uid()  # pastikan sudah di-resolve & di-cache
+    return st.session_state.get("auth_token")
+
+
+def set_session_token(token):
+    """Dipanggil halaman Login setelah sign_in sukses & create_session()."""
+    st.session_state.pop("auth_uid", None)  # paksa current_auth_uid() resolve ulang dari token baru
+    st.session_state.pop("auth_token", None)
+    try:
+        st.query_params["s"] = token
+    except Exception:
+        pass
+    storage.reset_cache()
+
+
+def clear_session():
+    """Logout dari akun Login (beda dari clear_profile(), yang itu utk profil tamu lama)."""
+    token = current_session_token()
+    if token:
+        try:
+            from utils.session import destroy_session
+
+            destroy_session(token)
+        except Exception:
+            pass
+    st.session_state.pop("auth_uid", None)
+    st.session_state.pop("auth_token", None)
+    try:
+        if "s" in st.query_params:
+            del st.query_params["s"]
+    except Exception:
+        pass
+    storage.reset_cache()
+
+
+def current_account():
+    """Dict akun (profil+status+akses fitur) kalau sedang login, else None. Lihat utils.account."""
+    uid = current_auth_uid()
+    if not uid:
+        return None
+    from utils import account
+
+    return account.load_account(uid)
 
 
 def clean_profile_name(raw):
@@ -29,17 +101,25 @@ def clean_profile_name(raw):
 
 
 def current_profile():
+    """Nama tampilan: dari akun login (nama lengkap atau email) kalau ada, else profil tamu lama."""
+    acc = current_account()
+    if acc:
+        return acc.get("full_name") or acc.get("email") or "Akun"
     return st.session_state.get("profile")
 
 
 def user_id():
-    p = current_profile()
+    uid = current_auth_uid()
+    if uid:
+        return f"auth:{uid}"
+    p = st.session_state.get("profile")
     return f"profile:{p}" if p else None
 
 
 def adopt_query_profile():
-    """Pulihkan profil dari ?u=nama di URL (supaya refresh atau bookmark tidak kehilangan profil)."""
-    if current_profile():
+    """Pulihkan identitas dari URL: sesi login (?s=) diutamakan, baru profil tamu lama (?u=)."""
+    current_auth_uid()  # cache sesi login (kalau ada ?s=) ke session_state lebih dulu
+    if st.session_state.get("profile"):
         return
     try:
         raw = st.query_params.get("u")
@@ -81,13 +161,21 @@ def clear_profile():
 
 
 def nav_query_params():
-    """query_params untuk st.page_link supaya profil ikut terbawa saat pindah halaman."""
-    p = current_profile()
+    """query_params untuk st.page_link supaya identitas ikut terbawa saat pindah halaman:
+    sesi login (?s=) diutamakan, baru profil tamu lama (?u=)."""
+    token = current_session_token()
+    if token:
+        return {"s": token}
+    p = st.session_state.get("profile")
     return {"u": p} if p else {}
 
 
 def render_profile_card():
-    """Kartu profil di atas halaman yang menyimpan data. Return True kalau profil sudah dipilih."""
+    """Kartu profil di atas halaman yang menyimpan data. Return True kalau profil sudah dipilih.
+    Kalau sudah login (akun Supabase), identitas diatur lewat chip profil di header -- kartu ini
+    dilewati sama sekali (bukan lagi mode 'profil tamu tanpa password')."""
+    if current_auth_uid():
+        return True
     if not current_profile():
         st.markdown(
             f"""<div class="zq-card" style="margin-bottom:8px;">

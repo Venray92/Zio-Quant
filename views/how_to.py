@@ -35,10 +35,16 @@ def render_page_how_to():
 <p>Tips: jalankan screening setelah 17:40 WIB supaya semua candle hari itu sudah final.</p>
 <h4>Di Home</h4>
 <ul>
-<li><b>Untuk kamu hari ini</b> (setelah punya profil): watchlist yang masuk zona beli, kondisi portofolio, dan sinyal untuk saham milikmu.</li>
+<li><b>Untuk kamu hari ini</b> (setelah punya profil): watchlist yang masuk zona beli, kondisi portofolio, dan sinyal untuk saham milikmu. Muncul juga "X hari beruntun" kalau kamu buka app beberapa hari berturut-turut.</li>
+<li><b>Tip hari ini</b>: satu tip singkat yang berganti tiap hari.</li>
 <li><b>Arah Pasar</b>: gambaran kondisi IHSG dan sebaran saham. Lihat tab Arah Pasar untuk cara membacanya.</li>
+<li><b>Sector Radar</b>: ringkasan sektor yang lagi "menyala" hari ini.</li>
 <li><b>Rekap harian dan mingguan</b>: ringkasan hasil tiap screener dari update data terakhir.</li>
-</ul>"""
+</ul>
+<h4>Lonceng notifikasi</h4>
+<p>Ikon lonceng di sebelah nama profil (perlu profil dulu) merangkum: saham watchlist yang masuk zona beli, sinyal baru, sektor yang baru menyala, alert harga yang kena, dan status stop loss/target posisi. Dicek ulang tiap kali halaman dibuka -- <b>bukan</b> pesan yang dikirim ke HP walau app sedang tertutup.</p>
+<h4>Alert harga per saham</h4>
+<p>Di panel Live Trade Plan, tombol <code>Set Alert</code> memasang pengingat "kasih tahu kalau harga tembus/turun ke angka X". Sama seperti lonceng, ini dicek ulang tiap halaman dibuka, bukan notifikasi yang dikirim otomatis.</p>"""
         )
 
     with tabs[1]:
@@ -51,9 +57,14 @@ def render_page_how_to():
 <ul>
 <li><b>RSI Reversal</b>: mencari divergence antara harga dan RSI (T1 ke T2). Label <code>T2 belum terkonfirmasi</code> artinya titik T2 baru terbentuk dan masih bisa berubah.</li>
 <li><b>Stoch Momentum</b>: Golden Cross (bullish) dan Dead Cross (bearish) Stochastic, dibantu PSAR dan tren. Angka bintang = kekuatan sinyal.</li>
+<li><b>MACD Momentum</b>: Golden/Dead Cross garis MACD terhadap garis Sinyal, hanya diambil kalau searah tren EMA dan dikonfirmasi volume. Pill <code>Tren baru lahir (ADX)</code> artinya ADX baru naik dari kondisi choppy -- tanda tren ini benar-benar baru terbentuk, bukan tren tua yang sudah lama jalan dan mulai capek.</li>
+<li><b>MFI Reversal</b>: mesin yang sama persis dengan RSI Reversal, cuma oscillator-nya diganti MFI (Money Flow Index) -- "RSI yang ikut menghitung volume". Bisa menangkap saham yang RSI-nya biasa saja tapi arus uangnya (volume) sudah mulai berubah duluan.</li>
 <li><b>Trade Planner</b>: membuat rencana BOW (Buy on Weakness) dan BOB (Buy on Breakout) untuk satu atau banyak saham sekaligus.</li>
-<li><b>Trend Scanner</b>: 3 mode berbasis struktur harga & volume (bukan RSI/Stochastic). <b>Breakout Surge</b> mencari saham yang baru tembus level tertinggi beberapa minggu disertai lonjakan volume. <b>Trend Reset</b> mencari saham tren naik yang sedang koreksi sehat ke area support, siap lanjut naik lagi. <b>Quiet Accumulation</b> mencari saham yang harganya menyempit (squeeze) sambil volume naik -- istilah tradernya "akumulasi diam-diam" atau "tanam bibit", tanda ada yang mengumpulkan posisi sebelum harga biasanya bergerak. Mode ini tidak berskor dan tidak menunjukkan arah beli/jual, murni daftar pantau.</li>
+<li><b>Trend Scanner</b>: 3 mode berbasis struktur harga & volume (bukan RSI/Stochastic). <b>Breakout Surge</b> mencari saham yang baru tembus level tertinggi beberapa minggu disertai lonjakan volume, dan breakout-nya masih bertahan (bukan sudah gagal balik ke bawah level). <b>Trend Reset</b> mencari saham tren naik yang sedang koreksi sehat ke area support, siap lanjut naik lagi. <b>Quiet Accumulation</b> mencari saham yang harganya menyempit (squeeze) sambil volume naik -- istilah tradernya "akumulasi diam-diam" atau "tanam bibit", tanda ada yang mengumpulkan posisi sebelum harga biasanya bergerak. Saham yang baru saja jebol support/turun tajam tidak dihitung, walau sekarang kelihatan "diam" di level barunya. Mode ini tidak berskor dan tidak menunjukkan arah beli/jual, murni daftar pantau.</li>
+<li><b>Sector Radar</b>: sektor dianggap "menyala" hari itu kalau nilai transaksinya masuk 30% teratas dibanding kebiasaan 60 hari sektor itu sendiri, mayoritas sahamnya naik, dan tidak didominasi satu saham saja. Heatmap 90 hari terakhir menunjukkan pola sektor mana yang sering menyala.</li>
 </ul>
+<h4>Leaderboard Screener</h4>
+<p>Bukan alat cari sinyal baru -- ini ringkasan transparansi: dari sinyal 20 hari bursa terakhir tiap screener, berapa persen yang harganya benar-benar bergerak searah prediksi (win rate) dan berapa rata-rata pergerakannya (edge). Berguna untuk melihat screener mana yang belakangan ini paling akurat, bukan lomba antar pengguna. Sampel bisa masih kecil di awal, hasil masa lalu bukan jaminan ke depan.</p>
 <h4>Sinyal bukan perintah</h4>
 <p>Screener hanya menyaring saham yang memenuhi kriteria teknikal pada candle terakhir. Tetap cek chart, berita, dan risiko sebelum bertindak.</p>"""
         )
@@ -107,8 +118,8 @@ def render_page_how_to():
 <p>Sebelum 16:15 WIB, candle hari ini masih bergerak. Volume hari itu belum dihitung dan kartu diberi label <code>Candle belum final</code>. Sinyal bisa berubah sampai pasar tutup.</p>
 <h4>IHSG di footer</h4>
 <p>Angka IHSG di pojok kiri bawah berasal dari Yahoo dan delayed (bukan tick real-time). Jam di sebelahnya real-time WIB.</p>
-<h4>Kenapa angka RSI bisa beda sedikit dari platform lain?</h4>
-<p>Selisih 1-2 poin dibanding chart lain (TradingView, dsb.) itu wajar, karena beda waktu pengambilan data antara server kami dan pasar. Selisih yang jauh lebih besar biasanya bukan salah hitung, tapi tanda sahamnya bergerak sangat liar (naik/turun tajam dalam sehari) — untuk saham begini, sedikit saja beda harga antar sumber data bisa membuat RSI ikut bergeser jauh. Kartu screener RSI Reversal memberi label <code>Volatilitas tinggi</code> untuk saham semacam ini.</p>"""
+<h4>Kenapa angka RSI/MFI bisa beda sedikit dari platform lain?</h4>
+<p>Selisih 1-2 poin dibanding chart lain (TradingView, dsb.) itu wajar, karena beda waktu pengambilan data antara server kami dan pasar. Selisih yang jauh lebih besar biasanya bukan salah hitung, tapi tanda sahamnya bergerak sangat liar (naik/turun tajam dalam sehari) — untuk saham begini, sedikit saja beda harga antar sumber data bisa membuat RSI/MFI ikut bergeser jauh. Kartu screener RSI Reversal dan MFI Reversal memberi label <code>Volatilitas tinggi</code> untuk saham semacam ini.</p>"""
         )
 
     with tabs[5]:
@@ -142,11 +153,16 @@ def render_page_how_to():
 <li><b>RSI</b>: angka 0 sampai 100 yang membandingkan kekuatan kenaikan dan penurunan terakhir. Di bawah 30 sering disebut jenuh jual, di atas 70 jenuh beli.</li>
 <li><b>Divergence</b>: harga membuat titik rendah baru tetapi RSI tidak (bullish), atau harga membuat titik tinggi baru tetapi RSI tidak (bearish). Tandanya tenaga arah sebelumnya melemah.</li>
 <li><b>Stochastic</b>: posisi harga tutup terhadap rentang harga beberapa hari. <b>Golden Cross</b>: garis %K memotong %D dari bawah (bullish). <b>Dead Cross</b>: sebaliknya (bearish).</li>
+<li><b>MACD</b>: selisih dua EMA (12 dan 26 hari), dibandingkan ke rata-ratanya sendiri (garis Sinyal, EMA 9 hari). Garis MACD memotong ke atas garis Sinyal = Golden Cross, ke bawah = Dead Cross.</li>
+<li><b>ADX / +DI / -DI</b>: mengukur seberapa <i>kuat</i> tren berjalan, bukan arahnya. Di bawah 20 = pasar belum jelas arahnya (choppy). +DI dan -DI menunjukkan dorongan naik vs turun; +DI di atas -DI = dorongan naik lebih dominan.</li>
+<li><b>MFI (Money Flow Index)</b>: seperti RSI, tapi ikut menghitung volume selain harga -- kadang disebut "RSI yang lebih jujur soal partisipasi pasar".</li>
 <li><b>PSAR</b>: titik di bawah atau di atas harga yang menandai arah tren dan tempat tren mungkin berbalik.</li>
 <li><b>ATR</b>: rata-rata rentang gerak harian. Dipakai untuk mengukur volatilitas dan jarak stop loss atau target.</li>
 <li><b>Vol x MA20</b>: volume hari ini dibanding rata-rata 20 hari. 2x artinya dua kali biasanya.</li>
 <li><b>Support / Resisten</b>: area harga tempat harga sering tertahan turun (support) atau naik (resisten).</li>
 <li><b>Breadth (sebaran)</b>: berapa banyak saham ikut bergerak, bukan hanya indeksnya.</li>
+<li><b>Squeeze</b>: rentang harga menyempit dibanding biasanya (dipakai Quiet Accumulation) -- tanda volatilitas sedang rendah, bukan sinyal arah.</li>
+<li><b>Win rate</b>: dari semua sinyal yang keluar, berapa persen yang harganya benar-benar bergerak searah prediksi (dipakai Leaderboard Screener).</li>
 </ul>
 <h4>Trade plan dan risiko</h4>
 <ul>

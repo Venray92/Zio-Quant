@@ -9,6 +9,7 @@ BASE_PAGES = [
     ("watchlist", "Watchlist", "Watchlist", "bookmarks"),
     ("money_management", "Money Management", "Money", "account_balance_wallet"),
     ("leaderboard", "Leaderboard Screener", "Leaderboard", "trophy"),
+    ("recap_screener", "Rekap Screener", "Rekap Screener", "calendar_month"),
     ("how_to", "Learn", "Learn", "menu_book"),
 ]
 SCREENER_KEYS = [s["key"] for s in SCREENERS]
@@ -64,6 +65,13 @@ def _leaderboard():
     render_page_leaderboard()
 
 
+def _recap_screener():
+    from views.tab_recap import render_page_recap
+
+    _mark("recap_screener")
+    render_page_recap()
+
+
 def _how_to_old_url():
     """Alamat lama /how-to diarahkan ke halaman Learn supaya bookmark lama tidak mati."""
     st.switch_page(get_pages()["how_to"])
@@ -74,6 +82,7 @@ _BASE_FUNCS = {
     "watchlist": _watchlist,
     "money_management": _money_management,
     "leaderboard": _leaderboard,
+    "recap_screener": _recap_screener,
     "how_to": _how_to,
 }
 

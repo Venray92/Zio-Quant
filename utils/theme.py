@@ -298,6 +298,33 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
     }
 }
 
+/* ---------- 5f. Lonceng notifikasi icon-only (header, sebelah chip profil): tombol bulat kecil,
+   tanpa teks/label, badge kecil nempel di pojok kalau ada yang belum dibaca. Rata kanan di
+   kolomnya sendiri biar nempel ke chip profil di sebelahnya, bukan nongkrong di tengah. ---------- */
+[class*="st-key-zheader_bell"] {
+    display: flex; justify-content: flex-end;
+}
+[class*="st-key-zbell"] {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+}
+[class*="st-key-zbell"] div[data-testid="stPopover"] button {
+    border-radius: 50% !important;
+    width: 38px !important; height: 38px !important;
+    padding: 0 !important;
+    display: flex; align-items: center; justify-content: center;
+}
+[class*="st-key-zbell"] div[data-testid="stPopover"] button p {
+    display: none;  /* label kosong tetap bisa render <p> kosong di sebagian versi -- pastikan tidak makan ruang */
+}
+[class*="st-key-zbell"] .zq-bell-badge {
+    position: absolute; top: -2px; right: -2px; z-index: 5;
+    background: #FF007F; color: #0D1117; font-size: 10px; font-weight: 800;
+    min-width: 16px; height: 16px; line-height: 16px; text-align: center;
+    border-radius: 8px; padding: 0 3px; pointer-events: none;
+}
+
 /* ---------- 6. Footer IHSG + jam ---------- */
 .block-container { padding-bottom: 4.5rem !important; }
 .zq-footer {

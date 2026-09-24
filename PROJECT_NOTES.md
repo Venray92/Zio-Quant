@@ -4,133 +4,190 @@ Dokumen serah-terima. Chat baru di Claude Project tidak melihat chat lama, jadi 
 harus ada di sini. Update file ini di akhir sesi kalau ada perubahan berarti (user yang minta, atau tanya
 di akhir sesi).
 
-Terakhir diperbarui: 23 Sep 2026 (lanjutan: Trend Scanner -- Breakout Surge & Trend Reset -- masuk rekap
-harian/mingguan Home).
+Terakhir diperbarui: 24 Sep 2026 (akhir ronde sangat besar: perbaikan Trend Scanner, 2 screener baru
+MACD Momentum & MFI Reversal, Leaderboard Screener, lonceng notifikasi icon-only, ringkasan pagi + streak,
+alert harga per saham, heatmap Sector Radar, tip harian, threshold Sector Radar disesuaikan, Learn
+diperbarui total).
 
 Repo GitHub: `Venray92/Zio-Quant` (public, cabang `main` + cabang `data` khusus data harian).
 Deploy: Streamlit Cloud, path server `/mount/src/zio-quant/`.
 
 ## 1. Apa isi app ini sekarang
 
-Halaman yang sudah ada (menu atas): **Home**, **Screeners** (dropdown: RSI Reversal, Stoch Momentum,
-Trend Scanner, Sector Radar, Trade Planner), **Watchlist**, **Money** (Money Management), **Learn**.
+Menu atas (urutan dropdown Screeners disengaja: struktur dulu, lalu 4 oscillator berselang gaya,
+Radar, Planner paling akhir): **Home**, **Screeners** ▸ Trend Scanner, RSI Reversal, Stoch Momentum,
+MACD Momentum, MFI Reversal, Sector Radar, Trade Planner, lalu **Watchlist**, **Money**,
+**Leaderboard**, **Learn**. Lonceng notifikasi (ikon bulat kecil) + chip profil di pojok kanan atas.
 
-- **RSI Reversal** — divergence RSI(10) + pola candle, bullish & bearish.
+- **RSI Reversal** — divergence RSI(10) + pola candle.
 - **Stoch Momentum** — Stochastic 10,5,5 + PSAR, Golden/Dead Cross.
-- **Trend Scanner** — 3 mode berbasis struktur harga & volume (bukan oscillator): **Breakout Surge**
-  (tembus resistance + volume meledak), **Trend Reset** (pullback sehat di tren naik), **Quiet
-  Accumulation** (harga menyempit + volume naik, watchlist tanpa skor/arah).
-- **Sector Radar** — 11 sektor IDX-IC, cari sektor mana yang lagi ramai dana dibanding kebiasaan
-  sektor itu sendiri (bukan angka mutlak antar sektor).
-- **Trade Planner** — area beli (BOW/BOB), SL, TP1/TP2, RR, grade, untuk satu atau banyak saham.
-- **Watchlist** — simpan saham per profil (nama, tanpa password), status zona beli otomatis.
-- **Money Management** — Portfolio (equity/cash/risk, posisi), Position Sizer (ukuran lot dari Trade
-  Plan), Journal (statistik trade tertutup), Settings (preset risiko).
-- **Home** — hero, blok pribadi "Untuk kamu hari ini" (kalau sudah punya profil), Arah Pasar IHSG,
-  Market Pulse, ringkasan Sector Radar, rekap harian & mingguan RSI/Stoch, jumlah Watchlist.
-- **Learn** (dulu "How To") — panduan, kamus istilah, cara baca tiap fitur, FAQ. Alamat lama `/how-to`
-  otomatis redirect ke `/learn`.
+- **MACD Momentum** — **(baru)** Golden/Dead Cross garis MACD vs garis Sinyal, filter tren EMA,
+  dikonfirmasi **ADX/+DI/-DI** (bedanya dari Stoch: yang menyaring "tren beneran lahir vs cuma noise"
+  itu ADX, bukan PSAR), volume, dan candle (closing strength).
+- **MFI Reversal** — **(baru)** MESIN SAMA PERSIS dengan RSI Reversal (lihat bagian 3), oscillator-nya
+  diganti **MFI (Money Flow Index)** — "RSI yang ikut menghitung volume". Sengaja TANPA filter candle
+  (beda dari MACD Momentum) supaya nggak "telat" — MFI+OBV itu gaya deteksi dini, bukan gaya konfirmasi.
+- **Trend Scanner** — 3 mode berbasis struktur harga & volume: Breakout Surge, Trend Reset, Quiet
+  Accumulation. **5 bug diperbaiki 24 Sep** (lihat bagian 3).
+- **Sector Radar** — 11 sektor IDX-IC, threshold disesuaikan 24 Sep (lihat bagian 3), + **heatmap 90
+  hari terakhir** (baru).
+- **Trade Planner** — area beli (BOW/BOB), SL, TP1/TP2, RR, grade.
+- **Leaderboard Screener** — **(baru)** ranking win rate & rata-rata edge tiap screener dari `engines/recap.py`,
+  murni transparansi sistem (bukan lomba antar user), halaman sendiri sebelah kiri Learn.
+- **Watchlist** — simpan saham per profil, catatan bebas per saham (Notes & target — sudah ada dari
+  awal), **alert harga** per saham (baru, lihat bagian 3).
+- **Money Management** — Portfolio, Position Sizer, Journal (termasuk grafik equity curve — sudah ada
+  dari awal), Settings.
+- **Home** — hero, **tip harian** (baru), blok pribadi "Untuk kamu hari ini" (+ **streak hari
+  beruntun**, baru), Arah Pasar, Market Pulse, ringkasan Sector Radar, rekap harian & mingguan (semua
+  4 oscillator + Trend Scanner terarah), Watchlist count.
+- **Lonceng notifikasi** — **(baru)** ikon bulat kecil di sebelah chip profil (bukan di baris menu),
+  badge angka kalau ada yang belum dibaca, isinya gabungan: watchlist masuk zona beli, sinyal baru,
+  sektor baru menyala, alert harga kena, SL/TP kena. **Bukan push notification** — dicek ulang tiap
+  kali halaman dibuka, bukan dikirim ke HP saat app tertutup (app ini nggak punya jalur push).
+- **Learn** — diperbarui total 24 Sep, semua screener/fitur baru terdokumentasi. Alamat lama `/how-to`
+  redirect ke `/learn`.
 
-## 2. Aturan kerja (wajib, tidak berubah dari awal)
-- Jangan ubah nama fungsi, nama variabel, atau format kolom hasil yang tidak berhubungan. Kolom baru
-  boleh ditambah, kolom lama tetap ada.
-- Jangan ubah desain halaman tanpa persetujuan. Perubahan kecil (teks, warna status, satu elemen
-  tambahan) boleh kalau sudah dibahas dan di-acc.
-- Bahasa: jawaban santai (Jaksel), singkat. Teks UI untuk pengguna: Bahasa Indonesia; grade tetap
-  singkat English (Strong/Good/Fair/Weak).
-- Cara kerja: diskusi dulu sampai user acc, JANGAN mulai ngoding sebelum acc. Setelah acc, kerjakan
-  langsung, tidak usah tanya ulang tiap langkah kecuali memang perlu klarifikasi teknis.
-- Sebelum mengubah file, sebutkan file apa yang akan diubah. Setelah selesai, laporkan hasil tes dan
-  batasan dengan jujur.
-- Tes: dites lawan referensi independen (loop manual / pandas / rumus dari sumber lain), bukan cuma
-  konsistensi internal. Ratusan kasus + beberapa ratus skenario acak biasanya cukup.
-- **Verifikasi visual wajib untuk halaman baru/berubah**: jalankan di browser sungguhan (Playwright),
-  desktop DAN mobile (390px). Sudah beberapa kali menemukan bug nyata yang tidak kelihatan dari AppTest
-  saja (CSS, overflow, kolom tidak stack di HP, dll).
-- Hasil akhir dikirim sebagai file lengkap (bukan potongan), CRLF untuk file Python (ikuti line ending
-  file yang sudah ada — `data/daftar_saham.txt` dan `data/sector_map.csv` sama-sama CRLF).
-- Semua bobot skor dan ambang (2.0x ATR, ATR 8%, Rp1 miliar, dst) adalah titik awal ("best effort"),
-  perlu divalidasi lewat data riil / backtest.
-- Jangan sentuh file rahasia (.env, kunci API). Repo public, jangan taruh rahasia di repo.
+## 2. Aturan kerja (wajib, tidak berubah)
+- Jangan ubah nama fungsi, nama variabel, atau format kolom hasil yang tidak berhubungan.
+- Jangan ubah desain halaman tanpa persetujuan.
+- Bahasa: jawaban santai (Jaksel), singkat. Teks UI: Bahasa Indonesia; grade tetap English singkat.
+- Diskusi dulu sampai user acc, JANGAN mulai ngoding sebelum acc. Kalau user udah bilang gas
+  ("acc semua", "lanjut langsung semua"), boleh kerjain beberapa item besar berturut-turut tanpa
+  nunggu konfirmasi ulang tiap langkah, tapi tiap ada TEMUAN BARU (bug tambahan, celah desain) yang
+  DI LUAR yang sudah di-acc, tetap laporkan dulu sebelum dikerjain (jangan diam-diam diperluas sendiri).
+- Sebelum ubah file, sebutkan file apa. Sesudah, laporkan hasil tes & batasan dengan jujur.
+- Tes: dites lawan referensi independen. Indikator BENAR-BENAR BARU (belum pernah ada di project ini,
+  misal MACD/ADX/MFI) WAJIB dites lawan library eksternal yang sudah mapan (`ta`, sudah ada di
+  requirements.txt) — bukan cuma loop manual — karena rawan beda konvensi "pemanasan"
+  (seeding/warm-up) EMA/Wilder yang butuh puluhan-ratusan candle buat konvergen; kalau tes gagal di
+  awal deret data, JANGAN buru-buru anggap bug — cek dulu apa itu cuma transient pemanasan yang
+  konvergen di titik lebih jauh, sebelum menyimpulkan salah.
+- **Reuse mesin yang sudah teruji itu SAH dan disukai** ketimbang nulis ulang dari nol (contoh: MFI
+  Reversal reuse mesin RSI Reversal via parameter `oscillator=`, bukan file 800 baris baru) — asal
+  perubahan MINIMAL, backward-compatible (default behavior lama harus 100% terjaga, dites ulang lawan
+  seluruh regression yang sudah ada buat mode lama), dan didokumentasikan jelas kenapa.
+- Verifikasi visual browser (desktop + mobile 390px) WAJIB untuk halaman baru/berubah tampilan. Sudah
+  berulang kali nemuin bug nyata yang nggak kelihatan dari AppTest doang (CSS, kolom nggak stack di HP,
+  patch server salah target sehingga fallback ke live-fetch, dll — kalau screenshot nunjukin sumber
+  data "live (Yahoo)" padahal harusnya pakai data patch, itu tanda patch salah attach ke modul, cek
+  ulang `import X as Y` mana yang dipatch).
+- **Kalau nemuin bug/celah desain BARU pas lagi ngerjain sesuatu yang lain** (di luar scope yang
+  sedang di-acc): laporkan dulu, tunggu keputusan user, JANGAN diam-diam diperluas sendiri — kecuali
+  user sudah bilang "lanjut semua" secara eksplisit untuk paket kerjaan itu.
+- Hasil dikirim sebagai file lengkap, CRLF (ikuti line ending yang sudah ada — `data/daftar_saham.txt`
+  dan `data/sector_map.csv` sama-sama CRLF).
+- Semua bobot skor & ambang adalah titik awal, belum divalidasi backtest riil.
+- Jangan sentuh file rahasia (.env, kunci API).
 - Akhir sesi: tanya apakah PROJECT_NOTES.md perlu diupdate.
 
-## 3. Peta file
+## 3. Keputusan & perbaikan penting ronde ini (24 Sep) — detail teknis
+
+**Trend Scanner — 5 bug diperbaiki** (`engines/screener_trend.py`):
+1. Breakout Surge: dulu nggak ngecek breakout MASIH VALID sekarang (bisa udah gagal balik ke bawah
+   level, tetap nongol krn masih umur H+2) — sekarang digugurkan kalau harga sudah balik di bawah level.
+2. Breakout Surge: jendela base-check disamakan dgn jendela level tembus (`BRK_BASE_LOOKBACK =
+   BRK_HIGH_LOOKBACK`, dulu 15 vs 20, nggak sinkron).
+3. Trend Reset: "puncak terakhir"/"swing low struktur" dulu salah ambil (harga TERTINGGI sepanjang
+   histori, bukan yang PALING BARU) — fungsi baru `_recent_swings()` ambil yang PALING BARU, dipakai
+   ulang jendela yang sama (120 hari) utk keduanya (dulu inkonsisten).
+4. Volume rata-rata di KETIGA mode dulu ikut menghitung hari yang lagi dicek sendiri (nggak exclude
+   hari ini, beda dari cara level harga dihitung yg pakai `.shift(1)`) — di Trend Reset ini bikin
+   kontradiksi nyata (syarat wajib "volume mengering" vs bonus "volume balik naik" saling jegal).
+   Sekarang semua exclude hari ini via `.shift(1)`.
+5. Quiet Accumulation: TIDAK ADA cek posisi terhadap support sama sekali (laporan nyata user: saham yg
+   udah jebol support masih nongol). Awalnya dicoba pakai swing low terakhir, TAPI swing ikut "pindah"
+   ke level baru begitu saham cukup lama ngumpul di sana (nggak robust) — diganti pakai cek perubahan
+   harga langsung: `SQZ_DECLINE_LOOKBACK = 40` hari (sengaja LEBIH PANJANG dari `SQZ_BB_PERIOD = 20`,
+   supaya begitu Bollinger "lupa" sama hari jebolnya, cek ini masih inget), turun >`SQZ_MAX_DECLINE_PCT
+   = 15.0`% dalam jendela itu → digugurkan.
+
+**MACD Momentum** (`engines/screener_macd.py`, `views/tab_macd.py`, BARU): MACD(12,26,9) + ADX/+DI/-DI
+Wilder — dites lawan `ta.trend.MACD` & `ta.trend.ADXIndicator` (independen). Golden Cross: filter tren
+`Close>EMA50>EMA200`, dikonfirmasi ADX "tren baru lahir" (ADX pernah <20 dlm 10 hari lalu naik, +DI>-DI),
+volume ≥1.2x MA20 (exclude hari ini), bonus candle (closing strength). Dead Cross: mirror.
+
+**MFI Reversal** (`engines/screener_mfi_reversal.py`, `views/tab_mfi.py`, BARU): wrapper tipis di atas
+`engines/screener_rsi_divergence.py` yang sekarang punya parameter `oscillator='rsi'|'mfi'` (default
+`'rsi'`, jadi RSI Reversal 100% tidak berubah — dites ulang lawan SELURUH regression RSI yg sudah ada).
+Kolom internal `df['RSI_10']` TETAP dipakai apa adanya utk dua-duanya (nama generik internal, tidak
+pernah keluar ke pengguna — label output `'{osc_label} Kiri/Kanan'` yg berubah). `calculate_mfi()` dites
+lawan `ta.volume.MFIIndicator`. **Sengaja TANPA filter candle** (beda dari MACD Momentum — MFI+OBV itu
+gaya "deteksi dini", nggak boleh nunggu konfirmasi candle atau kehilangan sifat "duluan tau"-nya; kalau
+mau nambah candle nanti, JANGAN minta candle bagus, cukup veto candle jelek/long-upper-wick).
+
+**Leaderboard Screener** (`views/tab_leaderboard.py`, `engines/recap.py::leaderboard()`, BARU): ranking
+4 screener oscillator (RSI/Stoch/MACD/MFI — BUKAN Trend Scanner/Sector Radar) berdasar win rate lalu
+avg edge tertimbang, window 20 hari bursa. Halaman sendiri, posisi navbar sebelah kiri Learn.
+
+**Sector Radar — threshold disesuaikan** (`engines/sector_radar.py`): persentil ≥80→**70**, saham naik
+≥55%→**50%**, konsentrasi ≤70%→**75%** (sengaja TIDAK banyak dilonggarkan — syarat ini yg justru kerja
+BENAR nangkep kasus 1 saham RVOL ekstrem mendominasi sektor, contoh nyata: CARE RVOL 1123x bikin
+Healthcare gagal "menyala" walau persentil 95, itu bukan bug).
+
+**Fitur "lebih hidup" (baru)**: `utils/activity_store.py` (streak + status baca notif per profil),
+`utils/alert_store.py` (alert harga per saham), `engines/notifications.py` (susun item lonceng),
+`engines/tips.py` (30 tip harian, rotasi per tanggal), heatmap sektor (`engines/sector_radar.py::
+hot_summary/add_day/clean_history/heatmap_data` + `sector_history.json` baru di job harian, LIHAT
+bagian 4). Lonceng & alert harga **BUKAN push** — dicek ulang tiap halaman dibuka.
+
+**Lonceng dipindah 2x**: awalnya di baris menu (kolom ke-6), lalu dipindah ke header sebelah chip
+profil (masih berbentuk tombol lebar bertuliskan "Notifikasi ▾"), lalu — setelah user lihat
+screenshot & bilang "jelek" — diubah final jadi **ikon bulat kecil tanpa label** (icon-only,
+`st.popover("", icon=...)`), badge angka overlay via CSS (`.zq-bell-badge`), header pakai 3 kolom
+(`col_logo, col_bell, col_chip`) dgn `col_bell` di-flex `justify-content:flex-end` dan chip
+`text-align:left` supaya bell nempel persis di kiri chip.
+
+## 4. Peta file tambahan ronde ini (di luar yang sudah ada di peta lama)
 
 | File | Peran |
 |---|---|
-| `engines/market_data.py` | Kalender bursa IDX (`IDX_HOLIDAYS`, `IDX_HOLIDAY_YEARS` — **2026 & 2027 sudah terisi**, isi 2028 akhir 2027), jam live, `candle_is_final`, pembaca file data harian, `download_daily_batch`, `find_ticker_file`/`read_ticker_file`, `calendar_alert` (pengingat isi kalender tahun depan). |
-| `engines/market_view.py` | Arah Pasar IHSG: EMA/RSI/ATR, swing high/low, support/resisten, `compute_breadth`, `market_mode` (Agresif/Netral/Defensif dari skor faktor transparan), `build_outlook` (kalimat deskriptif). Dipakai juga oleh Trend Scanner & Sector Radar untuk `atr_pct`. |
-| `engines/recap.py` | Rekap harian & mingguan untuk Home (`SCREENERS` tuple sendiri, BEDA dari `utils/screeners.py`). Sekarang **4 entri**: RSI, Stoch, **Breakout Surge, Trend Reset** (Trend Scanner). Quiet Accumulation SENGAJA tidak direkap (watchlist tanpa skor/arah, tidak bisa diukur 'searah sinyal'). Breakout Surge & Trend Reset ada di `SINGLE_DIRECTION` (selalu Bullish, baris Bearish disembunyikan di kartu Home). |
-| `engines/trade_planner.py` | Class `TradePlanner` (BOW/BOB, SL/TP, grade). `HIGH_VOL_ATR_PCT = 8.0` — definisi "saham liar" dipakai ulang di RSI, Stoch, Trend Scanner, Sector Radar (satu sumber, jangan duplikat angka). |
-| `engines/screener_rsi_divergence.py` | RSI(10) divergence. **Bug lama diperbaiki**: RSI T1/T2 dulu dicari-cari dalam window ±2 candle (bisa "nyolong" RSI dari tanggal lain), sekarang PERSIS di candle T1/T2. Cek garis RSI: bullish=lantai, bearish=plafon (SENGAJA asimetris — pullback/rally wajar di antara dua swing tidak boleh menggugurkan pola). Sudah ada tag **Volatilitas Tinggi**. |
-| `engines/screener_stoch_psar.py` | Stochastic 10,5,5 + PSAR. Sudah ada field `ATR % Now` / `Volatile Tinggi` (sama definisi dgn Trade Planner). |
-| `engines/screener_trend.py` | **Baru.** 3 mode: `detect_breakout_surge`, `detect_trend_reset`, `detect_quiet_accumulation`, runner `run_trend_screener`. Reuse Bollinger/Keltner (TTM Squeeze) utk Quiet Accumulation. Filter overlap: saham yg lolos Breakout Surge TIDAK dobel muncul di Quiet Accumulation (dua status kontradiktif). Threshold & rumus lengkap ada di docstring file ini. |
-| `engines/sector_map.py` | **Baru.** Loader `data/sector_map.csv` (962 saham → sektor + nama perusahaan + papan pencatatan, dari IDX-IC 22 Sep 2026). `get_sector`, `get_company_name`, `display_name`, `coverage_stats`. **Perlu diperbarui manual ~bulanan** kalau ada IPO/delisting (belum ada alarm otomatis, lihat bagian 7). |
-| `engines/sector_radar.py` | **Baru.** `compute_sector_radar` (per sektor: % naik, % volume tinggi, median return, persentil nilai transaksi vs 60 hari sendiri, deteksi konsentrasi 1 saham dominan, streak "menyala"), `sector_detail` (drill-down per saham + Volatilitas Tinggi). |
-| `engines/money.py` | Mesin Money Management murni (tanpa Streamlit): fraksi harga BEI, `size_position`, `portfolio_summary`, `scenarios`, `risk_checks`, transaksi (`add_position`/`sell_position`/`delete_position`), `journal_stats`. Preset risiko: Scalping/Swing/Trend Following/Investing. |
-| `utils/money_store.py` | Penyimpanan & aksi Money Management per profil (Supabase/local), pembersihan data rusak. |
-| `utils/watchlist_store.py`, `utils/storage.py`, `utils/profile.py` | Watchlist per profil (nama, tanpa password — **login belum ada**, siapa pun yg tau nama profil bisa buka datanya), storage backend (Supabase/local), kartu profil. |
-| `utils/card_html.py` | HTML kartu bersama (`build_card`, `pill`, `info_row`, dst) dipakai RSI/Stoch/Watchlist/Trend/Money. **`company_name_html` disisipkan otomatis di `build_card`** — sekali ubah, semua kartu ikut nampilin nama perusahaan. |
-| `utils/compat.py` | **Baru.** `STRETCH` — helper `width="stretch"` (Streamlit baru) dgn fallback `use_container_width` (versi lama). Pakai ini utk elemen baru, jangan `use_container_width` langsung lagi. |
-| `utils/theme.py` | CSS global satu file. Termasuk: border kontras semua kotak input (selectbox/number/text/date — dulu border sewarna background, sudah diperbaiki global), gaya Mode Trend Scanner, dan **CSS stack workspace 2 kolom** (`st-key-zworkspace_*` → `flex-direction:column` di layar <900px; dipakai RSI/Stoch/Trend/Sector Radar, wajib pakai `keyed_container("zworkspace_xxx")` di sekitar `st.columns([1.3,2.7])` biar CSS ini kena). |
-| `utils/pages.py`, `utils/screeners.py` | Satu sumber kebenaran daftar screener (`SCREENERS` list) → menu, URL, Home ikut otomatis kalau nambah entri baru di `utils/screeners.py`. |
-| `utils/ui_helpers.py` | `render_inline_trade_planner` — panel "Live Trade Plan" dipakai semua screener. Nama perusahaan sudah muncul di header. |
-| `views/tab_rsi.py`, `views/tab_stoch_psar.py` | Halaman RSI/Stoch, layout 2 kolom (`col_left`/`col_right` dibungkus `keyed_container("zworkspace_rsi"/"zworkspace_stoch")`). |
-| `views/tab_trend.py` | Halaman Trend Scanner, 2 kolom (kiri list+mode, kanan statistik+Trade Plan — dulu 1 kolom panjang, sudah diperbaiki). |
-| `views/tab_sector_radar.py` | Halaman Sector Radar, 2 kolom (kiri list sektor, kanan detail+tabel). `render_sector_summary()` dipanggil dari Home. |
-| `views/home.py`, `views/home_today.py` | Home: Arah Pasar (cache key ikut tanggal IHSG sendiri, bukan cuma meta saham utama — supaya kalau IHSG telat update, blok ini ikut nunggu, bukan nampilin data lama diam-diam), Market Pulse, `render_sector_summary`, rekap RSI/Stoch, blok pribadi. |
-| `views/watchlist.py`, `views/tab_trade_planner.py`, `views/money_management.py` | Halaman-halaman lain, semua sudah pakai `STRETCH` (bukan `use_container_width` lagi). |
-| `views/top_nav.py` | Menu atas. Dropdown "Screeners" auto-close tiap pindah halaman (Streamlit 1.64: popover `key`+`on_change="rerun"`, dipaksa `False` kalau `current_page` berubah). |
-| `data/daftar_saham.txt` | Daftar ticker (CRLF). **921 saham** (41 saham delisted/suspend dibuang 22 Sep 2026 berdasar log gagal-download nyata: ARMY, BTEL, CPRI, WSKT, dst — lihat commit/riwayat kalau perlu daftar lengkap). |
-| `data/sector_map.csv` | **Baru.** `Kode,Sektor,Nama Perusahaan,Papan Pencatatan`, 962 baris, dari 11 file Excel resmi IDX (per 22 Sep 2026). CRLF. |
-| `scripts/update_market_data.py` | Job harian: unduh semua saham (1 tahun), IHSG (`ihsg_history.csv`), jalankan RSI+Stoch+Trend Scanner (Breakout Surge & Trend Reset) dgn setting bawaan → `screener_history.json`. Kegagalan IHSG/rekap/Trend Scanner TIDAK menggagalkan job utama (file lama dibawa/carry-forward). |
-| `.github/workflows/update_market_data.yml` | **Jadwal baru (22 Sep 2026): 8 titik cron, tiap 30 menit dari 17:05–20:35 WIB** (dulu cuma 2 titik 17:30 & 20:00 — sering molor jam karena jadwal GitHub "best effort", kadang beberapa jam). Titik yang sudah dapat data hari itu otomatis "lewati" (~30 detik), jadi aman ditambah banyak. Juga: keepalive Supabase, alarm kalender libur tahun depan, alarm kalau job gagal di percobaan terakhir. |
+| `engines/screener_macd.py`, `views/tab_macd.py` | MACD Momentum (baru, lihat bagian 3). |
+| `engines/screener_mfi_reversal.py`, `views/tab_mfi.py` | MFI Reversal (baru, wrapper RSI Reversal). |
+| `views/tab_leaderboard.py` | Leaderboard Screener (baru). |
+| `utils/activity_store.py` | Streak kunjungan + `last_notif_check` per profil (storage generik). |
+| `utils/alert_store.py` | Alert harga per saham per profil (`add_alert/remove_alert/check_alerts`). |
+| `engines/notifications.py` | `build_notifications()` — gabung watchlist/portofolio/sinyal/sektor/alert jadi item lonceng, pakai keluaran `views/home_today.py::build_today()`. |
+| `engines/tips.py` | 30 tip harian, `tip_of_day(tanggal)` deterministik per hari. |
+| `engines/recap.py::leaderboard()` | Ranking win rate/avg edge, dipakai Leaderboard Screener. |
+| `engines/sector_radar.py::hot_summary/add_day/clean_history/heatmap_data` | Histori harian sektor "menyala" (90 hari), utk heatmap. |
+| `engines/market_data.py::SECTOR_HISTORY_FILE/load_sector_history` | Baca `sector_history.json` dari cabang data. |
+| `utils/market_source.py::load_sector_hist()` | Wrapper cache utk histori sektor. |
+| `scripts/update_market_data.py::run_sector_radar()` | Job harian sekarang juga hitung & simpan histori sektor (gagal tidak menggagalkan job utama). |
 
-## 4. Data pipeline — ringkas
-- File di cabang `data`: `market_data.csv.gz` + `market_data_meta.json` (1 tahun histori, ~921 saham),
-  `ihsg_history.csv` (IHSG 1 tahun), `screener_history.json` (hasil RSI/Stoch 40 hari terakhir,
-  setting bawaan).
-- **Screener manual (RSI/Stoch/Trend Scanner) TIDAK menulis balik ke file ini.** Semua screener cuma
-  BACA. Di luar jam bursa (09:00–17:40 WIB), semua screener (termasuk RSI/Stoch/Trend Scanner) jatuh
-  ke file harian juga — jadi kalau file belum ke-update hari itu, hasil scan manual JUGA ikut pakai
-  data lama, bukan cuma Home/Sector Radar.
-- Sector Radar SELALU pakai file harian (tidak pernah live-fetch), karena butuh histori 60 hari
-  banyak saham sekaligus.
-- Cara cek job jalan/gagal: tab **Actions** di GitHub → klik run terakhir → step "Download market
-  data" → cari baris "IHSG: XXX candle..." (sukses) atau "IHSG tidak diperbarui..." (gagal, file lama
-  dipertahankan).
+## 5. Yang DITUNDA sampai user minta lagi
+- **Login** — prioritas PALING AKHIR, setelah semua yang lain beres.
+- **Alarm bulanan otomatis `sector_map.csv`** — masih manual.
+- **Legal OJK** & **lisensi yfinance komersial** — nunggu Login kelar.
+- **Badge/Milestone Journal** — sempat dijelasin konsepnya (badge permanen dari jumlah trade/streak
+  journal, ditaro di tab Journal Money Management), user bilang skip dulu.
+- **Disclaimer NFA yang lebih tegas** — user acc konsepnya ("murni analisis pribadi/edukasi, bukan
+  ajakan beli/jual"), tapi minta ditunda, ditaro di Learn atau Home biar "lebih ada artinya". BELUM
+  dikerjain — disclaimer yang ADA sekarang tersebar di beberapa tempat (Home footer, Arah Pasar,
+  Sector Radar, Learn FAQ) tapi belum ada satu pernyataan tegas yang eksplisit pakai framing
+  "edukasi semata"/NFA.
+- **Domain custom (bukan `*.streamlit.app`)** — statusnya nggak jelas di Streamlit Community Cloud
+  (fitur baru yg masih digulirkan bertahap per akun), cek langsung ke dashboard pas waktunya tiba.
 
-## 5. Yang DITUNDA sampai user minta lagi (jangan dikerjakan tanpa diminta ulang)
-- **Legal/OJK** soal menampilkan area beli/SL/TP ke publik — user cek sendiri, jangan diingatkan lagi
-  sampai Login selesai.
-- **Lisensi yfinance** untuk pemakaian komersial — sama, jangan diingatkan sampai Login selesai.
-- **Login** (email+password, approve admin, halaman Admin) — prioritas SETELAH user puas dengan
-  screener & bug fix. Ini juga yang akan menyelesaikan risiko keamanan Watchlist/Money tanpa password.
-- **Alarm bulanan otomatis untuk `sector_map.csv`** (IPO/delisting baru) — belum dibikin, `sector_map.py`
-  perlu diperbarui manual sampai ini dikerjakan.
-
-## 6. Backlog aktif (belum dikerjakan, TIDAK ditunda — bisa diangkat kapan saja)
-- Bersihkan 41 kode delisted juga dari riwayat/tempat lain kalau ketemu (belum diaudit penuh di luar
-  `data/daftar_saham.txt`).
-- Volatilitas Tinggi & nama saham sudah merata di semua screener utama; kalau ada halaman baru nanti,
-  ingat pola yang sama (`HIGH_VOL_ATR_PCT` dari `engines/trade_planner.py`, nama dari
-  `engines/sector_map.py` via `build_card`).
+## 6. Backlog aktif (belum dikerjain, TIDAK ditunda)
+- **Mode bandingkan saham** (2-3 saham sisi-sisian) — user bilang "nanti".
+- **Backtest sederhana per screener** — user bilang "ngak dlu".
+- Kombo oscillator lanjutan yang sempat dibahas tapi belum diimplementasi: **OBV** (dipasangkan dgn MFI
+  utk "deteksi dini akumulasi" — MFI+OBV, beda gaya dari MACD+ADX yg sudah jadi). Belum diminta dikerjain.
+- Audit 41 kode delisted di tempat lain di luar `data/daftar_saham.txt` (belum diaudit penuh).
 
 ## 7. Cara tes yang disepakati
-A. Tes kode oleh Claude: referensi independen (loop manual/pandas/rumus lain), ratusan kasus + skenario
-acak, dilaporkan jujur (termasuk keterbatasan). B. Verifikasi visual browser (desktop + mobile 390px)
-untuk apapun yang mengubah tampilan. C. User forward-test manual di market asli (dicatat sendiri per
-minggu/bulan) — belum ada proses otomatis untuk ini.
+A. Referensi independen — loop manual ATAU library eksternal mapan (`ta`) utk indikator benar-benar
+baru. B. Verifikasi visual browser (desktop + mobile 390px) utk apapun yg ubah tampilan. C. User
+forward-test manual di market asli — belum ada proses otomatis.
 
-## 8. Info lain yang perlu diingat
-- Supabase keepalive: perlu secret `SUPABASE_URL` + `SUPABASE_KEY` (publishable key, dari dashboard
-  Supabase → Settings → API, BUKAN dari file di repo) diisi di GitHub Settings → Secrets and variables
-  → Actions. Kalau kosong, langkah keepalive di workflow cuma dilewati diam-diam (job tetap sukses).
-- Cek GitHub Actions tidak auto-disable (repo public non-aktif otomatis kalau 60 hari tanpa aktivitas):
-  buka tab Actions → workflow "Update market data" → kalau ada banner "This scheduled workflow is
-  disabled", klik Enable.
-- BEI menghapus batas harga minimum Rp50 efektif 28 Sep 2026 — filter harga minimum di beberapa
-  tempat (`MIN_PRICE = 50` di `screener_trend.py`/`sector_radar.py`, dan tempat lain) perlu ditinjau
-  ulang setelah tanggal itu.
-- Streamlit versi terpasang: 1.64.0. `use_container_width` sudah deprecated (masih jalan, warning),
-  pakai `utils.compat.STRETCH` untuk kode baru.
+## 8. Info lain
+- Supabase keepalive: `SUPABASE_URL`+`SUPABASE_KEY` (publishable key dari dashboard Supabase, BUKAN
+  dari file repo) diisi di GitHub Settings → Secrets and variables → Actions (Repository secrets,
+  BUKAN Environment secrets).
+- Cek GitHub Actions tidak auto-disable (60 hari tanpa aktivitas, repo public).
+- BEI menghapus batas harga minimum Rp50 efektif 28 Sep 2026 — filter `MIN_PRICE = 50` di beberapa
+  screener perlu ditinjau ulang setelah tanggal itu.
+- Streamlit 1.64.0 terpasang. `library ta==0.11.0` (sudah ada di requirements.txt) dipakai sbg referensi
+  tes independen utk MACD/ADX/MFI — bukan dependency runtime app, cuma dipakai pas nulis tes.
+- `use_container_width` deprecated, pakai `utils.compat.STRETCH` utk kode baru.

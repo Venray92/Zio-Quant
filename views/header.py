@@ -48,7 +48,7 @@ def render_header(current=None):
         f'padding:3px 12px; font-size:12px; color:{"#FFFFFF" if profile else "#8B949E"}; font-family:\'Share Tech Mono\', monospace;">'
         f'{svg_icon("user", 14, "#00F3FF" if profile else "#8B949E", 2)}{escape(profile) if profile else "Guest"}</span>'
     )
-    col_logo, col_bell, col_chip = st.columns([5, 1, 1.6], vertical_alignment="center")
+    col_logo, col_bell, col_chip = st.columns([7.6, 0.5, 1.5], vertical_alignment="center")
     with col_logo:
         st.markdown(
             f"""<div class="brand-container" style="display:flex; align-items:center;">
@@ -68,7 +68,7 @@ def render_header(current=None):
 
             render_bell()
     with col_chip:
-        st.markdown(f'<div style="text-align:right; padding-top:6px;">{chip}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align:left; padding-top:6px;">{chip}</div>', unsafe_allow_html=True)
 
 
 def render_header_divider():

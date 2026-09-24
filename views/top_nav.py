@@ -136,17 +136,11 @@ def render_bell():
     from utils import activity_store
 
     badge = 0 if seen_today else len(items)
-    label = f"Notifikasi ({badge})" if badge else "Notifikasi"
-    pop_kwargs = {"use_container_width": True}
-    try:
-        import inspect
-
-        if "width" in inspect.signature(st.popover).parameters:
-            pop_kwargs = {"width": "stretch"}
-    except Exception:
-        pass
+    badge_html = f'<div class="zq-bell-badge">{badge if badge < 100 else "99+"}</div>' if badge else ""
     with keyed_container(f"zbell{_active(bool(badge))}"):
-        with st.popover(label, **pop_kwargs, **icon_kwargs("notifications", "popover")):
+        if badge_html:
+            st.markdown(badge_html, unsafe_allow_html=True)
+        with st.popover("", **icon_kwargs("notifications", "popover")):
             top = st.columns([5, 1])
             with top[1]:
                 if st.button("", key="btn_refresh_bell", help="Muat ulang notifikasi", **icon_kwargs("refresh")):

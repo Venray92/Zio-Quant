@@ -91,6 +91,16 @@ def has_feature(account, feature_key):
     return bool((account.get("features") or {}).get(feature_key, False))
 
 
+def can_enter_app(account):
+    """Boleh masuk app sama sekali (bukan soal fitur MANA, itu urusan has_feature). Admin selalu
+    boleh; user biasa harus approved & belum kedaluwarsa."""
+    if not account:
+        return False
+    if account.get("is_admin"):
+        return True
+    return is_access_active(account)
+
+
 def list_all_accounts():
     """Semua akun (gabungan Supabase Auth + profil kita sendiri). BUTUH service_role key (lewat
     auth.admin_list_users()). Akun yang belum pernah bikin profil (baru signup, belum ke-provision)

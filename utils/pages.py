@@ -11,6 +11,8 @@ BASE_PAGES = [
     ("leaderboard", "Leaderboard Screener", "Leaderboard", "trophy"),
     ("recap_screener", "Rekap Screener", "Rekap Screener", "calendar_month"),
     ("how_to", "Learn", "Learn", "menu_book"),
+    ("profile", "Profil Saya", "Profil", "person"),
+    ("admin", "Admin Panel", "Admin", "shield_person"),
 ]
 SCREENER_KEYS = [s["key"] for s in SCREENERS]
 # Alamat halaman yang tidak mengikuti nama key (key "how_to" tetap dipakai internal, alamatnya jadi /learn).
@@ -77,6 +79,20 @@ def _how_to_old_url():
     st.switch_page(get_pages()["how_to"])
 
 
+def _profile():
+    from views.tab_profile import render_page_profile
+
+    _mark("profile")
+    render_page_profile()
+
+
+def _admin():
+    from views.tab_admin import render_page_admin
+
+    _mark("admin")
+    render_page_admin()
+
+
 _BASE_FUNCS = {
     "home": _home,
     "watchlist": _watchlist,
@@ -84,6 +100,8 @@ _BASE_FUNCS = {
     "leaderboard": _leaderboard,
     "recap_screener": _recap_screener,
     "how_to": _how_to,
+    "profile": _profile,
+    "admin": _admin,
 }
 
 

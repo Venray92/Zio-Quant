@@ -108,5 +108,16 @@ def get_screener(key):
 
 def render_screener(key):
     s = get_screener(key)
+    from utils.profile import current_auth_uid, current_account
+
+    if current_auth_uid():  # cuma berlaku kalau lagi pakai sistem login (biar tes/mode tamu lama tidak kepengaruh)
+        from utils import account as ACC
+
+        acc = current_account()
+        if not ACC.has_feature(acc, key):
+            import streamlit as st
+
+            st.error(f"Kamu belum punya akses ke {s['name']}. Hubungi admin untuk mengaktifkannya.")
+            return
     module = importlib.import_module(s["module"])
     getattr(module, s["func"])()

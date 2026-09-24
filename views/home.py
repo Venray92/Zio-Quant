@@ -250,6 +250,7 @@ def render_market_view(view):
     if not view:
         st.info("Analisis arah pasar tampil setelah data harian versi terbaru berjalan (butuh riwayat IHSG dan histori saham 12 bulan).")
         return
+    st.caption(f"Data per {pd.to_datetime(view['asof']).strftime('%d %b %Y')} · IHSG {MVW.id_num(view['close'])} ({MVW.id_pct(view['chg'], 2, True)})")
     m = view["mode"]
     col = MODE_COLOR[m["mode"]]
     c1, c2 = st.columns([3, 2])
@@ -423,7 +424,6 @@ def render_page_home():
     _safe(render_market_view, view)
     render_market_pulse()
     _safe(render_sector_summary, pages, width)
-    _safe(render_recaps)
 
     n_wl = _watchlist_count()
     _html(_label("bookmarks", "Watchlist"))

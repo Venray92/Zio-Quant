@@ -15,7 +15,23 @@ def fmt_id_num(value, decimals=2):
 
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_ihsg():
-    """Harga IHSG (^JKSE). Satu ambilan per menit dipakai semua pengunjung. None kalau gagal."""
+    """Harga IHSG (^JKSE). Satu ambilan per menit dipakai semua pengunjung. None kalau gagal.
+
+    Kadang panggilan LANGSUNG ke Yahoo baliknya ketinggalan (bar harian terakhirnya lebih lawas dari
+    yang seharusnya -- pernah dilaporkan user: jam 08:24 pagi tanggal 24, masih nunjuk 21 Sep, padahal
+    seharusnya paling telat 23 Sep/kemarin). File harian kita sendiri (`ihsg_history.csv`, dari job
+    tiap sore) biasanya lebih baru krn itu hasil `yf.download` batch, bukan `Ticker().history()` yang
+    dipanggil di sini. Jadi kalau hasil Yahoo langsung ternyata LEBIH LAWAS dari file kita, pakai
+    punya file -- bukan sebaliknya (biar tetap dapat harga paling baru kalau memang live-nya OK).
+    """
+    live = _fetch_ihsg_live()
+    from_file = _fetch_ihsg_from_file()
+    if live and from_file:
+        return from_file if from_file["_date_obj"] > live["_date_obj"] else live
+    return live or from_file
+
+
+def _fetch_ihsg_live():
     try:
         import yfinance as yf
 
@@ -25,6 +41,7 @@ def fetch_ihsg():
             return None
         last = float(hist["Close"].iloc[-1])
         prev = float(hist["Close"].iloc[-2]) if len(hist) > 1 else last
+        date_obj = pd.Timestamp(hist.index[-1]).tz_localize(None).normalize()
         try:
             fi = t.fast_info
             lp, pc = float(fi.last_price), float(fi.previous_close)
@@ -35,8 +52,31 @@ def fetch_ihsg():
         return {
             "last": last,
             "chg": ((last - prev) / prev * 100) if prev else 0.0,
-            "date": pd.Timestamp(hist.index[-1]).strftime("%d %b"),
+            "date": date_obj.strftime("%d %b"),
             "fetched": now_wib().strftime("%H:%M"),
+            "_date_obj": date_obj,
+        }
+    except Exception:
+        return None
+
+
+def _fetch_ihsg_from_file():
+    try:
+        from utils.market_source import load_ihsg
+
+        d = load_ihsg()
+        if d is None or len(d) == 0:
+            return None
+        d = d.sort_values("Date")
+        last = float(d["Close"].iloc[-1])
+        prev = float(d["Close"].iloc[-2]) if len(d) > 1 else last
+        date_obj = pd.Timestamp(d["Date"].iloc[-1]).normalize()
+        return {
+            "last": last,
+            "chg": ((last - prev) / prev * 100) if prev else 0.0,
+            "date": date_obj.strftime("%d %b"),
+            "fetched": now_wib().strftime("%H:%M"),
+            "_date_obj": date_obj,
         }
     except Exception:
         return None

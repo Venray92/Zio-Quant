@@ -4,8 +4,8 @@ import os
 import streamlit as st
 
 from utils.card_html import escape
-from utils.icons import svg_icon
-from utils.profile import current_profile
+from utils.compat import STRETCH
+from utils.icons import icon_kwargs, svg_icon
 from utils.pages import keyed_container
 
 
@@ -18,8 +18,33 @@ def get_logo_base64(file_path="logo.jpg"):
     return None
 
 
+def _render_account_chip(auth_uid, display_name):
+    """Chip profil yang bisa diklik (sesudah login): Profil, Admin Page (kalau admin), Keluar.
+    Pakai current_account() (bukan account.load_account() langsung) supaya jalur resolusinya SAMA
+    dengan yang dipakai gerbang app.py/gate screeners.py -- juga supaya gampang di-mock di tes."""
+    from utils.profile import current_account
+
+    acc = current_account()
+    is_admin = bool(acc and acc.get("is_admin"))
+    with keyed_container("zheader_chip"):
+        with st.popover(display_name or "Akun", **icon_kwargs("person", "popover")):
+            from utils.pages import get_pages
+
+            pages = get_pages()
+            if "profile" in pages:
+                st.page_link(pages["profile"], label="Profil", icon=":material/person:", **STRETCH)
+            if is_admin and "admin" in pages:
+                st.page_link(pages["admin"], label="Admin Page", icon=":material/shield_person:", **STRETCH)
+            if st.button("Keluar", key="btn_header_logout", **STRETCH, icon=":material/logout:"):
+                from utils.profile import clear_session
+
+                clear_session()
+                st.rerun()
+
+
 def render_header(current=None):
     """Header: logo Z-QUANT (kiri) + tagline. Menu ada di render_top_nav()."""
+    from utils.profile import current_auth_uid, current_profile
 
     # Link lama (?reset=true) tetap didukung: arahkan ke Home
     if st.query_params.get("reset") == "true":
@@ -42,6 +67,7 @@ def render_header(current=None):
             f'{svg_icon("bolt", 28, "#00F3FF", 2)}</span>'
         )
 
+    auth_uid = current_auth_uid()
     profile = current_profile()
     chip = (
         f'<span style="display:inline-flex; align-items:center; gap:6px; border:1px solid {"#00F3FF" if profile else "#30363D"}; border-radius:16px; '
@@ -68,7 +94,10 @@ def render_header(current=None):
 
             render_bell()
     with col_chip:
-        st.markdown(f'<div style="text-align:left; padding-top:6px;">{chip}</div>', unsafe_allow_html=True)
+        if auth_uid:
+            _render_account_chip(auth_uid, profile)
+        else:
+            st.markdown(f'<div style="text-align:left; padding-top:6px;">{chip}</div>', unsafe_allow_html=True)
 
 
 def render_header_divider():

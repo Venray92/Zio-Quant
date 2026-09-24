@@ -194,3 +194,7 @@ if hasattr(st, "fragment"):
 def render_footer():
     _render_bar()
     _inject_clock()
+    st.markdown(
+        '<div style="text-align:center; color:#5A6B80; font-size:11px; margin-top:20px; padding-bottom:56px;">Dibuat oleh Zio</div>',
+        unsafe_allow_html=True,
+    )

@@ -33,14 +33,38 @@ def render_page_how_to():
 <li><b>Hitung lot</b> di Money Management supaya kerugian jika kena SL tetap sesuai batas risiko kamu.</li>
 </ol>
 <p>Tips: jalankan screening setelah 17:40 WIB supaya semua candle hari itu sudah final.</p>
+
+<h4>Alur lengkap: dari scan sampai eksekusi</h4>
+<p><b>Skor BUKAN target beli.</b> Skor cuma menunjukkan seberapa bersih suatu setup sesuai definisi screener itu -- angka transaksi yang sebenarnya (area beli, stop loss, target) ada di panel <b>Live Trade Plan</b>, bukan di angka skornya. Skor 90 di satu screener juga TIDAK BISA dibandingkan ke skor 90 di screener lain -- keduanya mengukur hal yang berbeda. Untuk tahu screener mana yang belakangan ini paling akurat, lihat <b>Leaderboard Screener</b>, bukan menyusun skor semua screener jadi satu ranking.</p>
+<p>Alur yang disarankan:</p>
+<ol>
+<li>Scan (lihat "Kapan waktu paling pas" di bawah), lalu urutkan skor DALAM satu screener yang sama.</li>
+<li>Untuk kandidat teratas, buka Live Trade Plan-nya. Perhatikan juga <b>Age</b> (H+0 lebih fresh dari H+2) dan pill <b>Volatilitas Tinggi</b> kalau ada.</li>
+<li>Cek chart sendiri -- pola kelihatan bersih? Ada berita atau aksi korporasi yang bisa mengganggu?</li>
+<li>Cek <b>Arah Pasar</b> dan <b>Sector Radar</b> -- apakah kondisi market/sektornya searah sama sinyal yang ditemukan?</li>
+<li>Hitung ukuran posisi di <b>Money Management</b> supaya kerugian kalau kena stop loss tetap sesuai batas risiko.</li>
+<li>Eksekusi sesuai jam pasar (lihat tabel di bawah) -- di dalam rentang Area Beli yang direncanakan, bukan asal ikut harga sekarang.</li>
+</ol>
+<p><b>Sinyal bukan perintah</b> -- screener menyaring saham yang memenuhi kriteria teknikal, bukan jaminan hasil. Selalu putuskan sendiri.</p>
+
+<h4>Kapan waktu paling pas buat screening</h4>
+<table style="width:100%; border-collapse:collapse; font-size:13px;">
+<tr style="text-align:left; color:#8B949E;"><th style="padding:4px 8px 4px 0;">Waktu</th><th style="padding:4px 8px;">Bisa dipakai?</th><th style="padding:4px 0;">Catatan</th></tr>
+<tr><td style="padding:4px 8px 4px 0; white-space:nowrap;">09:00-16:15 WIB</td><td style="padding:4px 8px;">Bisa, hati-hati</td><td style="padding:4px 0;">Candle hari itu <b>belum final</b> -- volume masih berjalan. Screener yang mengandalkan volume (Breakout Surge, MACD, dst) bisa memberi sinyal yang masih berubah. <b>Kecuali BPJS</b> -- mode ini justru DIRANCANG utk dijalankan live di jam pembukaan (09:00-10:00 WIB), lihat halaman BSJP/BPJS.</td></tr>
+<tr><td style="padding:4px 8px 4px 0; white-space:nowrap;">16:15-17:40 WIB</td><td style="padding:4px 8px; color:#00FF66;">Paling pas utk live</td><td style="padding:4px 0;">Candle hari itu sudah dianggap final, market masih buka kalau mau eksekusi hari itu juga. Ini jendela waktu yang dirancang khusus utk mode <b>BSJP</b>.</td></tr>
+<tr><td style="padding:4px 8px 4px 0; white-space:nowrap;">Setelah 17:40 (malam)</td><td style="padding:4px 8px;">Paling stabil, buat rencana besok</td><td style="padding:4px 0;">Data paling stabil, tapi market sudah tutup -- eksekusi baru bisa besok pagi.</td></tr>
+</table>
+<p class="zq-muted" style="font-size:12px;">Sector Radar dan Rekap Screener SELALU pakai file harian (bukan data live), jadi baru ter-update setelah job harian jalan (~17:30 WIB) -- tidak bisa dipakai utk "sektor mana yang lagi ramai SEKARANG JUGA" pas market masih siang hari.</p>
+
 <h4>Di Home</h4>
 <ul>
 <li><b>Untuk kamu hari ini</b> (setelah punya profil): watchlist yang masuk zona beli, kondisi portofolio, dan sinyal untuk saham milikmu. Muncul juga "X hari beruntun" kalau kamu buka app beberapa hari berturut-turut.</li>
 <li><b>Tip hari ini</b>: satu tip singkat yang berganti tiap hari.</li>
 <li><b>Arah Pasar</b>: gambaran kondisi IHSG dan sebaran saham. Lihat tab Arah Pasar untuk cara membacanya.</li>
 <li><b>Sector Radar</b>: ringkasan sektor yang lagi "menyala" hari ini.</li>
-<li><b>Rekap harian dan mingguan</b>: ringkasan hasil tiap screener dari update data terakhir.</li>
 </ul>
+<h4>Rekap Screener & Leaderboard</h4>
+<p>Menu <b>Leaderboard</b> di navbar sekarang dropdown isi 2 halaman: <b>Leaderboard Screener</b> (ranking win rate tiap screener) dan <b>Rekap Screener</b> (rekap harian & mingguan tiap screener -- dulu ada di Home, sekarang halaman sendiri biar Home tidak kepanjangan).</p>
 <h4>Lonceng notifikasi</h4>
 <p>Ikon lonceng di sebelah nama profil (perlu profil dulu) merangkum: saham watchlist yang masuk zona beli, sinyal baru, sektor yang baru menyala, alert harga yang kena, dan status stop loss/target posisi. Dicek ulang tiap kali halaman dibuka -- <b>bukan</b> pesan yang dikirim ke HP walau app sedang tertutup.</p>
 <h4>Alert harga per saham</h4>
@@ -59,6 +83,8 @@ def render_page_how_to():
 <li><b>Stoch Momentum</b>: Golden Cross (bullish) dan Dead Cross (bearish) Stochastic, dibantu PSAR dan tren. Angka bintang = kekuatan sinyal.</li>
 <li><b>MACD Momentum</b>: Golden/Dead Cross garis MACD terhadap garis Sinyal, hanya diambil kalau searah tren EMA dan dikonfirmasi volume. Pill <code>Tren baru lahir (ADX)</code> artinya ADX baru naik dari kondisi choppy -- tanda tren ini benar-benar baru terbentuk, bukan tren tua yang sudah lama jalan dan mulai capek.</li>
 <li><b>MFI Reversal</b>: mesin yang sama persis dengan RSI Reversal, cuma oscillator-nya diganti MFI (Money Flow Index) -- "RSI yang ikut menghitung volume". Bisa menangkap saham yang RSI-nya biasa saja tapi arus uangnya (volume) sudah mulai berubah duluan.</li>
+<li><b>BSJP (Beli Sore Jual Pagi)</b>: mencari saham yang nutup kuat menjelang closing (closing strength tinggi), naiknya dalam rentang sehat relatif ke ATR saham itu sendiri (bukan angka tetap -- naik dikit cukup buat saham tenang, saham liar butuh naik lebih banyak), dikonfirmasi ADX (bukan tren yang sudah terlalu tua/kuat) dan volume. Dijalankan menjelang closing (16:00-17:40 WIB).</li>
+<li><b>BPJS (Beli Pagi Jual Sore)</b>: mencari saham yang gap pembukaannya bertahan (belum "diisi balik"), dibandingkan ke gap IHSG hari itu (biar bukan cuma ikut market). <b>Lebih kasar</b> dari BSJP karena app ini pakai data candle harian, bukan data intraday -- hanya benar-benar berarti kalau dijalankan LIVE jam 09:00-10:00 WIB.</li>
 <li><b>Trade Planner</b>: membuat rencana BOW (Buy on Weakness) dan BOB (Buy on Breakout) untuk satu atau banyak saham sekaligus.</li>
 <li><b>Trend Scanner</b>: 3 mode berbasis struktur harga & volume (bukan RSI/Stochastic). <b>Breakout Surge</b> mencari saham yang baru tembus level tertinggi beberapa minggu disertai lonjakan volume, dan breakout-nya masih bertahan (bukan sudah gagal balik ke bawah level). <b>Trend Reset</b> mencari saham tren naik yang sedang koreksi sehat ke area support, siap lanjut naik lagi. <b>Quiet Accumulation</b> mencari saham yang harganya menyempit (squeeze) sambil volume naik -- istilah tradernya "akumulasi diam-diam" atau "tanam bibit", tanda ada yang mengumpulkan posisi sebelum harga biasanya bergerak. Saham yang baru saja jebol support/turun tajam tidak dihitung, walau sekarang kelihatan "diam" di level barunya. Mode ini tidak berskor dan tidak menunjukkan arah beli/jual, murni daftar pantau.</li>
 <li><b>Sector Radar</b>: sektor dianggap "menyala" hari itu kalau nilai transaksinya masuk 30% teratas dibanding kebiasaan 60 hari sektor itu sendiri, mayoritas sahamnya naik, dan tidak didominasi satu saham saja. Heatmap 90 hari terakhir menunjukkan pola sektor mana yang sering menyala.</li>

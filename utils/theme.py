@@ -153,6 +153,23 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
 [class*="st-key-zrk_"][class*="__dim"] { opacity: 0.4; transition: opacity 0.15s ease; }
 [class*="st-key-zrk_"][class*="__dim"]:hover { opacity: 0.65; }
 
+/* ---------- 4c. Ranking Leaderboard: tombol "Buka" -- kotak kecil setinggi baris (opsi B dari mock,
+   di-acc user 25 Sep). Streamlit di sesi ini TIDAK dukung vertical_alignment="stretch" pada
+   st.columns() (cuma top/center/bottom, lihat error StreamlitValueError kalau dipaksa) -- jadi
+   "setinggi baris" dipastikan lewat CSS FIXED HEIGHT yg SAMA di kartu row (.zq-lb-row, dari
+   views/tab_ranking.py::_row_html) dan tombolnya di sini, bukan lewat stretch flex kolom. Kalau
+   ngubah padding/font kartu row nanti, angka 64px di bawah ini WAJIB disesuaikan ulang juga. */
+.zq-lb-row { min-height: 64px; box-sizing: border-box; }
+[class*="st-key-zrk_open_"] .stButton button {
+    width: 100% !important; max-width: 72px !important; height: 64px !important;
+    padding: 6px 4px !important; font-size: 11px !important; letter-spacing: 0.5px;
+    display: flex !important; flex-direction: column !important; align-items: center !important;
+    justify-content: center !important; gap: 3px !important; margin-left: auto !important;
+}
+[class*="st-key-zrk_open_"] .stButton button::before {
+    content: "\2192"; font-size: 16px; line-height: 1;
+}
+
 /* ---------- 5. Komponen Home / How To ---------- */
 .zq-label {
     display: flex; align-items: center; gap: 6px;

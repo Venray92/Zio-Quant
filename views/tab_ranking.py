@@ -18,6 +18,7 @@ from utils.pages import keyed_container
 from utils.ui_helpers import render_inline_trade_planner
 
 GREEN, PINK, AMBER = "#00FF66", "#FF007F", "#E3B341"
+_DIM = "__dim"  # class marker, dipetakan ke CSS opacity di utils/theme.py (konvensi sama spt "__active" di top_nav.py)
 _WINDOW_LABELS = ["Harian", "Mingguan", "Bulanan", "Tahunan"]
 _WINDOW_KEY = {"Harian": "harian", "Mingguan": "mingguan", "Bulanan": "bulanan", "Tahunan": "tahunan"}
 
@@ -53,24 +54,22 @@ def _render_filters(min_d, max_d):
     # betul-betul dikunci (disabled), user tidak akan bisa lagi memilihnya sama sekali (klik pun tidak
     # bereaksi), jadi begitu salah satu mode kepilih dulu, mode lain jadi terkunci PERMANEN kecuali klik
     # Clear. Supaya user selalu bisa pindah mode kapan saja (sesuai maksud "klik salah satu, yg lain
-    # otomatis ganti"), dua kontrol ini SELALU bisa diklik -- yg "tidak aktif" cuma ditandai teks caption
-    # di bawahnya (redup), bukan dikunci sungguhan.
-    date_val = st.date_input(
-        "Rentang tanggal data (klik tanggal awal, lalu tanggal akhir)",
-        value=st.session_state["rk_date_range"] or (),
-        min_value=min_d, max_value=max_d,
-        key="rk_date_input",
-    )
-    if mode == "window":
-        st.caption("⬜ Mode ini tidak aktif -- klik tanggal di atas utk pindah ke rentang manual.")
-    win_val = st.segmented_control(
-        "Atau pilih jendela waktu (shortcut)",
-        options=_WINDOW_LABELS,
-        default=st.session_state["rk_window_sel"] if mode == "window" else None,
-        key="rk_window_input",
-    )
-    if mode == "range":
-        st.caption("⬜ Mode ini tidak aktif -- klik salah satu shortcut di atas utk pindah ke jendela waktu.")
+    # otomatis ganti"), dua kontrol ini SELALU bisa diklik -- yg "tidak aktif" cuma didim visual lewat
+    # CSS opacity (keyed_container + class "__dim", CSS-nya di utils/theme.py), bukan dikunci sungguhan.
+    with keyed_container(f"zrk_daterange{_DIM if mode == 'window' else ''}"):
+        date_val = st.date_input(
+            "Rentang tanggal data (klik tanggal awal, lalu tanggal akhir)",
+            value=st.session_state["rk_date_range"] or (),
+            min_value=min_d, max_value=max_d,
+            key="rk_date_input",
+        )
+    with keyed_container(f"zrk_windowsel{_DIM if mode == 'range' else ''}"):
+        win_val = st.segmented_control(
+            "Atau pilih jendela waktu (shortcut)",
+            options=_WINDOW_LABELS,
+            default=st.session_state["rk_window_sel"] if mode == "window" else None,
+            key="rk_window_input",
+        )
 
     cur_range = tuple(date_val) if date_val and len(date_val) == 2 else None
 

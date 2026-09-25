@@ -35,7 +35,7 @@ def render_page_how_to():
 <p>Tips: jalankan screening setelah 17:40 WIB supaya semua candle hari itu sudah final.</p>
 
 <h4>Alur lengkap: dari scan sampai eksekusi</h4>
-<p><b>Skor BUKAN target beli.</b> Skor cuma menunjukkan seberapa bersih suatu setup sesuai definisi screener itu -- angka transaksi yang sebenarnya (area beli, stop loss, target) ada di panel <b>Live Trade Plan</b>, bukan di angka skornya. Skor 90 di satu screener juga TIDAK BISA dibandingkan ke skor 90 di screener lain -- keduanya mengukur hal yang berbeda. Untuk tahu screener mana yang belakangan ini paling akurat, lihat <b>Leaderboard Screener</b>, bukan menyusun skor semua screener jadi satu ranking.</p>
+<p><b>Skor BUKAN target beli.</b> Skor cuma menunjukkan seberapa bersih suatu setup sesuai definisi screener itu -- angka transaksi yang sebenarnya (area beli, stop loss, target) ada di panel <b>Live Trade Plan</b>, bukan di angka skornya. Skor 90 di satu screener juga TIDAK BISA dibandingkan ke skor 90 di screener lain -- keduanya mengukur hal yang berbeda. Untuk tahu screener mana yang belakangan ini paling akurat, lihat <b>Ranking Leaderboard</b>, bukan menyusun skor semua screener jadi satu ranking.</p>
 <p>Alur yang disarankan:</p>
 <ol>
 <li>Scan (lihat "Kapan waktu paling pas" di bawah), lalu urutkan skor DALAM satu screener yang sama.</li>
@@ -54,7 +54,7 @@ def render_page_how_to():
 <tr><td style="padding:4px 8px 4px 0; white-space:nowrap;">16:15-17:40 WIB</td><td style="padding:4px 8px; color:#00FF66;">Paling pas utk live</td><td style="padding:4px 0;">Candle hari itu sudah dianggap final, market masih buka kalau mau eksekusi hari itu juga. Ini jendela waktu yang dirancang khusus utk mode <b>BSJP</b>.</td></tr>
 <tr><td style="padding:4px 8px 4px 0; white-space:nowrap;">Setelah 17:40 (malam)</td><td style="padding:4px 8px;">Paling stabil, buat rencana besok</td><td style="padding:4px 0;">Data paling stabil, tapi market sudah tutup -- eksekusi baru bisa besok pagi.</td></tr>
 </table>
-<p class="zq-muted" style="font-size:12px;">Sector Radar dan Rekap Screener SELALU pakai file harian (bukan data live), jadi baru ter-update setelah job harian jalan (~17:30 WIB) -- tidak bisa dipakai utk "sektor mana yang lagi ramai SEKARANG JUGA" pas market masih siang hari.</p>
+<p class="zq-muted" style="font-size:12px;">Sector Radar dan Ranking Leaderboard SELALU pakai file harian (bukan data live), jadi baru ter-update setelah job harian jalan -- tidak bisa dipakai utk "sektor mana yang lagi ramai SEKARANG JUGA" pas market masih siang hari.</p>
 
 <h4>Di Home</h4>
 <ul>
@@ -63,8 +63,8 @@ def render_page_how_to():
 <li><b>Arah Pasar</b>: gambaran kondisi IHSG dan sebaran saham. Lihat tab Arah Pasar untuk cara membacanya.</li>
 <li><b>Sector Radar</b>: ringkasan sektor yang lagi "menyala" hari ini.</li>
 </ul>
-<h4>Rekap Screener & Leaderboard</h4>
-<p>Menu <b>Leaderboard</b> di navbar sekarang dropdown isi 2 halaman: <b>Leaderboard Screener</b> (ranking win rate tiap screener) dan <b>Rekap Screener</b> (rekap harian & mingguan tiap screener -- dulu ada di Home, sekarang halaman sendiri biar Home tidak kepanjangan).</p>
+<h4>Ranking Leaderboard</h4>
+<p>Menu <b>Ranking Leaderboard</b> di navbar (dulu 2 halaman terpisah "Leaderboard Screener" + "Rekap Screener", sekarang digabung jadi 1). Isinya 2 bagian: <b>Rank 1</b> = Top saham dengan kenaikan % terbesar dari semua screener (satu saham cuma muncul sekali, dari sinyal PALING AWAL di jendela waktu yang dipilih), bisa disaring pakai jendela waktu (Harian/Mingguan/Bulanan/Tahunan) atau rentang tanggal manual, minimum kenaikan %, dan filter "hanya watchlist saya". <b>Rank 2</b> = screener mana yang paling banyak nyumbang saham ke Top itu, plus win rate & "streak aktif" (berapa hari bursa terakhir berturut-turut screener itu masih keluar sinyal).</p>
 <h4>Lonceng notifikasi</h4>
 <p>Ikon lonceng di sebelah nama profil (perlu profil dulu) merangkum: saham watchlist yang masuk zona beli, sinyal baru, sektor yang baru menyala, alert harga yang kena, dan status stop loss/target posisi. Dicek ulang tiap kali halaman dibuka -- <b>bukan</b> pesan yang dikirim ke HP walau app sedang tertutup.</p>
 <h4>Alert harga per saham</h4>
@@ -89,8 +89,8 @@ def render_page_how_to():
 <li><b>Trend Scanner</b>: 3 mode berbasis struktur harga & volume (bukan RSI/Stochastic). <b>Breakout Surge</b> mencari saham yang baru tembus level tertinggi beberapa minggu disertai lonjakan volume, dan breakout-nya masih bertahan (bukan sudah gagal balik ke bawah level). <b>Trend Reset</b> mencari saham tren naik yang sedang koreksi sehat ke area support, siap lanjut naik lagi. <b>Quiet Accumulation</b> mencari saham yang harganya menyempit (squeeze) sambil volume naik -- istilah tradernya "akumulasi diam-diam" atau "tanam bibit", tanda ada yang mengumpulkan posisi sebelum harga biasanya bergerak. Saham yang baru saja jebol support/turun tajam tidak dihitung, walau sekarang kelihatan "diam" di level barunya. Mode ini tidak berskor dan tidak menunjukkan arah beli/jual, murni daftar pantau.</li>
 <li><b>Sector Radar</b>: sektor dianggap "menyala" hari itu kalau nilai transaksinya masuk 30% teratas dibanding kebiasaan 60 hari sektor itu sendiri, mayoritas sahamnya naik, dan tidak didominasi satu saham saja. Heatmap 90 hari terakhir menunjukkan pola sektor mana yang sering menyala.</li>
 </ul>
-<h4>Leaderboard Screener</h4>
-<p>Bukan alat cari sinyal baru -- ini ringkasan transparansi: dari sinyal 20 hari bursa terakhir tiap screener, berapa persen yang harganya benar-benar bergerak searah prediksi (win rate) dan berapa rata-rata pergerakannya (edge). Berguna untuk melihat screener mana yang belakangan ini paling akurat, bukan lomba antar pengguna. Sampel bisa masih kecil di awal, hasil masa lalu bukan jaminan ke depan.</p>
+<h4>Ranking Leaderboard</h4>
+<p>Bukan alat cari sinyal baru -- ini ringkasan Top saham & transparansi sistem. <b>Rank 1</b>: Top 30 saham dengan kenaikan % terbesar dari semua screener (dedup per saham, diukur dari sinyal Bullish PERTAMA di jendela/rentang tanggal yang dipilih, minimum kenaikan bisa diubah, default 10%). <b>Rank 2</b>: screener mana yang paling banyak nyumbang saham ke Top 30 itu, plus win rate (persen sinyal yang harganya benar-benar bergerak searah prediksi) dan streak aktif (bukan lomba antar pengguna, murni transparansi). Sampel bisa masih kecil di awal (histori direkam mulai 25 Sep 2026), hasil masa lalu bukan jaminan ke depan.</p>
 <h4>Sinyal bukan perintah</h4>
 <p>Screener hanya menyaring saham yang memenuhi kriteria teknikal pada candle terakhir. Tetap cek chart, berita, dan risiko sebelum bertindak.</p>"""
         )
@@ -188,7 +188,7 @@ def render_page_how_to():
 <li><b>Support / Resisten</b>: area harga tempat harga sering tertahan turun (support) atau naik (resisten).</li>
 <li><b>Breadth (sebaran)</b>: berapa banyak saham ikut bergerak, bukan hanya indeksnya.</li>
 <li><b>Squeeze</b>: rentang harga menyempit dibanding biasanya (dipakai Quiet Accumulation) -- tanda volatilitas sedang rendah, bukan sinyal arah.</li>
-<li><b>Win rate</b>: dari semua sinyal yang keluar, berapa persen yang harganya benar-benar bergerak searah prediksi (dipakai Leaderboard Screener).</li>
+<li><b>Win rate</b>: dari semua sinyal yang keluar, berapa persen yang harganya benar-benar bergerak searah prediksi (dipakai Ranking Leaderboard).</li>
 </ul>
 <h4>Trade plan dan risiko</h4>
 <ul>
@@ -205,7 +205,7 @@ def render_page_how_to():
             """<h4>FAQ</h4>
 <p><b>Hasil screening kosong?</b> Bisa memang tidak ada saham yang lolos kriteria hari itu. Coba mode atau screener lain.</p>
 <p><b>Kenapa hasil siang dan malam beda?</b> Siang hari candle belum final. Hasil setelah 17:40 WIB lebih stabil.</p>
-<p><b>Kenapa rekap di Home beda dengan hasil di halaman screener?</b> Rekap memakai pengaturan bawaan dan data update terakhir. Halaman screener bisa memakai data live dan pilihanmu sendiri.</p>
+<p><b>Kenapa Ranking Leaderboard beda dengan hasil di halaman screener?</b> Ranking Leaderboard memakai pengaturan bawaan tiap screener dan data update terakhir (file harian). Halaman screener bisa memakai data live dan pilihanmu sendiri.</p>
 <p><b>Watchlist hilang?</b> Data tersimpan per profil. Pakai nama profil yang sama di perangkat lain, dan cek <code>Storage status</code> di kartu profil. Kalau statusnya sementara, data bisa hilang saat app restart, jadi export CSV dulu dari halaman Watchlist.</p>
 <h4>Disclaimer</h4>
 <p>Z-QUANT adalah alat bantu analisa. Semua angka hasil perhitungan sistem dan bisa salah. Bukan rekomendasi beli atau jual. Keputusan dan risiko sepenuhnya milik pengguna (DYOR, DWYOR).</p>"""

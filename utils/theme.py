@@ -154,20 +154,39 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
 [class*="st-key-zrk_"][class*="__dim"]:hover { opacity: 0.65; }
 
 /* ---------- 4c. Ranking Leaderboard: tombol "Buka" -- kotak kecil setinggi baris (opsi B dari mock,
-   di-acc user 25 Sep). Streamlit di sesi ini TIDAK dukung vertical_alignment="stretch" pada
-   st.columns() (cuma top/center/bottom, lihat error StreamlitValueError kalau dipaksa) -- jadi
-   "setinggi baris" dipastikan lewat CSS FIXED HEIGHT yg SAMA di kartu row (.zq-lb-row, dari
-   views/tab_ranking.py::_row_html) dan tombolnya di sini, bukan lewat stretch flex kolom. Kalau
-   ngubah padding/font kartu row nanti, angka 64px di bawah ini WAJIB disesuaikan ulang juga. */
-.zq-lb-row { min-height: 64px; box-sizing: border-box; }
-[class*="st-key-zrk_open_"] .stButton button {
-    width: 100% !important; max-width: 72px !important; height: 64px !important;
-    padding: 6px 4px !important; font-size: 11px !important; letter-spacing: 0.5px;
-    display: flex !important; flex-direction: column !important; align-items: center !important;
-    justify-content: center !important; gap: 3px !important; margin-left: auto !important;
+   di-acc user 25 Sep; direvisi krn v1 salah -- ikon unicode "\2192" gak ada di font Share Tech Mono
+   (kluar kotak "tofu"), dan margin-left:auto dorong tombol ke ujung kanan kolom yg lebar (jadi ada
+   jarak jauh dari kartu). v2 ini GAK nebak tinggi pakai angka px manual sama sekali -- kartu & tombol
+   sengaja dibikin flex-item SEJAJAR di satu st.container yg sama (lihat keyed_container(f"zrk_row_...")
+   di views/tab_ranking.py), jadi align-items:stretch (default flex, di-set eksplisit di bawah) yg
+   nyamain tinggi keduanya PERSIS, bukan CSS ini nebak angkanya. */
+[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] {
+    display: flex !important; flex-direction: row !important; align-items: stretch !important; gap: 10px !important;
 }
+[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child {
+    flex: 1 1 auto !important; min-width: 0 !important;
+}
+[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:last-child {
+    flex: 0 0 auto !important;
+}
+/* .zq-card punya "height:100%" bawaan (bagian 173) -- di parent flex-stretch ini itu jalan sebagaimana
+   mestinya (100% dari tinggi flex-item yg udah di-stretch), jadi kartu otomatis ngisi penuh. */
+[class*="st-key-zrk_open_"],
+[class*="st-key-zrk_open_"] > div[data-testid="stVerticalBlock"],
+[class*="st-key-zrk_open_"] div[data-testid="element-container"],
+[class*="st-key-zrk_open_"] .stButton {
+    height: 100% !important;
+}
+[class*="st-key-zrk_open_"] .stButton button {
+    box-sizing: border-box !important; width: 76px !important; height: 100% !important; min-height: 44px !important;
+    padding: 4px 4px !important; font-size: 11px !important; letter-spacing: 0.5px;
+    display: flex !important; flex-direction: column !important; align-items: center !important;
+    justify-content: center !important; gap: 3px !important;
+}
+/* Panah CSS murni (border trick), BUKAN karakter unicode -- gak gantung ke ketersediaan glyph di font. */
 [class*="st-key-zrk_open_"] .stButton button::before {
-    content: "\2192"; font-size: 16px; line-height: 1;
+    content: ""; width: 0; height: 0;
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid currentColor;
 }
 
 /* ---------- 5. Komponen Home / How To ---------- */

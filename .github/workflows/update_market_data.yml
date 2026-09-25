@@ -14,6 +14,20 @@ on:
     - cron: "35 12 * * 1-5"
     - cron: "5 13 * * 1-5"
     - cron: "35 13 * * 1-5"
+    # Jaring pengaman TENGAH MALAM 01:00-06:00 WIB, 6x coba (tiap jam) -- supaya kalau seluruh jadwal
+    # sore di atas gagal semua (misal Yahoo lagi bermasalah pas jam bursa tutup), masih ada 6 kesempatan
+    # lagi sebelum orang buka dashboard paginya. Ini yg bikin "data leaderboard ga keupdate berhari-hari
+    # tanpa ketahuan" tidak akan terulang -- lihat juga langkah "Open issue on failure" di bawah.
+    # WIB = UTC+7, jadi jam 01:00-06:00 WIB jatuh di jam 18:00-23:00 UTC HARI SEBELUMNYA. Supaya jendela
+    # ini jalan Senin-Jumat WIB (skip Sabtu & Minggu WIB) SESUAI PERMINTAAN, hari-di-cron (UTC) dipilih
+    # Minggu-Kamis (0-4) -- karena Minggu malam UTC = Senin pagi WIB, dst. Menit :15 (bukan :00) supaya
+    # tidak ikut antrian jam bulat yang paling padat, sama seperti menit :05/:35 di atas.
+    - cron: "15 18 * * 0-4"  # 01:15 WIB
+    - cron: "15 19 * * 0-4"  # 02:15 WIB
+    - cron: "15 20 * * 0-4"  # 03:15 WIB
+    - cron: "15 21 * * 0-4"  # 04:15 WIB
+    - cron: "15 22 * * 0-4"  # 05:15 WIB
+    - cron: "15 23 * * 0-4"  # 06:15 WIB (percobaan terakhir jendela ini)
   workflow_dispatch:
     inputs:
       force:
@@ -119,9 +133,11 @@ jobs:
             gh issue close "$num" --repo "${{ github.repository }}" --comment "Kalender sudah terisi. Ditutup otomatis."
           done
 
-      # Jadwal terakhir (20:35 WIB) atau jalan manual gagal = data hari itu belum terbit. Buka issue supaya kamu tahu.
+      # Jadwal terakhir sore (20:35 WIB) ATAU terakhir jendela tengah malam (06:15 WIB) atau jalan manual
+      # gagal = seluruh percobaan hari itu sudah habis, data belum terbit. Buka issue supaya kamu tahu
+      # SAAT itu juga -- bukan baru sadar beberapa hari kemudian seperti sebelumnya.
       - name: Open issue on failure
-        if: failure() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '35 13 * * 1-5')
+        if: failure() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '35 13 * * 1-5' || github.event.schedule == '15 23 * * 0-4')
         run: |
           title="Update data harian gagal ($(date -u +%F))"
           num=$(gh issue list --repo "${{ github.repository }}" --state open --search "\"${title}\" in:title" --json number --jq '.[0].number')

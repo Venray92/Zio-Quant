@@ -5,10 +5,16 @@ harus ada di sini. Update file ini di akhir sesi kalau ada perubahan berarti (us
 di akhir sesi).
 
 Terakhir diperbarui: 25 Sep 2026 (ronde RANKING LEADERBOARD — MENGGANTIKAN Leaderboard Screener +
-Rekap Screener jadi satu halaman baru. Lihat bagian 3c & 4c — **STATUS UPLOAD KE GITHUB BELUM
-PASTI**, sama seperti ronde Login sebelumnya: 8 file dikirim lewat file delivery, user upload manual.
-CEK LANGSUNG KE REPO sebelum asumsi apa-apa, termasuk apakah `views/tab_leaderboard.py` &
-`views/tab_recap.py` SUDAH DIHAPUS dari repo (mereka digantikan, bukan cuma ditambah).
+Rekap Screener jadi satu halaman baru, SUDAH DIKONFIRMASI JALAN DI PRODUKSI (rsi/stoch_psar/macd/
+mfi/overnight semua kerekam sukses, screenshot dicek user). Ronde ini juga: `views/how_to.py` (Learn)
+diperbarui total ngikutin nama halaman baru (sebelumnya masih nyebut "Leaderboard Screener"/"Rekap
+Screener" yg udah dihapus), toggle filter jendela-waktu/rentang-tanggal dibenerin jadi visual dim
+beneran (CSS, bukan cuma caption teks), dan beberapa item backlog di-skip permanen atas keputusan user
+(lihat bagian 6). Lihat bagian 3c & 4c utk detail RANKING LEADERBOARD — **STATUS UPLOAD KE GITHUB
+FILE-FILE TERBARU (Learn + dim-toggle) BELUM PASTI**, sama seperti ronde-ronde sebelumnya: dikirim
+lewat file delivery, user upload manual. CEK LANGSUNG KE REPO sebelum asumsi apa-apa, termasuk apakah
+`views/tab_leaderboard.py` & `views/tab_recap.py` SUDAH DIHAPUS dari repo (mereka digantikan, bukan
+cuma ditambah).
 
 Ronde sebelum ini (25 Sep, LOGIN SELESAI, masih berlaku): Supabase Auth email+password, approval
 manual admin, gerbang WAJIB LOGIN di app.py, chip profil jadi dropdown, Admin Panel, halaman Profil.
@@ -257,9 +263,13 @@ gelap/dikunci pakai `disabled=True` Streamlit. Itu TIDAK dipakai di implementasi
 `disabled=True` itu BENAR-BENAR terkunci, gak bisa diklik sama sekali; karena mode "Jendela waktu"
 aktif SEJAK AWAL (default "Mingguan"), kalau date-input dikunci pakai `disabled=True` dari awal, user
 GAK AKAN PERNAH bisa pindah ke mode rentang tanggal manual selamanya (deadlock). Solusinya: dua kontrol
-itu SELALU bisa diklik, yg "tidak aktif" cuma dikasih caption teks kecil di bawahnya (bukan visual
-gelap/CSS opacity — itu butuh kerja custom lebih jauh, belum dikerjain). **Kalau user lihat & mau
-visual gelap yg beneran (bukan cuma caption teks), itu kerjaan tambahan, bilang aja.**
+itu SELALU bisa diklik. **Update 25 Sep (sesi lanjutan)**: awalnya yg "tidak aktif" cuma dikasih
+caption teks (bukan visual gelap), user minta dibenerin — sekarang pakai CSS opacity beneran (konvensi
+sama spt `__active` di `top_nav.py`): widget dibungkus `keyed_container(f"zrk_daterange{_DIM}")` /
+`keyed_container(f"zrk_windowsel{_DIM}")` (`_DIM = "__dim"`), CSS-nya di `utils/theme.py` bagian "4b.
+Ranking Leaderboard" (`[class*="st-key-zrk_"][class*="__dim"] { opacity: 0.4; }`). Widget TETAP bisa
+diklik kapan saja (cuma diredupkan visual, bukan dikunci), caption teksnya dihapus krn udah keliatan
+dari visualnya.
 
 **KEEP_DAYS dinaikkan 40→260** (`engines/recap.py`) supaya jendela "Tahunan" (240 hari bursa) punya
 tempat nyimpen data yg cukup — **TAPI histori yg SUDAH KESIMPEN di server sekarang cuma ~40 hari
@@ -332,7 +342,7 @@ beneran nyala sesuai jam yg dimaksud.
 | `utils/alert_store.py` | Alert harga per saham per profil (`add_alert/remove_alert/check_alerts`). |
 | `engines/notifications.py` | `build_notifications()` — gabung watchlist/portofolio/sinyal/sektor/alert jadi item lonceng, pakai keluaran `views/home_today.py::build_today()`. |
 | `engines/tips.py` | 30 tip harian, `tip_of_day(tanggal)` deterministik per hari. |
-| `engines/recap.py::leaderboard()` | Ranking win rate/avg edge, dipakai Leaderboard Screener. |
+| `engines/recap.py::leaderboard()` | Ranking win rate/avg edge, dipakai Ranking Leaderboard (25 Sep, lihat 3c). |
 | `engines/sector_radar.py::hot_summary/add_day/clean_history/heatmap_data` | Histori harian sektor "menyala" (90 hari), utk heatmap. |
 | `engines/market_data.py::SECTOR_HISTORY_FILE/load_sector_history` | Baca `sector_history.json` dari cabang data. |
 | `utils/market_source.py::load_sector_hist()` | Wrapper cache utk histori sektor. |
@@ -369,27 +379,26 @@ beneran nyala sesuai jam yg dimaksud.
 | `views/top_nav.py` | DIUBAH: dropdown Leaderboard (2 sub-halaman) diganti 1 link langsung. | Cek langsung ke repo |
 | `views/home.py` | DIUBAH: hapus `render_recaps()` & pendukungnya (dead code, lihat 3c). | Cek langsung ke repo |
 | `.github/workflows/update_market_data.yml` | DIUBAH: +6 cron 01:15-06:15 WIB Senin-Jumat (lihat 3d). | Cek langsung ke repo |
+| `views/how_to.py` | DIUBAH (ronde lanjutan): Learn diperbarui total ngikutin Ranking Leaderboard (5 bagian yg tadinya nyebut nama halaman lama). | Cek langsung ke repo |
+| `utils/theme.py` | DIUBAH (ronde lanjutan): +CSS dim beneran (opacity) utk toggle filter tanggal/jendela waktu, bagian "4b. Ranking Leaderboard". | Cek langsung ke repo |
+| `views/tab_ranking.py` | DIUBAH LAGI (ronde lanjutan): filter pakai `keyed_container`+class `__dim` (bukan caption teks lagi). | Cek langsung ke repo |
 | `views/tab_leaderboard.py`, `views/tab_recap.py` | **HARUS DIHAPUS** dari repo (digantikan, sudah dihapus di sesi ini). | **Cek SUDAH TERHAPUS, bukan cuma "ada file baru"** |
 
 ## 5. Yang DITUNDA sampai user minta lagi
 - **Alarm bulanan otomatis `sector_map.csv`** — masih manual.
 - **Legal OJK** & **lisensi yfinance komersial** — Login sudah kelar, ini bisa mulai dibahas kalau user minta.
-- **Badge/Milestone Journal** — sempat dijelasin konsepnya (badge permanen dari jumlah trade/streak
-  journal, ditaro di tab Journal Money Management), user bilang skip dulu.
 - **Disclaimer NFA yang lebih tegas** — user acc konsepnya ("murni analisis pribadi/edukasi, bukan
   ajakan beli/jual"), tapi minta ditunda, ditaro di Learn atau Home biar "lebih ada artinya". BELUM
-  dikerjain — disclaimer yang ADA sekarang tersebar di beberapa tempat (Home footer, Arah Pasar,
-  Sector Radar, Learn FAQ) tapi belum ada satu pernyataan tegas yang eksplisit pakai framing
-  "edukasi semata"/NFA.
+  dikerjain — disclaimer yang ADA sekarang tersebar di beberapa tempat: `views/home.py` (footer Money
+  Management/Trade Plan via CSS `.zq-disclaimer`, + narasi Arah Pasar otomatis), `views/how_to.py`
+  (narasi Trade Planner + section "Disclaimer" di FAQ Learn), `views/tab_sector_radar.py` (caption data),
+  `views/tab_trade_planner.py` (narasi alat bantu). BELUM ada 1 pernyataan tegas eksplisit pakai framing
+  "edukasi semata"/NFA — kalau mau dikerjain, ini daftar file yg bakal kesentuh.
 - **Domain custom (bukan `*.streamlit.app`)** — statusnya nggak jelas di Streamlit Community Cloud
   (fitur baru yg masih digulirkan bertahap per akun), cek langsung ke dashboard pas waktunya tiba.
 
-## 6. Backlog aktif (belum dikerjain, TIDAK ditunda)
-- **Mode bandingkan saham** (2-3 saham sisi-sisian) — user bilang "nanti".
-- **Backtest sederhana per screener** — user bilang "ngak dlu".
-- Kombo oscillator lanjutan yang sempat dibahas tapi belum diimplementasi: **OBV** (dipasangkan dgn MFI
-  utk "deteksi dini akumulasi" — MFI+OBV, beda gaya dari MACD+ADX yg sudah jadi). Belum diminta dikerjain.
-- Audit 41 kode delisted di tempat lain di luar `data/daftar_saham.txt` (belum diaudit penuh).
+## 6. (kosong — Badge/Milestone Journal, mode bandingkan saham, backtest sederhana, kombo OBV+MFI, dan
+audit kode delisted DIPUTUSKAN SKIP oleh user 25 Sep, tidak perlu dibahas lagi kecuali user minta ulang)
 
 ## 7. Cara tes yang disepakati
 A. Referensi independen — loop manual ATAU library eksternal mapan (`ta`) utk indikator benar-benar

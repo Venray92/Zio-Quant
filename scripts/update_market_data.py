@@ -213,6 +213,27 @@ def run_screeners(df):
         msg = f"{type(e).__name__}: {e}"[:120]
         entries["breakout_surge"] = {"error": msg}
         entries["trend_reset"] = {"error": msg}
+    try:
+        from engines.screener_macd import run_macd_screener
+
+        df_gc, df_dc, _ = run_macd_screener(tickers, data=data_map)
+        entries["macd"] = {"hits": recap.hits_from_macd(df_gc, df_dc)}
+    except Exception as e:  # noqa: BLE001
+        entries["macd"] = {"error": f"{type(e).__name__}: {e}"[:120]}
+    try:
+        from engines.screener_mfi_reversal import run_mfi_screener
+
+        res, _ = run_mfi_screener(tickers, data=data_map)
+        entries["mfi"] = {"hits": recap.hits_from_mfi(res)}
+    except Exception as e:  # noqa: BLE001
+        entries["mfi"] = {"error": f"{type(e).__name__}: {e}"[:120]}
+    try:
+        from engines.screener_overnight import run_overnight_screener
+
+        df_bsjp, df_bpjs, _ = run_overnight_screener(tickers, data=data_map)
+        entries["overnight"] = {"hits": recap.hits_from_overnight(df_bsjp, df_bpjs)}
+    except Exception as e:  # noqa: BLE001
+        entries["overnight"] = {"error": f"{type(e).__name__}: {e}"[:120]}
     for k, v in entries.items():
         print(f"Screener {k}: " + (f"{len(v['hits'])} sinyal" if "hits" in v else f"GAGAL ({v['error']})"))
     return last.date().isoformat(), entries

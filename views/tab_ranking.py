@@ -241,7 +241,7 @@ def render_page_ranking():
             with col_btn:
                 code = row["ticker"].replace(".JK", "")
                 with keyed_container(f"zrk_open_{row['ticker']}"):
-                    if st.button(f"Buka {code}", key=f"zrk_btn_{row['ticker']}", **STRETCH):
+                    if st.button("BUKA", key=f"zrk_btn_{row['ticker']}", help=f"Buka Trade Plan {code}", **STRETCH):
                         st.session_state["selected_ranking_ticker"] = row["ticker"]
             st.markdown("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
 

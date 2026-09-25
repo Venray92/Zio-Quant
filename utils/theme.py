@@ -169,8 +169,18 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
 [class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:last-child {
     flex: 0 0 auto !important;
 }
-/* .zq-card punya "height:100%" bawaan (bagian 173) -- di parent flex-stretch ini itu jalan sebagaimana
-   mestinya (100% dari tinggi flex-item yg udah di-stretch), jadi kartu otomatis ngisi penuh. */
+/* .zq-card punya "height:100%" bawaan (bagian 173), TAPI persen height cuma jalan kalau SELURUH rantai
+   parent-nya juga punya tinggi eksplisit -- kalau nggak, dianggap "auto" & diabaikan (ini penyebab
+   tinggi masih ga sesuai di v2: sisi kartu blm diturunin height:100%-nya, cuma sisi tombol doang).
+   Turunin height:100% lewat wrapper Streamlit (element-container -> stMarkdown -> stMarkdownContainer)
+   sampai ke .zq-lb-row biar beneran ngisi penuh tinggi flex-item yg udah di-stretch. */
+[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child,
+[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child [data-testid="stMarkdown"],
+[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child [data-testid="stMarkdownContainer"] {
+    height: 100% !important;
+}
+.zq-lb-row { height: 100% !important; box-sizing: border-box !important; }
+
 [class*="st-key-zrk_open_"],
 [class*="st-key-zrk_open_"] > div[data-testid="stVerticalBlock"],
 [class*="st-key-zrk_open_"] div[data-testid="element-container"],

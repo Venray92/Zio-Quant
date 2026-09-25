@@ -5,9 +5,12 @@ DEDUP per saham (satu saham cuma muncul sekali walau kena beberapa screener/hari
 kemunculan PERTAMA di jendela yang dipilih, sama seperti pola engines.recap.weekly_recap()).
 Hanya sinyal BULLISH yang dihitung (fitur ini soal "saham menarik utk dibeli/dilirik", bukan short).
 
-Rank 2 = screener mana yang paling banyak menyumbang saham ke Top N itu, + riwayat akurasi
-(win rate/avg edge dari engines.recap.leaderboard(), window sama) dan "streak" hari aktif beruntun
-(sinyal terakhir kali screener itu KOSONG, bukan klaim menang beruntun -- supaya jujur/tidak dilebih-lebihkan).
+Rank 2 = kontribusi & akurasi tiap screener, SINKRON ke filter min_gain_pct yang sama dengan Rank 1:
+dari saham unik yang bisa diukur kenaikannya (n_signals), berapa % yang tembus >= min_gain_pct
+(win_rate) dan berapa banyak yang masuk (n_in_top -- kalau min_gain_pct 0%, hampir semua yang
+kepantau ikut terhitung). avg_edge = rata2 gain% dari yang bisa diukur itu. "streak" = hari aktif
+beruntun (sinyal terakhir kali screener itu KOSONG, bukan klaim menang beruntun -- supaya
+jujur/tidak dilebih-lebihkan) -- metrik ini independen dari min_gain_pct.
 
 Murni (tanpa Streamlit), dipakai oleh views/tab_ranking.py.
 """
@@ -107,40 +110,53 @@ def build_ranking(history, last_close, window_key=None, date_start=None, date_en
                 if cur is None or d < cur["date"] or (d == cur["date"] and cand["score"] > cur["score"]):
                     best[t] = cand
 
-    rows = []
+    # Hitung gain% SEKALI per saham unik (dipakai bareng oleh Rank 1 & Rank 2, biar selalu sinkron).
+    measured = []  # semua saham yg gain%-nya bisa diukur (harga sinyal & harga terakhir valid)
     for t, cand in best.items():
         last = _f(last_close.get(t))
         entry_price = cand["price"]
         if last <= 0 or entry_price <= 0:
             continue
         gain = (last / entry_price - 1) * 100
-        if gain < min_gain_pct:
-            continue
+        measured.append({**cand, "t": t, "gain": gain})
+
+    passing = [m for m in measured if m["gain"] >= min_gain_pct]
+
+    rows = []
+    for m in passing:
         rows.append({
-            "ticker": t, "screener_key": cand["screener"], "screener_name": screener_names.get(cand["screener"], cand["screener"]),
-            "signal_date": cand["date"], "signal_price": entry_price, "last_price": last,
-            "gain_pct": gain, "is_new": cand["date"] == keys[-1],
+            "ticker": m["t"], "screener_key": m["screener"], "screener_name": screener_names.get(m["screener"], m["screener"]),
+            "signal_date": m["date"], "signal_price": m["price"], "last_price": _f(last_close.get(m["t"])),
+            "gain_pct": m["gain"], "is_new": m["date"] == keys[-1],
         })
     rows.sort(key=lambda r: -r["gain_pct"])
     rows = rows[:top_n]
     for i, r in enumerate(rows, start=1):
         r["rank"] = i
 
-    contrib_top = {}
-    for r in rows:
-        contrib_top[r["screener_key"]] = contrib_top.get(r["screener_key"], 0) + 1
+    # Rank 2 disinkronkan ke filter min_gain_pct yang sama (bukan top_n) -- jadi kalau min_gain_pct
+    # dinaikkan, n_in_top/win_rate tiap screener ikut menyusut sesuai apa yg sebenernya lolos filter,
+    # dan di 0% hampir semua saham yg kepantau (measured) ikut terhitung.
+    n_total_by_key, n_pass_by_key, gain_sum_by_key = {}, {}, {}
+    for m in measured:
+        k = m["screener"]
+        n_total_by_key[k] = n_total_by_key.get(k, 0) + 1
+        gain_sum_by_key[k] = gain_sum_by_key.get(k, 0.0) + m["gain"]
+        if m["gain"] >= min_gain_pct:
+            n_pass_by_key[k] = n_pass_by_key.get(k, 0) + 1
 
-    lb_by_key = {row["key"]: row for row in RC.leaderboard(history, last_close, window=len(keys))}
     stats = []
     for key, name in RC.SCREENERS:
-        n_top, n_sig = contrib_top.get(key, 0), all_hits_count.get(key, 0)
-        if n_top == 0 and n_sig == 0:
+        n_sig = all_hits_count.get(key, 0)
+        n_total = n_total_by_key.get(key, 0)
+        n_pass = n_pass_by_key.get(key, 0)
+        if n_sig == 0 and n_total == 0:
             continue
-        lb = lb_by_key.get(key) or {}
+        win_rate = (n_pass / n_total * 100) if n_total else None
+        avg_edge = (gain_sum_by_key.get(key, 0.0) / n_total) if n_total else None
         stats.append({
-            "key": key, "name": name, "n_in_top": n_top, "n_signals": n_sig,
-            "win_rate": lb.get("win_rate"), "avg_edge": lb.get("avg_edge"),
-            "single_direction": key in RC.SINGLE_DIRECTION,
+            "key": key, "name": name, "n_in_top": n_pass, "n_signals": n_sig, "n_total": n_total,
+            "win_rate": win_rate, "avg_edge": avg_edge,
             "streak_days": _screener_streak(history, key),
         })
     stats.sort(key=lambda s: (-s["n_in_top"], -(s["win_rate"] or 0)))

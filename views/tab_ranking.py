@@ -127,14 +127,13 @@ def _screener_row_html(rank, s, max_n):
     wr, edge = s["win_rate"], s["avg_edge"]
     wr_col = GREEN if (wr or 0) >= 55 else (PINK if wr is not None and wr <= 45 else AMBER)
     wr_txt = f"{wr:.0f}%" if wr is not None else "-"
-    dir_note = "hanya Bullish" if s["single_direction"] else "Bullish & Bearish (akurasi historis gabungan arah)"
     streak_txt = f"streak {s['streak_days']}h" if s["streak_days"] > 0 else "sinyal terakhir kosong"
     return (
         f'<div class="zq-card" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">'
         f'<div style="font-size:16px; font-weight:800; color:#8B949E; min-width:30px;">#{rank}</div>'
         f'<div style="flex:2; min-width:160px;">'
         f'<div style="color:#FFFFFF; font-weight:800; font-size:14px;">{escape(s["name"])}</div>'
-        f'<div class="zq-muted" style="font-size:11px;">{s["n_in_top"]} dari Top saham &bull; {dir_note}</div>'
+        f'<div class="zq-muted" style="font-size:11px;">{s["n_in_top"]} dari {s["n_total"]} saham tembus filter</div>'
         f'<div style="background:#161B22; border-radius:4px; height:6px; margin-top:5px; overflow:hidden;">'
         f'<div style="background:#00F3FF; height:6px; width:{pct}%;"></div></div>'
         f'</div>'
@@ -248,4 +247,4 @@ def render_page_ranking():
         max_n = max((s["n_in_top"] for s in out["screener_stats"]), default=0) or 1
         for i, s in enumerate(out["screener_stats"], start=1):
             _html(_screener_row_html(i, s, max_n))
-        st.caption("Win rate & streak dihitung dari riwayat sinyal screener itu sendiri (bukan cuma yg masuk Top di atas) -- lihat catatan di engines/ranking.py utk detail metode.")
+        st.caption("Win rate Rank 2 sudah sinkron sama filter kenaikan% di atas -- kalau filter dinaikkan, win rate & jumlah saham tiap screener ikut menyusut sesuai yg benar2 lolos (di 0%, hampir semua saham yg kepantau ikut terhitung). Streak tetap independen (soal aktif/kosong, bukan menang). Detail metode di engines/ranking.py.")

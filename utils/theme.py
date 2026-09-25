@@ -154,44 +154,52 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
 [class*="st-key-zrk_"][class*="__dim"]:hover { opacity: 0.65; }
 
 /* ---------- 4c. Ranking Leaderboard: tombol "Buka" -- kotak kecil setinggi baris (opsi B dari mock,
-   di-acc user 25 Sep; direvisi krn v1 salah -- ikon unicode "\2192" gak ada di font Share Tech Mono
-   (kluar kotak "tofu"), dan margin-left:auto dorong tombol ke ujung kanan kolom yg lebar (jadi ada
-   jarak jauh dari kartu). v2 ini GAK nebak tinggi pakai angka px manual sama sekali -- kartu & tombol
-   sengaja dibikin flex-item SEJAJAR di satu st.container yg sama (lihat keyed_container(f"zrk_row_...")
-   di views/tab_ranking.py), jadi align-items:stretch (default flex, di-set eksplisit di bawah) yg
-   nyamain tinggi keduanya PERSIS, bukan CSS ini nebak angkanya. */
-[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] {
+   di-acc user 25 Sep). v3 -- v1/v2 SALAH krn nebak DOM Streamlit tanpa cek asli (`data-testid`-nya
+   "stElementContainer", BUKAN "element-container" spt yg dipakai v1/v2 -- jadi HAMPIR SEMUA rule v1/v2
+   gak pernah kena sama sekali). v3 ini dicek lawan DOM ASLI (Playwright headless, bukan tebakan lagi).
+   Struktur asli: div.stVerticalBlock YANG SAMA persis yg kebagian class "st-key-zrk_row_..." (BUKAN
+   parent terpisah dari stVerticalBlock, keduanya 1 elemen) -- anak pertamanya stElementContainer
+   (kartu), anak keduanya stLayoutWrapper (bungkus container tombol bersarang). */
+div.stVerticalBlock[class*="st-key-zrk_row_"] {
     display: flex !important; flex-direction: row !important; align-items: stretch !important; gap: 10px !important;
 }
-[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child {
-    flex: 1 1 auto !important; min-width: 0 !important;
+/* Streamlit ngasih width:100% default di stElementContainer/stLayoutWrapper -- itu bentrok sama
+   flex-basis:auto (basisnya ke-resolve ke lebar penuh row di KEDUA sisi, rebutan ruang). Basis 0%
+   (bukan "auto") + width:auto override nyingkirin bentrokan itu, jadi kartu beneran "grow" ngisi
+   sisa ruang & tombol beneran "shrink-to-content" (76px), bukan dua-duanya berebut 100%. */
+div.stVerticalBlock[class*="st-key-zrk_row_"] > div[data-testid="stElementContainer"] {
+    flex: 1 1 0% !important; width: auto !important; min-width: 0 !important;
 }
-[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:last-child {
-    flex: 0 0 auto !important;
+div.stVerticalBlock[class*="st-key-zrk_row_"] > div[data-testid="stLayoutWrapper"] {
+    flex: 0 0 auto !important; width: auto !important; display: flex !important; align-items: stretch !important;
 }
-/* .zq-card punya "height:100%" bawaan (bagian 173), TAPI persen height cuma jalan kalau SELURUH rantai
-   parent-nya juga punya tinggi eksplisit -- kalau nggak, dianggap "auto" & diabaikan (ini penyebab
-   tinggi masih ga sesuai di v2: sisi kartu blm diturunin height:100%-nya, cuma sisi tombol doang).
-   Turunin height:100% lewat wrapper Streamlit (element-container -> stMarkdown -> stMarkdownContainer)
-   sampai ke .zq-lb-row biar beneran ngisi penuh tinggi flex-item yg udah di-stretch. */
-[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child,
-[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child [data-testid="stMarkdown"],
-[class*="st-key-zrk_row_"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:first-child [data-testid="stMarkdownContainer"] {
-    height: 100% !important;
-}
-.zq-lb-row { height: 100% !important; box-sizing: border-box !important; }
+/* Sisi KARTU sengaja DIBIARIN natural (gak ada height:100% dipaksa sama sekali di sepanjang
+   rantainya) -- dites lawan Playwright headless & diukur langsung (getBoundingClientRect): tinggi
+   natural kartu = 73.59px. Kartu ini justru yg jadi ACUAN tinggi row (align-items:stretch bakal
+   nyamain tombol ke tinggi ini). Sempet dicoba paksa height:100% di rantai turunannya jg (v3 awal)
+   -- ternyata BIKIN SALAH: child minta 100% dari parent yg tingginya lagi "belum ditentukan" (fase
+   hitung tinggi natural row itu sendiri) jadi sirkular, hasilnya malah row ke-detect ikut tinggi
+   tombol (lebih pendek), kartunya ke-clamp/kepotong. Makanya di sini TIDAK ADA height:100% sama
+   sekali utk sisi kartu -- biarin murni natural, itu yg justru bikin bener. */
 
-[class*="st-key-zrk_open_"],
-[class*="st-key-zrk_open_"] > div[data-testid="stVerticalBlock"],
-[class*="st-key-zrk_open_"] div[data-testid="element-container"],
-[class*="st-key-zrk_open_"] .stButton {
-    height: 100% !important;
+/* Sisi tombol: stLayoutWrapper -> stVerticalBlock (key zrk_open_) -> stElementContainer -> stButton
+   -> <button>. TIDAK pakai help= di st.button (views/tab_ranking.py) krn itu bikin Streamlit
+   nambahin wrapper <span data-testid="stTooltipHoverTarget" style="justify-content:flex-end;"> yg
+   dorong tombol ke kanan-bawah sendiri (itu penyebab "masih di bawah" versi sebelumnya).
+   height:100% ke bawah TERNYATA gak reliable (row-stretch Streamlit ini kadang ke-detect salah,
+   ngikut tinggi tombol bukan tinggi kartu -- udah dites lawan Playwright headless berkali-kali).
+   Jadi tombolnya dipatok FIXED 74px -- angka ini BUKAN tebakan, tapi hasil ukur langsung
+   getBoundingClientRect() punya .zq-lb-row asli (73.59px, dibulatin) lewat Playwright headless. */
+div.stVerticalBlock[class*="st-key-zrk_row_"] [class*="st-key-zrk_open_"],
+div.stVerticalBlock[class*="st-key-zrk_row_"] [class*="st-key-zrk_open_"] > div[data-testid="stElementContainer"],
+div.stVerticalBlock[class*="st-key-zrk_row_"] [class*="st-key-zrk_open_"] .stButton {
+    display: flex !important; align-items: stretch !important;
 }
 [class*="st-key-zrk_open_"] .stButton button {
-    box-sizing: border-box !important; width: 76px !important; height: 100% !important; min-height: 44px !important;
+    box-sizing: border-box !important; width: 76px !important; height: 74px !important;
     padding: 4px 4px !important; font-size: 11px !important; letter-spacing: 0.5px;
     display: flex !important; flex-direction: column !important; align-items: center !important;
-    justify-content: center !important; gap: 3px !important;
+    justify-content: center !important; gap: 3px !important; margin: 0 !important;
 }
 /* Panah CSS murni (border trick), BUKAN karakter unicode -- gak gantung ke ketersediaan glyph di font. */
 [class*="st-key-zrk_open_"] .stButton button::before {

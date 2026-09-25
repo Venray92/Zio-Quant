@@ -8,8 +8,7 @@ BASE_PAGES = [
     ("home", "Home", "Home", "home"),
     ("watchlist", "Watchlist", "Watchlist", "bookmarks"),
     ("money_management", "Money Management", "Money", "account_balance_wallet"),
-    ("leaderboard", "Leaderboard Screener", "Leaderboard", "trophy"),
-    ("recap_screener", "Rekap Screener", "Rekap Screener", "calendar_month"),
+    ("ranking_leaderboard", "Ranking Leaderboard", "Ranking", "trophy"),
     ("how_to", "Learn", "Learn", "menu_book"),
     ("profile", "Profil Saya", "Profil", "person"),
     ("admin", "Admin Panel", "Admin", "shield_person"),
@@ -60,18 +59,11 @@ def _how_to():
     render_page_how_to()
 
 
-def _leaderboard():
-    from views.tab_leaderboard import render_page_leaderboard
+def _ranking_leaderboard():
+    from views.tab_ranking import render_page_ranking
 
-    _mark("leaderboard")
-    render_page_leaderboard()
-
-
-def _recap_screener():
-    from views.tab_recap import render_page_recap
-
-    _mark("recap_screener")
-    render_page_recap()
+    _mark("ranking_leaderboard")
+    render_page_ranking()
 
 
 def _how_to_old_url():
@@ -97,8 +89,7 @@ _BASE_FUNCS = {
     "home": _home,
     "watchlist": _watchlist,
     "money_management": _money_management,
-    "leaderboard": _leaderboard,
-    "recap_screener": _recap_screener,
+    "ranking_leaderboard": _ranking_leaderboard,
     "how_to": _how_to,
     "profile": _profile,
     "admin": _admin,

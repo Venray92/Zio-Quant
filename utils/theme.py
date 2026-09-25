@@ -147,6 +147,12 @@ div[data-testid="stHorizontalBlock"] .stButton button:hover,
 [class*="st-key-zscr_"] [data-testid="stCaptionContainer"],
 [class*="st-key-zscr_"] [data-testid="stCaptionContainer"] * { color: #8B949E !important; opacity: 1 !important; }
 
+/* ---------- 4b. Ranking Leaderboard: filter tanggal/jendela waktu "tidak aktif" ---------- */
+/* Widget-nya TETAP bisa diklik (lihat catatan di views/tab_ranking.py -- disabled=True Streamlit
+   beneran mengunci widget, bisa bikin user kejebak gak bisa pindah mode), cuma didim visual di sini. */
+[class*="st-key-zrk_"][class*="__dim"] { opacity: 0.4; transition: opacity 0.15s ease; }
+[class*="st-key-zrk_"][class*="__dim"]:hover { opacity: 0.65; }
+
 /* ---------- 5. Komponen Home / How To ---------- */
 .zq-label {
     display: flex; align-items: center; gap: 6px;

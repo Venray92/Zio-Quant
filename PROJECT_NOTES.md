@@ -250,12 +250,26 @@ YG SAMA baru diputus lewat skor tertinggi sbg "screener asal". Difilter min. ken
 turun, dipotong Top 30. Dites lawan referensi independen (skenario sintetis manual, bukan library luar
 — ini logika dedup/agregasi, bukan indikator teknikal baru, jadi cukup tes manual per aturan bagian 2).
 
-**Rank 2 — kontribusi screener**: hitung dari Top 30 di atas (bukan dari SEMUA sinyal jendela itu),
-win rate/avg edge REUSE `engines.recap.leaderboard()` (window sama), + "streak aktif" BARU
-(`engines.ranking._screener_streak()`) = berapa hari bursa TERAKHIR BERTURUT-TURUT (dari histori
-PENUH, bukan cuma jendela terpilih) screener itu masih keluar minimal 1 sinyal Bullish — SENGAJA
-dilabeli "aktif beruntun", BUKAN "menang beruntun", karena ini metrik AKTIVITAS bukan AKURASI (biar
-gak melebih-lebihkan klaim).
+**Rank 2 — kontribusi screener**. **Update 25 Sep (sesi lanjutan, atas permintaan user)**: desain AWAL
+Rank 2 pakai `engines.recap.leaderboard()` yg independen dari filter min. kenaikan Rank 1 (ngukur "ada
+edge positif" di SELURUH jendela, bukan gain >= filter) — user komplain lihat win rate muncul angka
+walau kontribusi ke Top saham masih 0 (gara2 dua metrik itu gak nyambung). **Sekarang Rank 2 SELALU
+SINKRON ke `min_gain_pct` yg sama dgn Rank 1**: `build_ranking()` hitung gain% SEKALI per saham unik
+(dari `best` dict, dedup kemunculan pertama — logika sama dgn Rank 1 di atas, TIDAK dihitung dua kali),
+lalu per screener dihitung `n_total` (semua saham yg gain%-nya bisa diukur, TANPA dibatasi Top 30),
+`n_in_top`/win_rate = berapa dari situ yg tembus >= `min_gain_pct` yg SEDANG diset user, `avg_edge` =
+rata2 gain% dari `n_total` itu. Jadi naikin filter di UI -> win rate & jumlah tiap screener ikut
+menyusut PERSIS sesuai yg beneran lolos; di filter 0% hampir semua saham yg kepantau (gain positif)
+ikut terhitung. `engines.recap.leaderboard()` & field `single_direction` SUDAH TIDAK DIPAKAI lagi di
+`engines/ranking.py` (dicek pakai grep, `RC.leaderboard`/`SINGLE_DIRECTION` gak ada pemanggil lain di
+luar `recap.py` sendiri, jadi aman dihapus dari sini tanpa efek samping ke halaman lain). "Streak aktif"
+(`engines.ranking._screener_streak()`) TETAP independen dari `min_gain_pct` = berapa hari bursa
+TERAKHIR BERTURUT-TURUT (dari histori PENUH, bukan cuma jendela terpilih) screener itu masih keluar
+minimal 1 sinyal Bullish — SENGAJA dilabeli "aktif beruntun", BUKAN "menang beruntun", karena ini
+metrik AKTIVITAS bukan AKURASI (biar gak melebih-lebihkan klaim). Dites pakai skenario sintetis manual
+(2 screener, 6 saham, gain campuran positif/negatif) di 3 level `min_gain_pct` (0%/10%/18%) — win
+rate & n_in_top tiap screener terbukti menyusut sesuai threshold, dan AppTest ke halaman
+(`views/tab_ranking.py`) render tanpa exception di tiap level filter.
 
 **Jendela waktu vs rentang tanggal manual (saling eksklusif)**: `views/tab_ranking.py::_render_filters()`.
 **PENTING — keputusan desain yg BEDA dari mockup awal**: mockup minta widget yg "tidak aktif" jadi

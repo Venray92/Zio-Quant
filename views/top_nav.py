@@ -10,8 +10,6 @@ from utils.screeners import SCREENERS, get_screener
 
 _POP_KEY = "znav_screeners_pop"
 _LAST_PAGE_KEY = "_znav_last_page"
-_LB_POP_KEY = "znav_leaderboard_pop"
-_LB_LAST_PAGE_KEY = "_znav_lb_last_page"
 
 
 def _active(flag):
@@ -77,34 +75,7 @@ def render_top_nav(current=None):
 
     nav_link(cols[2], "watchlist")
     nav_link(cols[3], "money_management")
-
-    # ---- Leaderboard dropdown (Leaderboard Screener + Rekap Screener) ----
-    _LB_KEYS = ("leaderboard", "recap_screener")
-    active_lb = current if current in _LB_KEYS else None
-    lb_label = titles[active_lb] if active_lb else "Leaderboard"
-    lb_pop_kwargs = {"use_container_width": True}
-    try:
-        import inspect
-
-        params = inspect.signature(st.popover).parameters
-        if "width" in params:
-            lb_pop_kwargs = {"width": "stretch"}
-        if "key" in params and "on_change" in params:
-            if st.session_state.get(_LB_LAST_PAGE_KEY) != current:
-                st.session_state[_LB_POP_KEY] = False
-            st.session_state[_LB_LAST_PAGE_KEY] = current
-            lb_pop_kwargs.update(key=_LB_POP_KEY, on_change="rerun")
-    except Exception:
-        pass
-    with cols[4]:
-        with keyed_container(f"znav_leaderboard{_active(active_lb is not None)}"):
-            with st.popover(lb_label, **lb_pop_kwargs, **icon_kwargs("trophy", "popover")):
-                for key in _LB_KEYS:
-                    _, icon = labels[key]
-                    is_on = key == active_lb
-                    with keyed_container(f"zlbnav_{key}{_active(is_on)}"):
-                        st.page_link(pages[key], label=titles[key] + ("  ·  Active" if is_on else ""), icon=f":material/{icon}:", **width)
-
+    nav_link(cols[4], "ranking_leaderboard")
     nav_link(cols[5], "how_to")
 
 

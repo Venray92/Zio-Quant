@@ -1,17 +1,15 @@
-"""Halaman Home: hero, ringkasan pribadi, arah pasar (IHSG), Market Pulse, rekap screener harian dan mingguan."""
+"""Halaman Home: hero, ringkasan pribadi, arah pasar (IHSG), Market Pulse."""
 from html import escape
 
 import pandas as pd
 import streamlit as st
 
 from engines import market_view as MVW
-from engines import recap as RC
 from utils.card_html import GREEN, PINK, compact_html, fmt_id
 from utils.icons import svg_icon
 from utils import market_source, watchlist_store
 from utils.profile import current_profile
 from utils.pages import get_pages, keyed_container, link_width_kwargs
-from utils.screeners import get_screener
 from views.footer import fetch_ihsg, fmt_id_num
 from engines.market_data import now_wib
 from engines.tips import tip_of_day
@@ -270,114 +268,6 @@ def render_market_view(view):
         f'<div class="zq-card"><div style="color:#00F3FF; font-weight:800; margin-bottom:6px;">{svg_icon("bulb", 15, "#00F3FF", 2, margin_right=6)}Pandangan otomatis</div>{lines}'
         '<div class="zq-muted" style="font-size:11px; margin-top:6px;">Pandangan teknikal yang dihitung otomatis dari data harga IHSG dan sebaran saham. Bukan prediksi dan bukan rekomendasi.</div></div>'
     )
-
-
-# ---------------------------------------------------------------- rekap screener
-def _names(rows, n=3):
-    return ", ".join(f"{escape(r['t'].replace('.JK', ''))} ({r['s']:g})" for r in rows[:n]) or "-"
-
-
-# Breakout Surge & Trend Reset bukan halaman/entri screener sendiri (satu halaman "Trend Scanner"
-# dgn pilihan mode), dan bukan pula pola Bullish/Bearish klasik -- jadi kategori & tautan halaman
-# dipetakan manual di sini, tidak lewat utils.screeners.get_screener() seperti RSI/Stoch.
-_CATEGORY = {"rsi": None, "stoch_psar": None, "breakout_surge": "Breakout", "trend_reset": "Pullback"}
-_PAGE_KEY = {"rsi": "rsi", "stoch_psar": "stoch_psar", "breakout_surge": "trend_scanner", "trend_reset": "trend_scanner"}
-
-
-def _card_category(key):
-    return _CATEGORY[key] or get_screener(key)["category"]
-
-
-def _daily_card(key, name, history):
-    cat = _card_category(key)
-    single = key in RC.SINGLE_DIRECTION
-    dr = RC.daily_recap(history, key)
-    days = (history or {}).get("days") or {}
-    last = days[sorted(days)[-1]] if days else {}
-    head = (
-        f'<span class="zq-chip">{escape(cat)}</span>'
-        f'<div style="color:#FFFFFF; font-size:16px; font-weight:800;">{escape(name)}</div>'
-    )
-    if dr is None:
-        msg = "Screener ini gagal dijalankan pada update terakhir." if "error" in last.get(key, {}) else "Belum ada hasil harian."
-        return f'<div class="zq-card">{head}<div class="zq-muted" style="font-size:12px; margin-top:6px;">{msg}</div></div>'
-    new_b = f" ({dr['n_new_bull']} baru)" if dr["n_new_bull"] is not None else ""
-    new_r = f" ({dr['n_new_bear']} baru)" if dr["n_new_bear"] is not None else ""
-    bull_label = "Ditemukan" if single else "Bullish"
-    body = (
-        f'<div class="zq-row"><span style="color:{GREEN}; font-weight:700;">{bull_label}</span><span>{dr["n_bull"]}{new_b}</span></div>'
-        f'<div class="zq-muted" style="font-size:12px; margin-bottom:4px;">Teratas: {_names(dr["top_bull"])}</div>'
-    )
-    if not single:
-        body += (
-            f'<div class="zq-row"><span style="color:{PINK}; font-weight:700;">Bearish</span><span>{dr["n_bear"]}{new_r}</span></div>'
-            f'<div class="zq-muted" style="font-size:12px;">Teratas: {_names(dr["top_bear"])}</div>'
-        )
-    return (
-        f'<div class="zq-card">{head}<div class="zq-muted" style="font-size:11px; margin-bottom:6px;">Data per {escape(pd.to_datetime(dr["date"]).strftime("%d %b %Y"))}</div>'
-        f'{body}</div>'
-    )
-
-
-def _weekly_card(key, name, history, last_close):
-    cat = _card_category(key)
-    single = key in RC.SINGLE_DIRECTION
-    w = RC.weekly_recap(history, key, last_close)
-    head = f'<span class="zq-chip">{escape(cat)}</span><div style="color:#FFFFFF; font-size:16px; font-weight:800;">{escape(name)}</div>'
-    if w is None:
-        return f'<div class="zq-card">{head}<div class="zq-muted" style="font-size:12px; margin-top:6px;">Belum ada riwayat mingguan.</div></div>'
-    body = f'<div class="zq-muted" style="font-size:11px; margin-bottom:6px;">{len(w["dates"])} hari bursa terakhir · {w["n_unique"]} saham unik</div>'
-    directions = (("bull", "Ditemukan" if single else "Bullish", GREEN),) if single else (("bull", "Bullish", GREEN), ("bear", "Bearish", PINK))
-    for d, tag, col in directions:
-        x = w[d]
-        if x["n_measured"]:
-            eg = MVW.id_pct(x["avg_edge"], 1, True)
-            res = f'{x["n_right"]} dari {x["n_measured"]} searah sinyal · rata-rata {eg}'
-        else:
-            res = "belum ada yang bisa diukur"
-        body += f'<div class="zq-row"><span style="color:{col}; font-weight:700;">{tag}</span><span>{x["n"]} saham</span></div><div class="zq-muted" style="font-size:12px; margin-bottom:4px;">{res}</div>'
-    rep_pool = w["bull"]["repeat"] if single else w["bull"]["repeat"] + w["bear"]["repeat"]
-    rep = sorted(rep_pool, key=lambda r: (-r["days"], r["t"]))[:3]
-    if rep:
-        body += '<div class="zq-muted" style="font-size:12px;">Muncul berulang: ' + ", ".join(f'{escape(r["t"].replace(".JK", ""))} ({r["days"]} hari)' for r in rep) + "</div>"
-    return f'<div class="zq-card">{head}{body}</div>'
-
-
-def render_recaps():
-    history = market_source.load_recap()
-    days = (history or {}).get("days") or {}
-    _html(_label("calendar-event", "Rekap Screener Harian"))
-    if not days:
-        st.info("Rekap tampil setelah data harian versi terbaru berjalan. Hasilnya memakai pengaturan bawaan tiap screener.")
-        return
-    pages, width = get_pages(), link_width_kwargs()
-    with keyed_container("zrecap_daily"):
-        cols = st.columns(len(RC.SCREENERS))
-        for col, (key, name) in zip(cols, RC.SCREENERS):
-            with col:
-                _html(_daily_card(key, name, history))
-                page_key = _PAGE_KEY[key]
-                with keyed_container(f"zopen_{key}"):
-                    st.page_link(pages[page_key], label=f"Open {name}", icon=":material/arrow_forward:", **width)
-    st.caption("Rekap memakai pengaturan bawaan tiap screener, jadi bisa berbeda dari hasil di halaman screener kalau kamu mengubah pilihan di sana.")
-
-    data_map, _ = market_source.load_shared_file()
-    want = {h["t"] for d in sorted(days)[-5:] for e in days[d].values() if isinstance(e, dict) for h in e.get("hits", [])}
-    last_close = {}
-    for t in want:
-        df = (data_map or {}).get(t)
-        try:
-            if df is not None and len(df):
-                last_close[t] = float(df["Close"].iloc[-1])
-        except Exception:
-            pass
-    _html(_label("calendar-week", "Rekap Mingguan"))
-    with keyed_container("zrecap_weekly"):
-        cols = st.columns(len(RC.SCREENERS))
-        for col, (key, name) in zip(cols, RC.SCREENERS):
-            with col:
-                _html(_weekly_card(key, name, history, last_close))
-    st.caption("Hasil = perubahan harga dari harga sinyal sampai penutupan terakhir, searah sinyal (bearish: turun dihitung sesuai), belum termasuk biaya. Sampel kecil dan hasil masa lalu bukan jaminan.")
 
 
 def _safe(fn, *args):

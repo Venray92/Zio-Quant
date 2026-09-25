@@ -235,10 +235,12 @@ def render_page_ranking():
         st.info("Tidak ada saham yang lolos filter min. kenaikan di jendela ini. Coba turunkan angkanya atau perlebar jendela waktu.")
     else:
         for row in out["rows"]:
-            col_card, col_btn = st.columns([5, 1], vertical_alignment="center")
-            with col_card:
+            # Card + tombol dibungkus SATU keyed_container (bukan st.columns) supaya keduanya jadi
+            # flex-item SEJAJAR di parent yg sama -- align-items:stretch (CSS default, lihat
+            # utils/theme.py bagian "4c.") otomatis nyamain tinggi tombol persis sama tinggi kartu,
+            # BUKAN ditebak pakai angka px manual (itu penyebab tinggi ga sesuai sebelumnya).
+            with keyed_container(f"zrk_row_{row['ticker']}"):
                 _html(_row_html(row))
-            with col_btn:
                 code = row["ticker"].replace(".JK", "")
                 with keyed_container(f"zrk_open_{row['ticker']}"):
                     if st.button("BUKA", key=f"zrk_btn_{row['ticker']}", help=f"Buka Trade Plan {code}", **STRETCH):

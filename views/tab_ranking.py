@@ -241,9 +241,8 @@ def render_page_ranking():
             # BUKAN ditebak pakai angka px manual (itu penyebab tinggi ga sesuai sebelumnya).
             with keyed_container(f"zrk_row_{row['ticker']}"):
                 _html(_row_html(row))
-                code = row["ticker"].replace(".JK", "")
                 with keyed_container(f"zrk_open_{row['ticker']}"):
-                    if st.button("BUKA", key=f"zrk_btn_{row['ticker']}", help=f"Buka Trade Plan {code}", **STRETCH):
+                    if st.button("BUKA", key=f"zrk_btn_{row['ticker']}", **STRETCH):
                         st.session_state["selected_ranking_ticker"] = row["ticker"]
             st.markdown("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
 

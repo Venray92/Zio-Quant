@@ -4,11 +4,15 @@ Dokumen serah-terima. Chat baru di Claude Project tidak melihat chat lama, jadi 
 harus ada di sini. Update file ini di akhir sesi kalau ada perubahan berarti (user yang minta, atau tanya
 di akhir sesi).
 
-Terakhir diperbarui: 25 Sep 2026 (ronde LOGIN SELESAI + catatan ronde sebelumnya yang ketinggalan:
-screener BSJP/BPJS, halaman Rekap Screener terpisah. Login: Supabase Auth email+password, approval
+Terakhir diperbarui: 25 Sep 2026 (ronde RANKING LEADERBOARD — MENGGANTIKAN Leaderboard Screener +
+Rekap Screener jadi satu halaman baru. Lihat bagian 3c & 4c — **STATUS UPLOAD KE GITHUB BELUM
+PASTI**, sama seperti ronde Login sebelumnya: 8 file dikirim lewat file delivery, user upload manual.
+CEK LANGSUNG KE REPO sebelum asumsi apa-apa, termasuk apakah `views/tab_leaderboard.py` &
+`views/tab_recap.py` SUDAH DIHAPUS dari repo (mereka digantikan, bukan cuma ditambah).
+
+Ronde sebelum ini (25 Sep, LOGIN SELESAI, masih berlaku): Supabase Auth email+password, approval
 manual admin, gerbang WAJIB LOGIN di app.py, chip profil jadi dropdown, Admin Panel, halaman Profil.
-Lihat bagian 3b & 4b — PENTING dibaca kalau mulai sesi baru, ada 13 file yang statusnya "dikirim ke
-user tapi belum tentu ke-upload ke GitHub", cek dulu sebelum asumsi apa-apa).
+Lihat bagian 3b & 4b.
 
 Ronde sebelum ini (24 Sep, masih berlaku): perbaikan Trend Scanner, 2 screener baru MACD Momentum &
 MFI Reversal, Leaderboard Screener, lonceng notifikasi icon-only, ringkasan pagi + streak, alert harga
@@ -23,8 +27,9 @@ Deploy: Streamlit Cloud, path server `/mount/src/zio-quant/`.
 halaman Login/Daftar, apapun URL-nya. Menu atas (urutan dropdown Screeners disengaja: struktur dulu,
 lalu oscillator berselang gaya, Overnight, Radar, Planner paling akhir): **Home**, **Screeners** ▸
 Trend Scanner, RSI Reversal, Stoch Momentum, MACD Momentum, MFI Reversal, BSJP/BPJS, Sector Radar,
-Trade Planner, lalu **Watchlist**, **Money**, **Leaderboard** ▸ Leaderboard Screener/Rekap Screener,
-**Learn**. Lonceng notifikasi (ikon bulat) + chip profil (klik → Profil/Admin Page/Keluar) pojok kanan atas.
+Trade Planner, lalu **Watchlist**, **Money**, **Ranking Leaderboard** (link langsung, BUKAN dropdown
+lagi — lihat 3c, GANTI Leaderboard Screener + Rekap Screener yg sekarang SUDAH DIHAPUS), **Learn**.
+Lonceng notifikasi (ikon bulat) + chip profil (klik → Profil/Admin Page/Keluar) pojok kanan atas.
 
 - **RSI Reversal** — divergence RSI(10) + pola candle.
 - **Stoch Momentum** — Stochastic 10,5,5 + PSAR, Golden/Dead Cross.
@@ -43,15 +48,20 @@ Trade Planner, lalu **Watchlist**, **Money**, **Leaderboard** ▸ Leaderboard Sc
 - **Sector Radar** — 11 sektor IDX-IC, threshold disesuaikan 24 Sep (lihat bagian 3), + **heatmap 90
   hari terakhir** (baru).
 - **Trade Planner** — area beli (BOW/BOB), SL, TP1/TP2, RR, grade.
-- **Leaderboard Screener** — **(baru)** ranking win rate & rata-rata edge tiap screener dari `engines/recap.py`,
-  murni transparansi sistem (bukan lomba antar user), halaman sendiri sebelah kiri Learn.
+- **Ranking Leaderboard** — **(baru 25 Sep, GANTI Leaderboard Screener + Rekap Screener)** Rank 1 = Top
+  30 saham kenaikan % terbesar (dedup per saham, sinyal Bullish semua screener), jendela waktu
+  Harian/Mingguan/Bulanan/Tahunan ATAU rentang tanggal manual (saling eksklusif), min. kenaikan %
+  (default 10, bisa diubah), filter watchlist-only. Rank 2 = screener mana yg paling nyumbang saham ke
+  Top itu + win rate/streak aktif. Detail lihat bagian 3c.
 - **Watchlist** — simpan saham per profil, catatan bebas per saham (Notes & target — sudah ada dari
   awal), **alert harga** per saham (baru, lihat bagian 3).
 - **Money Management** — Portfolio, Position Sizer, Journal (termasuk grafik equity curve — sudah ada
   dari awal), Settings.
 - **Home** — hero, **tip harian**, blok pribadi "Untuk kamu hari ini" (+ **streak hari beruntun**),
   Arah Pasar (dgn tanggal data terakhir), Market Pulse, ringkasan Sector Radar, Watchlist count. Rekap
-  harian & mingguan SUDAH PINDAH ke halaman **Rekap Screener** sendiri (bukan lagi di Home).
+  harian & mingguan (dulu di Home, lalu pindah ke halaman Rekap Screener sendiri) SEKARANG GABUNG jadi
+  halaman **Ranking Leaderboard** (25 Sep, lihat 3c) — `views/home.py::render_recaps()` dkk (yg dulu
+  isinya rekap harian/mingguan per screener) SUDAH DIHAPUS, bukan cuma dipindah.
 - **Lonceng notifikasi** — **(baru)** ikon bulat kecil di sebelah chip profil (bukan di baris menu),
   badge angka kalau ada yang belum dibaca, isinya gabungan: watchlist masuk zona beli, sinyal baru,
   sektor baru menyala, alert harga kena, SL/TP kena. **Bukan push notification** — dicek ulang tiap
@@ -212,13 +222,112 @@ file tes nggak pernah ikut dikirim ke user (cuma file produksi). Jadi tes yang j
 semuanya ditulis ulang dari nol (AppTest, ~19 skenario gerbang+halaman) — BUKAN regression penuh atas
 seluruh app. Kalau mau regression lengkap kaya dulu, perlu ditulis ulang lagi (mahal, belum diminta).
 
+## 3c. RANKING LEADERBOARD (25 Sep) — arsitektur lengkap
+
+**⚠️ STATUS UPLOAD KE GITHUB BELUM PASTI**, sama seperti Login (3b) — 8 file dikirim lewat file
+delivery, **cek langsung ke repo** sebelum asumsi apa-apa (lihat daftar di 4c). Yang PALING PENTING
+dicek: `views/tab_leaderboard.py` dan `views/tab_recap.py` harus **SUDAH TERHAPUS** dari repo (halaman
+ini gantiin dua-duanya, bukan nambah) — kalau masih ada di repo tapi sudah nggak dipanggil dari
+manapun (`utils/pages.py` sudah diubah gak nyebut lagi), itu cuma sampah, hapus manual di GitHub.
+
+**Alasan dibangun**: user pernah ngalamin data Leaderboard "diam" beberapa hari tanpa ketahuan (lihat
+3d soal jadwal). Jadi dua hal ini SENGAJA dipisah: (1) keandalan PIPELINE data (3d, di luar halaman
+ini), (2) tampilan/komputasi di halaman ini SENDIRI cuma nampilin apa yg ADA di file, jujur soal
+keterbatasan (pesan "belum tersedia" kalau kosong, bukan silent-fail).
+
+**Rank 1 — dedup logic** (`engines/ranking.py::build_ranking()`): kumpulin semua sinyal BULLISH (bukan
+Bearish — fitur ini soal "saham menarik utk dibeli", bukan short) dari SEMUA screener di
+`engines.recap.SCREENERS` dalam jendela/rentang tanggal yg dipilih, per saham ambil KEMUNCULAN PERTAMA
+di jendela itu (bukan skor tertinggi/gain tertinggi — biar "kenaikan" konsisten diukur dari titik masuk
+paling awal, sama gaya dgn `weekly_recap()` yg sudah ada), kalau 2 screener kena saham yg sama di HARI
+YG SAMA baru diputus lewat skor tertinggi sbg "screener asal". Difilter min. kenaikan %, diurutkan
+turun, dipotong Top 30. Dites lawan referensi independen (skenario sintetis manual, bukan library luar
+— ini logika dedup/agregasi, bukan indikator teknikal baru, jadi cukup tes manual per aturan bagian 2).
+
+**Rank 2 — kontribusi screener**: hitung dari Top 30 di atas (bukan dari SEMUA sinyal jendela itu),
+win rate/avg edge REUSE `engines.recap.leaderboard()` (window sama), + "streak aktif" BARU
+(`engines.ranking._screener_streak()`) = berapa hari bursa TERAKHIR BERTURUT-TURUT (dari histori
+PENUH, bukan cuma jendela terpilih) screener itu masih keluar minimal 1 sinyal Bullish — SENGAJA
+dilabeli "aktif beruntun", BUKAN "menang beruntun", karena ini metrik AKTIVITAS bukan AKURASI (biar
+gak melebih-lebihkan klaim).
+
+**Jendela waktu vs rentang tanggal manual (saling eksklusif)**: `views/tab_ranking.py::_render_filters()`.
+**PENTING — keputusan desain yg BEDA dari mockup awal**: mockup minta widget yg "tidak aktif" jadi
+gelap/dikunci pakai `disabled=True` Streamlit. Itu TIDAK dipakai di implementasi — widget Streamlit yg
+`disabled=True` itu BENAR-BENAR terkunci, gak bisa diklik sama sekali; karena mode "Jendela waktu"
+aktif SEJAK AWAL (default "Mingguan"), kalau date-input dikunci pakai `disabled=True` dari awal, user
+GAK AKAN PERNAH bisa pindah ke mode rentang tanggal manual selamanya (deadlock). Solusinya: dua kontrol
+itu SELALU bisa diklik, yg "tidak aktif" cuma dikasih caption teks kecil di bawahnya (bukan visual
+gelap/CSS opacity — itu butuh kerja custom lebih jauh, belum dikerjain). **Kalau user lihat & mau
+visual gelap yg beneran (bukan cuma caption teks), itu kerjaan tambahan, bilang aja.**
+
+**KEEP_DAYS dinaikkan 40→260** (`engines/recap.py`) supaya jendela "Tahunan" (240 hari bursa) punya
+tempat nyimpen data yg cukup — **TAPI histori yg SUDAH KESIMPEN di server sekarang cuma ~40 hari
+terakhir** (batas lama), jadi jendela "Tahunan" baru bener-bener kepenuhi beberapa BULAN dari sekarang,
+sampai histori numpuk. Ini bukan bug, cuma keterbatasan data yg baru mulai direkam — WAJIB
+disampein ke user kalau nanti nanya kenapa "Tahunan" kelihatan sama aja dgn "Bulanan" di awal-awal.
+
+**Prasyarat yg juga dikerjakan ronde ini**: `scripts/update_market_data.py::run_screeners()` &
+`engines/recap.py::SCREENERS` diperluas dari 4 jadi 7 (nambah `macd`, `mfi`, `overnight` — dulu cuma
+rsi/stoch_psar/breakout_surge/trend_reset yg kerekam ke `screener_history.json`, MACD/MFI/BSJP-BPJS
+UDAH ADA sbg screener tapi TIDAK PERNAH kerekam ke histori harian, jadi Ranking Leaderboard nggak bisa
+lihat sinyal2 itu sama sekali kalau nggak diperbaiki dulu). Konverter baru: `hits_from_macd()` (2 arah,
+note = ADX + "fresh trend"), `hits_from_mfi()` (alias `hits_from_rsi()` — mesinnya sama persis, lihat
+3), `hits_from_overnight()` (1 arah selalu Bullish, note = "BSJP"/"BPJS" biar kebedain).
+
+**`views/home.py::render_recaps()` & pendukungnya DIHAPUS** (`_daily_card`, `_weekly_card`,
+`_card_category`, `_names`, `_CATEGORY`, `_PAGE_KEY`) — sudah jadi dead code sejak `views/tab_recap.py`
+dihapus (satu-satunya pemanggil), dan `_PAGE_KEY` lama cuma petakan 4 screener (bakal `KeyError` kalau
+dipaksa jalan dgn `RC.SCREENERS` yg sekarang 7). Import `from engines import recap as RC` dan
+`from utils.screeners import get_screener` di `views/home.py` ikut dihapus (sudah gak dipakai lagi di
+file itu). **`views/home_today.py` & `engines/notifications.py` TIDAK disentuh** — keduanya sudah pakai
+`RC.SCREENERS` secara dinamis (loop, bukan daftar hardcoded), jadi otomatis ikut MACD/MFI/Overnight
+tanpa perlu diubah.
+
+**Sudah dites**: `engines/ranking.py::build_ranking()` lawan skenario sintetis manual (dedup kemunculan
+pertama, filter min. gain, mode jendela vs rentang tanggal, filter watchlist, streak) — semua lolos.
+Halaman (`views/tab_ranking.py`) via `AppTest`: render tanpa data (pesan graceful), render dgn data
+sintetis (Rank 1 & Rank 2 tampil benar), klik tombol "Buka <ticker>" (Trade Plan inline, reuse
+`utils.ui_helpers.render_inline_trade_planner` yg sudah teruji dari Watchlist), klik shortcut jendela
+waktu, pilih rentang tanggal manual, tombol Clear, dan edge-case klik shortcut YANG SAMA sesudah pindah
+ke mode rentang (awalnya bug infinite-rerun, sudah diperbaiki & didokumentasikan di komentar kode).
+Wiring navbar (`utils/pages.py`, `views/top_nav.py`) dites via `AppTest` penuh lewat `app.py` (gerbang
+login di-mock) — halaman ke-render tanpa `KeyError`/exception.
+
+**⚠️ BELUM DITES ronde ini (batasan jujur)**: **verifikasi visual browser (desktop + mobile 390px)
+BELUM DILAKUKAN** — padahal ini WAJIB per aturan bagian 2 utk halaman baru/berubah tampilan. Sesi ini
+nggak sempat jalanin Playwright screenshot krn fokus abis di logika data+wiring dulu. **User WAJIB
+cek tampilan asli (desktop & HP) sebelum menganggap halaman ini "selesai" — terutama bagian filter
+tanggal/jendela waktu (interaksinya paling rumit & paling rawan kelihatan aneh di browser beneran
+walau lolos test otomatis) dan tabel Rank 1/Rank 2 di lebar HP 390px.**
+
+## 3d. Jadwal pengambilan data harian diperluas (25 Sep)
+
+**Kenapa**: user pernah ngalamin data Leaderboard "diam" berhari-hari tanpa ketahuan — jadwal sore yg
+sudah ada (17:05-20:35 WIB, 8x coba) doang dianggap belum cukup jaring pengaman.
+
+**Yang ditambah** (`.github/workflows/update_market_data.yml`): 6 cron BARU jam **01:15-06:15 WIB**
+(sejam sekali, 6x coba), **Senin-Jumat WIB saja** (skip Sabtu & Minggu WIB, PERSIS sesuai minta user).
+**Hati-hati kalau mau ubah lagi**: field hari-di-cron GitHub pakai UTC, dan WIB = UTC+7, jadi jam
+01:00-06:00 WIB jatuh di jam 18:00-23:00 UTC HARI SEBELUMNYA — supaya jendela ini jalan pas WIB
+Senin-Jumat, hari-cron (UTC) yg dipakai adalah **Minggu-Kamis (`0-4`)**, BUKAN `1-5`. Sudah dicek pakai
+simulasi tanggal nyata (bukan cuma dihitung di kepala) — lihat komentar di file YAML-nya buat detail
+perhitungannya. Langkah "Open issue on failure" juga diperluas biar kepicu kalau percobaan TERAKHIR
+jendela pagi ini (06:15 WIB) juga gagal, jadi user tau SAAT ITU JUGA, bukan baru sadar berhari-hari
+kemudian.
+
+**Belum/nggak bisa dites di sesi ini**: workflow GitHub Actions cuma bisa DIVALIDASI syntax YAML-nya
+(`yaml.safe_load`, lolos) & perhitungan waktu WIB↔UTC-nya (simulasi tanggal Python, lolos) — **BUKAN
+dites jalan beneran** (butuh push ke GitHub & nunggu jadwal beneran nyala, di luar kapasitas sesi ini).
+User perlu pantau run pertama kali setelah upload (tab Actions di GitHub) buat mastiin jadwal barunya
+beneran nyala sesuai jam yg dimaksud.
+
 ## 4. Peta file tambahan ronde ini (di luar yang sudah ada di peta lama)
 
 | File | Peran |
 |---|---|
 | `engines/screener_macd.py`, `views/tab_macd.py` | MACD Momentum (baru, lihat bagian 3). |
 | `engines/screener_mfi_reversal.py`, `views/tab_mfi.py` | MFI Reversal (baru, wrapper RSI Reversal). |
-| `views/tab_leaderboard.py` | Leaderboard Screener (baru). |
 | `utils/activity_store.py` | Streak kunjungan + `last_notif_check` per profil (storage generik). |
 | `utils/alert_store.py` | Alert harga per saham per profil (`add_alert/remove_alert/check_alerts`). |
 | `engines/notifications.py` | `build_notifications()` — gabung watchlist/portofolio/sinyal/sektor/alert jadi item lonceng, pakai keluaran `views/home_today.py::build_today()`. |
@@ -229,7 +338,6 @@ seluruh app. Kalau mau regression lengkap kaya dulu, perlu ditulis ulang lagi (m
 | `utils/market_source.py::load_sector_hist()` | Wrapper cache utk histori sektor. |
 | `scripts/update_market_data.py::run_sector_radar()` | Job harian sekarang juga hitung & simpan histori sektor (gagal tidak menggagalkan job utama). |
 | `engines/screener_overnight.py`, `views/tab_overnight.py` | BSJP/BPJS overnight screener (24 Sep, ketinggalan kecatat sebelumnya). |
-| `views/tab_recap.py` | Halaman Rekap Screener (rekap harian+mingguan yg tadinya di Home). |
 
 ## 4b. Peta file — LOGIN SYSTEM (25 Sep, lihat 3b)
 
@@ -249,18 +357,23 @@ seluruh app. Kalau mau regression lengkap kaya dulu, perlu ditulis ulang lagi (m
 | `app.py` | DIUBAH: gerbang wajib login (lihat 3b). | Cek langsung ke repo |
 | `supabase_setup.sql` | Setup tabel `user_data` (SAMA dgn yg dipakai watchlist/money — bukan tabel baru khusus login). | Cek langsung ke repo |
 
+## 4c. Peta file — RANKING LEADERBOARD (25 Sep, lihat 3c & 3d)
+
+| File | Peran | Status upload GitHub |
+|---|---|---|
+| `engines/ranking.py` | **BARU.** `build_ranking()` = otak Rank 1 (dedup+filter+sort) & Rank 2 (kontribusi+win rate+streak). | Cek langsung ke repo |
+| `views/tab_ranking.py` | **BARU.** Halaman Ranking Leaderboard (filter, Rank 1 table, Rank 2 bars). | Cek langsung ke repo |
+| `engines/recap.py` | DIUBAH: `SCREENERS` +macd/mfi/overnight, `KEEP_DAYS` 40→260, +`hits_from_macd/mfi/overnight()`. | Cek langsung ke repo |
+| `scripts/update_market_data.py` | DIUBAH: `run_screeners()` rekam MACD/MFI/Overnight juga. | Cek langsung ke repo |
+| `utils/pages.py` | DIUBAH: hapus entri `leaderboard`+`recap_screener`, ganti `ranking_leaderboard`. | Cek langsung ke repo |
+| `views/top_nav.py` | DIUBAH: dropdown Leaderboard (2 sub-halaman) diganti 1 link langsung. | Cek langsung ke repo |
+| `views/home.py` | DIUBAH: hapus `render_recaps()` & pendukungnya (dead code, lihat 3c). | Cek langsung ke repo |
+| `.github/workflows/update_market_data.yml` | DIUBAH: +6 cron 01:15-06:15 WIB Senin-Jumat (lihat 3d). | Cek langsung ke repo |
+| `views/tab_leaderboard.py`, `views/tab_recap.py` | **HARUS DIHAPUS** dari repo (digantikan, sudah dihapus di sesi ini). | **Cek SUDAH TERHAPUS, bukan cuma "ada file baru"** |
+
 ## 5. Yang DITUNDA sampai user minta lagi
 - **Alarm bulanan otomatis `sector_map.csv`** — masih manual.
 - **Legal OJK** & **lisensi yfinance komersial** — Login sudah kelar, ini bisa mulai dibahas kalau user minta.
-- **Ranking Leaderboard (halaman baru, MENGGANTIKAN Leaderboard Screener + Rekap Screener)** — sudah
-  didiskusikan & disepakati konsepnya (belum diimplementasi, urutan setelah Login): Rank 1 = Top 30
-  saham berdasar % kenaikan (jendela waktu & ambang minimum diatur user, ada filter tanggal buat lihat
-  histori), dedup per saham (gain terbaik menang), tampilkan Saham/Screener asal/Tanggal
-  Sinyal/Harga Sinyal→Sekarang/Kenaikan%. Rank 2 = screener mana yg paling banyak nyumbang saham ke Top
-  30 itu (bantu user liat screener mana yg "lagi jalan" vs "lagi nggak nyala" di kondisi market
-  sekarang). **Prasyarat**: `scripts/update_market_data.py` harus mulai rekam MACD/MFI/BSJP-BPJS ke
-  histori harian (sekarang cuma RSI/Stoch/Breakout Surge/Trend Reset yg kerekam). **WAJIB kasih mockup
-  dulu ke user sebelum implementasi** (user eksplisit minta ini).
 - **Badge/Milestone Journal** — sempat dijelasin konsepnya (badge permanen dari jumlah trade/streak
   journal, ditaro di tab Journal Money Management), user bilang skip dulu.
 - **Disclaimer NFA yang lebih tegas** — user acc konsepnya ("murni analisis pribadi/edukasi, bukan

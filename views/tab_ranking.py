@@ -147,6 +147,18 @@ def _screener_row_html(rank, s, max_n):
     )
 
 
+def _close_trade_plan_dialog():
+    # Callback on_dismiss: dipanggil Streamlit sendiri pas dialog ditutup (klik X, klik luar, atau ESC).
+    # WAJIB reset state di sini -- kalau nggak, next rerun (krn interaksi lain di halaman) bakal
+    # nganggep "selected_ranking_ticker" masih keisi & dialognya kebuka lagi sendiri (gak bisa ditutup).
+    st.session_state["selected_ranking_ticker"] = None
+
+
+@st.dialog("Live Trade Plan", width="large", on_dismiss=_close_trade_plan_dialog)
+def _trade_plan_dialog(ticker):
+    render_inline_trade_planner(ticker, key_suffix="ranking", screener_name="Ranking Leaderboard")
+
+
 def render_page_ranking():
     _html(
         f"""<div class="zq-hero">
@@ -223,17 +235,20 @@ def render_page_ranking():
         st.info("Tidak ada saham yang lolos filter min. kenaikan di jendela ini. Coba turunkan angkanya atau perlebar jendela waktu.")
     else:
         for row in out["rows"]:
-            _html(_row_html(row))
-            code = row["ticker"].replace(".JK", "")
-            with keyed_container(f"zrk_open_{row['ticker']}"):
-                if st.button(f"Buka {code}", key=f"zrk_btn_{row['ticker']}", **STRETCH):
-                    st.session_state["selected_ranking_ticker"] = row["ticker"]
+            col_card, col_btn = st.columns([5, 1], vertical_alignment="center")
+            with col_card:
+                _html(_row_html(row))
+            with col_btn:
+                code = row["ticker"].replace(".JK", "")
+                with keyed_container(f"zrk_open_{row['ticker']}"):
+                    if st.button(f"Buka {code}", key=f"zrk_btn_{row['ticker']}", **STRETCH):
+                        st.session_state["selected_ranking_ticker"] = row["ticker"]
             st.markdown("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
 
         sel = st.session_state.get("selected_ranking_ticker")
         if sel and sel in {r["ticker"] for r in out["rows"]}:
             try:
-                render_inline_trade_planner(sel, key_suffix="ranking", screener_name="Ranking Leaderboard")
+                _trade_plan_dialog(sel)
             except Exception as e:
                 st.error(f"Gagal memuat Trade Plan {sel}: {e}")
 

@@ -11,9 +11,19 @@ import pandas as pd
 # memang cuma punya versi bullish, tidak ada versi bearish di engine). Quiet Accumulation SENGAJA tidak
 # direkap di sini: dia watchlist tanpa skor & tanpa arah beli/jual, jadi "hasilnya" tidak bisa diukur
 # dengan cara yang sama (rekap butuh harga sinyal + arah utk menghitung searah/tidaknya pergerakan).
-SCREENERS = (("rsi", "RSI Reversal"), ("stoch_psar", "Stoch Momentum"), ("breakout_surge", "Breakout Surge"), ("trend_reset", "Trend Reset"))
-SINGLE_DIRECTION = {"breakout_surge", "trend_reset"}  # tidak ada versi Bearish, sembunyikan baris itu di UI
-KEEP_DAYS = 40
+# MACD Momentum & MFI Reversal ikut direkap (2 arah, sama seperti RSI/Stoch). BSJP/BPJS (overnight)
+# ikut direkap SATU ARAH (selalu "Bullish" -- keduanya memang strategi beli, bukan short) -- dipakai
+# jg oleh Ranking Leaderboard (lihat engines/ranking.py).
+SCREENERS = (
+    ("rsi", "RSI Reversal"), ("stoch_psar", "Stoch Momentum"), ("breakout_surge", "Breakout Surge"), ("trend_reset", "Trend Reset"),
+    ("macd", "MACD Momentum"), ("mfi", "MFI Reversal"), ("overnight", "BSJP / BPJS"),
+)
+SINGLE_DIRECTION = {"breakout_surge", "trend_reset", "overnight"}  # tidak ada versi Bearish, sembunyikan baris itu di UI
+# 260 hari bursa (~1 tahun) -- dinaikkan dari 40 supaya jendela waktu "Tahunan" di Ranking Leaderboard
+# punya data (sebelumnya cuma 40 hari kesimpen, jendela tahunan/bulanan panjang jadi mustahil). Riwayat
+# lama (yg cuma 40 hari) tetap kebaca normal -- ini cuma menaikkan BATAS MAKSIMAL yg disimpan ke depan,
+# jadi butuh waktu berbulan-bulan sampai histori 1 tahun penuh terkumpul dari sekarang.
+KEEP_DAYS = 260
 
 
 def _t(x):
@@ -75,6 +85,41 @@ def hits_from_trend_reset(df):
             "t": _t(r["Ticker"]), "d": "Bullish", "s": _f(r.get("Score")), "p": _f(r.get("Close_Price")), "c": _f(r.get("Change_Pct")),
             "n": f"Koreksi {_f(r.get('Depth From High (%)')):.1f}% dari puncak",
         })
+    return out
+
+
+def hits_from_macd(df_gc, df_dc):
+    """MACD Momentum. df_gc = Golden Cross (Bullish), df_dc = Dead Cross (Bearish)."""
+    out = []
+    for df, d in ((df_gc, "Bullish"), (df_dc, "Bearish")):
+        if df is None or len(df) == 0:
+            continue
+        for _, r in df.iterrows():
+            out.append({
+                "t": _t(r["Ticker"]), "d": d, "s": _f(r.get("Score")), "p": _f(r.get("Close_Price")), "c": _f(r.get("Change_Pct")),
+                "n": f"ADX {_f(r.get('ADX')):.0f}" + (" (fresh trend)" if r.get("Fresh Trend") else ""),
+            })
+    return out
+
+
+def hits_from_mfi(df):
+    """MFI Reversal -- mesin & kolom sama persis dgn RSI Reversal (lihat screener_mfi_reversal.py),
+    jadi bisa pakai konverter yang sama."""
+    return hits_from_rsi(df)
+
+
+def hits_from_overnight(df_bsjp, df_bpjs):
+    """BSJP / BPJS. Selalu 'Bullish' (dua-duanya strategi beli, bukan short) -- ditandai di 'n' mana
+    dari dua mode itu yang kena."""
+    out = []
+    for df, tag in ((df_bsjp, "BSJP"), (df_bpjs, "BPJS")):
+        if df is None or len(df) == 0:
+            continue
+        for _, r in df.iterrows():
+            out.append({
+                "t": _t(r["Ticker"]), "d": "Bullish", "s": _f(r.get("Score")), "p": _f(r.get("Close_Price")), "c": _f(r.get("Change_Pct")),
+                "n": tag,
+            })
     return out
 
 

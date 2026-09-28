@@ -1,7 +1,7 @@
 """Halaman Admin Panel: kelola akun (approve/tolak), atur akses fitur per akun + tanggal kedaluwarsa.
 HANYA muncul/bisa diakses akun dgn is_admin=True (dicek di sini juga, bukan cuma disembunyikan dari
 menu -- pertahanan berlapis)."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from html import escape
 
 import pandas as pd
@@ -16,6 +16,7 @@ from utils.screeners import SCREENERS
 
 _STATUS_LABEL = {ACC.STATUS_PENDING: "Pending", ACC.STATUS_APPROVED: "Approved", ACC.STATUS_REJECTED: "Ditolak"}
 _STATUS_COLOR = {ACC.STATUS_PENDING: "#E3B341", ACC.STATUS_APPROVED: "#00FF66", ACC.STATUS_REJECTED: "#FF007F"}
+_WIB = timezone(timedelta(hours=7))
 
 
 def _load_accounts():
@@ -23,6 +24,19 @@ def _load_accounts():
         return ACC.list_all_accounts(), None
     except AUTH.AuthError as e:
         return [], str(e)
+
+
+def _fmt_wib(iso_str):
+    """ISO UTC (tersimpan di utils/account.py) -> 'DD-MM-YYYY HH:MM WIB', atau '-' kalau kosong/rusak."""
+    if not iso_str:
+        return "-"
+    try:
+        dt = datetime.fromisoformat(str(iso_str))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(_WIB).strftime("%d-%m-%Y %H:%M") + " WIB"
+    except ValueError:
+        return "-"
 
 
 def _row_dict(acc):
@@ -42,6 +56,8 @@ def _row_dict(acc):
         "Email Terverifikasi": "Ya" if acc.get("_email_confirmed") else "Belum",
         "Daftar": acc.get("created_at", ""),
         "Akses s.d.": acc.get("expires_at") or "Tanpa batas",
+        "Terakhir Login": _fmt_wib(acc.get("last_login_at")),
+        "Total Jam Aktif": ACC.format_duration(acc.get("total_active_seconds")),
         "_auth_id": acc.get("_auth_id"),
     }
 

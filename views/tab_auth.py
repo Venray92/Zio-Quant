@@ -57,6 +57,7 @@ def _login_form():
     from utils import profile
 
     profile.set_session_token(token)
+    ACC.record_login(auth_uid)
     if acc["status"] != ACC.STATUS_APPROVED:
         st.session_state["_just_logged_in_pending"] = True
     st.rerun()

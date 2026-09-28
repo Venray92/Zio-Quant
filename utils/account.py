@@ -1,7 +1,7 @@
 """Profil akun (nama, tanggal lahir, alamat, dll), status approval, dan akses fitur per screener +
 tanggal kedaluwarsa. Disimpan di tabel yang SAMA dengan Watchlist/Money Management (utils.storage),
 user_id = f"auth:{uid_supabase}", kind="account" -- tidak perlu tabel baru."""
-from datetime import date
+from datetime import date, datetime, timezone
 
 from utils import storage
 from utils.screeners import SCREENERS
@@ -11,6 +11,11 @@ STATUS_APPROVED = "approved"
 STATUS_REJECTED = "rejected"
 _STATUSES = {STATUS_PENDING, STATUS_APPROVED, STATUS_REJECTED}
 FEATURE_KEYS = tuple(s["key"] for s in SCREENERS)
+
+# Dipakai buat pantau "terakhir login" & "total jam aktif" (Admin Panel). Gap antar-aktivitas lebih
+# dari ini (detik) dianggap user idle/pergi -- jedanya TIDAK ikut ditambahin ke total_active_seconds
+# (jadi tab dibiarin kebuka semaleman gak bikin angkanya meledak, cuma waktu yg "nyambung" yg kehitung).
+ACTIVITY_GAP_SECONDS = 600
 
 
 def _key(auth_uid):
@@ -24,6 +29,7 @@ def default_account(email, full_name=""):
         "status": STATUS_PENDING, "is_admin": False,
         "created_at": date.today().isoformat(), "expires_at": None,
         "features": {k: False for k in FEATURE_KEYS},
+        "last_login_at": None, "last_activity_at": None, "total_active_seconds": 0,
     }
 
 
@@ -45,6 +51,13 @@ def _clean(acc, email_fallback=""):
     feats = acc.get("features")
     if isinstance(feats, dict):
         d["features"] = {k: bool(feats.get(k, False)) for k in FEATURE_KEYS}
+    for k in ("last_login_at", "last_activity_at"):
+        v = acc.get(k)
+        d[k] = str(v) if v else None
+    try:
+        d["total_active_seconds"] = max(0.0, float(acc.get("total_active_seconds") or 0))
+    except (TypeError, ValueError):
+        d["total_active_seconds"] = 0.0
     return d
 
 
@@ -66,6 +79,57 @@ def load_account(auth_uid):
 
 def save_account(auth_uid, account):
     storage.save(_key(auth_uid), "account", _clean(account, account.get("email", "") if isinstance(account, dict) else ""))
+
+
+def record_login(auth_uid):
+    """Dipanggil pas user BERHASIL sign-in (views/tab_auth.py). Catat waktu login ini sebagai
+    'terakhir login' -- juga jadi titik awal buat perhitungan total_active_seconds (track_activity)."""
+    acc = load_account(auth_uid)
+    if acc is None:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    acc["last_login_at"] = now
+    acc["last_activity_at"] = now
+    save_account(auth_uid, acc)
+
+
+def track_activity(account):
+    """Dipanggil tiap rerun app (app.py) buat user yg lagi login & aktif. Nambahin jeda dari
+    aktivitas terakhir ke total_active_seconds HANYA kalau jedanya < ACTIVITY_GAP_SECONDS (dianggap
+    masih 'nyambung' make app -- jeda yg lebih lama dianggap idle/tab dibiarin kebuka, gak dihitung).
+    Return dict account yg SUDAH diupdate (belum disimpan -- caller yg save_account, biar 1x request
+    nyatu sama gate check lain di app.py)."""
+    if not account:
+        return account
+    now = datetime.now(timezone.utc)
+    last = account.get("last_activity_at")
+    if last:
+        try:
+            last_dt = datetime.fromisoformat(str(last))
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+            gap = (now - last_dt).total_seconds()
+            if 0 < gap < ACTIVITY_GAP_SECONDS:
+                account["total_active_seconds"] = float(account.get("total_active_seconds") or 0) + gap
+        except ValueError:
+            pass
+    account["last_activity_at"] = now.isoformat()
+    return account
+
+
+def format_duration(seconds):
+    """3661 -> '1 jam 1 menit'. 0/None -> '< 1 menit'."""
+    try:
+        total = max(0, int(float(seconds or 0)))
+    except (TypeError, ValueError):
+        total = 0
+    h, rem = divmod(total, 3600)
+    m = rem // 60
+    if h == 0 and m == 0:
+        return "< 1 menit"
+    if h == 0:
+        return f"{m} menit"
+    return f"{h} jam {m} menit"
 
 
 def is_access_active(account):

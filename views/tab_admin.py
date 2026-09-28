@@ -26,10 +26,19 @@ def _load_accounts():
 
 
 def _row_dict(acc):
+    # Status TERSIMPAN tetap "approved" walau tanggal kedaluwarsa sudah lewat (supaya kalau nanti
+    # diperpanjang, tidak perlu approve ulang dari nol) -- tapi yang DITAMPILKAN ke admin di sini
+    # dikomputasi "Kadaluwarsa" biar ketahuan akun itu sekarang nonaktif, bukan diam-diam masih
+    # kelihatan "Approved" padahal sudah lewat batas.
+    status = acc.get("status")
+    if status == ACC.STATUS_APPROVED and not ACC.is_access_active(acc):
+        status_label = "Kadaluwarsa"
+    else:
+        status_label = _STATUS_LABEL.get(status, status)
     return {
         "Nama": acc.get("full_name") or "-",
         "Email": acc.get("email", ""),
-        "Status": _STATUS_LABEL.get(acc.get("status"), acc.get("status")),
+        "Status": status_label,
         "Email Terverifikasi": "Ya" if acc.get("_email_confirmed") else "Belum",
         "Daftar": acc.get("created_at", ""),
         "Akses s.d.": acc.get("expires_at") or "Tanpa batas",
@@ -129,9 +138,15 @@ def render_page_admin():
     b1, b2, b3, b4 = st.columns(4)
     with b1:
         if st.button("Approve", key=f"btn_approve_{auth_id}", **STRETCH, icon=":material/check_circle:"):
-            new_acc = dict(acc); new_acc["status"] = ACC.STATUS_APPROVED
+            # Approve ikut bawa fitur & tanggal kedaluwarsa yang lagi dicentang di form ini (dulu
+            # cuma status yg keubah, jadi fitur/tanggalnya balik kosong & admin harus pencet
+            # "Simpan Akses" lagi terpisah -- sekarang 1 klik langsung semua ke-apply).
+            new_acc = dict(acc)
+            new_acc["status"] = ACC.STATUS_APPROVED
+            new_acc["features"] = new_features
+            new_acc["expires_at"] = new_expiry.isoformat() if has_expiry else None
             ACC.save_account(auth_id, new_acc)
-            st.toast("Akun disetujui.")
+            st.toast("Akun disetujui & akses disimpan.")
             st.rerun()
     with b2:
         if st.button("Tolak", key=f"btn_reject_{auth_id}", **STRETCH, icon=":material/cancel:"):

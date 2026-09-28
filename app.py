@@ -44,6 +44,11 @@ if not ACC.can_enter_app(_account):
     render_footer()
     st.stop()
 
+# 3c. Catat "aktif" utk kolom Terakhir Login/Total Jam Aktif di Admin Panel -- jalan tiap rerun
+# (tiap klik/pindah halaman), lihat utils/account.py::track_activity utk cara ngitungnya.
+_account = ACC.track_activity(_account)
+ACC.save_account(_auth_uid, _account)
+
 if "selected_page" not in st.session_state:
     st.session_state["selected_page"] = "home"
 

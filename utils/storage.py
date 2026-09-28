@@ -337,14 +337,19 @@ def _set_error(msg):
     st.session_state["_store_error"] = msg
 
 
-def load(user_id, kind, default=None):
-    """Baca data. user_id None = tamu (hanya di sesi ini)."""
+def load(user_id, kind, default=None, fresh=False):
+    """Baca data. user_id None = tamu (hanya di sesi ini). fresh=True lewatin cache sesi ini --
+    dipakai utk data yang HARUS selalu real-time tiap rerun (co: status akses akun), krn cache
+    biasa (_cache() di bawah) nyangkut di st.session_state SELAMA sesi/tab browser itu hidup --
+    bukan cuma 1x render -- jadi kalau admin ubah dari sesi lain (fitur/kedaluwarsa), sesi user yg
+    lagi login gak bakal lihat perubahannya sampai bikin sesi baru (relogin/tab baru) kalau tanpa
+    fresh=True ini."""
     if user_id is None:
         val = _guest().get(kind)
         return copy.deepcopy(val) if val is not None else default
     cache = _cache()
     key = (user_id, kind)
-    if key not in cache:
+    if fresh or key not in cache:
         primary, fallback = get_backends()
         data = None
         try:

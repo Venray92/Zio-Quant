@@ -55,9 +55,12 @@ def create_account(auth_uid, email, full_name=""):
 
 
 def load_account(auth_uid):
+    """fresh=True (bukan cache biasa) -- status approval/fitur/kedaluwarsa itu gerbang akses, jadi
+    HARUS kebaca real-time tiap rerun, biar begitu admin ubah akses (fitur ditambah, atau tanggal
+    kedaluwarsa lewat), sesi user yg lagi login langsung ke-apply tanpa perlu logout-login ulang."""
     if not auth_uid:
         return None
-    raw = storage.load(_key(auth_uid), "account")
+    raw = storage.load(_key(auth_uid), "account", fresh=True)
     return _clean(raw) if raw is not None else None
 
 

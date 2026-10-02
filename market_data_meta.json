@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "history_period": "1y",
+  "recap_days": 10,
+  "updated_at_wib": "2026-10-02 23:09",
+  "last_candle_date": "2026-10-02",
+  "n_tickers": 921,
+  "n_requested": 921,
+  "rows": 223866,
+  "failed": []
+}

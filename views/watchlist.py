@@ -161,7 +161,7 @@ def _csv_safe(v):
     return "'" + s if s[:1] in ("=", "+", "-", "@") else s
 
 
-def _apply_filter_sort(items, snaps, flt, sort):
+def _apply_filter_sort(items, snaps, flt, sort, q=""):
     def snap(x):
         return snaps.get(x["Ticker"])
 
@@ -170,6 +170,9 @@ def _apply_filter_sort(items, snaps, flt, sort):
         return s["plan"]["zone"] if s and s["plan"] else ""
 
     view = list(items)
+    if q:
+        ql = q.strip().lower()
+        view = [x for x in view if ql in x["Ticker"].replace(".JK", "").lower() or ql in (x.get("Notes") or "").lower()]
     if flt == "Gainers":
         view = [x for x in view if snap(x) and snap(x)["chg"] > 0]
     elif flt == "Losers":
@@ -321,15 +324,22 @@ def render_page_watchlist():
                     **icon_kwargs("download", "download_button"),
                 )
 
+            with keyed_container("wlrow_search"):
+                search_q = st.text_input(
+                    "Search", key="wl_search", placeholder="Cari ticker, mis. BBCA...",
+                    label_visibility="collapsed",
+                )
+
             st.markdown(source_note_html(source), unsafe_allow_html=True)
 
-            view = _apply_filter_sort(items, snaps, flt, sort)
+            view = _apply_filter_sort(items, snaps, flt, sort, search_q)
             valid = {x["Ticker"] for x in items}
             if st.session_state.get("selected_watchlist_ticker") not in valid:
                 st.session_state["selected_watchlist_ticker"] = view[0]["Ticker"] if view else items[0]["Ticker"]
 
             if not view:
-                st.info(f"Tidak ada saham untuk filter {flt}.")
+                msg = f'Tidak ada saham yang cocok dengan "{search_q.strip()}".' if search_q.strip() else f"Tidak ada saham untuk filter {flt}."
+                st.info(msg)
             with st.container(height=700, border=False):
                 for x in view:
                     t = x["Ticker"]

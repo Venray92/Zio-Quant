@@ -463,6 +463,14 @@ def render_tab_stoch_psar():
 
             st.session_state["active_stoch_type"] = screener_mode
 
+            # Filter "lonjakan volume" -- persis di bawah dropdown Signal Mode. Checkbox ini CUMA
+            # ngurutin ulang (saham dgn "Vol x MA20" paling gede ditaro paling atas), bukan nyembunyiin
+            # saham lain -- biar gak ada data yg ilang, cuma prioritas tampilnya yg berubah.
+            vol_surge_top = st.checkbox(
+                "🔥 Lonjakan volume di atas (urutkan Vol x MA20 tertinggi)",
+                key="stoch_vol_surge_top",
+            )
+
             st.markdown(
                 source_note_html(st.session_state.get("stoch_source_text", "")),
                 unsafe_allow_html=True,
@@ -475,6 +483,10 @@ def render_tab_stoch_psar():
                 if is_gc_tab
                 else st.session_state.get("df_dc_data", pd.DataFrame())
             )
+            if vol_surge_top and not df_target.empty and "Vol x MA20" in df_target.columns:
+                # sort_values bikin DataFrame BARU (bukan inplace) -- df_gc_data/df_dc_data asli di
+                # session_state (dipakai jg sama tombol export CSV) sengaja TIDAK ikut keubah urutannya.
+                df_target = df_target.sort_values("Vol x MA20", ascending=False, na_position="last")
 
             if not df_target.empty:
                 with st.container(height=800, border=False):
